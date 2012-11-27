@@ -125,7 +125,7 @@ SUBROUTINE sym_def1 (def, irr)
   !
   USE kinds,       ONLY : DP
   USE d3_symmetry, ONLY : sg => sym_gamma
-  USE modes,       ONLY : nsymq
+  USE modes,       ONLY : nsymq, minus_q
   !USE io_global,   ONLY : stdout
   IMPLICIT NONE
   INTEGER :: irr ! input: the representation under consideration
@@ -139,13 +139,29 @@ SUBROUTINE sym_def1 (def, irr)
 
   COMPLEX(DP),ALLOCATABLE :: w_def (:) ! the fermi energy changes (work array)
   !
-  ALLOCATE(w_def(sg%npertx))
 
   DO ipert = 1, sg%npert(irr)
      def (ipert) = DBLE(def(ipert))
   ENDDO
-  !IF (sg%nsymq == 1) RETURN
-  IF (nsymq == 1) RETURN
+  !
+  ALLOCATE(w_def(sg%npertx))
+  IF (minus_q) THEN
+     w_def = (0.d0, 0.d0)
+     DO ipert = 1, sg%npert(irr)
+        DO jpert = 1, sg%npert(irr)
+           w_def (ipert) = w_def(ipert) + sg%tmq(jpert, ipert, irr) &
+                * def (jpert)
+        ENDDO
+     ENDDO
+     DO ipert = 1, sg%npert(irr)
+        def (ipert) = 0.5d0 * (def(ipert) + CONJG(w_def(ipert)) )
+     ENDDO
+  ENDIF
+  !
+  IF (nsymq == 1) THEN
+    DEALLOCATE(w_def)
+    RETURN
+  ENDIF
   !
   ! Here we symmetrize with respect to the small group of q
   !

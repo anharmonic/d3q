@@ -51,7 +51,6 @@ run_nscf_d3.o \
 set_kplus3q.o \
 solve_linter_d3q.o \
 stop_d3.o \
-symd0rho.o \
 trntnsc_3.o \
 w_1gauss.o \
 writed3dyn_5.o \
