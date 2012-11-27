@@ -1,0 +1,9 @@
+read3.o : read_d3dyn.o 
+read3.o : sc2c_tools.o
+xml2giorgia.o : read_d3dyn.o 
+xml2giorgia.o : sc2c_tools.o
+d3_sc2c.o : read_d3dyn.o 
+d3_sc2c.o : sc2c_tools.o
+
+
+
