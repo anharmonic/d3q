@@ -13,7 +13,7 @@ MODULE nscf_d3
 
   PRIVATE
 
-CONTAINS
+ CONTAINS
 !
 !-----------------------------------------------------------------------
 SUBROUTINE reload_nscf_d3()
@@ -277,7 +277,7 @@ SUBROUTINE setup_nscf_d3()
   ! ... "irreducible_BZ" computes the missing k-points.
   ! FIXME: minus_q should work now.. but it does not
   CALL irreducible_BZ(nrot, s, nsymq, minus_q, magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
-  !CALL irreducible_BZ(nrot, s, nsymq, .false., magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
+!   CALL irreducible_BZ(nrot, s, nsymq, .false., magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
   !
   ! ... add k+q to the list of k
   !

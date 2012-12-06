@@ -415,8 +415,8 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
   USE constants, ONLY : tpi
   USE io_global, ONLY : stdout
   IMPLICIT NONE
-  INTEGER :: nat, s(3, 3, 48), irt(48, nat), irgq(48), invs(48), &
-       nsymq, irotmq
+  INTEGER,INTENT(in) :: nat, s(3, 3, 48), irt(48, nat), irgq(48),&
+                        invs(48), nsymq, irotmq
   ! input: the number of atoms
   ! input: the symmetry matrices
   ! input: the rotated of each vector
@@ -424,12 +424,12 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
   ! input: the inverse of each matrix
   ! input: the order of the small gro
   ! input: the rotation sending q ->
-  REAL(DP) :: xq1(3), xq2(3), xq3(3)
+  REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
   ! input: the q point
-  REAL(DP) :: rtau(3, 48, nat)
+  REAL(DP),INTENT(in) :: rtau(3, 48, nat)
   ! input: the R associated at each t
 
-  LOGICAL :: minus_q
+  LOGICAL,INTENT(in) :: minus_q
   ! input: true if a symmetry q->-q+G
   COMPLEX(DP),INTENT(inout) :: phi(3, 3, 3, nat, nat, nat)
   ! inp/out: the matrix to symmetrize
@@ -443,10 +443,8 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
   ! counters
   LOGICAL, ALLOCATABLE:: done_equiv(:,:,:)
   ! used to account for symmetrized elements
-
   REAL(DP) :: arg
   ! the argument of the phase
-
   COMPLEX(DP) :: faseq(48), fasemq, workmq
   COMPLEX(DP),ALLOCATABLE ::  work(:,:,:), phip(:,:,:, :,:,:)
   ! the phase factor
@@ -457,12 +455,13 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
   !    If no symmetry is present we quit here
   IF((nsymq == 1) .and. (.not.minus_q) ) RETURN
   !
-  ALLOCATE(phip(3, 3, 3, nat, nat, nat))
   !
   !    Then we impose the symmetry q -> -q+G if present
   !
   IF(minus_q) THEN
+     ALLOCATE(phip(3, 3, 3, nat, nat, nat))
      WRITE(stdout, "(7x, a, i3)") "* symmetrizing with q --> -q operation", irotmq
+     !
      DO nc = 1, nat
      DO na = 1, nat
      DO nb = 1, nat
@@ -477,7 +476,6 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
                             xq3(kpol) * rtau(kpol, irotmq, nb) )
 
           ENDDO
-          !
           arg = arg * tpi
           fasemq = CMPLX(cos(arg), sin(arg) ,kind=DP)
           !
@@ -504,17 +502,17 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
     ENDDO
     ENDDO
     !
-  phi = phip
+    phi = phip
+    !
+    DEALLOCATE(phip)
+  ENDIF ! (minus_q)
   !
-  ENDIF ! minus_q
-  !
-  DEALLOCATE(phip)
   !
   !    Here we symmetrize with respect to the small group of q
   !
   IF(nsymq == 1) RETURN
   !
-  WRITE(*,'(7x,a,i3,a)') "* symmetrizing with",nsymq," sym.ops."
+  WRITE(stdout,'(7x,a,i3,a)') "* symmetrizing with",nsymq," sym.ops."
   ALLOCATE(work(3, 3, 3))
   ALLOCATE(done_equiv( nat, nat, nat))
   done_equiv = .false.
@@ -612,7 +610,6 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
 END SUBROUTINE d3_symdyn_core
 !-----------------------------------------------------------------------
 !
-
 !-----------------------------------------------------------------------
 SUBROUTINE minus_3q(xq1, xq2, xq3, at, bg, nsym, s, minus_q, irotmq)
   !-----------------------------------------------------------------------

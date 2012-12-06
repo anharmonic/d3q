@@ -164,7 +164,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
     symq(iq)%sym = sym
     call smallg_q(kplusq(iq)%xq, modenum, at, bg, nsym, s, ftau, symq(iq)%sym, symq(iq)%minus_q)
     ! FIXME! minus_q is currently not available in D3 code    
-!     symq(iq)%minus_q = .false. 
+    symq(iq)%minus_q = .false. 
     ! The phonon mechanism for minus_q doesn ot work in D3 because, i.e. in the case of G,q,-q,
     ! G will get irotmq = 1, while q and -q will get the same irotmq: I do not know what to do
     ! in this case. A specific subroutine that looks for a triple irotmq is required..
