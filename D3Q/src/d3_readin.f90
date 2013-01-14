@@ -42,6 +42,7 @@ SUBROUTINE d3_readin()
   USE d3_kgrid,         ONLY : nk1=>d3_nk1, nk2=>d3_nk2, nk3=>d3_nk3, &
                                k1=>d3_k1, k2=>d3_k2, k3=>d3_k3, &
                                degauss=>d3_degauss
+  USE d3_debug,         ONLY : read_d3_debug, bcast_d3_debug
   !
   IMPLICIT NONE
   !
@@ -180,6 +181,9 @@ SUBROUTINE d3_readin()
                        "'partial grid', 'full grid'", 1)
      ENDIF
      !
+     ! Read debug flags
+     CALL read_d3_debug(5)
+     !
      ! This is the temporary directory used by pw.x, it MUST be left unchanged for read_file to work:
      tmp_dir = trimcheck(outdir)
      !
@@ -216,6 +220,7 @@ SUBROUTINE d3_readin()
   !
   ! >>>>>>>>>> BROADCAST <<<<<<<<<<
   CALL bcast_d3_input()
+  CALL bcast_d3_debug()
   !
   !IF( degauss /= 0._dp .and. ( eqvect(xq1,Gamma,Gamma, 1.d-5) &
   !                         .or.eqvect(xq2,Gamma,Gamma, 1.d-5) &

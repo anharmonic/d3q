@@ -32,6 +32,7 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   USE d3_basis,     ONLY : patq
   USE io_global,    ONLY : stdout
   USE kplus3q,      ONLY : q_names
+  USE d3_debug,     ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat) ! the D3 matrix
@@ -148,19 +149,11 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   RHO_PERTURBATION
 
   d3dyn = d3dyn + d3dyn_loc + d3dyn_nlc
-!  IF(first)THEN
-!   first=.false.
-!   ALLOCATE(d3mrd(3*nat,3*nat,3*nat))
-!   d3mrd = d3dyn_loc + d3dyn_nlc
-!  ELSE
-!    d3mrd = d3mrd+2*(d3dyn_loc + d3dyn_nlc)
-!    CALL writed3dyn_5 (d3dyn_loc, 'drd2v.mrd.d3', 1)
-!  ENDIF
   ! debug:
-  write(filename,'("drd2v.loc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
-  CALL writed3dyn_5 (d3dyn_loc, filename, 1)  !
+  write(filename,'(".drd2v.loc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
+  CALL dbgwrite_d3dyn (d3dyn_loc, filename, 1)  !
   write(filename,'("drd2v.nlc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
-  CALL writed3dyn_5 (d3dyn_nlc, filename, 1)  !
+  CALL dbgwrite_d3dyn (d3dyn_nlc, filename, 1)  !
   !
   DEALLOCATE(d23_loc, d23_nlc, d3dyn_loc, d3dyn_nlc)
   !

@@ -16,6 +16,7 @@ allocate_pert_d3.o \
 d2mxc.o \
 d3_basis.o \
 d3com.o \
+d3_debug.o \
 d3_exc.o \
 d3_grid.o \
 d3_h_psi.o \
@@ -53,7 +54,6 @@ solve_linter_d3q.o \
 stop_d3.o \
 trntnsc_3.o \
 w_1gauss.o \
-writed3dyn_5.o \
 write_d3dyn.o 
 
 PWOBJS = ../../PW/src/libpw.a

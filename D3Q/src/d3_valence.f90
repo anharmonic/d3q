@@ -359,6 +359,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
   USE pwcom,        ONLY : degauss, ngauss, nbnd, et, ef
   USE phcom,        ONLY : nksq
+  USE d3_debug,     ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   !
@@ -434,8 +435,8 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   CALL mp_sum( d3dyn_2efsh, inter_pool_comm )
   CALL mp_sum( d3dyn_3efsh, inter_pool_comm )
   !
-  CALL writed3dyn_5 (d3dyn_2efsh, 'd3_valence.3.d3', 1)
-  CALL writed3dyn_5 (d3dyn_3efsh, 'd3_valence.4.d3', 1)
+  CALL dbgwrite_d3dyn (d3dyn_2efsh, 'd3_valence.3', 1)
+  CALL dbgwrite_d3dyn (d3dyn_3efsh, 'd3_valence.4', 1)
   !
   d3dyn = d3dyn + d3dyn_2efsh + d3dyn_3efsh
   !

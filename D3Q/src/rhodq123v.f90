@@ -34,6 +34,7 @@ SUBROUTINE rhodq123v(d3dyn)
   USE d3com,                ONLY : npert_i, npert_f
   USE kplus3q,              ONLY : kplusq
   USE d3_basis,             ONLY : patq
+  USE d3_debug,             ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
@@ -229,8 +230,8 @@ SUBROUTINE rhodq123v(d3dyn)
   ENDDO
   ENDDO
   !
-  CALL writed3dyn_5(d3dynpat,  'rd3v.1.d3', 1)
-  CALL writed3dyn_5(d3dynpat2, 'rd3v.2.d3', 1)
+  CALL dbgwrite_d3dyn(d3dynpat,  'rd3v.1', 1)
+  CALL dbgwrite_d3dyn(d3dynpat2, 'rd3v.2', 1)
   !
 #ifdef __MPI
 !   CALL mp_sum( d3dynwrk2, inter_pool_comm )

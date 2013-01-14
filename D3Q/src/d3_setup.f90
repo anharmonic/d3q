@@ -192,6 +192,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   !
   minus_q = symq(1)%minus_q .and. symq(2)%minus_q .and. symq(3)%minus_q
   !
+  ! Look if there is a single sym.op. that links ALL THREE q's to their opposites
   CALL minus_3q(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, at, bg, nsym, s, minus_q, irotmq)
   IF(.not. minus_q) THEN
     ! set individual minus_q to .false. if global minus_q is false

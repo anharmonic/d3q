@@ -46,12 +46,16 @@ SUBROUTINE writed3dyn_5 (d3dyn_x, filename, isw)
   CHARACTER(len=256) :: order
   INTEGER :: i1,i2,i3, ios
 
+
   ! **********
   RETURN   ! *
   ! **********
 
-  CALL d3matrix(d3dyn_x, TRIM(fild3dyn)//"_"//TRIM(filename))
+  CALL d3matrix(d3dyn_x, TRIM(fild3dyn)//"."//TRIM(filename))
 
+  ! **********
+  RETURN   ! *
+  ! **********
 
   IF ( .NOT. ionode ) RETURN
 

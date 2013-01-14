@@ -1,4 +1,4 @@
-# Makefile for PWCOND
+# Makefile for D3Q
 # Adapted from TDDFPT main Makefile
 
 default: all

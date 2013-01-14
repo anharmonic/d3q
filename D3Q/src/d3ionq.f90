@@ -207,8 +207,6 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
   ENDDO loop_a_1 !a_1
   ENDDO        !na_1
   !
-!   call writed3dyn_5 (d3dion, 'd3ionq3.d3', 1)
-
 #ifdef __MPI
   ! in the parallel case, recollect the modes
   CALL mp_sum( d3dion, intra_pool_comm )
