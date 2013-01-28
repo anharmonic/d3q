@@ -641,7 +641,7 @@ SUBROUTINE drho_drc (iq, u_x, xq_x, drc_x, scalef)
   INTEGER :: ipert, na, mu, nt, ig
   REAL (DP) :: gtau
   COMPLEX (DP) :: guexp
-  COMPLEX (DP), ALLOCATABLE :: drhoc (:), drhov (:), uact (:)
+  COMPLEX (DP), ALLOCATABLE :: drhoc(:), drhov(:)
   !
   IF ( cc_added_to_drho(iq) ) THEN
     CALL errore('drho_drc', 'CC already added to drho at this q', iq)
@@ -651,46 +651,43 @@ SUBROUTINE drho_drc (iq, u_x, xq_x, drc_x, scalef)
   !
   ALLOCATE(drhoc(dfftp%nnr))
   ALLOCATE(drhov(dfftp%nnr))
-  ALLOCATE(uact(3*nat))
 
   DO ipert = 1, 3 * nat
      drhoc(:) = (0.d0, 0.d0)
-     uact(:) = u_x (:, ipert)
      DO na = 1, nat
         mu = 3 * (na - 1)
-        IF (ABS (uact (mu + 1) ) + ABS (uact (mu + 2) ) + &
-            ABS (uact (mu + 3) ) > 1.0d-12) THEN
+        !IF (ABS (u_x(mu+1,ipert) ) + ABS (u_x(mu+2,ipert) ) + &
+        !    ABS (u_x(mu+3,ipert) ) > 1.0d-12) THEN
            nt = ityp (na)
            IF (upf(nt)%nlcc) THEN
               DO ig = 1, ngm
-                 gtau = tpi * ( (g (1, ig) + xq_x (1) ) * tau (1, na) &
-                              + (g (2, ig) + xq_x (2) ) * tau (2, na) &
-                              + (g (3, ig) + xq_x (3) ) * tau (3, na) )
-                 guexp = tpiba * ( (g (1, ig) + xq_x (1) ) * uact (mu + 1) &
-                                 + (g (2, ig) + xq_x (2) ) * uact (mu + 2) &
-                                 + (g (3, ig) + xq_x (3) ) * uact (mu + 3) )&
+                 gtau = tpi * ( (g(1,ig) + xq_x(1)) * tau(1, na) &
+                              + (g(2,ig) + xq_x(2)) * tau(2, na) &
+                              + (g(3,ig) + xq_x(3)) * tau(3, na) )
+                 guexp = tpiba * ( (g(1,ig) + xq_x(1)) * u_x(mu+1,ipert) &
+                                 + (g(2,ig) + xq_x(2)) * u_x(mu+2,ipert) &
+                                 + (g(3,ig) + xq_x(3)) * u_x(mu+3,ipert) )&
                                * CMPLX(0.d0, -1.d0,kind=DP) &
                                * CMPLX(cos(gtau), -sin(gtau) ,kind=DP)
-                 drhoc (nl (ig) ) = drhoc (nl (ig) ) + drc_x (ig, nt) * guexp
+                 drhoc(nl(ig)) = drhoc(nl(ig)) + drc_x(ig,nt) * guexp
               ENDDO
-           ENDIF
+           !ENDIF
         ENDIF
      ENDDO
      !
      CALL invfft('Dense', drhoc, dfftp)
      !
-     CALL davcio_drho_d3 (drhov, lrdrho, iu_drho_q(iq), ipert, - 1)
+     CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), ipert, -1)
      !
      drhov(:) = drhov(:) + scalef * drhoc(:)
      !
-     CALL davcio_drho_d3 (drhov, lrdrho, iu_drho_cc_q(iq), ipert, +1)
+     CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), ipert, +1)
   ENDDO
 
   CALL mp_barrier()
 
   DEALLOCATE (drhoc)
   DEALLOCATE (drhov)
-  DEALLOCATE (uact)
   RETURN
   !-----------------------------------------------------------------------
 END SUBROUTINE drho_drc

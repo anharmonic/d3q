@@ -64,8 +64,6 @@ SUBROUTINE d3_reset(print_clock, cleanup)
   CALL deallocate_d3()
   !
   IF(print_clock) CALL print_clock_d3_short()
-!   CALL stop_clock('D3TOTEN')
-!   CALL start_clock('D3TOTEN')
   !
   !-----------------------------------------------------------------------
 END SUBROUTINE

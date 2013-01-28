@@ -251,6 +251,29 @@ program d3toten
     !
     !______________________________________________________________________________________________
     !
+    ! d3_add_rho_core(+1) adds the variation of the core charge
+    ! to the charge derivative and writes it to a different file.
+    ! The variation of the charge, modified this way is used by
+    ! the routines d3_exc and d3dyn_cc.
+    !
+    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') mpime
+    WRITE( stdout, '(/,5x,"Adding derivative of core charge")')
+    !printed = .false.
+    IF(dbg_add_core) THEN
+       CALL d3_add_rho_core( +1._dp )
+    ELSE
+       WRITE(stdout,'(5x,"WARNING: Adding null core")')
+       CALL d3_add_rho_core( 0._dp ) ! DEBUG: add a null core, multiplied by zero
+    ENDIF
+    t1 = get_clock (code) - t0
+    t0 = get_clock (code)
+    WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
+        &         " sec    Total time:",f12.2," sec")') t1, t0
+    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') mpime
+    CALL flush_unit( stdout )
+
+    !______________________________________________________________________________________________
+    !
     !printed = .false.
     t0 = get_clock (code)
     write( stdout, '(/,5x,"===================================================")')
@@ -304,7 +327,7 @@ program d3toten
       d3tmp = d3tmp + d3(iperm)%dyn
       CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'dpdvdp.'//d3perms(iperm)%name, 1)
     ENDDO
-    CALL dbgwrite_d3dyn(d3tmp, 'dpdvdp.d3', 1)
+    CALL dbgwrite_d3dyn(d3tmp, 'dpdvdp', 1)
     d3dyn_dpdvdp = d3tmp
     !
     t1 = get_clock (code) - t0
@@ -336,7 +359,7 @@ program d3toten
       d3tmp = d3tmp + d3(iperm)%dyn
       CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'dpdpdv.'//d3perms(iperm)%name, 1)
     ENDDO
-    CALL dbgwrite_d3dyn(d3tmp, 'dpdpdv.d3', 1)
+    CALL dbgwrite_d3dyn(d3tmp, 'dpdpdv', 1)
     d3dyn_dpdpdv = d3tmp
     !
     t1 = get_clock (code) - t0
@@ -377,7 +400,7 @@ program d3toten
       CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'drd2v.'//d3perms(iperm)%name, 1)
     ENDDO
     !
-    CALL dbgwrite_d3dyn(d3tmp, 'drd2v.d3', 1)
+    CALL dbgwrite_d3dyn(d3tmp, 'drd2v', 1)
     d3dyn_drd2v = d3tmp
     !
     t1 = get_clock (code) - t0
@@ -397,7 +420,7 @@ program d3toten
       d3dyn_rd3v = (0._dp, 0._dp)
       !printed = .false.
     CALL rhodq123v(d3dyn_rd3v)
-      CALL dbgwrite_d3dyn (d3dyn_rd3v, 'rd3v.d3', 1)
+      CALL dbgwrite_d3dyn (d3dyn_rd3v, 'rd3v', 1)
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3vrho        cpu time:",f9.2, &
@@ -415,7 +438,7 @@ program d3toten
     d3dyn_ion = (0._dp, 0._dp)
     CALL d3ionq( kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, &
                  patq(1)%u, patq(2)%u, patq(3)%u, ethr_ph, d3dyn_ion )
-    CALL dbgwrite_d3dyn (d3dyn_ion, 'd3ionq.d3', 1)
+    CALL dbgwrite_d3dyn (d3dyn_ion, 'd3ionq', 1)
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3ionq        cpu time:",f9.2, &
@@ -452,7 +475,7 @@ program d3toten
         d3tmp = d3tmp + d3(iperm)%dyn
         CALL dbgwrite_d3dyn(6*d3(iperm)%dyn, 'smr_ijk.'//d3perms(iperm)%name, 1)
       ENDDO
-      CALL dbgwrite_d3dyn(d3tmp, 'smr_ijk.d3', 1)
+      CALL dbgwrite_d3dyn(d3tmp, 'smr_ijk', 1)
       d3dyn_smear = d3tmp
       ENDIF DBG_smr1
       !_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
@@ -480,7 +503,7 @@ program d3toten
         d3tmp = d3tmp + d3(iperm)%dyn
         CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'smr_ij.'//d3perms(iperm)%name, 1)
       ENDDO
-      CALL dbgwrite_d3dyn(d3tmp, 'smr_ij.d3', 1)
+      CALL dbgwrite_d3dyn(d3tmp, 'smr_ij', 1)
       d3dyn_smear = d3dyn_smear + d3tmp
       ENDIF DBG_smr2
       !_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
@@ -488,12 +511,12 @@ program d3toten
       IF(dbg_do_smr_g) THEN
       d3tmp = (0._dp,0._dp)
       CALL d3_valence_gamma(d3tmp)
-      CALL dbgwrite_d3dyn (d3tmp, 'smr_g.d3', 1)
+      CALL dbgwrite_d3dyn (d3tmp, 'smr_g', 1)
       d3dyn_smear = d3dyn_smear+d3tmp
       ENDIF
       !
       !
-      CALL dbgwrite_d3dyn (d3dyn_smear, 'smr.d3', 1)
+      CALL dbgwrite_d3dyn (d3dyn_smear, 'smr', 1)
       t1 = get_clock (code) - t0
       t0 = get_clock (code)
       WRITE( stdout, '(5x,"d3_valence    cpu time:",f9.2, &
@@ -508,21 +531,21 @@ program d3toten
     ! The variation of the charge, modified this way is used by
     ! the routines d3_exc and d3dyn_cc.
     !
-    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') mpime
-    WRITE( stdout, '(/,5x,"Adding derivative of core charge")')
-    !printed = .false.
-    IF(dbg_add_core) THEN
-       CALL d3_add_rho_core( +1._dp )
-    ELSE
-       WRITE(stdout,'(5x,"WARNING: Adding null core")')
-       CALL d3_add_rho_core( 0._dp ) ! DEBUG: add a null core, multiplied by zero
-    ENDIF
-    t1 = get_clock (code) - t0
-    t0 = get_clock (code)
-    WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
-        &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') mpime
-    CALL flush_unit( stdout )
+!    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') mpime
+!    WRITE( stdout, '(/,5x,"Adding derivative of core charge")')
+!    !printed = .false.
+!    IF(dbg_add_core) THEN
+!       CALL d3_add_rho_core( +1._dp )
+!    ELSE
+!       WRITE(stdout,'(5x,"WARNING: Adding null core")')
+!       CALL d3_add_rho_core( 0._dp ) ! DEBUG: add a null core, multiplied by zero
+!    ENDIF
+!    t1 = get_clock (code) - t0
+!    t0 = get_clock (code)
+!    WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
+!        &         " sec    Total time:",f12.2," sec")') t1, t0
+!    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') mpime
+!    CALL flush_unit( stdout )
     !______________________________________________________________________________________________
     !
     ! calculate d3Ei * drho * drho * drho, where drho is the variation
@@ -535,7 +558,7 @@ program d3toten
     d3dyn_exc = (0._dp, 0._dp)
     !printed = .false.
     CALL d3_exc(d3dyn_exc)
-    CALL dbgwrite_d3dyn (d3dyn_exc, 'exc.d3',- 1)
+    CALL dbgwrite_d3dyn (d3dyn_exc, 'exc',- 1)
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3_exc        cpu time:",f9.2, &
@@ -559,7 +582,7 @@ program d3toten
       !printed = .false.
       IF(dbg_do_nlcc_0) THEN
       CALL d3_nlcc_0(d3dyn_nlcc)
-      CALL dbgwrite_d3dyn(d3dyn_nlcc, 'nlcc_0.d3', 1)
+      CALL dbgwrite_d3dyn(d3dyn_nlcc, 'nlcc_0', 1)
       ENDIF
       !_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
       !
@@ -579,10 +602,10 @@ program d3toten
         d3tmp = d3tmp + d3(iperm)%dyn
         CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'nlcc_123.'//d3perms(iperm)%name, 1)
       ENDDO
-      CALL dbgwrite_d3dyn(d3tmp, 'nlcc_123.d3', 1)
+      CALL dbgwrite_d3dyn(d3tmp, 'nlcc_123', 1)
       d3dyn_nlcc = d3dyn_nlcc + d3tmp
       !
-      CALL dbgwrite_d3dyn(d3dyn_nlcc, 'nlcc.d3', 1)
+      CALL dbgwrite_d3dyn(d3dyn_nlcc, 'nlcc', 1)
       !
       t1 = get_clock (code) - t0
       t0 = get_clock (code)
