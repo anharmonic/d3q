@@ -1,10 +1,10 @@
 !
-! programmino di esempio...
+! Small example program
 !
 PROGRAM read3
   USE kinds,       ONLY : DP
   USE d3matrix_io, ONLY : read_d3dyn_xml
-  use cell_base,       ONLY : at, ibrav, celldm, omega
+  use cell_base,   ONLY : at, ibrav, celldm, omega
 
 
   IMPLICIT NONE
@@ -36,6 +36,11 @@ PROGRAM read3
   maxdiff = 0._dp
   maxperc = 0._dp
   !
+  write(*,'(2a)') "p3: ", trim(fname1)
+  write(*,'(2a)') "q3: ", trim(fname2)
+  write(*,'(2a)') "i,j,k,a,b,c, i+3*(a-1),j+3*(b-1),k+3*(c-1), diff,",&
+                  " ABS(p3(i,j,k,a,b,c)), ABS(q3(i,j,k,a,b,c)),  p3(i,j,k,a,b,c), q3(i,j,k,a,b,c), perc, maxperc"
+
   DO a = 1,natoms
   DO b = 1,natoms
   DO c = 1,natoms

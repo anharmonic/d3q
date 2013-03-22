@@ -19,14 +19,14 @@ MODULE d3_onecenter
   USE kinds, only: DP
   !
   TYPE d3_local_potential
-    REAL(DP),POINTER    :: loc(:,:)
+    REAL(DP),POINTER    :: loc(:,:) => null()
   END TYPE d3_local_potential
-  TYPE(d3_local_potential) :: d3v(-3:3)
+  TYPE(d3_local_potential),SAVE :: d3v(-3:3)
   !
   TYPE d3_nlcc_variation
-    COMPLEX(DP),POINTER    :: drc(:,:)
+    COMPLEX(DP),POINTER    :: drc(:,:) => null()
   END TYPE d3_nlcc_variation
-  TYPE(d3_nlcc_variation) :: d3c(-3:3)
+  TYPE(d3_nlcc_variation),SAVE :: d3c(-3:3)
 
 END MODULE d3_onecenter
 !

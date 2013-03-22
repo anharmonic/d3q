@@ -66,15 +66,12 @@ SUBROUTINE d3_exc(d3dyn)
     DO ipert = 1, 3 * nat
       !
       CALL read_drho(rho1, 1, ipert, with_core=.true., pool_only=.true.)
-!      CALL davcio(rho1, lrdrho, iu_drho_cc_q(1), ipert, -1)
       DO jpert = 1, 3 * nat
         !
         CALL read_drho(rho2, 2, jpert, with_core=.true., pool_only=.true.)
-!        CALL davcio(rho2, lrdrho, iu_drho_cc_q(2), jpert, -1)
         DO kpert = 1, 3 * nat
           !
           CALL read_drho(rho3, 3, kpert, with_core=.true., pool_only=.true.)
-!          CALL davcio(rho3, lrdrho, iu_drho_cc_q(2), kpert, -1)
           !
           ! Short version:
 !          aux = SUM(d2muxc*rho1*rho2*rho3)
@@ -93,7 +90,7 @@ SUBROUTINE d3_exc(d3dyn)
           DO ir = 1,dfftp%nnr
             aux = aux + rho3(ir)
           ENDDO
-          !
+!           !
           CALL mp_sum( aux, intra_pool_comm )
           !
           d3dyn1(ipert, jpert, kpert) = pref * aux

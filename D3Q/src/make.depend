@@ -3,9 +3,6 @@ allocate_d3.o : ../../Modules/becmod.o
 allocate_d3.o : ../../Modules/ions_base.o
 allocate_d3.o : ../../Modules/uspp.o
 allocate_d3.o : ../../PW/src/pwcom.o
-allocate_pert_d3.o : ../../Modules/ions_base.o
-allocate_pert_d3.o : ../../Modules/kind.o
-allocate_pert_d3.o : ../../PHonon/PH/phcom.o
 d2mxc.o : ../../Modules/constants.o
 d2mxc.o : ../../Modules/kind.o
 d3_basis.o : ../../Modules/kind.o
@@ -19,6 +16,7 @@ d3_debug.o : ../../Modules/cell_base.o
 d3_debug.o : ../../Modules/io_global.o
 d3_debug.o : ../../Modules/ions_base.o
 d3_debug.o : ../../Modules/kind.o
+d3_debug.o : ../../Modules/mp.o
 d3_debug.o : ../../PHonon/PH/phcom.o
 d3_debug.o : ../../PW/src/symm_base.o
 d3_exc.o : ../../D3Q/src/d3_iofiles.o
@@ -104,6 +102,7 @@ d3_nlcc.o : ../../PW/src/pwcom.o
 d3_nlcc.o : ../../PW/src/scf_mod.o
 d3_open.o : ../../Modules/io_files.o
 d3_open.o : ../../Modules/io_global.o
+d3_readin.o : ../../D3Q/src/d3_debug.o
 d3_readin.o : ../../D3Q/src/d3_grid.o
 d3_readin.o : ../../D3Q/src/d3_iofiles.o
 d3_readin.o : ../../D3Q/src/d3com.o

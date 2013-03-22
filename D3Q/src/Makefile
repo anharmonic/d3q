@@ -12,7 +12,6 @@ D3QOBJS = d3q.o
 
 D3QLIBS = \
 allocate_d3.o \
-allocate_pert_d3.o \
 d2mxc.o \
 d3_basis.o \
 d3com.o \

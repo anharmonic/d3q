@@ -150,7 +150,7 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
 
   d3dyn = d3dyn + d3dyn_loc + d3dyn_nlc
   ! debug:
-  write(filename,'(".drd2v.loc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
+  write(filename,'("drd2v.loc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
   CALL dbgwrite_d3dyn (d3dyn_loc, filename, 1)  !
   write(filename,'("drd2v.nlc.",3i1,".d3")') iq_drho, iq_dva, iq_dvb
   CALL dbgwrite_d3dyn (d3dyn_nlc, filename, 1)  !

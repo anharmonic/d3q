@@ -184,7 +184,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
             CALL davcio (dpsi_lft, lrdwf, iu_dwfc(0, -iq_lft), nrec, -1)
           ELSE
             ! if we are doing the same mode at identical q's, we can just copy from memory
-           dpsi_lft = dpsi_rgt
+            dpsi_lft = dpsi_rgt
           ENDIF
           !
           ! Compute <dpsi|dH|dpsi>, including also the weight of the k-point and the smearing
