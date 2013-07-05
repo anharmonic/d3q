@@ -175,7 +175,7 @@ subroutine read_mat2R
         if (j1.ne.j1_ .or. j2.ne.j2_ .or. na1.ne.na1_ .or. na2.ne.na2_ ) then
            write(*,*) j1, j2, na1, na2
            write(*,*) j1_, j2_, na1_, na2_
-           call errore('reading matR','somwthing wrong',1)
+           call errore('reading matR','something wrong',1)
         endif
         jn1 = j1_ + (na1_-1)*3
         jn2 = j2_ + (na2_-1)*3            
@@ -263,7 +263,7 @@ subroutine read_mat3R
   if (ntyp.ne.ntyp_ .or. nat.ne.nat_ .or. ibrav.ne.ibrav_ ) then
    if(nrank.eq.1)   write(*,*)  ntyp, nat, ibrav, celldm
    if(nrank.eq.1)   write(*,*)  ntyp_,nat_,ibrav_,celldm_
-     call warning('read mat3R','somwthing wrong',1)
+     call warning('read mat3R','something wrong',1)
   endif
   do ii=1,6
      if(celldm_(ii).ne.celldm(ii)) then 
@@ -318,7 +318,7 @@ subroutine read_mat3R
              na1.ne.na1_ .or. na2.ne.na2_ .or. na3_.ne.na3      ) then
          if(nrank.eq.1)   write(*,*) j1, j2, j3, na1, na2, na3
          if(nrank.eq.1)   write(*,*) j1_, j2_,j3_, na1_, na2_, na3_
-           call warning('reading matR3','somwthing wrong',1)
+           call warning('reading matR3','something wrong',1)
         endif
         jn1 = j1_ + 3*(na1_-1)
         jn2 = j2_ + 3*(na2_-1)
