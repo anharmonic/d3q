@@ -1,6 +1,8 @@
 
-Two examples, in both we compuet the full doule-grid dispersion fo anharmonice constants:
-
+Two examples about the d3 calculations, in both we compuet the full doule-grid dispersion fo anharmonice constants:
 MoS2     : lots of comments in the input files
 Graphene : just a few comments
+
+One more example about the calculation of centered force-constants:
+Thermal  : it is actualyl still a WIP but you can have a look at the run script to find ou the steps
 
