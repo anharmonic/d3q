@@ -1,0 +1,13 @@
+d3 for graphene
+&inputph
+   mode='full'
+   prefix = 'gene',
+   fildrho = 'auto:drho_rot',
+   fild3dyn = 'FILD3DYN/anh',
+   ethr_ph = 1.d-9
+   offset=__OFFSET__
+   step=8
+   restart=.true.
+ /
+ 8 8 1
+

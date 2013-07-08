@@ -1,0 +1,19 @@
+graphene for phonons
+ &inputph
+  tr2_ph=1.0d-15 !20,
+  prefix='gene',
+  epsil=.false.,
+  trans=.true.,
+  zue=.false.,
+  iverbosity=1
+
+  ldisp=.true.
+   nq1=8, nq2=8, nq3=1
+
+  fildyn='FILDYN/dyn',
+
+  fildrho='drho',
+    drho_star%open = .true.
+    drho_star%ext  = 'drho_rot'
+ /
+

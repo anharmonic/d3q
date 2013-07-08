@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# THIS IS NOT REALLY A SCRIPT: READ IT AND RUN THE COMMAND BY HAND
+# TOO MANY THINGS ARE NOT WORKING PROPERLY FOR THIS TO BE EXECUTED AUTOMATICALLY!
+
+
+
+source=$1
+
+if [ -z $source ]; then
+	echo "Syntax: $0 SOURCE"
+	echo "	SOURCE : where to find FILD3DYN and FILDYN (i.e. MoS2 or Graphene)"
+	exit 66
+else
+	echo "Nice try, but this still isn't working. Open $0 with a text editor and read it."
+fi
+
+echo "Copying files here"
+cp -a ../$source/FILDYN .
+cp -a ../$source/FILD3DYN .
+
+# STEP 1:
+# generate the force constant file, the q2r_ml.in file NEEDS TO BE EDITED BY HAND
+# as it assumes a 4x4x1 grid in every case
+../../Q2R_ml/mat2q2r.x < q2r_ml.in
+
+
+# STEP 2a:
+# convert ANHarmonic dynamical matrices from XML to undocumented format:
+ls FILD3DYN/anh*| ../../tools/xml2giorgia.x
+# this will create a file fort.666 containing all the ANH files
+
+# STEP 2b:
+# generate 3-body force constants:
+
+# this will probably require both editing the input file and changing
+# HARD-CODED dimensions in the code. In principle the syntax is like this:
+ ../../Q2R3/mat3q2r.x < q2rd3.in
+
+
