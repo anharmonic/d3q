@@ -17,7 +17,7 @@ MODULE d3_basis
   !
 CONTAINS
 !-----------------------------------------------------------------------
-SUBROUTINE allocate_d3_pattern(nat, pattern)
+pure SUBROUTINE allocate_d3_pattern(nat, pattern)
   !-----------------------------------------------------------------------
   IMPLICIT NONE
   INTEGER,INTENT(IN) :: nat
@@ -34,7 +34,7 @@ END SUBROUTINE allocate_d3_pattern
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE deallocate_d3_pattern(pattern)
+pure SUBROUTINE deallocate_d3_pattern(pattern)
   !-----------------------------------------------------------------------
   IMPLICIT NONE
   TYPE(d3_pattern_type),INTENT(INOUT) :: pattern
@@ -46,7 +46,7 @@ END SUBROUTINE deallocate_d3_pattern
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_cart2pat(d3in, nat, u1, u2, u3, d3out)
+pure SUBROUTINE d3_cart2pat(d3in, nat, u1, u2, u3, d3out)
   !-----------------------------------------------------------------------
   !
   !   Rotates third derivative of the dynamical basis from cartesian axis
@@ -99,7 +99,7 @@ END SUBROUTINE d3_cart2pat
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_pat2cart(d3in, nat, u1, u2, u3, d3out)
+pure SUBROUTINE d3_pat2cart(d3in, nat, u1, u2, u3, d3out)
   !-----------------------------------------------------------------------
   !
   !   Rotates third derivative of the dynamical basis from the basis
@@ -152,7 +152,7 @@ END SUBROUTINE d3_pat2cart
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_3idx_2_6idx(nat, d3, phi)
+pure SUBROUTINE d3_3idx_2_6idx(nat, d3, phi)
   !-----------------------------------------------------------------------
   !
   !   Changes the index from (3*nat)^3 to 3^3 times nat^3
@@ -192,7 +192,7 @@ END SUBROUTINE d3_3idx_2_6idx
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_6idx_2_3idx(nat, phi, d3)
+pure SUBROUTINE d3_6idx_2_3idx(nat, phi, d3)
   !-----------------------------------------------------------------------
   !
   !   Changes the index from 3^3 times nat^3 to (3*nat)^3 
@@ -232,7 +232,7 @@ END SUBROUTINE d3_6idx_2_3idx
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_cart2crys(nat, at, bg, phi)
+pure SUBROUTINE d3_cart2crys(nat, at, bg, phi)
   !-----------------------------------------------------------------------
   !
   !   Rotates third derivative of the dynamical basis from the basis
@@ -259,7 +259,7 @@ SUBROUTINE d3_cart2crys(nat, at, bg, phi)
 END SUBROUTINE d3_cart2crys
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
-SUBROUTINE d3_crys2cart(nat, at, bg, phi)
+pure SUBROUTINE d3_crys2cart(nat, at, bg, phi)
   !-----------------------------------------------------------------------
   !
   !   Rotates third derivative of the dynamical basis from the basis
@@ -286,6 +286,83 @@ SUBROUTINE d3_crys2cart(nat, at, bg, phi)
 END SUBROUTINE d3_crys2cart
 !-----------------------------------------------------------------------
 !
+!-----------------------------------------------------------------------
+pure subroutine trntnsc_3 (phi, at, bg, iflg)
+  !-----------------------------------------------------------------------
+  !
+  ! trasforms a COMPLEX third order tensor
+  !(like the derivative of the dynamical matrix)
+  ! from crystal to cartesian axis (iflg >=  1) or viceversa (iflg <= -1)
+  !
+  USE kinds, only : DP
+  implicit none
+
+  integer,intent(in) :: iflg
+  ! input: gives the versus of the trans.
+
+  complex (DP), intent(inout) :: phi (3, 3, 3)
+  ! inp/out: the matrix to transform
+
+  real (DP), intent(in) :: at (3, 3), bg (3, 3)
+  ! input: the direct lattice vectors
+  ! input: the reciprocal lattice
+
+  integer :: i, j, k, l, m, n
+  !
+  !  counters on polarizations
+  !
+  complex (DP) :: wrk (3, 3, 3)
+  ! a work array
+
+  if (iflg.gt.0) then
+     !
+     ! forward transformation (crystal to cartesian axis)
+     !
+
+!      call zcopy (27, phi, 1, wrk, 1)
+     wrk = phi
+     do m = 1, 3
+        do i = 1, 3
+           do j = 1, 3
+              phi (m, i, j) = (0.d0, 0.d0)
+              do n = 1, 3
+                 do k = 1, 3
+                    do l = 1, 3
+                       phi (m, i, j) = phi (m, i, j) + wrk (n, k, l) * bg (i, k) &
+                            * bg (j, l) * bg (m, n)
+                    enddo
+                 enddo
+              enddo
+           enddo
+        enddo
+     enddo
+  else
+     !
+     ! backward transformation (cartesian to crystal axis)
+     !
+     do m = 1, 3
+        do i = 1, 3
+           do j = 1, 3
+              wrk (m, i, j) = (0.d0, 0.d0)
+              do n = 1, 3
+                 do k = 1, 3
+                    do l = 1, 3
+                       wrk (m, i, j) = wrk (m, i, j) + phi (n, k, l) * at (k, i) &
+                            * at (l, j) * at (n, m)
+                    enddo
+                 enddo
+              enddo
+           enddo
+        enddo
+     enddo
+!      call zcopy (27, wrk, 1, phi, 1)
+     phi = wrk
+  endif
+  return
+
+
+end subroutine trntnsc_3
+
 !-----------------------------------------------------------------------
 END MODULE d3_basis
 !-----------------------------------------------------------------------

@@ -124,21 +124,29 @@ SUBROUTINE rhodq123v(d3dyn)
            DO jcart = 1, 3
               DO ibnd = 1, nbnd_occ (ikk)
                  !
-                 FORALL(ig=1:npw) work3 (ig) = psi(ig, ibnd) &
-                                   * tpiba3 * g(icart, igk(ig)) * g(jcart, igk(ig)) * g(kcart, igk(ig))
+                 FORALL(ig=1:npw) work3 (ig) = psi(ig, ibnd) * tpiba3 &
+                                   * (xk(icart,ikk)+g(icart, igk(ig))) &
+                                   * (xk(jcart,ikk)+g(jcart, igk(ig))) &
+                                   * (xk(kcart,ikk)+g(kcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 1) = psi (ig, ibnd) &
-                                   * tpiba2 * g(icart, igk(ig)) * g(jcart, igk(ig))
+                 FORALL(ig=1:npw) work2 (ig, 1) = psi (ig, ibnd) * tpiba2 &
+                                   * (xk(icart,ikk)+g(icart, igk(ig))) &
+                                   * (xk(jcart,ikk)+g(jcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 2) = psi (ig, ibnd) &
-                                   * tpiba2 * g(jcart, igk(ig)) * g(kcart, igk(ig))
+                 FORALL(ig=1:npw) work2 (ig, 2) = psi (ig, ibnd) * tpiba2 &
+                                   * (xk(jcart,ikk)+g(jcart, igk(ig))) &
+                                   * (xk(kcart,ikk)+g(kcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 3) = psi (ig, ibnd) &
-                                   * tpiba2 * g(kcart, igk(ig)) * g(icart, igk(ig))
+                 FORALL(ig=1:npw) work2 (ig, 3) = psi (ig, ibnd) * tpiba2 &
+                                   * (xk(kcart,ikk)+g(kcart, igk(ig))) &
+                                   * (xk(icart,ikk)+g(icart, igk(ig))) 
                  !
-                 FORALL(ig=1:npw) work1 (ig, 1) = psi (ig, ibnd) * tpiba * g(kcart, igk(ig))
-                 FORALL(ig=1:npw) work1 (ig, 2) = psi (ig, ibnd) * tpiba * g(icart, igk(ig))
-                 FORALL(ig=1:npw) work1 (ig, 3) = psi (ig, ibnd) * tpiba * g(jcart, igk(ig))
+                 FORALL(ig=1:npw) work1 (ig, 1) = psi (ig, ibnd) * tpiba &
+                                   * (xk(kcart,ikk)+g(kcart, igk(ig)))
+                 FORALL(ig=1:npw) work1 (ig, 2) = psi (ig, ibnd) * tpiba &
+                                   * (xk(icart,ikk)+g(icart, igk(ig)))
+                 FORALL(ig=1:npw) work1 (ig, 3) = psi (ig, ibnd) * tpiba &
+                                   * (xk(jcart,ikk)+g(jcart, igk(ig)))
                  !
                  ijkb0 = 0
                  !
@@ -233,9 +241,6 @@ SUBROUTINE rhodq123v(d3dyn)
   CALL dbgwrite_d3dyn(d3dynpat,  'rd3v.1', 1)
   CALL dbgwrite_d3dyn(d3dynpat2, 'rd3v.2', 1)
   !
-#ifdef __MPI
-!   CALL mp_sum( d3dynwrk2, inter_pool_comm )
-#endif
   d3dyn (:,:,:) = d3dyn (:,:,:) +  d3dynpat(:,:,:)+d3dynpat2(:,:,:)
   !
   DEALLOCATE(d3dynwrk2, d3dynwrk)

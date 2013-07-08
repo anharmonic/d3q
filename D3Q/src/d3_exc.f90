@@ -35,7 +35,7 @@ SUBROUTINE d3_exc(d3dyn)
   COMPLEX(DP) :: aux
   REAL(DP)     :: pref
   REAL(DP),ALLOCATABLE :: d2muxc (:)
-  COMPLEX (DP), ALLOCATABLE :: rho1 (:), rho2 (:), rho3 (:), &
+  COMPLEX (DP), ALLOCATABLE :: drho1d2muxc (:), dr1dr2d2muxc (:), drho3 (:), &
                                d3dyn1 (:,:,:)
   !
   CALL start_clock('d3_exc')
@@ -45,9 +45,9 @@ SUBROUTINE d3_exc(d3dyn)
   IF ( my_pool_id == 0 ) THEN
     !
     ALLOCATE (d2muxc(dfftp%nnr))
-    ALLOCATE (rho1(dfftp%nnr))
-    ALLOCATE (rho2(dfftp%nnr))
-    ALLOCATE (rho3(dfftp%nnr))
+    ALLOCATE (drho1d2muxc(dfftp%nnr))
+    ALLOCATE (dr1dr2d2muxc(dfftp%nnr))
+    ALLOCATE (drho3(dfftp%nnr))
     !
     pref = omega / (dfftp%nr1 * dfftp%nr2 * dfftp%nr3)
     !
@@ -56,42 +56,37 @@ SUBROUTINE d3_exc(d3dyn)
     d2muxc = 0._dp
     DO ir = 1, dfftp%nnr
       rhotot = rho%of_r(ir, 1) + rho_core (ir)
-      IF (rhotot > 1.e-30_dp)   d2muxc (ir) =  d2mxc( rhotot)
-      IF (rhotot < - 1.e-30_dp) d2muxc (ir) = -d2mxc(-rhotot)
+      IF (rhotot >   1.e-12_dp) d2muxc (ir) =  d2mxc( rhotot)
+      IF (rhotot < - 1.e-12_dp) d2muxc (ir) = -d2mxc(-rhotot)
     ENDDO
     !
     ! Calculates the contribution to d3dyn
     !
     d3dyn1 = (0._dp, 0._dp)
     DO ipert = 1, 3 * nat
+      ! read drho1
+      CALL read_drho(drho1d2muxc, 1, ipert, with_core=.true., pool_only=.true.)
+      ! pre-multiply drho1*d2muxc
+      FORALL (ir = 1:dfftp%nnr)
+          drho1d2muxc(ir) = drho1d2muxc(ir)*d2muxc(ir)
+      END FORALL
       !
-      CALL read_drho(rho1, 1, ipert, with_core=.true., pool_only=.true.)
       DO jpert = 1, 3 * nat
+        ! read drho2
+        CALL read_drho(dr1dr2d2muxc, 2, jpert, with_core=.true., pool_only=.true.)
+        ! pre-multiply drho2*drho1*d2muxc
+        FORALL (ir = 1:dfftp%nnr)
+            dr1dr2d2muxc(ir) = dr1dr2d2muxc(ir)*drho1d2muxc(ir)
+        END FORALL
         !
-        CALL read_drho(rho2, 2, jpert, with_core=.true., pool_only=.true.)
         DO kpert = 1, 3 * nat
-          !
-          CALL read_drho(rho3, 3, kpert, with_core=.true., pool_only=.true.)
-          !
-          ! Short version:
-!          aux = SUM(d2muxc*rho1*rho2*rho3)
-          !
-          ! Exactly the same as above, but should be faster:
+          ! read drho3
+          CALL read_drho(drho3, 3, kpert, with_core=.true., pool_only=.true.)
+          ! integrate drho1*drho2*drho3*d2muxc
+          aux = 0._dp
           DO ir = 1,dfftp%nnr
-            rho3(ir) = rho3(ir)*rho2(ir)
+            aux = aux + drho3(ir)*dr1dr2d2muxc(ir) ! NOTE: dr1dr2d2muxc = rho2*rho1*d2muxc
           ENDDO
-          DO ir = 1,dfftp%nnr
-            rho3(ir) = rho3(ir)*rho1(ir)
-          ENDDO
-          DO ir = 1,dfftp%nnr
-            rho3(ir) = rho3(ir)*d2muxc(ir)
-          ENDDO
-          aux = (0._dp, 0._dp)
-          DO ir = 1,dfftp%nnr
-            aux = aux + rho3(ir)
-          ENDDO
-!           !
-          CALL mp_sum( aux, intra_pool_comm )
           !
           d3dyn1(ipert, jpert, kpert) = pref * aux
           !
@@ -100,7 +95,10 @@ SUBROUTINE d3_exc(d3dyn)
     ENDDO
     !
     DEALLOCATE (d2muxc)
-    DEALLOCATE (rho1, rho2, rho3)
+    DEALLOCATE (drho1d2muxc, dr1dr2d2muxc, drho3)
+    !
+    ! SUM inside pool, better to do it once here than (3*nat)**3 times above
+    CALL mp_sum( d3dyn1, intra_pool_comm )
     !
   END IF
   !

@@ -48,7 +48,7 @@ SUBROUTINE d3_check_restart(what)
   ! 'clean': delete the restart file
   !
   USE mp,         ONLY : mp_bcast
-  USE io_files,   ONLY : prefix, find_free_unit
+  USE io_files,   ONLY : prefix
   USE io_global,  ONLY : ionode, ionode_id, stdout
   USE d3_iofiles, ONLY : tmp_dir_d3
   IMPLICIT NONE
@@ -58,6 +58,7 @@ SUBROUTINE d3_check_restart(what)
   INTEGER :: ios, runit
   CHARACTER(len=12),PARAMETER :: sub='restart_dwfc'
   INTEGER :: rst_nproc, rst_nproc_pool
+  INTEGER,EXTERNAL :: find_free_unit
   !
   ! REMEMBER TO UPDATE mp_bcast AND d3_check_restart IF YOU CHANGE THE NAMELIST:
   NAMELIST / d3_restart_info / &

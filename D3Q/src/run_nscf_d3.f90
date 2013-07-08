@@ -86,7 +86,7 @@ SUBROUTINE run_nscf_d3(do_band)
   starting_wfc      = 'atomic'
   pw_restart        = .false.
   pseudo_dir= TRIM(tmp_dir_save) // TRIM(prefix) // '.save'
-  CALL restart_from_file()
+  !CALL restart_from_file()
   conv_ions=.true.
   !
   CALL setup_nscf_d3()
@@ -106,7 +106,7 @@ SUBROUTINE run_nscf_d3(do_band)
   !
   ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   CALL init_run()
-  CALL electrons()
+  CALL non_scf ( )
   ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   !
   IF(ionode)THEN
@@ -175,11 +175,14 @@ SUBROUTINE setup_nscf_d3()
   USE uspp_param,         ONLY : n_atom_wfc
   USE control_flags,      ONLY : lkpoint_dir
   USE d3_kgrid,           ONLY : d3_nk1, d3_nk2, d3_nk3, d3_k1, d3_k2, d3_k3, d3_degauss
+  USE check_stop,         ONLY : check_stop_init
   !
   IMPLICIT NONE
   !
   LOGICAL  ::  magnetic_sym, skip_equivalence, newgrid
   INTEGER :: iq=0
+  !
+  CALL check_stop_init()
   !
   IF ( .NOT. ALLOCATED( force ) ) ALLOCATE( force( 3, nat ) )
   !

@@ -465,7 +465,7 @@ SUBROUTINE kplus3q_grids (xk, wk, nks, max_nks, nat, kunit)
       !
       ! open the file to store the plane-wave mappings
       kplusq(iq)%iunigkq = kplus3q_units(iq)
-      CALL seqopn(kplusq(iq)%iunigkq, kplus3q_suffixes(iq), 'unformatted', exst)
+      CALL seqopn(kplusq(iq)%iunigkq, kplus3q_suffixes(iq)//"_", 'unformatted', exst)
       !
     ELSE NEW_KPLUSQ_GRID
       !
@@ -530,7 +530,7 @@ SUBROUTINE write_igkq_d3(ik)
     IF(kplusq(iq)%lstored) THEN
       ikq = kplusq(iq)%ikqs(ik)
       ! DEBUG !!! :
-      igkq = -10000000+iq
+      igkq = -10000000-iq
       !
       CALL gk_sort( xk(1,ikq), ngm, g, gcutwfc, npwq, igkq, g2kin )
       WRITE( kplusq(iq)%iunigkq ) npwq, igkq

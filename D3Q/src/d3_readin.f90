@@ -87,8 +87,8 @@ SUBROUTINE d3_readin()
   ONLY_IONODE : &
   IF ( ionode ) THEN
      !
+     CALL input_from_file()
      !    Read the first line of the input file
-     !
      READ (5, '(a)', iostat = ios) title
      IF(ios/=0) CALL errore (sub, 'reading title ', ABS (ios) )
      !

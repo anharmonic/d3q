@@ -30,7 +30,7 @@ SUBROUTINE drho_add_phase(drho, xq_old, xq_new)
   IMPLICIT NONE
   !
   COMPLEX(DP),INTENT(inout) :: drho (dfftp%nr1x*dfftp%nr2x*dfftp%nr3x)! the derivative of the charge density
-  REAL(DP) :: xq_old(3), xq_new(3)        ! q-points: transform from old to new
+  REAL(DP),INTENT(in) :: xq_old(3), xq_new(3)        ! q-points: transform from old to new
 !   COMPLEX(DP), ALLOCATABLE :: drho (:) ! auxiliary variable
   INTEGER :: i, j, k, ijk!, npp0           ! counters
   REAL(DP) :: gf(3), n(3)                 !  temp variables

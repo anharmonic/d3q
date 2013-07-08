@@ -373,25 +373,25 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
                   DO ih = 1, nh(nt)
                      ikb = ijkb0 + ih
                      !
-                     alpha(1) = ZDOTC(npw_gamm, work1,           1, vkb_gamm(:,ikb), 1)
-                     alpha(2) = ZDOTC(npw_gamm, work2,           1, vkb_gamm(:,ikb), 1)
-                     alpha(3) = ZDOTC(npw_gamm, work5,           1, vkb_gamm(:,ikb), 1)
-                     alpha(4) = ZDOTC(npw_gamm, psi(:,ibnd),     1, vkb_gamm(:,ikb), 1)
+                     alpha(1) = ZDOTC(npw_gamm, work1,       1, vkb_gamm(:,ikb), 1)
+                     alpha(2) = ZDOTC(npw_gamm, work2,       1, vkb_gamm(:,ikb), 1)
+                     alpha(3) = ZDOTC(npw_gamm, work5,       1, vkb_gamm(:,ikb), 1)
+                     alpha(4) = ZDOTC(npw_gamm, psi(:,ibnd), 1, vkb_gamm(:,ikb), 1)
                      !
                      CALL mp_sum( alpha, intra_pool_comm )
                      !
                      DO jh = 1, nh(nt)
                         jkb = ijkb0 + jh
-                        beta(1) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work4,           1)
-                        beta(2) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work3,           1)
-                        beta(3) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, dpsi(:,ibnd),    1)
-                        beta(4) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work6,           1)
+                        beta(1) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work4,        1)
+                        beta(2) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work3,        1)
+                        beta(3) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, dpsi(:,ibnd), 1)
+                        beta(4) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work6,        1)
                         !
                         CALL mp_sum( beta, intra_pool_comm )
                         !
                         d3dyn_wrk(na_icart,na_jcart) = d3dyn_wrk(na_icart,na_jcart) &
-                              +(alpha(1) * beta(1) + alpha(2) * beta(2) - &
-                                alpha(3) * beta(3) - alpha(4) * beta(4) ) &
+                              +( alpha(1) * beta(1) + alpha(2) * beta(2) - &
+                                 alpha(3) * beta(3) - alpha(4) * beta(4) ) &
                                * dvan(ih, jh, nt) * kplusq(iq_gamm)%wk(ik) !* 2._dp
                      ENDDO
                   ENDDO

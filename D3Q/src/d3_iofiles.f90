@@ -108,7 +108,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   USE d3matrix_io,      ONLY : d3matrix_filename
   USE d3_control,       ONLY : d3dir
   USE wrappers,         ONLY : f_mkdir
-  USE io_files,         ONLY : tmp_dir
+  USE io_files,         ONLY : tmp_dir, wfc_dir
   ! to copy rho:
   USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : rho
@@ -118,22 +118,20 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
   INTEGER :: iq !, ios=-1
   CHARACTER(len=16),PARAMETER :: sub = "setup_d3_iofiles"
+  LOGICAL :: exists, parallel_fs
   !
   ! Generate a prefix for the D3 calculation which depends on the q point, to prevent overwrites:
   IF(ionode)THEN
     tmp_dir_d3 = TRIM(d3matrix_filename(xq1, xq2, xq3, at, TRIM(d3dir)//"/D3"))//"/"
     WRITE(stdout, '(5x,a,/,7x,a)') "Temporary directory set to:", TRIM(tmp_dir_d3)
     tmp_dir = tmp_dir_d3
+    wfc_dir = tmp_dir_d3
   ENDIF
   CALL mp_bcast(tmp_dir,    ionode_id)
+  CALL mp_bcast(wfc_dir,    ionode_id)
   CALL mp_bcast(tmp_dir_d3, ionode_id)
   !
-!  IF(ionode) THEN
-!     ios = f_mkdir( TRIM(tmp_dir_d3) )
-!     IF(ios/=0) CALL errore(sub, "Cannot create directory '"//TRIM(tmp_dir_d3)//"'",1)
-!  ENDIF
-  CALL parallel_mkdir(tmp_dir_d3)
-
+  CALL check_tempdir(tmp_dir_d3, exists, parallel_fs)
   CALL write_rho( rho, nspin )
   !
   ! Set up fildrho names must be done AFTER read_file
@@ -286,7 +284,6 @@ SUBROUTINE drho_change_q(iq, filint, xq_old, xq_new)
   USE uspp_param, ONLY : upf
   USE mp,         ONLY : mp_barrier
   USE io_global,  ONLY : stdout, ionode
-  USE io_files,   ONLY : find_free_unit
   USE drho_add_phase_module, ONLY : drho_add_phase
   USE d3_open,    ONLY : diropn_d3, close_d3
 
@@ -300,6 +297,7 @@ SUBROUTINE drho_change_q(iq, filint, xq_old, xq_new)
   COMPLEX (DP), ALLOCATABLE :: drho_full(:)
   LOGICAL :: exst
   CHARACTER(len=16) :: postfix
+  INTEGER,EXTERNAL :: find_free_unit
   !
   CALL start_clock('drho_change_q')
   !
@@ -589,22 +587,36 @@ SUBROUTINE d3_add_rho_core (scalef)
   USE d3_basis,    ONLY : patq
   USE d3com,       ONLY : d3c
   USE io_global,   ONLY : stdout
+  use fft_base,  only: dfftp
+  use ions_base, only : nat
+
 
   IMPLICIT NONE
   REAL(DP),INTENT(in) :: scalef
-  INTEGER :: iq
+  INTEGER :: ipert, iq
+  COMPLEX (DP), ALLOCATABLE :: drhov(:)
 
 !   print*, "calling the drho_drc with", iud0rho, iud0rhoc, nlcc_any, lgamma
   IF (.NOT.nlcc_any) RETURN
   !
   CALL start_clock('d3_add_rho_core')
   !
+  ALLOCATE(drhov(dfftp%nnr))
   DO iq = 1,3
     IF(kplusq(iq)%ldrho_is_mine) THEN
       WRITE(stdout, "(7x,a,a)") "Adding variation of core charge for ", q_names(iq)
-      CALL drho_drc (iq, patq(iq)%u, kplusq(iq)%xq, d3c(iq)%drc, scalef)
+      cc_added_to_drho(iq) = .true.
+      !
+      DO ipert = 1, 3 * nat
+	!
+	CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), ipert, -1)
+	CALL addcore_d3(kplusq(iq)%xq, patq(iq)%u, ipert, d3c(iq)%drc, drhov)
+	CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), ipert, +1)
+	!
+      ENDDO      
     ENDIF
   ENDDO
+  DEALLOCATE(drhov)
   !
   CALL stop_clock('d3_add_rho_core')
   !
@@ -614,85 +626,85 @@ END SUBROUTINE d3_add_rho_core
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE drho_drc (iq, u_x, xq_x, drc_x, scalef)
+subroutine addcore_d3(xq, u, mode, drc, drhoc)
   !-----------------------------------------------------------------------
-  !  Reads the variation of the charge from iudrho_x, adds the variation
-  !  of the core_charge, than saves it to iudrho_cc_x
   !
-  USE kinds,      ONLY : DP
-  USE constants,  ONLY : tpi
-  USE gvect,      ONLY : ngm, g, nl
+  !    This routine computes the change of the core charge
+  !    when the atoms moves along the given mode
+  !
+  !
+  USE constants, only : tpi
+  USE kinds, only : DP
+  use uspp_param, only: upf
   USE ions_base,  ONLY : nat, ityp, ntyp => nsp, tau
-  USE cell_base,  ONLY : tpiba
-  USE fft_base,   ONLY : dfftp
-  USE fft_interfaces, ONLY: invfft
-  USE phcom,      ONLY : lrdrho
-  USE uspp_param, ONLY : upf
-  USE mp,         ONLY : mp_barrier
+  use cell_base, only: tpiba
+  use fft_base,  only: dfftp
+  use fft_interfaces, only: invfft
+  use gvect, only: ngm, nl, mill, eigts1, eigts2, eigts3, g
+  use nlcc_ph, only: nlcc_any
+  implicit none
 
-  IMPLICIT NONE
-
-  INTEGER,INTENT(in)   :: iq
-  REAL(DP),INTENT(in)  :: xq_x (3), & ! q point
-                          scalef      ! drhocore will be added to the valence charge scaled by this factor
-  COMPLEX(DP),INTENT(in) :: u_x (3*nat, 3*nat), &  ! the transformation modes patterns
-                            drc_x(ngm, ntyp)       ! contain the rhocore (without structure factor)
   !
-  INTEGER :: ipert, na, mu, nt, ig
-  REAL (DP) :: gtau
-  COMPLEX (DP) :: guexp
-  COMPLEX (DP), ALLOCATABLE :: drhoc(:), drhov(:)
+  !   The dummy variables
+  integer, intent (IN) :: mode
+  real(DP), intent(IN) :: xq(3)
+  complex(DP),intent(in) :: u(3*nat, 3*nat), &  ! the transformation modes patterns
+                            drc(ngm, ntyp)      ! contain the rhocore (without structure factor)
+  
+  complex(DP), intent(INOUT) :: drhoc (dfftp%nnr)
+  ! input: rho / output: rho+core
   !
-  IF ( cc_added_to_drho(iq) ) THEN
-    CALL errore('drho_drc', 'CC already added to drho at this q', iq)
-  ELSE
-    cc_added_to_drho(iq) = .true.
-  ENDIF
+  !   Local variables
   !
-  ALLOCATE(drhoc(dfftp%nnr))
-  ALLOCATE(drhov(dfftp%nnr))
-
-  DO ipert = 1, 3 * nat
-     drhoc(:) = (0.d0, 0.d0)
-     DO na = 1, nat
+  integer :: nt, ig, mu, na
+  complex(DP) :: fact, gu, gu0, u1, u2, u3, gtau
+  complex(DP) :: eigqts(nat)
+  real(DP)    :: arg
+  !
+  !
+  if (.not.nlcc_any) return
+  !
+  ! compute the derivative of the core charge  along the given mode
+  !
+  DO na = 1, nat
+     arg = ( xq(1) * tau(1,na) + &
+             xq(2) * tau(2,na) + &
+             xq(3) * tau(3,na) ) * tpi
+     eigqts(na) = CMPLX( COS( arg ), -SIN( arg ) ,kind=DP)
+  END DO  
+  !
+  !   drhoc(:) = (0.d0, 0.d0)
+  do na = 1, nat
+     nt = ityp (na)
+     if (upf(nt)%nlcc) then
+        fact = tpiba * (0.d0, -1.d0) * eigqts (na)
         mu = 3 * (na - 1)
-        !IF (ABS (u_x(mu+1,ipert) ) + ABS (u_x(mu+2,ipert) ) + &
-        !    ABS (u_x(mu+3,ipert) ) > 1.0d-12) THEN
-           nt = ityp (na)
-           IF (upf(nt)%nlcc) THEN
-              DO ig = 1, ngm
-                 gtau = tpi * ( (g(1,ig) + xq_x(1)) * tau(1, na) &
-                              + (g(2,ig) + xq_x(2)) * tau(2, na) &
-                              + (g(3,ig) + xq_x(3)) * tau(3, na) )
-                 guexp = tpiba * ( (g(1,ig) + xq_x(1)) * u_x(mu+1,ipert) &
-                                 + (g(2,ig) + xq_x(2)) * u_x(mu+2,ipert) &
-                                 + (g(3,ig) + xq_x(3)) * u_x(mu+3,ipert) )&
-                               * CMPLX(0.d0, -1.d0,kind=DP) &
-                               * CMPLX(cos(gtau), -sin(gtau) ,kind=DP)
-                 drhoc(nl(ig)) = drhoc(nl(ig)) + drc_x(ig,nt) * guexp
-              ENDDO
-           !ENDIF
-        ENDIF
-     ENDDO
-     !
-     CALL invfft('Dense', drhoc, dfftp)
-     !
-     CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), ipert, -1)
-     !
-     drhov(:) = drhov(:) + scalef * drhoc(:)
-     !
-     CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), ipert, +1)
-  ENDDO
+        if ( abs(u(mu + 1, mode) ) + &
+             abs(u(mu + 2, mode) ) + &
+             abs(u(mu + 3, mode) ) > 1.0d-12) then
+           u1 = u(mu + 1, mode)
+           u2 = u(mu + 2, mode)
+           u3 = u(mu + 3, mode)
+           gu0 = xq(1)*u1 + xq(2)*u2 + xq(3)*u3
+           do ig = 1, ngm
+              gtau = eigts1 (mill (1,ig), na) &
+                   * eigts2 (mill (2,ig), na) &
+                   * eigts3 (mill (3,ig), na)
+              gu = gu0 + g (1, ig) * u1 + g (2, ig) * u2 + g (3, ig) * u3
+              drhoc (nl (ig) ) = drhoc(nl(ig)) &
+                               + drc (ig, nt) * gu * fact * gtau
+           enddo
+        endif
+     endif
+  enddo
+  !
+  !   transform to real space
+  !
+!   CALL invfft ('Dense', drhoc, dfftp)
+  !
+  return
 
-  CALL mp_barrier()
-
-  DEALLOCATE (drhoc)
-  DEALLOCATE (drhov)
-  RETURN
-  !-----------------------------------------------------------------------
-END SUBROUTINE drho_drc
-!-----------------------------------------------------------------------
-!
+end subroutine addcore_d3
 !-----------------------------------------------------------------------
 SUBROUTINE read_drho(drho, iq, ipert, with_core, pool_only)
   !-----------------------------------------------------------------------

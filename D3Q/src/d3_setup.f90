@@ -238,7 +238,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
           !
           ! FIXME: workaround for filename mess - needed to find where the patterns are
           tmp_dir = tmp_dir_ph
-          !
+	  !
           WRITE(stdout, '(7x,a,i1)') "Reading patterns and q-point for q",iq
           IF(ionode) &
             CALL io_pattern(nat, fildrho_tmp, symq(iq)%nirr, symq(iq)%npert,&
