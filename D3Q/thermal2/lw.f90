@@ -98,30 +98,41 @@ MODULE linewidth_program
     USE interp_fc, ONLY : fftinterp_mat2, fftinterp_mat3, mat2_diag
     USE constants, ONLY : RY_TO_CMM1
     USE nanoclock, ONLY : f_nanosec
+    USE d3_basis,  ONLY : d3_cart2pat
     IMPLICIT NONE
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     TYPE(forceconst3_grid),INTENT(in) :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: xq(3)
+    REAL(DP),INTENT(in) :: xq(3,3)
     !
-    COMPLEX(DP),ALLOCATABLE :: D2(:,:), D3(:,:,:)
-    REAL(DP),ALLOCATABLE    :: w2(:)
+    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
+    REAL(DP),ALLOCATABLE    :: w2(:), d3mm(:,:,:)
     REAL(DP) :: t0,t1
     INTEGER :: i
     !
-    ALLOCATE(D2(S%nat3, S%nat3))
+    ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(w2(S%nat3))
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(d3mm(S%nat3, S%nat3, S%nat3))
     !
-    CALL fftinterp_mat2(xq, S, fc2, D2)
-    CALL mat2_diag(S, D2, w2)
+    DO i = 1,3
+      CALL fftinterp_mat2(xq(:,i), S, fc2, U(:,:,i))
+      CALL mat2_diag(S, U(:,:,i), w2)
+    ENDDO
     
-    DO i = 1,100
-      CALL fftinterp_mat3(xq, xq*.5_dp, S, fc3, D3)
+    CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
+
+    CALL d3_cart2pat(D3, S%nat, U(:,:,1), U(:,:,2), U(:,:,3))
+    d3mm = REAL( CONJG(D3)*D3 , kind=DP)
+    !
+    WRITE(*, '(3f12.6)') xq(:,:)
+    DO i = 1,s%nat3
+      WRITE(*, '(9f12.6)') d3mm(:,:,i)*1.d+15
+      WRITE(*,*)
     ENDDO
     !
-    DEALLOCATE(D2, w2, D3)
+    DEALLOCATE(U, w2, D3, d3mm)
     !
   END SUBROUTINE LW_TEST  
   
@@ -138,6 +149,8 @@ PROGRAM linewidth
   TYPE(forceconst3_grid) :: fc3
   TYPE(ph_system_info)   :: s
   
+  REAL(DP) :: xq(3,3)
+  
   CALL environment_start('LW')
   
   CALL INPUT(s, fc2, fc3)
@@ -145,26 +158,16 @@ PROGRAM linewidth
   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/), &
                 101, S, fc2)
 
-  CALL LW_TEST((/0.5_dp,0.288675_dp,0._dp/), S, fc2, fc3)
+
+  xq(:,1) = (/0.5_dp,0.288675_dp,0._dp/)
+  xq(:,2) = - xq(:,1)
+  xq(:,3) = - (xq(:,1)+xq(:,2))
+  CALL LW_TEST(xq, S, fc2, fc3)
 
   CALL environment_end('LW')
  
 END PROGRAM
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

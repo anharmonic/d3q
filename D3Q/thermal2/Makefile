@@ -26,7 +26,9 @@ input_fc.o \
 interp_fc.o \
 nanoclock.o \
 nanosec.o \
-ph_velocity.o
+ph_velocity.o \
+linewidth.o \
+functions.o
 
 EXECUTABLES = lw.x
 
