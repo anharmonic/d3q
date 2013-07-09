@@ -1,5 +1,5 @@
 !
-! Copyright Lorenzo Paulatto 2013 - released under the CeCILL licence v 2.1 
+! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
 !   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 !
@@ -85,8 +85,6 @@ MODULE linewidth_program
       
       CALL velocity_proj(S,fc, xq, xvelp)
       WRITE(668, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvelp
-
-      WRITE(669, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvels/xvelp
 
       pl = pl + dpl
     ENDDO

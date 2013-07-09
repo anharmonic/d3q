@@ -1,5 +1,5 @@
 !
-! Copyright Lorenzo Paulatto 2013 - released under the CeCILL licence v 2.1 
+! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
 !   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//

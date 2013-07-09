@@ -1,5 +1,5 @@
 !
-! Copyright Lorenzo Paulatto 2013 - released under the CeCILL licence v 2.1 
+! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
 !   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
@@ -9,8 +9,11 @@ MODULE ph_velocity
   USE input_fc, ONLY : forceconst2_grid, &
                        ph_system_info
                        
+  PRIVATE
   REAL(DP),PARAMETER :: h = 1.e-5_dp
-                       
+         
+  PUBLIC :: velocity_simple, velocity_proj, velocity_var
+         
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
   ! Compute ph group velocity by simple straightforward finite difference

@@ -22,7 +22,11 @@ D3QTOOLSOBJS = \
 lw.o \
 
 D3QTOOLSLIBS = \
-input_fc2.o
+input_fc.o \
+interp_fc.o \
+nanoclock.o \
+nanosec.o \
+ph_velocity.o
 
 EXECUTABLES = lw.x
 
