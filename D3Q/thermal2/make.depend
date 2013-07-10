@@ -6,12 +6,13 @@ interp_fc.o : ./input_fc.o
 interp_fc.o : /home/paulatto/espresso/D3Q/src/d3_basis.o
 interp_fc.o : /home/paulatto/espresso/Modules/constants.o
 interp_fc.o : /home/paulatto/espresso/Modules/kind.o
-linewidth.o : ./input_fc.o
-linewidth.o : /home/paulatto/espresso/Modules/kind.o
+lw.o : ./functions.o
 lw.o : ./input_fc.o
 lw.o : ./interp_fc.o
+lw.o : ./lw.o
 lw.o : ./nanoclock.o
 lw.o : ./ph_velocity.o
+lw.o : ./q_grid.o
 lw.o : /home/paulatto/espresso/D3Q/src/d3_basis.o
 lw.o : /home/paulatto/espresso/Modules/constants.o
 lw.o : /home/paulatto/espresso/Modules/environment.o
@@ -20,3 +21,5 @@ nanoclock.o : /home/paulatto/espresso/Modules/kind.o
 ph_velocity.o : ./input_fc.o
 ph_velocity.o : ./interp_fc.o
 ph_velocity.o : /home/paulatto/espresso/Modules/kind.o
+q_grid.o : ./input_fc.o
+q_grid.o : /home/paulatto/espresso/Modules/kind.o

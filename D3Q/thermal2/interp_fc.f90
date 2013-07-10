@@ -97,52 +97,6 @@ MODULE interp_fc
     DEALLOCATE(work)
     !
   END SUBROUTINE mat2_diag
-
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE calc_d3mm(d3mm, mat3q, zz1, zz2, zz3, nat3, nat32, nat33)
-    USE kinds, ONLY: DP
-    IMPLICIT NONE
-    REAL(DP),INTENT(out) :: d3mm(nat3, nat3, nat3)
-    COMPLEX(DP),INTENT(in) :: mat3q(nat3, nat3, nat3)
-    COMPLEX(DP),INTENT(in) :: zz3(nat3, nat3), zz2(nat3, nat3), zz1(nat3, nat3)
-    INTEGER,INTENT(in) :: nat3, nat32, nat33
-
-    INTEGER :: im1, im2, im3
-    COMPLEX(DP),ALLOCATABLE :: aux1(:,:,:), aux2(:,:,:), out(:), in(:)
-    ALLOCATE(aux1(nat3,nat3,nat3), aux2(nat3,nat3,nat3), out(nat3), in(nat3))
-
-    DO im3 = 1, nat3
-        DO im2 = 1, nat3
-          in =  mat3q(im2, im3, :)
-          CALL ZGEMV('T', nat3, nat3, (1._dp,0._dp), zz1, nat3,in, &
-                          nat32, (0._dp,0._dp), out, nat32)
-          aux1(im2,im3,:) = out
-        END DO
-    END DO
-    !
-    DO im1 = 1, nat3
-        DO im3 = 1, nat3
-          in = aux1(:, im3, im1)
-          CALL ZGEMV('T', nat3, nat3, (1._dp,0._dp), zz2, nat3, in, &
-                          1, (0._dp,0._dp), out, 1)
-          aux2(:, im3, im1) = out
-        END DO
-    END DO
-    !
-    DO im1 = 1, nat3
-        DO im2 = 1, nat3
-          in = aux2(im2, 1, im1)
-          CALL ZGEMV('T', nat3, nat3, (1._dp,0._dp), zz3, nat3, in, &
-                          nat3, (0._dp,0._dp), out, nat3)
-          aux1(im2, :, im1) = out
-        END DO
-    END DO
-    !
-    d3mm = REAL( CONJG(aux1)*aux1 , kind=DP)
-
-    DEALLOCATE(aux1,aux2,out,in)
-    !
-  END SUBROUTINE calc_d3mm
   ! \/o\________\\\_________________________________________/^>
   ! Returns the cross section of a 3-phonon scattering ;
   ! this is | V^3(q1,q2,q3) |^2 in Fugallo et. al. PRB
@@ -181,6 +135,61 @@ MODULE interp_fc
     DEALLOCATE(U, D3)
     !
   END SUBROUTINE scatter_3q
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
+    USE functions, ONLY : f_gauss
+    USE constants, ONLY : RY_TO_CMM1, pi
+    IMPLICIT NONE
+    REAL(DP) :: lw(S%nat3)
+    !
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: freq(S%nat3,3)
+    REAL(DP),INTENT(in) :: bose(S%nat3,3)
+    REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+    !
+    ! _X -> scattering, _C -> cohalescence
+    REAL(DP) :: bose_X, bose_C ! final/initial state populations 
+    REAL(DP) :: dom_X, dom_C   ! \delta\omega
+    REAL(DP) :: ctm_X, ctm_C   !
+    REAL(DP) :: delpi, norm, freqtot
+    !
+    REAL(DP),PARAMETER :: sigma = 10._dp/RY_TO_CMM1
+    !
+    INTEGER :: i,j,k
+    lw = 0._dp
+    !
+    DO i = 1,S%nat3
+      !
+      WRITE(998,'(9e15.6)') V3sq(i,:,:)
+
+      DO j = 1,S%nat3
+        DO k = 1,S%nat3
+          !
+          freqtot = freq(i,1) * freq(j,2) * freq(k,3)
+          !
+          bose_X = bose(j,2) + bose(k,3) + 1
+          bose_C = bose(j,2) - bose(k,3)
+          !
+          dom_X =(freq(i,1)+freq(j,2)-freq(k,3))
+          dom_C =(freq(i,1)-freq(j,2)-freq(k,3))
+          !
+          ctm_X = 2 * bose_C * f_gauss(dom_X, sigma) !prexp * EXP(-(dom_X**2))
+          ctm_C =     bose_X * f_gauss(dom_C, sigma) !prexp * EXP(-(dom_C**2))
+          !
+          delpi = ctm_X + ctm_C
+          norm = pi/(8*freqtot)
+          lw(i) = lw(i) + norm*delpi*V3sq(i,j,k)
+          !
+        ENDDO
+      ENDDO
+      write(998,*) "bos_a", bose_X, bose_C
+      write(998,*) "dom",   dom_X/sigma, dom_C/sigma
+      write(998,*) "more", freqtot, lw(i), norm
+      write(998,*)
+      !
+    ENDDO
+    !
+  END FUNCTION sum_modes
 
 END MODULE interp_fc
 ! <<^V^\\=========================================//-//-//========//O\\//

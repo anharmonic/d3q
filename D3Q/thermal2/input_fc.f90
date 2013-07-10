@@ -139,7 +139,6 @@ MODULE input_fc
     DO i = 1,S%nat3
       na = (i-1)/3 +1
       S%sqrtmm1(i) = 1._dp/SQRT(S%amass(S%ityp(na)))
-      !print*, i, S%sqrtmm1(i)
     ENDDO
     
   END SUBROUTINE aux_system

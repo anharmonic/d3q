@@ -6,7 +6,7 @@ STRIP = strip
 
 # location of needed modules
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
-	  $(MOD_FLAG)../src $(MOD_FLAG).  
+	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).  
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -27,7 +27,7 @@ interp_fc.o \
 nanoclock.o \
 nanosec.o \
 ph_velocity.o \
-linewidth.o \
+q_grid.o \
 functions.o
 
 EXECUTABLES = lw.x
