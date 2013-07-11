@@ -186,6 +186,8 @@ MODULE linewidth_program
     CALL mat2_diag(S, U(:,:,1), freq(:,1))
     freq(:,1) = SQRT(freq(:,1))
     bose(:,1) = f_bose(freq(:,1), T)
+    U(:,:,1) = TRANSPOSE(CONJG(U(:,:,1)))
+
     !
     CALL start_nanoclock(total)
     DO iq = 1, grid%nq
@@ -198,16 +200,20 @@ MODULE linewidth_program
         CALL mat2_diag(S, U(:,:,jq), freq(:,jq))
         freq(:,jq) = SQRT(freq(:,jq))
         bose(:,jq) = f_bose(freq(:,jq), T)
+        U(:,:,jq) = TRANSPOSE(CONJG(U(:,:,jq)))
       ENDDO!
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
       !
+      WRITE(998,'(9e15.6)') D3
+      WRITE(998,*)  "========================================"
+      !
       CALL d3_cart2pat(D3, S%nat, U(:,:,1), U(:,:,2), U(:,:,3))
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
       ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       !
-      lw = lw + sum_modes( S, freq, bose, V3sq )
+      lw = lw + sum_modes( S, freq, bose, V3sq,grid%nq )
       !
     ENDDO
     !

@@ -136,7 +136,7 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
+  FUNCTION sum_modes(S, freq, bose, V3sq, N0) RESULT(lw)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
@@ -146,22 +146,23 @@ MODULE interp_fc
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+    INTEGER,INTENT(in) :: N0
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C ! final/initial state populations 
     REAL(DP) :: dom_X, dom_C   ! \delta\omega
     REAL(DP) :: ctm_X, ctm_C   !
-    REAL(DP) :: delpi, norm, freqtot
+    REAL(DP) :: freqtot
     !
     REAL(DP),PARAMETER :: sigma = 10._dp/RY_TO_CMM1
+    REAL(DP),PARAMETER :: norm = pi/8
     !
     INTEGER :: i,j,k
     lw = 0._dp
     !
     DO i = 1,S%nat3
       !
-      WRITE(998,'(9e15.6)') V3sq(i,:,:)
-
+      !WRITE(998,'(9e15.6)') V3sq(i,:,:)
       DO j = 1,S%nat3
         DO k = 1,S%nat3
           !
@@ -173,19 +174,20 @@ MODULE interp_fc
           dom_X =(freq(i,1)+freq(j,2)-freq(k,3))
           dom_C =(freq(i,1)-freq(j,2)-freq(k,3))
           !
-          ctm_X = 2 * bose_C * f_gauss(dom_X, sigma) !prexp * EXP(-(dom_X**2))
-          ctm_C =     bose_X * f_gauss(dom_C, sigma) !prexp * EXP(-(dom_C**2))
+          ctm_X = 2 * bose_C * f_gauss(dom_X, sigma)
+          ctm_C =     bose_X * f_gauss(dom_C, sigma)
           !
-          delpi = ctm_X + ctm_C
-          norm = pi/(8*freqtot)
-          lw(i) = lw(i) + norm*delpi*V3sq(i,j,k)
+          lw(i) = lw(i) + norm/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
           !
         ENDDO
       ENDDO
-      write(998,*) "bos_a", bose_X, bose_C
-      write(998,*) "dom",   dom_X/sigma, dom_C/sigma
-      write(998,*) "more", freqtot, lw(i), norm
-      write(998,*)
+!       write(998,*) "bos_a", bose_X, bose_C
+!       write(998,*) "dom",   dom_X/sigma, dom_C/sigma
+!       write(998,*) "gauss", f_gauss(dom_X, sigma), f_gauss(dom_C, sigma)
+!       write(998,*) "ctm",   ctm_X,ctm_C
+!       write(998,*) "norm",  norm, norm1
+!       write(998,*) "more",  freqtot, lw(i)
+!       write(998,*)
       !
     ENDDO
     !
