@@ -16,11 +16,18 @@ MODULE nanoclock
 !   CALL print_nanoclock(timer)
   !
   TYPE nanotimer
+    CHARACTER(len=16)   :: name = "unknown"
+    !
     REAL(kind=c_double) :: t0 = -1._c_double
     REAL(kind=c_double) :: tot = 0._c_double
     INTEGER :: calls = 0
-    CHARACTER(len=16)   :: name = "unknown"
   END TYPE nanotimer
+  !
+  TYPE(nanotimer) :: c2pat = nanotimer("c2pat")
+  TYPE(nanotimer) :: tv3sq = nanotimer("v3sq")
+  TYPE(nanotimer) :: i_ph  = nanotimer("i_ph")
+  TYPE(nanotimer) :: lwtot = nanotimer("LW_2tot")
+  TYPE(nanotimer) :: d3time= nanotimer("D3")
   !
   INTERFACE
     FUNCTION c_nanosec() BIND(C,name="c_nanosec")
@@ -63,7 +70,7 @@ MODULE nanoclock
   !
   SUBROUTINE print_line()
     IMPLICIT NONE
-    WRITE(*,'(2x," * ",16("*")," * ",12("*"),"***** * ", 6("*")," *")') 
+    WRITE(*,'(2x," * ",16("*")," * ",12("*"),"***** * ", 12("*")," *")') 
   END SUBROUTINE print_line
   SUBROUTINE print_header()
     IMPLICIT NONE
@@ -83,10 +90,10 @@ MODULE nanoclock
     
     IF(timer%t0>0) THEN
       ! print a running clock
-      WRITE(*,'(2x," * ",a16," * ",f12.6,"s (r) * ", i6," *")') &
+      WRITE(*,'(2x," * ",a16," * ",f12.6,"s (r) * ", i12," *")') &
       TRIM(timer%name), timer%tot + (c_nanosec()-timer%t0), "(r)", timer%calls
     ELSE
-      WRITE(*,'(2x," * ",a16," * ",f12.6,"s     * ", i6," *")') &
+      WRITE(*,'(2x," * ",a16," * ",f12.6,"s     * ", i12," *")') &
       TRIM(timer%name), timer%tot, timer%calls
     ENDIF
     
@@ -104,7 +111,7 @@ MODULE nanoclock
       kb = kb/1000
       unit = "MB"
     ENDIF
-    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,10x," *")') "Memory used ", kb, unit
+    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,16x," *")') "Memory used ", kb, unit
     !
   END SUBROUTINE print_memory
 

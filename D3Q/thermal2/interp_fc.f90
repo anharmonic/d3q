@@ -8,9 +8,11 @@ MODULE interp_fc
   USE kinds,    ONLY : DP
   USE input_fc, ONLY : ph_system_info, forceconst2_grid, forceconst3_grid
 
+  USE nanoclock
+
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE fftinterp_mat2(xq, S, fc, D)
+  PURE SUBROUTINE fftinterp_mat2(xq, S, fc, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -32,7 +34,7 @@ MODULE interp_fc
     END DO
   END SUBROUTINE fftinterp_mat2
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE fftinterp_mat3(xq2,xq3, S, fc, D)
+  PURE SUBROUTINE fftinterp_mat3(xq2,xq3, S, fc, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -136,16 +138,16 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
+  PURE FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
-    REAL(DP) :: lw(S%nat3)
-    !
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+    !
+    REAL(DP) :: lw(S%nat3)
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C ! final/initial state populations 
@@ -182,7 +184,57 @@ MODULE interp_fc
     ENDDO
     !
   END FUNCTION sum_modes
+  ! \/o\________\\\_________________________________________/^>
+  PURE SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+    !   Rotates third derivative of the dynamical basis from cartesian axis
+    !   to the basis of the modes
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    ! d3 matrix, input: in cartesian basis, output: on the patterns basis
+    COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
+    INTEGER,INTENT(in)        :: nat3
+    ! patterns (transposed, with respect to what we use in the d3q.x code)
+    COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
+    !
+    !COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
+    COMPLEX(DP)  :: d3tmp(nat3,nat3,nat3)
 
+    INTEGER :: a, b, c, i, j, k
+    COMPLEX(DP) :: AUX
+    REAL(DP),PARAMETER :: EPS = 1.e-8_dp
+    !
+    !ALLOCATE(d3tmp(nat3, nat3, nat3))
+    d3tmp = (0._dp, 0._dp)
+    !
+    DO k = 1,nat3
+    DO c = 1,nat3
+    IF(ABS(u3(c,k))>EPS)THEN
+      !
+      DO j = 1,nat3
+      DO b = 1,nat3
+      IF(ABS(u2(b,j))>EPS)THEN
+        !
+        AUX = u2(b,j) * u3(c,k)
+        DO i = 1,nat3
+        DO a = 1,nat3
+            d3tmp(i, j, k) = d3tmp(i, j, k) &
+                            + u1(a,i) * AUX * d3in(a, b, c) 
+        ENDDO
+        ENDDO
+        !
+      ENDIF
+      ENDDO
+      ENDDO
+      !
+    ENDIF
+    ENDDO
+    ENDDO
+    !
+    d3in  = d3tmp
+!     DEALLOCATE(d3tmp)
+    !
+    RETURN
+  END SUBROUTINE ip_cart2pat
 ! <<^V^\\=========================================//-//-//========//O\\//
 
 END MODULE interp_fc

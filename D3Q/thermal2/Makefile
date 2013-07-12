@@ -14,7 +14,7 @@ EXTOBJS = ../src/libd3q.a \
 
 QEMODS = ../../Modules/libqemod.a
 
-TLDEPS= bindir mods libs pw d3q
+TLDEPS= bindir mods libs pw
 
 LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
 
@@ -34,14 +34,15 @@ EXECUTABLES = lw.x
 
 all : tldeps $(EXECUTABLES)
 
-lw.x : lw.o $(D3QTOOLSLIBS)
+lw.x : lw.o $(D3QTOOLSLIBS) d3q
 	$(LD) $(LDFLAGS) -o $@ lw.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
 
-
+d3q :
+	( cd ../; make src)
 tldeps:
 	test -n "$(TLDEPS)" && ( cd ../.. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :
 

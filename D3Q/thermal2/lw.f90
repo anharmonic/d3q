@@ -141,10 +141,10 @@ MODULE linewidth_program
     USE nanoclock
     !
     USE interp_fc,      ONLY : fftinterp_mat2, fftinterp_mat3, &
-                               mat2_diag, scatter_3q, sum_modes
+                               mat2_diag, scatter_3q, sum_modes, &
+                               ip_cart2pat
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
     USE functions,      ONLY : f_bose
-    USE d3_basis,       ONLY : d3_cart2pat
     
     IMPLICIT NONE
     !
@@ -160,7 +160,6 @@ MODULE linewidth_program
     !
     INTEGER,PARAMETER :: n1=16,n2=16,n3=1
     TYPE(q_grid_type) :: grid
-    TYPE(nanotimer) :: total, d3time
     !
     REAL(DP) :: freq(S%nat3,3)
     REAL(DP) :: bose(S%nat3,3)
@@ -168,8 +167,6 @@ MODULE linewidth_program
     !
     REAL(DP) :: lw(S%nat3)
     !
-    total%name    = "LW_TEST2"
-    d3time%name   = "D3"
 
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(w2(S%nat3))
@@ -187,13 +184,15 @@ MODULE linewidth_program
     CALL mat2_diag(S, U(:,:,1), freq(:,1))
     freq(:,1) = SQRT(freq(:,1))
     bose(:,1) = f_bose(freq(:,1), T)
-    U(:,:,1) = TRANSPOSE(CONJG(U(:,:,1)))
+!     U(:,:,1) = TRANSPOSE(CONJG(U(:,:,1)))
+    U(:,:,1) = (CONJG(U(:,:,1)))
 
     !
-    CALL start_nanoclock(total)
+    CALL start_nanoclock(lwtot)
     DO iq = 1, grid%nq
       !
       ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+      CALL start_nanoclock(i_ph)
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(grid%xq(:,iq)+xq(:,1))
       DO jq = 2,3
@@ -201,30 +200,42 @@ MODULE linewidth_program
         CALL mat2_diag(S, U(:,:,jq), freq(:,jq))
         freq(:,jq) = SQRT(freq(:,jq))
         bose(:,jq) = f_bose(freq(:,jq), T)
-        U(:,:,jq) = TRANSPOSE(CONJG(U(:,:,jq)))
+!         U(:,:,jq) = TRANSPOSE(CONJG(U(:,:,jq)))
+        U(:,:,jq) = (CONJG(U(:,:,jq)))
       ENDDO
+      CALL stop_nanoclock(i_ph)
       !
-      CALL start_nanoclock(d3time)
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
+      CALL start_nanoclock(d3time)
       CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
+      CALL stop_nanoclock(d3time)
       !
-      WRITE(998,'(9e15.6)') D3
-      WRITE(998,*)  "========================================"
+!       WRITE(998,'(9e15.6)') D3
+!       WRITE(998,*)  "========================================"
       !
-      CALL d3_cart2pat(D3, S%nat, U(:,:,1), U(:,:,2), U(:,:,3))
+      CALL start_nanoclock(c2pat)
+      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+      CALL stop_nanoclock(c2pat)
+      
+      CALL start_nanoclock(tv3sq)
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+      CALL stop_nanoclock(tv3sq)
       ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       !
       lw = lw + sum_modes( S, freq, bose, V3sq )
-      CALL stop_nanoclock(d3time)
       !
     ENDDO
     !
     lw = lw/grid%nq
     !
-    CALL stop_nanoclock(total)
-    CALL print_nanoclock(total)
+    CALL stop_nanoclock(lwtot)
+    CALL print_line()
+    CALL print_nanoclock(lwtot)
     CALL print_nanoclock(d3time)
+    !
+    CALL print_nanoclock(i_ph)
+    CALL print_nanoclock(c2pat)
+    CALL print_nanoclock(tv3sq)
     CALL print_memory()
     !
     DEALLOCATE(U, w2, V3sq)
