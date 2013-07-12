@@ -136,7 +136,7 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, freq, bose, V3sq, N0) RESULT(lw)
+  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
@@ -146,7 +146,6 @@ MODULE interp_fc
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
-    INTEGER,INTENT(in) :: N0
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C ! final/initial state populations 
@@ -160,11 +159,10 @@ MODULE interp_fc
     INTEGER :: i,j,k
     lw = 0._dp
     !
-    DO i = 1,S%nat3
-      !
-      !WRITE(998,'(9e15.6)') V3sq(i,:,:)
+    !
+    DO k = 1,S%nat3
       DO j = 1,S%nat3
-        DO k = 1,S%nat3
+        DO i = 1,S%nat3
           !
           freqtot = freq(i,1) * freq(j,2) * freq(k,3)
           !
@@ -181,20 +179,12 @@ MODULE interp_fc
           !
         ENDDO
       ENDDO
-!       write(998,*) "bos_a", bose_X, bose_C
-!       write(998,*) "dom",   dom_X/sigma, dom_C/sigma
-!       write(998,*) "gauss", f_gauss(dom_X, sigma), f_gauss(dom_C, sigma)
-!       write(998,*) "ctm",   ctm_X,ctm_C
-!       write(998,*) "norm",  norm, norm1
-!       write(998,*) "more",  freqtot, lw(i)
-!       write(998,*)
-      !
     ENDDO
     !
   END FUNCTION sum_modes
 
-END MODULE interp_fc
 ! <<^V^\\=========================================//-//-//========//O\\//
 
+END MODULE interp_fc
 
 

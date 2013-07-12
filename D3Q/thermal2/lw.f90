@@ -160,7 +160,7 @@ MODULE linewidth_program
     !
     INTEGER,PARAMETER :: n1=16,n2=16,n3=1
     TYPE(q_grid_type) :: grid
-    TYPE(nanotimer) :: total
+    TYPE(nanotimer) :: total, d3time
     !
     REAL(DP) :: freq(S%nat3,3)
     REAL(DP) :: bose(S%nat3,3)
@@ -169,6 +169,7 @@ MODULE linewidth_program
     REAL(DP) :: lw(S%nat3)
     !
     total%name    = "LW_TEST2"
+    d3time%name   = "D3"
 
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(w2(S%nat3))
@@ -201,8 +202,9 @@ MODULE linewidth_program
         freq(:,jq) = SQRT(freq(:,jq))
         bose(:,jq) = f_bose(freq(:,jq), T)
         U(:,:,jq) = TRANSPOSE(CONJG(U(:,:,jq)))
-      ENDDO!
+      ENDDO
       !
+      CALL start_nanoclock(d3time)
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
       !
@@ -213,7 +215,8 @@ MODULE linewidth_program
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
       ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       !
-      lw = lw + sum_modes( S, freq, bose, V3sq,grid%nq )
+      lw = lw + sum_modes( S, freq, bose, V3sq )
+      CALL stop_nanoclock(d3time)
       !
     ENDDO
     !
@@ -221,6 +224,7 @@ MODULE linewidth_program
     !
     CALL stop_nanoclock(total)
     CALL print_nanoclock(total)
+    CALL print_nanoclock(d3time)
     CALL print_memory()
     !
     DEALLOCATE(U, w2, V3sq)
