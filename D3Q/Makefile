@@ -1,32 +1,26 @@
 # Makefile for D3Q
 # Adapted from TDDFPT main Makefile
 
+SUBDIRS = src tools
+OPTDIRS = Q2R3 Q2R_ml thermal thermal2  
+
 default: all
 
-all:
-	if test -d src ; then \
-	( cd src ; if test "$(MAKE)" = "" ; then make $(MFLAGS) $@; \
-	else $(MAKE) $(MFLAGS) $@ ; fi ) ; fi ; \
+all: $(SUBDIRS)
+more: all $(OPTDIRS)
 
-clean : clean_examples
-	if test -d src ; then \
-	( cd src ; if test "$(MAKE)" = "" ; then make clean ; \
-	else $(MAKE) clean ; fi ) ; fi ;\
+clean: clean_subdirs clean_examples
+
+clean_subdirs :
+	for D in $(SUBDIRS) $(OPTDIRS); do \
+	   test -d $$D && (cd $$D ; $(MAKE) $(MFLAGS) clean) \
+	done
 
 clean_examples :
 	if test -d examples ; then \
 	( cd examples ; ./clean_all) ; fi 
 
-doc:
-	if test -d Doc ; then \
-	(cd Doc ; if test "$(MAKE)" = "" ; then make $(MFLAGS) all ; \
-	else $(MAKE) $(MFLAGS) all ; fi ) ; fi
-doc_clean:
-	if test -d Doc ; then \
-	(cd Doc ; if test "$(MAKE)" = "" ; then make $(MFLAGS) clean ; \
-	else $(MAKE) $(MFLAGS) clean ; fi ) ; fi
+$(SUBDIRS) $(OPTDIRS): FORCE
+	test -d $@ && (cd $@ ; $(MAKE) $(MFLAGS) all) 
 
-distclean: clean doc_clean
-
-
-
+FORCE:
