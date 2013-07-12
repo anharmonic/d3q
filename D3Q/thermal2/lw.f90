@@ -184,7 +184,6 @@ MODULE linewidth_program
     CALL mat2_diag(S, U(:,:,1), freq(:,1))
     freq(:,1) = SQRT(freq(:,1))
     bose(:,1) = f_bose(freq(:,1), T)
-!     U(:,:,1) = TRANSPOSE(CONJG(U(:,:,1)))
     U(:,:,1) = (CONJG(U(:,:,1)))
 
     !
@@ -200,7 +199,6 @@ MODULE linewidth_program
         CALL mat2_diag(S, U(:,:,jq), freq(:,jq))
         freq(:,jq) = SQRT(freq(:,jq))
         bose(:,jq) = f_bose(freq(:,jq), T)
-!         U(:,:,jq) = TRANSPOSE(CONJG(U(:,:,jq)))
         U(:,:,jq) = (CONJG(U(:,:,jq)))
       ENDDO
       CALL stop_nanoclock(i_ph)
@@ -209,9 +207,6 @@ MODULE linewidth_program
       CALL start_nanoclock(d3time)
       CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
       CALL stop_nanoclock(d3time)
-      !
-!       WRITE(998,'(9e15.6)') D3
-!       WRITE(998,*)  "========================================"
       !
       CALL start_nanoclock(c2pat)
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
@@ -222,7 +217,9 @@ MODULE linewidth_program
       CALL stop_nanoclock(tv3sq)
       ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       !
+      CALL start_nanoclock(tsum)
       lw = lw + sum_modes( S, freq, bose, V3sq )
+      CALL stop_nanoclock(tsum)
       !
     ENDDO
     !
@@ -236,6 +233,7 @@ MODULE linewidth_program
     CALL print_nanoclock(i_ph)
     CALL print_nanoclock(c2pat)
     CALL print_nanoclock(tv3sq)
+    CALL print_nanoclock(tsum)
     CALL print_memory()
     !
     DEALLOCATE(U, w2, V3sq)

@@ -12,7 +12,7 @@ MODULE interp_fc
 
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
-  PURE SUBROUTINE fftinterp_mat2(xq, S, fc, D)
+  SUBROUTINE fftinterp_mat2(xq, S, fc, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -27,14 +27,16 @@ MODULE interp_fc
     !
     D = (0._dp, 0._dp)
     !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,arg,phase) REDUCTION(+: D)
     DO i = 1, fc%n_R
       arg = tpi * SUM(xq(:)*fc%xR(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
       D(:, :) = D(:, :) + phase * fc%fc(:, :, i)
     END DO
+!$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat2
   ! \/o\________\\\_________________________________________/^>
-  PURE SUBROUTINE fftinterp_mat3(xq2,xq3, S, fc, D)
+  SUBROUTINE fftinterp_mat3(xq2,xq3, S, fc, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -49,11 +51,13 @@ MODULE interp_fc
     !
     D = (0._dp, 0._dp)
     !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,arg,phase) REDUCTION(+: D)
     DO i = 1, fc%n_R
       arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
       D(:,:,:) = D(:,:,:) + phase * fc%fc(:,:,:, i)
     END DO
+!$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat3
   ! \/o\________\\\_________________________________________/^>
   ! IN PLACE diagonalization of D
@@ -138,7 +142,7 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  PURE FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
+  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
@@ -162,6 +166,7 @@ MODULE interp_fc
     lw = 0._dp
     !
     !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) REDUCTION(+: lw)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
         DO i = 1,S%nat3
@@ -182,10 +187,11 @@ MODULE interp_fc
         ENDDO
       ENDDO
     ENDDO
+!$OMP END PARALLEL DO
     !
   END FUNCTION sum_modes
   ! \/o\________\\\_________________________________________/^>
-  PURE SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
     !   Rotates third derivative of the dynamical basis from cartesian axis
     !   to the basis of the modes
     USE kinds, ONLY : DP
@@ -206,11 +212,12 @@ MODULE interp_fc
     !ALLOCATE(d3tmp(nat3, nat3, nat3))
     d3tmp = (0._dp, 0._dp)
     !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp)
     DO k = 1,nat3
     DO c = 1,nat3
     IF(ABS(u3(c,k))>EPS)THEN
       !
-      DO j = 1,nat3
+     DO j = 1,nat3
       DO b = 1,nat3
       IF(ABS(u2(b,j))>EPS)THEN
         !
@@ -229,6 +236,7 @@ MODULE interp_fc
     ENDIF
     ENDDO
     ENDDO
+!$OMP END PARALLEL DO
     !
     d3in  = d3tmp
 !     DEALLOCATE(d3tmp)

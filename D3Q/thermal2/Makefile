@@ -21,6 +21,9 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 D3QTOOLSOBJS = \
 lw.o \
 
+F90FLAGS += -fopenmp
+LDFLAGS  += -fopenmp
+
 D3QTOOLSLIBS = \
 input_fc.o \
 interp_fc.o \
