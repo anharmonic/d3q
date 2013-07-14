@@ -194,6 +194,7 @@ MODULE linewidth_program
       CALL start_nanoclock(i_ph)
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(grid%xq(:,iq)+xq(:,1))
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         CALL fftinterp_mat2(xq(:,jq), S, fc2, U(:,:,jq))
         CALL mat2_diag(S, U(:,:,jq), freq(:,jq))
@@ -201,6 +202,7 @@ MODULE linewidth_program
         bose(:,jq) = f_bose(freq(:,jq), T)
         U(:,:,jq) = (CONJG(U(:,:,jq)))
       ENDDO
+!$OMP END PARALLEL DO
       CALL stop_nanoclock(i_ph)
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
@@ -266,7 +268,7 @@ PROGRAM linewidth
   !CALL setup_symmetry(S)
 
   CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
-                   20, S, fc2, fc3)
+                   200, S, fc2, fc3)
 
 !   xq(:,1) = (/0.5_dp,0.288675_dp,0._dp/)
 !   xq(:,2) = - xq(:,1)
