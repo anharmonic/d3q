@@ -142,7 +142,7 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, freq, bose, V3sq) RESULT(lw)
+  FUNCTION sum_modes(S, freq, bose, V3sq)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
@@ -151,7 +151,7 @@ MODULE interp_fc
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
     !
-    REAL(DP) :: lw(S%nat3)
+    REAL(DP) :: sum_modes(S%nat3)
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C ! final/initial state populations 
@@ -163,10 +163,11 @@ MODULE interp_fc
     REAL(DP),PARAMETER :: norm = pi/8
     !
     INTEGER :: i,j,k
-    lw = 0._dp
+    REAL(DP) :: lw(S%nat3)
+    lw(:) = 0._dp
     !
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) REDUCTION(+: lw)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) REDUCTION(+: lw) COLLAPSE(3)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
         DO i = 1,S%nat3
@@ -188,6 +189,8 @@ MODULE interp_fc
       ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+    !
+    sum_modes = lw
     !
   END FUNCTION sum_modes
   ! \/o\________\\\_________________________________________/^>
