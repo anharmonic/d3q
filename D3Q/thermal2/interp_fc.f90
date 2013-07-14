@@ -196,7 +196,7 @@ MODULE interp_fc
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
     !   Rotates third derivative of the dynamical basis from cartesian axis
-    !   to the basis of the modes
+    !   to the basis of the modes. Rotation is not really in place
     USE kinds, ONLY : DP
     IMPLICIT NONE
     ! d3 matrix, input: in cartesian basis, output: on the patterns basis
@@ -215,7 +215,7 @@ MODULE interp_fc
     !ALLOCATE(d3tmp(nat3, nat3, nat3))
     d3tmp = (0._dp, 0._dp)
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp) COLLAPSE(2)
     DO k = 1,nat3
     DO c = 1,nat3
     IF(ABS(u3(c,k))>EPS)THEN
@@ -242,7 +242,7 @@ MODULE interp_fc
 !$OMP END PARALLEL DO
     !
     d3in  = d3tmp
-!     DEALLOCATE(d3tmp)
+    !DEALLOCATE(d3tmp)
     !
     RETURN
   END SUBROUTINE ip_cart2pat
