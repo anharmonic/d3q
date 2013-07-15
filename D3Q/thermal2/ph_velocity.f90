@@ -18,14 +18,16 @@ MODULE ph_velocity
   ! \/o\________\\\_________________________________________/^>
   ! Compute ph group velocity by simple straightforward finite difference
   ! This algorithm can fail at band crossings
-  SUBROUTINE velocity_simple(S,fc, xq, xvel)
+  FUNCTION velocity_simple(S,fc, xq)
     USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
-    REAL(DP),INTENT(out) :: xvel(3,S%nat3)
+    ! FUNCTION RESULT:
+    REAL(DP) :: velocity_simple(3,S%nat3)
     !
+    REAL(DP) :: xvel(3,S%nat3)
     COMPLEX(DP),ALLOCATABLE :: D2(:,:)
     REAL(DP),ALLOCATABLE    :: w2p(:), w2m(:)
     !
@@ -34,6 +36,11 @@ MODULE ph_velocity
     !
     ALLOCATE(D2(S%nat3,S%nat3), w2p(S%nat3), w2m(S%nat3))
     !
+    xvel = 0._dp
+    !
+!$OMP PARALLEL DO DEFAULT(shared) &
+!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
+!$OMP             REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
@@ -51,10 +58,13 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
+!$OMP END PARALLEL DO
+    !
+    velocity_simple = xvel
     !
     DEALLOCATE(D2,w2p, w2m)
 
-  END SUBROUTINE velocity_simple
+  END FUNCTION velocity_simple
   ! \/o\________\\\_________________________________________/^>
   ! Compute ph group velocity by diagonalizing D2 at q:
   !     D u_i = w^2_i u_i ; U = (u_1 u_2 .. u_2*nat)
@@ -62,14 +72,16 @@ MODULE ph_velocity
   !     W(q+h) = U(q)^H D(q+h) U(q)
   !     w^2_i(q+h) = W(q+h)_i,i
   ! This algorithm does not fail at band crossings
-  SUBROUTINE velocity_proj(S,fc, xq, xvel)
+  FUNCTION velocity_proj(S,fc, xq)
     USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
-    REAL(DP),INTENT(out) :: xvel(3,S%nat3)
+    ! FUNCTION RESULT:
+    REAL(DP) :: velocity_proj(3,S%nat3)
     !
+    REAL(DP),ALLOCATABLE :: xvel(:,:)
     COMPLEX(DP),ALLOCATABLE :: D2(:,:), U(:,:), W(:,:)
     REAL(DP),ALLOCATABLE    :: w2p(:), w2m(:)
     !
@@ -77,22 +89,28 @@ MODULE ph_velocity
     REAL(DP) :: xqp(3), xqm(3), dh
     !
     ALLOCATE(D2(S%nat3,S%nat3), U(S%nat3,S%nat3), W(S%nat3,S%nat3), &
-             w2p(S%nat3), w2m(S%nat3))
+             w2p(S%nat3), w2m(S%nat3), xvel(3,S%nat3))
     !
     CALL fftinterp_mat2(xq, S, fc, U)
     CALL mat2_diag(S, U, w2p)
     !
+    xvel = 0._dp
+    !
+! NOTE: this function does not seem to work with OMP, maybe a compiler
+!x$OMP PARALLEL DO DEFAULT(shared) &
+!x$OMP          PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, U, W, dh) &
+!x$OMP          REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
       CALL fftinterp_mat2(xqp, S, fc, D2)
-      W = rotate(S%nat3, D2, U)
+      W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2p(nu) = REAL(W(nu,nu),kind=DP)
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
       CALL fftinterp_mat2(xqm, S, fc, D2)
-      W = rotate(S%nat3, D2, U)
+      W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2m(nu) = REAL(W(nu,nu),kind=DP)
       !
       dh = ( xqp(ix)-xqm(ix) )
@@ -101,15 +119,19 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
+!x$OMP END PARALLEL DO
     !
-    DEALLOCATE(D2, U, W, w2p, w2m)
-
-  END SUBROUTINE velocity_proj
+    velocity_proj = xvel
+    DEALLOCATE(D2, U, W, w2p, w2m, xvel)
+    !
+  END FUNCTION velocity_proj
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION rotate(nat3, D, U)
+  PURE FUNCTION rotate_d2(nat3, D, U)
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nat3
     COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
-    COMPLEX(DP) :: rotate(nat3,nat3)
-    rotate = matmul(transpose(conjg(U)), matmul(D,U))
+    COMPLEX(DP) :: rotate_d2(nat3,nat3)
+    rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
   END FUNCTION
   ! \/o\________\\\_________________________________________/^>
   ! As in Fugallo et. al. PRB 

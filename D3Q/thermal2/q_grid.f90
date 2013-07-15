@@ -13,11 +13,11 @@ MODULE q_grid
     !REAL(DP),ALLOCATABLE :: w(:)
   END TYPE
   !
-  TYPE q_3grid_type
-    INTEGER :: n(3), nq
-    TYPE(q_grid_type) :: sub(3)
-    !REAL(DP),ALLOCATABLE :: w(:)
-  END TYPE
+!   TYPE q_3grid_type
+!     INTEGER :: n(3), nq
+!     TYPE(q_grid_type) :: sub(3)
+!     !REAL(DP),ALLOCATABLE :: w(:)
+!   END TYPE
 
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>

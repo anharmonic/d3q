@@ -6,8 +6,9 @@
 !
 MODULE nanoclock
   !
-  USE kinds, ONLY : DP
-  USE iso_c_binding, ONLY : c_double
+  USE kinds,            ONLY : DP
+  USE iso_c_binding,    ONLY : c_double
+  USE io_global,        ONLY : stdout
   !
 !   TYPE(nanoclock) :: timer
 !   timer%name = "MAIN"
@@ -69,14 +70,14 @@ MODULE nanoclock
   END SUBROUTINE stop_nanoclock
   ! \/o\________\\\_________________________________________/^>
   !
-  SUBROUTINE print_line()
+  SUBROUTINE print_nanoline()
     IMPLICIT NONE
-    WRITE(*,'(2x," * ",16("*")," * ",12("*"),"***** * ", 12("*")," *")') 
-  END SUBROUTINE print_line
+    WRITE(*,'(2x," * ",16("*")," * ",12("*"),"***** * ", 14("*")," * ", 6("*")," *")') 
+  END SUBROUTINE print_nanoline
   SUBROUTINE print_header()
     IMPLICIT NONE
-    WRITE(*,'(2x," * ",a16," * ",5x,a12," * ", a6," *")') &
-    "TIMER NAME", " TIME (s) ", "CALLS"
+    WRITE(*,'(2x," * ",a16," * ",5x,a12," * ",a14," * ", a6," *")') &
+    "TIMER NAME", " TIME (s) ", "TIME/CALL (ms)", "CALLS"
   END SUBROUTINE print_header
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_nanoclock(timer)
@@ -85,7 +86,7 @@ MODULE nanoclock
     !
     IF(.not. present(timer)) THEN
       CALL print_header()
-      CALL print_line()
+      CALL print_nanoline()
       RETURN
     ENDIF
     
@@ -94,8 +95,8 @@ MODULE nanoclock
       WRITE(*,'(2x," * ",a16," * ",f12.6,"s (r) * ", i12," *")') &
       TRIM(timer%name), timer%tot + (c_nanosec()-timer%t0), "(r)", timer%calls
     ELSE
-      WRITE(*,'(2x," * ",a16," * ",f12.6,"s     * ", i12," *")') &
-      TRIM(timer%name), timer%tot, timer%calls
+      WRITE(*,'(2x," * ",a16," * ",f12.6,"s     * ",f12.6,"ms * ", i6," *")') &
+      TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, timer%calls
     ENDIF
     
   END SUBROUTINE print_nanoclock
@@ -112,9 +113,18 @@ MODULE nanoclock
       kb = kb/1000
       unit = "MB"
     ENDIF
-    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,16x," *")') "Memory used ", kb, unit
+    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,27x," *")') "Memory used ", kb, unit
     !
   END SUBROUTINE print_memory
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_nanoq(xq)
+    USE iso_c_binding,  ONLY : c_int
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: xq(3)
+    !
+    WRITE(*,'(2x," * ",10x,a3,3f12.6,13x," *")') "q =",xq
+    !
+  END SUBROUTINE print_nanoq
 
   
 END MODULE

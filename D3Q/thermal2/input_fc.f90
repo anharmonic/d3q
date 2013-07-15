@@ -7,6 +7,7 @@ MODULE input_fc
   !
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
+  USE io_global,        ONLY : stdout
   !
   ! \/o\________\\\_________________________________________/^>
   TYPE ph_system_info
@@ -135,6 +136,7 @@ MODULE input_fc
     S%nat32 = S%nat3**2
     S%nat33 = S%nat3**3
     
+    IF(allocated(S%sqrtmm1)) CALL errore("aux_system","should be called twice",1)
     ALLOCATE(S%sqrtmm1(S%nat3))
     DO i = 1,S%nat3
       na = (i-1)/3 +1
@@ -165,7 +167,7 @@ MODULE input_fc
     CALL read_system(unit, S)
     !
     READ(unit, *) jn1, jn2, jn3
-    PRINT*, "Original FC2 grid:", jn1, jn2, jn3
+    WRITE(stdout,*) "Original FC2 grid:", jn1, jn2, jn3
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 
@@ -252,7 +254,7 @@ MODULE input_fc
     CALL read_system(unit, S)
     !
     READ(unit, *) jn1, jn2, jn3
-    PRINT*, "Original FC3 grid:", jn1, jn2, jn3
+    WRITE(stdout,*) "Original FC3 grid:", jn1, jn2, jn3
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 

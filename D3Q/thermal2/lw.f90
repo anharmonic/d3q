@@ -7,6 +7,14 @@
 ! xR, xq --> cartesian coordinates
 ! yR, yq --> crystalline coordinates
 !
+MODULE more_constants
+  USE kinds, ONLY : DP
+  REAL(DP),PARAMETER :: RY_TO_JOULE =  0.5* 4.35974394e-18
+  REAL(DP),PARAMETER :: RY_TO_SECOND = 2* 2.418884326505e-17
+  REAL(DP),PARAMETER :: RY_TO_METER = 5.2917721092e-11
+  REAL(DP),PARAMETER :: RY_TO_WATTMM1KM1 = RY_TO_JOULE / (RY_TO_SECOND * RY_TO_METER)
+END MODULE more_constants
+
 MODULE linewidth_program
   !
   USE kinds,    ONLY : DP
@@ -78,13 +86,13 @@ MODULE linewidth_program
     
       CALL fftinterp_mat2(xq, S, fc, D)
       CALL mat2_diag(S, D, w2)
-      WRITE(666, '(i4,f12.6,4x,3f12.6,5x,9f12.6)') i,pl,xq, SQRT(w2)*RY_TO_CMM1 
+      WRITE(766, '(i4,f12.6,4x,3f12.6,5x,9f12.6)') i,pl,xq, SQRT(w2)*RY_TO_CMM1 
 
-      CALL velocity_simple(S,fc, xq, xvels)
-      WRITE(667, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvels
+      xvels = velocity_simple(S,fc, xq)
+      WRITE(767, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvels
       
-      CALL velocity_proj(S,fc, xq, xvelp)
-      WRITE(668, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvelp
+      xvelp = velocity_proj(S,fc, xq)
+      WRITE(768, '(i4,f12.6,4x,3f12.6,5x,9(3e14.3,2x))') i,pl,xq, xvelp
 
       pl = pl + dpl
     ENDDO
@@ -96,9 +104,11 @@ MODULE linewidth_program
   !  
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(xq0, xq1, nq, S, fc2, fc3)
-    USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
-    USE constants,  ONLY : RY_TO_CMM1
+    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag, linewidth_q
+    USE constants,   ONLY : RY_TO_CMM1
     USE ph_velocity 
+    USE q_grid,      ONLY : q_grid_type, setup_simple_grid
+    USE nanoclock
     IMPLICIT NONE
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
@@ -111,6 +121,7 @@ MODULE linewidth_program
     REAL(DP),ALLOCATABLE    :: w2(:), lw(:)
     REAL(DP) :: xq(3), dxq, pl,dpl
     INTEGER :: i
+    TYPE(q_grid_type) :: grid
     !
     ALLOCATE(D(S%nat3, S%nat3))
     ALLOCATE(w2(S%nat3), lw(S%nat3))
@@ -119,12 +130,17 @@ MODULE linewidth_program
     pl = 0._dp
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
+    CALL setup_simple_grid(S, 16,16,1, grid)
+    !
+    CALL print_header()
+    !
     DO i = 0,nq-1
       xq = (xq0*(nq-1-i) + xq1*i)*dxq
       CALL fftinterp_mat2(xq, S, fc2, D)
       CALL mat2_diag(S, D, w2)
       
-      lw = LW_TEST2(xq, 300._dp, S, fc2, fc3)
+!       lw = LW_TEST2(xq, 300._dp, S, fc2, fc3)
+      lw = linewidth_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
       WRITE(666, '(i4,f12.6,2x,3f12.6,2x,9f12.6,2x,9e15.4)') &
                    i,pl,xq, SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1
 
@@ -134,123 +150,94 @@ MODULE linewidth_program
     DEALLOCATE(D, w2, lw)
     !
   END SUBROUTINE LW_QBZ_LINE
- 
-   FUNCTION LW_TEST2(xq0,T, S, fc2, fc3) &
-   RESULT(lw)
-    !
-    USE nanoclock
-    !
-    USE interp_fc,      ONLY : fftinterp_mat2, fftinterp_mat3, &
-                               mat2_diag, scatter_3q, sum_modes, &
-                               ip_cart2pat
+  
+  !  
+  ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
+  SUBROUTINE SMA_TRANSPORT(S, fc2, fc3, n1,n2,n3, T, sigma)
+    USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag, linewidth_q
+    USE constants,      ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
+    USE more_constants, ONLY : RY_TO_WATTMM1KM1
+    USE ph_velocity ,   ONLY : velocity_proj
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
     USE functions,      ONLY : f_bose
-    
+    USE mp_world,       ONLY : mpime, nproc, world_comm
+    USE mp,             ONLY : mp_sum
     IMPLICIT NONE
     !
+    TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     TYPE(forceconst3_grid),INTENT(in) :: fc3
-    TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: T ! Kelvin
-    REAL(DP),INTENT(in) :: xq0(3)
+    INTEGER,INTENT(in) :: n1,n2,n3
+    REAL(DP),INTENT(in) :: T,sigma
     !
-    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
-    REAL(DP),ALLOCATABLE    :: w2(:), V3sq(:,:,:)
-    INTEGER :: iq, jq, nu
-    !
-    INTEGER,PARAMETER :: n1=16,n2=16,n3=1
+    COMPLEX(DP),ALLOCATABLE :: D(:,:)
+    REAL(DP),ALLOCATABLE    :: w2(:), lw(:), xvel(:,:)
+    REAL(DP) :: k(3,3,0:S%nat3), bose(S%nat3)
+    INTEGER :: i, a,b, nu
     TYPE(q_grid_type) :: grid
+    REAL(DP) :: dk, k0
     !
-    REAL(DP) :: freq(S%nat3,3)
-    REAL(DP) :: bose(S%nat3,3)
-    REAL(DP) :: xq(3,3)
-    !
-    REAL(DP) :: lw(S%nat3)
-    !
-
-    ALLOCATE(U(S%nat3, S%nat3,3))
-    ALLOCATE(w2(S%nat3))
-    ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(D(S%nat3, S%nat3))
+    ALLOCATE(w2(S%nat3), lw(S%nat3), xvel(3,S%nat3))
     !
     CALL setup_simple_grid(S, n1,n2,n3, grid)
+    PRINT*, "INTEGRATING:", grid%nq
     !
-    lw = 0._dp
+    k0 = 1/(S%omega*K_BOLTZMANN_RY*T**2)
+    k = 0._dp
     !
-    !CALL velocity_proj(S,fc2, xq, xvel)
-    ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
-    xq(:,1) = xq0
-    CALL fftinterp_mat2(xq(:,1), S, fc2, U(:,:,1))
-    CALL mat2_diag(S, U(:,:,1), freq(:,1))
-    freq(:,1) = SQRT(freq(:,1))
-    bose(:,1) = f_bose(freq(:,1), T)
-    U(:,:,1) = (CONJG(U(:,:,1)))
-
-    !
-    CALL start_nanoclock(lwtot)
-    DO iq = 1, grid%nq
+    DO i = 1+mpime, grid%nq, nproc
       !
-      ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
-      CALL start_nanoclock(i_ph)
-      xq(:,2) = grid%xq(:,iq)
-      xq(:,3) = -(grid%xq(:,iq)+xq(:,1))
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
-      DO jq = 2,3
-        CALL fftinterp_mat2(xq(:,jq), S, fc2, U(:,:,jq))
-        CALL mat2_diag(S, U(:,:,jq), freq(:,jq))
-        freq(:,jq) = SQRT(freq(:,jq))
-        bose(:,jq) = f_bose(freq(:,jq), T)
-        U(:,:,jq) = (CONJG(U(:,:,jq)))
-      ENDDO
-!$OMP END PARALLEL DO
-      CALL stop_nanoclock(i_ph)
+      CALL fftinterp_mat2(grid%xq(:,i), S, fc2, D)
+      CALL mat2_diag(S, D, w2)
+      xvel = velocity_proj(S,fc2, grid%xq(:,i))
       !
-      ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
-      CALL start_nanoclock(d3time)
-      CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
-      CALL stop_nanoclock(d3time)
-      !
-      CALL start_nanoclock(c2pat)
-      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
-      CALL stop_nanoclock(c2pat)
+      lw = linewidth_q(grid%xq(:,i), T, sigma, S, grid, fc2, fc3)
+      WRITE(666, '(i4,3f12.6,2x,9f12.6,2x,9e15.4)') &
+                   i,grid%xq(:,i), SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1      !
+      IF(i>1)THEN
+        IF(grid%xq(1,i)/=grid%xq(1,i-1))WRITE(666,*)
+      ENDIF
       
-      CALL start_nanoclock(tv3sq)
-      V3sq = REAL( CONJG(D3)*D3 , kind=DP)
-      CALL stop_nanoclock(tv3sq)
-      ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
-      !
-      CALL start_nanoclock(tsum)
-      lw = lw + sum_modes( S, freq, bose, V3sq )
-      CALL stop_nanoclock(tsum)
-      !
+      bose = f_bose(SQRT(w2), T)
+      
+      DO nu = 1,S%nat3
+        IF(lw(nu)/=0._dp)THEN
+        DO a = 1,3
+        DO b = 1,3
+          dk =  k0*xvel(a,nu)*xvel(b,nu)*w2(nu)*bose(nu)*(bose(nu)+1)/lw(nu)/grid%nq
+          k(a,b,nu) = k(a,b,nu) +dk
+          k(a,b,0)  = k(a,b,0)  +dk
+        ENDDO
+        ENDDO
+        ENDIF
+      ENDDO
     ENDDO
     !
-    lw = lw/grid%nq
+    DEALLOCATE(D, w2, lw)
     !
-    CALL stop_nanoclock(lwtot)
-    CALL print_line()
-    CALL print_nanoclock(lwtot)
-    CALL print_nanoclock(d3time)
+    CALL mp_sum(k, world_comm)
     !
-    CALL print_nanoclock(i_ph)
-    CALL print_nanoclock(c2pat)
-    CALL print_nanoclock(tv3sq)
-    CALL print_nanoclock(tsum)
-    CALL print_memory()
+    DO nu = 0,S%nat3
+      write(667,*) "--------------", nu
+      DO b = 1,3
+        write(667, *) RY_TO_WATTMM1KM1*k(:,b,nu)
+      ENDDO
+    ENDDO
     !
-    DEALLOCATE(U, w2, V3sq)
-    !
-  END FUNCTION LW_TEST2  
-  
+  END SUBROUTINE SMA_TRANSPORT  
+ 
 END MODULE linewidth_program
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM linewidth
 
-  USE kinds, ONLY : DP
+  USE kinds,            ONLY : DP
   USE linewidth_program
-  USE environment, ONLY : environment_start, environment_end
+  USE environment,      ONLY : environment_start, environment_end
+  USE constants,        ONLY : RY_TO_CMM1
+  USE mp_world,         ONLY : mp_global_start, mp_global_end
   
   TYPE(forceconst2_grid) :: fc2
   TYPE(forceconst3_grid) :: fc3
@@ -258,28 +245,21 @@ PROGRAM linewidth
   
   REAL(DP) :: xq(3,3)
   
+  CALL mp_global_start()
   CALL environment_start('LW')
   
   CALL INPUT(s, fc2, fc3)
+
+  CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
+                   200, S, fc2)
   
-!   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/), &
-!                 101, S, fc2)
+!   CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
+!                    200, S, fc2, fc3)
 
-  !CALL setup_symmetry(S)
-
-  CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
-                   200, S, fc2, fc3)
-
-!   xq(:,1) = (/0.5_dp,0.288675_dp,0._dp/)
-!   xq(:,2) = - xq(:,1)
-!   xq(:,3) = - (xq(:,1)+xq(:,2))
-!   !CALL LW_TEST(xq, S, fc2, fc3)
-! 
-!   CALL LW_TEST2(xq(:,1),300._dp, S, fc2, fc3)
-!   CALL LW_TEST2(xq(:,2),300._dp, S, fc2, fc3)
-!   CALL LW_TEST2(xq(:,3),300._dp, S, fc2, fc3)
+  CALL SMA_TRANSPORT(S, fc2, fc3, 8,8,1, 300._dp, 10._dp/RY_TO_CMM1)
 
   CALL environment_end('LW')
+  CALL mp_global_end()
  
 END PROGRAM
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

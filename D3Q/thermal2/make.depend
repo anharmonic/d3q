@@ -8,10 +8,10 @@ interp_fc.o : ../../Modules/kind.o
 interp_fc.o : ./functions.o
 interp_fc.o : ./input_fc.o
 interp_fc.o : ./nanoclock.o
+interp_fc.o : ./q_grid.o
 lw.o : ../../Modules/constants.o
 lw.o : ../../Modules/environment.o
 lw.o : ../../Modules/kind.o
-lw.o : ./functions.o
 lw.o : ./input_fc.o
 lw.o : ./interp_fc.o
 lw.o : ./nanoclock.o

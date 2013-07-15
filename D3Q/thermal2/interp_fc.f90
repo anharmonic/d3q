@@ -142,11 +142,12 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, freq, bose, V3sq)
+  FUNCTION sum_modes(S, sigma, freq, bose, V3sq)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : RY_TO_CMM1, pi
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: sigma
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
@@ -159,7 +160,6 @@ MODULE interp_fc
     REAL(DP) :: ctm_X, ctm_C   !
     REAL(DP) :: freqtot
     !
-    REAL(DP),PARAMETER :: sigma = 10._dp/RY_TO_CMM1
     REAL(DP),PARAMETER :: norm = pi/8
     !
     INTEGER :: i,j,k
@@ -247,7 +247,114 @@ MODULE interp_fc
     RETURN
   END SUBROUTINE ip_cart2pat
 ! <<^V^\\=========================================//-//-//========//O\\//
+  FUNCTION linewidth_q(xq0, T, sigma, S, grid, fc2, fc3) &
+  RESULT(lw)
+    !
+    USE nanoclock
+    !
+    USE q_grid,         ONLY : q_grid_type
+    
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq0(3)
+    REAL(DP),INTENT(in) :: T     ! Kelvin
+    REAL(DP),INTENT(in) :: sigma ! ry
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid_type),INTENT(in)      :: grid
+    !
+    ! FUNCTION RESULT:
+    REAL(DP) :: lw(S%nat3)
+    !
+    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
+    REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
+    INTEGER :: iq, jq, nu
+    !
+    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3)
+    !
 
+    ALLOCATE(U(S%nat3, S%nat3,3))
+    ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
+    !
+    lw = 0._dp
+    !
+    ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
+    xq(:,1) = xq0
+    CALL prepare_phq(xq(:,1), T, S, fc2, freq(:,1), bose(:,1), U(:,:,1))
+
+    !
+!     CALL start_nanoclock(lwtot)
+    DO iq = 1, grid%nq
+      !
+      ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+!       CALL start_nanoclock(i_ph)
+      xq(:,2) = grid%xq(:,iq)
+      xq(:,3) = -(grid%xq(:,iq)+xq(:,1))
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+      DO jq = 2,3
+        CALL prepare_phq(xq(:,jq), T, S, fc2, freq(:,jq), bose(:,jq), U(:,:,jq))
+      ENDDO
+!$OMP END PARALLEL DO
+!       CALL stop_nanoclock(i_ph)
+      !
+      ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
+!       CALL start_nanoclock(d3time)
+      CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
+!       CALL stop_nanoclock(d3time)
+      !
+!       CALL start_nanoclock(c2pat)
+      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+!       CALL stop_nanoclock(c2pat)
+      
+!       CALL start_nanoclock(tv3sq)
+      V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+!       CALL stop_nanoclock(tv3sq)
+      ! ------ end of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
+      !
+!       CALL start_nanoclock(tsum)
+      lw = lw + sum_modes( S, sigma, freq, bose, V3sq )
+!       CALL stop_nanoclock(tsum)
+      !
+    ENDDO
+    !
+    lw = lw/grid%nq
+    !
+!     CALL stop_nanoclock(lwtot)
+
+!     CALL print_nanoclock(lwtot)
+!     CALL print_nanoclock(d3time)
+!     !
+!     CALL print_nanoclock(i_ph)
+!     CALL print_nanoclock(c2pat)
+!     CALL print_nanoclock(tv3sq)
+!     CALL print_nanoclock(tsum)
+!     CALL print_memory()
+    !
+    DEALLOCATE(U, V3sq)
+    !
+  END FUNCTION linewidth_q  
+  !
+  SUBROUTINE prepare_phq(xq, T, S, fc2, freq, bose, U)
+!     USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag
+    USE functions,      ONLY : f_bose
+    IMPLICIT NONE
+      REAL(DP),INTENT(in)  :: xq(3), T
+      TYPE(ph_system_info),INTENT(in)   :: S
+      TYPE(forceconst2_grid),INTENT(in) :: fc2
+      REAL(DP),INTENT(out) :: freq(S%nat3), bose(S%nat3)
+      COMPLEX(DP),INTENT(out) :: U(S%nat3,S%nat3)
+      !
+      CALL fftinterp_mat2(xq, S, fc2, U)
+      CALL mat2_diag(S, U, freq)
+      freq = SQRT(freq)
+      bose = f_bose(freq, T)
+      U = CONJG(U)
+      !
+  END SUBROUTINE prepare_phq
+  !
 END MODULE interp_fc
 
 
