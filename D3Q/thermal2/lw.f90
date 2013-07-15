@@ -196,7 +196,7 @@ MODULE linewidth_program
       WRITE(666, '(i4,3f12.6,2x,9f12.6,2x,9e15.4)') &
                    i,grid%xq(:,i), SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1      !
       IF(i>1)THEN
-        IF(grid%xq(1,i)/=grid%xq(1,i-1))WRITE(666,*)
+        IF(grid%xq(1,i)/=grid%xq(1,i-1)) WRITE(666,*)
       ENDIF
       
       bose = f_bose(SQRT(w2), T)

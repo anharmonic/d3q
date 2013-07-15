@@ -96,10 +96,10 @@ MODULE ph_velocity
     !
     xvel = 0._dp
     !
-! NOTE: this function does not seem to work with OMP, maybe a compiler
-!x$OMP PARALLEL DO DEFAULT(shared) &
-!x$OMP          PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, U, W, dh) &
-!x$OMP          REDUCTION(+:xvel)
+! NOTE: the rotation U must be shared!
+!$OMP PARALLEL DO DEFAULT(shared) &
+!$OMP          PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
+!$OMP          REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
@@ -119,7 +119,7 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
-!x$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
     !
     velocity_proj = xvel
     DEALLOCATE(D2, U, W, w2p, w2m, xvel)

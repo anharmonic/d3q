@@ -21,8 +21,9 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 D3QTOOLSOBJS = \
 lw.o \
 
-F90FLAGS += -fopenmp
-LDFLAGS  += -fopenmp
+MPIF90 = ifort
+F90FLAGS += -openmp -fast #-traceback -check all -g
+LDFLAGS  += -openmp
 
 D3QTOOLSLIBS = \
 input_fc.o \
