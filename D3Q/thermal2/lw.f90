@@ -26,9 +26,10 @@ MODULE linewidth_program
   !
   ! read everything from files mat2R and mat3R
   SUBROUTINE INPUT(s, fc2, fc3)
-    USE iso_c_binding, ONLY : c_int
-    USE input_fc,      ONLY : same_system, read_fc2, read_fc3, &
-                              aux_system, div_mass_fc2, div_mass_fc3
+    USE iso_c_binding,  ONLY : c_int
+    USE input_fc,       ONLY : same_system, read_fc2, read_fc3, &
+                               aux_system, div_mass_fc2, div_mass_fc3
+    USE io_global,	ONLY : stdout
     IMPLICIT NONE
     !
     TYPE(forceconst2_grid),INTENT(inout) :: fc2
@@ -48,8 +49,8 @@ MODULE linewidth_program
     CALL aux_system(s)
     !
     CALL memstat(kb)
-    PRINT*, "Reading : done."
-    PRINT*, "Memory used : ", kb/1000, "Mb"
+    WRITE(stdout,*) "Reading : done."
+    WRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
     !
     CALL div_mass_fc2(S, fc2)
     CALL div_mass_fc3(S, fc3)
@@ -162,6 +163,7 @@ MODULE linewidth_program
     USE functions,      ONLY : f_bose
     USE mp_world,       ONLY : mpime, nproc, world_comm
     USE mp,             ONLY : mp_sum
+    USE io_global,	ONLY : stdout
     IMPLICIT NONE
     !
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -181,22 +183,23 @@ MODULE linewidth_program
     ALLOCATE(w2(S%nat3), lw(S%nat3), xvel(3,S%nat3))
     !
     CALL setup_simple_grid(S, n1,n2,n3, grid)
-    PRINT*, "INTEGRATING:", grid%nq
+    WRITE(stdout,*) "INTEGRATING:", grid%nq
     !
     k0 = 1/(S%omega*K_BOLTZMANN_RY*T**2)
     k = 0._dp
     !
     DO i = 1+mpime, grid%nq, nproc
       !
+      WRITE(stdout,*) i
       CALL fftinterp_mat2(grid%xq(:,i), S, fc2, D)
       CALL mat2_diag(S, D, w2)
       xvel = velocity_proj(S,fc2, grid%xq(:,i))
       !
       lw = linewidth_q(grid%xq(:,i), T, sigma, S, grid, fc2, fc3)
-      WRITE(666, '(i4,3f12.6,2x,9f12.6,2x,9e15.4)') &
+      WRITE(1000+mpime, '(i4,3f12.6,2x,9f12.6,2x,9e15.4)') &
                    i,grid%xq(:,i), SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1      !
-      IF(i>1)THEN
-        IF(grid%xq(1,i)/=grid%xq(1,i-1)) WRITE(666,*)
+      IF(i<grid%nq)THEN
+        IF(grid%xq(1,i)/=grid%xq(1,i+1)) WRITE(1000+mpime,*) i, "x"
       ENDIF
       
       bose = f_bose(SQRT(w2), T)
@@ -256,7 +259,7 @@ PROGRAM linewidth
 !   CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
 !                    200, S, fc2, fc3)
 
-  CALL SMA_TRANSPORT(S, fc2, fc3, 8,8,1, 300._dp, 10._dp/RY_TO_CMM1)
+  CALL SMA_TRANSPORT(S, fc2, fc3, 16,16,1, 300._dp, 10._dp/RY_TO_CMM1)
 
   CALL environment_end('LW')
   CALL mp_global_end()
