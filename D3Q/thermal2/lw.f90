@@ -46,6 +46,8 @@ MODULE linewidth_program
       CALL errore("INPUT", "FC2 and FC3 crystals DO NOT MATCH !!!", 1)
     ENDIF
     !
+!     CALL write_fc3("mat3bis", S, fc3)
+    !
     CALL aux_system(s)
     !
     CALL memstat(kb)
@@ -241,6 +243,7 @@ PROGRAM linewidth
   USE environment,      ONLY : environment_start, environment_end
   USE constants,        ONLY : RY_TO_CMM1
   USE mp_world,         ONLY : mp_global_start, mp_global_end
+  USE input_fc
   
   TYPE(forceconst2_grid) :: fc2
   TYPE(forceconst3_grid) :: fc3
@@ -252,14 +255,14 @@ PROGRAM linewidth
   CALL environment_start('LW')
   
   CALL INPUT(s, fc2, fc3)
-
+ 
   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
                    200, S, fc2)
   
 !   CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
 !                    200, S, fc2, fc3)
 
-  CALL SMA_TRANSPORT(S, fc2, fc3, 16,16,1, 300._dp, 10._dp/RY_TO_CMM1)
+  CALL SMA_TRANSPORT(S, fc2, fc3, 3,3,1, 300._dp, 10._dp/RY_TO_CMM1)
 
   CALL environment_end('LW')
   CALL mp_global_end()

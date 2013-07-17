@@ -45,15 +45,11 @@ MODULE input_fc
     ! q points
     INTEGER :: n_R = 0
     INTEGER :: i_00 = -1 ! set to the index where both R2 and R3 are zero
-    INTEGER,ALLOCATABLE :: i_R20(:), i_R30(:) ! lists of indexes where R2 (R3) is zero
-    !INTEGER,ALLOCATABLE :: iR2eR3(:) ! list of indexes R2(i) =  R3(i_R2eR3(i))
-    !INTEGER,ALLOCATABLE :: iR3eR2(:) ! list of indexes R3(i) =  R2(i_R3eR2(i))
-    !INTEGER,ALLOCATABLE :: iR2mR3(:) ! list of indexes R2(i) = -R3(i_R2mR3(i))
-    !INTEGER,ALLOCATABLE :: iR3mR2(:) ! list of indexes R3(i) = -R2(i_R3mR2(i))
-    
+    INTEGER :: nq(3) ! initial q-point grid size (unused)
     INTEGER,ALLOCATABLE  :: yR2(:,:), yR3(:,:) ! crystalline coords  3*n_R
     REAL(DP),ALLOCATABLE :: xR2(:,:), xR3(:,:) ! cartesian coords    3*n_R
     REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat, n_R
+    !TYPE(index_r) :: idx2, idx3
   END TYPE forceconst3_grid
   !
   CONTAINS
@@ -90,11 +86,12 @@ MODULE input_fc
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE read_system(unit, S)
     IMPLICIT NONE
-    TYPE(ph_system_info),INTENT(inout)   :: S ! = System
+    TYPE(ph_system_info),INTENT(out)   :: S ! = System
+    INTEGER,INTENT(in) :: unit
     !
     CHARACTER(len=11),PARAMETER :: sub = "read_system"
     !
-    INTEGER :: unit, ios, dummy
+    INTEGER :: ios, dummy
     !
     INTEGER :: nt, na
     !
@@ -116,17 +113,51 @@ MODULE input_fc
     !
     DO nt = 1, S%ntyp
       READ(unit,*,iostat=ios) dummy, S%atm(nt), S%amass(nt)
-      IF(ios/=0) CALL errore(sub,"reading S%ityp(na), S%atm(nt), S%amass(nt)", nt)
+      IF(ios/=0) CALL errore(sub,"reading nt, S%atm(nt), S%amass(nt)", nt)
     ENDDO
     !
     ALLOCATE(S%ityp(S%nat), S%tau(3,S%nat))
     DO na = 1, S%nat
       READ(unit,*,iostat=ios) dummy, S%ityp(na), S%tau(:,na)
-      IF(ios/=0) CALL errore(sub,"reading S%ityp(na), S%atm(nt), S%amass(nt)", nt)
+      IF(ios/=0) CALL errore(sub,"reading na, S%atm(nt), S%amass(nt)", nt)
     ENDDO
     !
   END SUBROUTINE read_system
-  ! <<^V^\\=========================================//-//-//========//O\\//
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE write_system(unit, S)
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S ! = System
+    INTEGER,INTENT(in) :: unit
+    !
+    CHARACTER(len=11),PARAMETER :: sub = "write_system"
+    !
+    INTEGER :: ios
+    !
+    INTEGER :: nt, na
+    !
+    WRITE(unit,"(3i9,6f25.16)",iostat=ios) S%ntyp, S%nat, S%ibrav, S%celldm(1:6)
+    IF(ios/=0) CALL errore(sub,"writing S%ntyp, S%nat, S%ibrav, S%celldm(1:6)", 1)
+    !
+    IF(S%ibrav==0)THEN
+      WRITE(unit,"(3f25.16)",iostat=ios) S%at(1:3,1:3)
+      IF(ios/=0) CALL errore(sub,"writing S%at(1:3,1:3)", 1)
+    ENDIF
+    !
+    ! generate at, bg, volume
+    DO nt = 1, S%ntyp
+      WRITE(unit,'(i9,2x,a5,f25.16)',iostat=ios) nt, "'"//S%atm(nt)//"'", S%amass(nt)
+      IF(ios/=0) CALL errore(sub,"writing nt, S%atm(nt), S%amass(nt)", nt)
+    ENDDO
+    !
+    IF (.not.allocated(S%ityp) .or. .not. allocated(S%tau))&
+      CALL errore(sub, 'missing ityp, tau', 1)
+    DO na = 1, S%nat
+      WRITE(unit,'(2i9,3f25.16)',iostat=ios) na, S%ityp(na), S%tau(:,na)
+      IF(ios/=0) CALL errore(sub,"writing na, S%atm(nt), S%amass(nt)", nt)
+    ENDDO
+    !
+  END SUBROUTINE write_system
+  ! \/o\________\\\_________________________________________/^>
   ! compute redundant but useful quantities
   SUBROUTINE aux_system(S)
     IMPLICIT NONE
@@ -253,8 +284,8 @@ MODULE input_fc
     !
     CALL read_system(unit, S)
     !
-    READ(unit, *) jn1, jn2, jn3
-    WRITE(stdout,*) "Original FC3 grid:", jn1, jn2, jn3
+    READ(unit, *) fc%nq
+    WRITE(stdout,*) "Original FC3 grid:", fc%nq
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 
@@ -271,7 +302,11 @@ MODULE input_fc
             CALL errore(sub,'not matching na1,na2,na3,j1,j2,j3',1)
           !
           READ(unit,*) n_R
-          IF ( fc%n_R == 0) CALL allocate_fc3_grid(n_R, S%nat, fc)
+          IF ( fc%n_R == 0) THEN 
+            CALL allocate_fc3_grid(n_R, S%nat, fc)
+          ELSE
+            IF(n_R/=fc%n_R) CALL errore(sub, "cannot read this fc format",1)
+          ENDIF
           !
           DO i = 1, fc%n_R
             READ(unit,*) fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
@@ -293,6 +328,56 @@ MODULE input_fc
     CALL cryst_to_cart(n_R,fc%xR3,S%at,1)
     !
   END SUBROUTINE read_fc3
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE write_fc3(filename, S, fc)
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in)          :: filename
+    TYPE(ph_system_info),INTENT(in)   :: S ! = System
+    TYPE(forceconst3_grid),INTENT(in) :: fc
+    !
+    CHARACTER(len=8),PARAMETER :: sub = "write_fc3"
+    !
+    INTEGER :: unit, ios
+    INTEGER, EXTERNAL :: find_free_unit
+    !
+    INTEGER :: na1,  na2,  na3,  j1,  j2,  j3, jn1, jn2, jn3
+    INTEGER :: i
+    !
+    unit = find_free_unit()
+    OPEN(unit=unit,file=filename,action='write',status='unknown',iostat=ios)
+    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
+    !
+    CALL write_system(unit, S)
+    !
+    WRITE(unit, '(3i9)') fc%nq
+    !
+    DO na1=1,S%nat
+    DO na2=1,S%nat 
+    DO na3=1,S%nat 
+      DO j1=1,3
+      jn1 = j1 + (na1-1)*3
+      DO j2=1,3     
+      jn2 = j2 + (na2-1)*3
+      DO j3=1,3     
+      jn3 = j3 + (na3-1)*3
+          !
+          WRITE(unit,'(3i9,3x,3i9)') j1, j2, j3, na1, na2, na3
+          !
+          WRITE(unit,'(i9)') fc%n_R
+          !
+          DO i = 1, fc%n_R
+            WRITE(unit,'(3i4,3x,3i4,e35.16)') fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
+          ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !
+    CLOSE(unit)
+    !
+  END SUBROUTINE write_fc3
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE allocate_fc3_grid(n_R, nat, fc)
     IMPLICIT NONE
@@ -372,6 +457,30 @@ MODULE input_fc
     ENDDO
     !
   END SUBROUTINE div_mass_fc3
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE asr_fc2 (S,fc)
+    USE kinds, only : DP
+    IMPLICIT NONE
+    TYPE(forceconst3_grid) :: fc
+    TYPE(ph_system_info)   :: S
+    !
+    INTEGER :: i, j, k, i_R
+    !
+    IF(.not.ALLOCATED(S%sqrtmm1)) &
+      call errore('div_mass_fc2', 'missing sqrtmm1, call aux_system first', 1)
+    
+    DO i_R = 1, fc%n_R
+      DO k = 1, S%nat3
+      DO j = 1, S%nat3
+      DO i = 1, S%nat3
+        fc%FC(i, j, k, i_R) = fc%FC(i, j, k, i_R) &
+                    * S%sqrtmm1(i)*S%sqrtmm1(j)*S%sqrtmm1(k)
+      ENDDO
+      ENDDO
+      ENDDO
+    ENDDO
+    !
+  END SUBROUTINE asr_fc2
   ! \/o\________\\\_________________________________________/^>
   
 END MODULE input_fc

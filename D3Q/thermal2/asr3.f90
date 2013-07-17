@@ -299,11 +299,16 @@ MODULE asr3_module
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
-    REAL(DP) :: delta
+    REAL(DP):: delta, d, deltot
+    INTEGER :: mR2, iR0
     
-    print*, "asr3 iter", iter
-    write(2000+iter,*)"start"
+    !write(2000+iter,*)"start"
+    iR0 = idx%iRe0
+    !
+    deltot = 0._dp
     DO iR2 = 1,idx%nR
+      !
+      mR2 = idx%idmR(iR2)
       !
       DO a = 1,3
       DO b = 1,3
@@ -317,25 +322,49 @@ MODULE asr3_module
           DO iR3 = 1,idx%nR
           DO i = 1,nat
 
-            delta = delta+fx(iR2,iR3)%F(a,b,c, i,j,k)
+            delta  = delta  + fx(iR2,iR3)%F(a,b,c, i,j,k)
+            delta2 = delta2 + fx(iR2,iR3)%F(a,b,c, i,j,k)**2
         
           ENDDO
           ENDDO
           !
+          deltot = deltot + ABS(delta)
           IF(ABS(delta)>1.d-8) THEN
-            write(2000+iter,*) idx%iRe0,iR2,a,b,c,j,k,delta
-            IF(j==k)THEN
-!             print*,"fuck!"
-              fx(iR2,idx%iRe0)%F(a,b,c, j,j,j) = &
-                  fx(iR2,idx%iRe0)%F(a,b,c, j,j,j)-delta
-            ELSE
-!             print*,"fuck u 2!"
-              fx(iR2,idx%iRe0)%F(a,b,c, j,j,k) = &
-                  fx(iR2,idx%iRe0)%F(a,b,c, j,j,k)-.5_dp*delta
+            write(2000+iter,'(2i6,3x,3i2,2x,2i2,f20.5)') iter, iR2,a,b,c,j,k,delta*1e+9
+            !
+            IF (j==k)THEN
+              d = delta/6._dp/10.
               !
-              fx(iR2,idx%iRe0)%F(a,b,c, k,j,k) = &
-                  fx(iR2,idx%iRe0)%F(a,b,c, k,j,k)-.5_dp*delta
-          ENDIF
+              fx(iR2,iR0)%F(a,b,c, j,j,j) = fx(iR2,iR0)%F(a,b,c, j,j,j) -d
+              fx(iR0,iR2)%F(a,c,b, j,j,j) = fx(iR0,iR2)%F(a,c,b, j,j,j) -d
+
+              fx(mR2,mR2)%F(b,a,c, j,j,j) = fx(mR2,mR2)%F(b,a,c, j,j,j) -d
+              fx(mR2,mR2)%F(b,c,a, j,j,j) = fx(mR2,mR2)%F(b,c,a, j,j,j) -d
+
+              fx(iR0,iR2)%F(c,a,b, j,j,j) = fx(iR0,iR2)%F(c,a,b, j,j,j) -d
+              fx(iR2,iR0)%F(c,b,a, j,j,j) = fx(iR2,iR0)%F(c,b,a, j,j,j) -d
+            ELSE
+              d = delta/12._dp/10.
+              !
+              fx(iR2,iR0)%F(a,b,c, j,j,k) = fx(iR2,iR0)%F(a,b,c, j,j,k) -d
+              fx(iR2,iR0)%F(a,b,c, k,j,k) = fx(iR2,iR0)%F(a,b,c, k,j,k) -d
+              fx(iR0,iR2)%F(a,c,b, j,k,j) = fx(iR0,iR2)%F(a,c,b, j,k,j) -d
+              fx(iR0,iR2)%F(a,c,b, k,k,j) = fx(iR0,iR2)%F(a,c,b, k,k,j) -d
+
+              fx(mR2,mR2)%F(b,a,c, j,j,k) = fx(mR2,mR2)%F(b,a,c, j,j,k) -d
+              fx(mR2,mR2)%F(b,a,c, j,k,k) = fx(mR2,mR2)%F(b,a,c, j,k,k) -d
+              fx(mR2,mR2)%F(b,c,a, j,k,j) = fx(mR2,mR2)%F(b,c,a, j,k,j) -d
+              fx(mR2,mR2)%F(b,c,a, j,k,k) = fx(mR2,mR2)%F(b,c,a, j,k,k) -d
+
+              fx(iR0,iR2)%F(c,a,b, k,j,j) = fx(iR0,iR2)%F(c,a,b, k,j,j) -d
+              fx(iR0,iR2)%F(c,a,b, k,k,j) = fx(iR0,iR2)%F(c,a,b, k,k,j) -d
+              fx(iR2,iR0)%F(c,b,a, k,j,j) = fx(iR2,iR0)%F(c,b,a, k,j,j) -d
+              fx(iR2,iR0)%F(c,b,a, k,j,k) = fx(iR2,iR0)%F(c,b,a, k,j,k) -d
+            ENDIF
+            !
+            iter = iter+1
+           RETURN
+            !
           ENDIF
           !
         ENDDO
@@ -344,7 +373,10 @@ MODULE asr3_module
       ENDDO
       ENDDO
     ENDDO
-        iter = iter+1
+
+    print*, "asr3 iter", iter, deltot
+
+    iter = iter+1
 
     !
   END SUBROUTINE impose_asr3
@@ -406,12 +438,14 @@ PROGRAM asr3
     CALL memstat(kb)
     WRITE(stdout,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
 
-    CALL impose_asr3(S%nat,idx2,fx)
+    !CALL impose_asr3(S%nat,idx2,fx)
     CALL memstat(kb)
     WRITE(stdout,*) "Impose asr3 1st iter : done. //  Mem used:", kb/1000, "Mb"
     
-    CALL perm_symmetrize_fc3(S%nat,idx2,fx)
+!     CALL perm_symmetrize_fc3(S%nat,idx2,fx)
+    do j = 1,100
     CALL impose_asr3(S%nat,idx2,fx)
+    enddo
 
     CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
 
