@@ -18,12 +18,12 @@ TLDEPS= bindir mods libs pw
 
 LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
 
-D3QTOOLSOBJS = \
-lw.o \
+#D3QTOOLSOBJS = \
+#lw.o \
 
-MPIF90 = ifort
-F90FLAGS += -openmp -fast #-traceback -check all -g
-LDFLAGS  += -openmp
+#MPIF90 = ifort
+F90FLAGS += -fopenmp
+LDFLAGS  += -fopenmp
 
 D3QTOOLSLIBS = \
 input_fc.o \
@@ -32,14 +32,20 @@ nanoclock.o \
 nanosec.o \
 ph_velocity.o \
 q_grid.o \
-functions.o
+functions.o \
 
-EXECUTABLES = lw.x
+EXECUTABLES = lw.x asr3.x
 
 all : tldeps $(EXECUTABLES)
 
 lw.x : lw.o $(D3QTOOLSLIBS) d3q
 	$(LD) $(LDFLAGS) -o $@ lw.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+asr3.x : asr3.o $(D3QTOOLSLIBS) d3q
+	$(LD) $(LDFLAGS) -o $@ asr3.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
