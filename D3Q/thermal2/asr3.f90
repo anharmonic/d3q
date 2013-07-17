@@ -299,16 +299,14 @@ MODULE asr3_module
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
-    REAL(DP):: delta, d, deltot
-    INTEGER :: mR2, iR0
+    REAL(DP):: delta, d, deltot, delta2
+    INTEGER :: mR2, mR3, iR2mR3, iR3mR2
     
     !write(2000+iter,*)"start"
-    iR0 = idx%iRe0
+    !iR0 = idx%iRe0
     !
     deltot = 0._dp
     DO iR2 = 1,idx%nR
-      !
-      mR2 = idx%idmR(iR2)
       !
       DO a = 1,3
       DO b = 1,3
@@ -317,55 +315,80 @@ MODULE asr3_module
         DO k = 1,nat
           !
           delta = 0._dp
+          delta2 = 0._dp
           ! The sum is on one R (it does not matter which)
           ! and the first atom index
           DO iR3 = 1,idx%nR
           DO i = 1,nat
-
             delta  = delta  + fx(iR2,iR3)%F(a,b,c, i,j,k)
             delta2 = delta2 + fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-        
           ENDDO
           ENDDO
           !
+
           deltot = deltot + ABS(delta)
-          IF(ABS(delta)>1.d-8) THEN
-            write(2000+iter,'(2i6,3x,3i2,2x,2i2,f20.5)') iter, iR2,a,b,c,j,k,delta*1e+9
+
+          IMPOSE_DA_RULE : &
+          IF(ABS(delta)>1.d-6) THEN
+            write(2000+iter,'(2i6,3x,3i2,2x,2i2,2f20.5)') &
+                iter, iR2,a,b,c,j,k,delta*1e+9, delta2*1.e+9
             !
-            IF (j==k)THEN
-              d = delta/6._dp/10.
+          DELTA2_NOT_ZERO : &
+          IF(delta2>(delta**2)/10.)THEN
+            !d = delta/delta2/6._dp
+            d = delta/delta2
+            !
+            R3_LOOP : &
+            DO iR3 = 1,idx%nR
               !
-              fx(iR2,iR0)%F(a,b,c, j,j,j) = fx(iR2,iR0)%F(a,b,c, j,j,j) -d
-              fx(iR0,iR2)%F(a,c,b, j,j,j) = fx(iR0,iR2)%F(a,c,b, j,j,j) -d
+              DO i = 1,nat
+                fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+                                       - d * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
+              ENDDO
 
-              fx(mR2,mR2)%F(b,a,c, j,j,j) = fx(mR2,mR2)%F(b,a,c, j,j,j) -d
-              fx(mR2,mR2)%F(b,c,a, j,j,j) = fx(mR2,mR2)%F(b,c,a, j,j,j) -d
-
-              fx(iR0,iR2)%F(c,a,b, j,j,j) = fx(iR0,iR2)%F(c,a,b, j,j,j) -d
-              fx(iR2,iR0)%F(c,b,a, j,j,j) = fx(iR2,iR0)%F(c,b,a, j,j,j) -d
-            ELSE
-              d = delta/12._dp/10.
+#ifdef dontdothisplz                
+              mR2 = idx%idmR(iR2)
+              mR3 = idx%idmR(iR3)
               !
-              fx(iR2,iR0)%F(a,b,c, j,j,k) = fx(iR2,iR0)%F(a,b,c, j,j,k) -d
-              fx(iR2,iR0)%F(a,b,c, k,j,k) = fx(iR2,iR0)%F(a,b,c, k,j,k) -d
-              fx(iR0,iR2)%F(a,c,b, j,k,j) = fx(iR0,iR2)%F(a,c,b, j,k,j) -d
-              fx(iR0,iR2)%F(a,c,b, k,k,j) = fx(iR0,iR2)%F(a,c,b, k,k,j) -d
+              iR2mR3 = idx%idRmR(iR2,iR3)
+              iR3mR2 = idx%idRmR(iR3,iR2)
+              !
+              IF(iR2mR3<0 .or. iR3mR2<0) THEN
+                !fx(iR2,iR3)%F(a,b,c, i,j,k) = 0._dp
+                CYCLE R3_LOOP
+              ENDIF
+              !
+              DO i = 1,nat
 
-              fx(mR2,mR2)%F(b,a,c, j,j,k) = fx(mR2,mR2)%F(b,a,c, j,j,k) -d
-              fx(mR2,mR2)%F(b,a,c, j,k,k) = fx(mR2,mR2)%F(b,a,c, j,k,k) -d
-              fx(mR2,mR2)%F(b,c,a, j,k,j) = fx(mR2,mR2)%F(b,c,a, j,k,j) -d
-              fx(mR2,mR2)%F(b,c,a, j,k,k) = fx(mR2,mR2)%F(b,c,a, j,k,k) -d
+                !fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+                !                        - d * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
 
-              fx(iR0,iR2)%F(c,a,b, k,j,j) = fx(iR0,iR2)%F(c,a,b, k,j,j) -d
-              fx(iR0,iR2)%F(c,a,b, k,k,j) = fx(iR0,iR2)%F(c,a,b, k,k,j) -d
-              fx(iR2,iR0)%F(c,b,a, k,j,j) = fx(iR2,iR0)%F(c,b,a, k,j,j) -d
-              fx(iR2,iR0)%F(c,b,a, k,j,k) = fx(iR2,iR0)%F(c,b,a, k,j,k) -d
-            ENDIF
+                fx(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
+                                        - d * fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+                                        
+                fx(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
+                                        - d * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+                                        
+                fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
+                                        - d * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+                                        
+                fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
+                                        - d * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+                                        
+                fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
+                                        - d * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+                                        
+                fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
+                                        - d * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              ENDDO
+#endif            
+            ENDDO R3_LOOP
+
+!             iter = iter+1
+!             RETURN
             !
-            iter = iter+1
-           RETURN
-            !
-          ENDIF
+          ENDIF DELTA2_NOT_ZERO 
+          ENDIF IMPOSE_DA_RULE
           !
         ENDDO
         ENDDO
@@ -443,8 +466,9 @@ PROGRAM asr3
     WRITE(stdout,*) "Impose asr3 1st iter : done. //  Mem used:", kb/1000, "Mb"
     
 !     CALL perm_symmetrize_fc3(S%nat,idx2,fx)
-    do j = 1,100
-    CALL impose_asr3(S%nat,idx2,fx)
+    do j = 1,1000
+      CALL impose_asr3(S%nat,idx2,fx)
+      CALL perm_symmetrize_fc3(S%nat,idx2,fx)
     enddo
 
     CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
