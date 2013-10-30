@@ -22,7 +22,7 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #lw.o \
 
 #MPIF90 = ifort
-F90FLAGS += -fopenmp
+F90FLAGS += -fopenmp #-fcheck=all -fbacktrace -g
 LDFLAGS  += -fopenmp
 
 D3QTOOLSLIBS = \

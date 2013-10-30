@@ -17,6 +17,7 @@ SUBROUTINE d3_recover (ilab, isw)
 !   use d3com,     ONLY : d3dyn => d3dyn_GLOBAL
   USE io_global, ONLY : ionode
   USE mp,        ONLY: mp_bcast
+  USE mp_world,      ONLY : world_comm
   USE io_files,  ONLY : seqopn
   !
   IMPLICIT NONE
@@ -56,7 +57,7 @@ SUBROUTINE d3_recover (ilab, isw)
      END IF
      !
 !      CALL mp_bcast (d3dyn, root)
-     CALL mp_bcast (ilab, root)
+     CALL mp_bcast (ilab, root, world_comm)
      !
   ENDIF
   RETURN

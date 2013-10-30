@@ -17,6 +17,7 @@ SUBROUTINE d3_init
   USE constants,     ONLY : eps8, degspin, pi
   USE io_global,     ONLY : stdout
   USE mp_global,     ONLY : inter_pool_comm
+  USE mp_world,      ONLY : world_comm
   USE mp,            ONLY : mp_max, mp_min
   USE ions_base,     ONLY : ntyp => nsp
   USE pwcom,         ONLY : ngm, g, tpiba2, omega
@@ -168,7 +169,7 @@ SUBROUTINE d3_init
     CALL write_igkq_d3(ik)
   ENDDO
   !
-  CALL mp_barrier()
+  CALL mp_barrier(world_comm)
   !
   CALL stop_clock('d3_init')
   !

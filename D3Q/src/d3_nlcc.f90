@@ -31,6 +31,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   USE scf,        ONLY : rho, rho_core
   USE d3_basis,   ONLY : patq
   USE mp,         ONLY : mp_sum
+  USE mp_world,   ONLY : world_comm
   USE mp_global,  ONLY : intra_pool_comm
 
   implicit none

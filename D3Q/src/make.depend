@@ -393,6 +393,7 @@ run_nscf_d3.o : ../../Modules/parameters.o
 run_nscf_d3.o : ../../Modules/uspp.o
 run_nscf_d3.o : ../../PHonon/PH/phcom.o
 run_nscf_d3.o : ../../PHonon/PH/save_ph_input.o
+run_nscf_d3.o : ../../PW/src/atomic_wfc_mod.o
 run_nscf_d3.o : ../../PW/src/pwcom.o
 run_nscf_d3.o : ../../PW/src/scf_mod.o
 run_nscf_d3.o : ../../PW/src/start_k.o
@@ -435,6 +436,7 @@ solve_linter_d3q.o : set_kplus3q.o
 stop_d3.o : ../../Modules/mp_global.o
 stop_d3.o : ../../PHonon/PH/phcom.o
 stop_d3.o : d3_grid.o
+trntnsc_3.o : ../../Modules/kind.o
 w_1gauss.o : ../../Modules/constants.o
 w_1gauss.o : ../../Modules/kind.o
 write_d3dyn.o : ../../Modules/kind.o

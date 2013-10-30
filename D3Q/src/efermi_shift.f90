@@ -201,6 +201,7 @@ SUBROUTINE read_efsh()
   USE d3_iofiles, ONLY : iuef
   USE io_global,  ONLY : ionode, ionode_id
   USE mp,         ONLY : mp_bcast
+  USE mp_world,   ONLY : world_comm
   USE kplus3q,    ONLY : kplusq
   !
   IMPLICIT NONE
@@ -224,10 +225,10 @@ SUBROUTINE read_efsh()
      !
   END IF
   !
-  CALL mp_bcast(ios, ionode_id)
+  CALL mp_bcast(ios, ionode_id, world_comm)
   CALL errore ('read_ef', 'reading iuef', ABS(ios) )
   !
-  CALL mp_bcast( ef_sh, ionode_id )
+  CALL mp_bcast( ef_sh, ionode_id, world_comm )
   !
   RETURN
   !-----------------------------------------------------------------------

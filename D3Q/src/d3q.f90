@@ -55,6 +55,7 @@ program d3toten
   USE d3_open,            ONLY : listu_d3
   USE d3_restart,         ONLY : d3_check_restart, d3_check_time, d3_from_scratch
   USE d3_debug
+  USE mp_world,           ONLY : world_comm
 
   implicit none
   TYPE d3matrix_with_permutations
@@ -229,7 +230,7 @@ program d3toten
     CALL flush_unit( stdout )
     !
     CALL print_clock(code)
-    CALL mp_barrier()
+    CALL mp_barrier(world_comm)
     !
     ! Temporary space to save stuff on file!
     DO iperm = 1, nperms

@@ -24,7 +24,9 @@ MODULE asr3_module
                                      ! index of R_i-R_j
   END TYPE
   
-  integer,save :: iter = 1
+  INTEGER,SAVE :: iter = 1
+  REAL(DP),PARAMETER :: eps  = 1.e-10_dp, eps2 = 1.e-20_dp
+  REAL(DP),PARAMETER :: eps0 = 1.e-30_dp
   
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -115,43 +117,37 @@ MODULE asr3_module
     !
     print*, "R ===================", nR, iRe0
     DO i = 1, nR
-      WRITE(*,'(2i3,2x,3i3,2x,i3,2x,100i4)') i,idmR(i), R(:,i), nRi(i), idR(:,i)
+      WRITE(*,'(2i3,2x,3i3,2x,i3,2x,1000i5)') i,idmR(i), R(:,i), nRi(i), idR(1:nRi(i),i)
     ENDDO
     
   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE index_2R(nR2, nR2x, nR2i, idR2, nR3, nR3x, nR3i,idR3, idR23)
-    USE input_fc, ONLY : ph_system_info, forceconst3_grid
+  SUBROUTINE index_2R(idx2,idx3,fc,idR23)
+    USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
-    INTEGER,INTENT(in) :: nR2, nR3 
-    INTEGER,INTENT(in) :: nR2x, nR3x
-    INTEGER,INTENT(in) :: nR2i(nR2), nR3i(nR3)
-    INTEGER,INTENT(in) :: idR2(nR2x,nR2), idR3(nR3x,nR3)
-    INTEGER,INTENT(out),ALLOCATABLE :: idR23(:,:)
-    
-    INTEGER :: i2,i3, k2,k3
-    
-    ALLOCATE(idR23(nR2,nR3))
-    idR23 = -1
-              
-    WRITE(*,*)  "===================== R2+R3"
-    DO i2 = 1,nR2
-    DO i3 = 1,nR3
-      DO k2 = 1, nR2i(i2)
-      DO k3 = 1, nR3i(i3)
-
-      IF(idR2(k2,i2) == idR3(k3,i3)) THEN
-        idR23(i2,i3) = idR3(k3,i3)
-
-        WRITE(*,'(2i4,2x,2i4,2x,i4)') k2,k3,i2,i3, idR23(i2,i3)
-      ENDIF
-      
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
     !
-  END SUBROUTINE
+    TYPE(index_r_type),INTENT(in) :: idx2, idx3
+    TYPE(forceconst3_grid),INTENT(inout) :: fc
+    INTEGER,INTENT(out),ALLOCATABLE :: idR23(:,:)
+    INTEGER :: i2,i3, j
+    
+    ALLOCATE(idR23(idx2%nR,idx3%nR))
+    idR23 = -1
+    
+    DO i2 = 1,idx2%nR
+    DO i3 = 1,idx3%nR
+      DO j = 1,fc%n_R
+        IF(     ALL(idx2%yR(:,i2) == fc%yR2(:,j)) &
+          .and. ALL(idx3%yR(:,i3) == fc%yR3(:,j)) ) THEN
+          idR23(i2,i3) = j
+          !WRITE(*,'(2i4,2x,2i4,2x,i4)') i2,i3, idR23(i2,i3)
+        ENDIF
+      ENDDO
+      !WRITE(333,'(2i4,2x,2i4,2x,i4)') i2,i3, idR23(i2,i3)
+    ENDDO
+    ENDDO
+    
+  END SUBROUTINE index_2R
   ! \/o\________\\\_________________________________________/^>
   INTEGER FUNCTION find_index(n, list, item) RESULT(idR)
     IMPLICIT NONE
@@ -214,17 +210,31 @@ MODULE asr3_module
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx2%nR,idx3%nR)
     !
     INTEGER :: iR2,iR3
+
+    IF(dir>0) THEN
+        DO iR2 = 1,idx2%nR
+        DO iR3 = 1,idx3%nR
+          IF(.not.ALLOCATED(fx(iR2,iR3)%F)) &
+            ALLOCATE(fx(iR2,iR3)%F(3,3,3,nat,nat,nat))
+          fx(iR2,iR3)%F = 0._dp
+        ENDDO
+        ENDDO
+    ELSE IF(dir<0) THEN
+      IF(.not.ALLOCATED(fc%fc)) &
+        ALLOCATE(fc%fc(3*nat,3*nat,3*nat, fc%n_R))
+      fc%fc = 0._dp
+    ELSE
+          CALL errore("reindex_fc3","bad dir",1)
+    ENDIF
+
     
-!     ALLOCATE(fx(idx2%nR, idx3%nR))
     DO iR2 = 1,idx2%nR
     DO iR3 = 1,idx3%nR
-      IF(.not.ALLOCATED(fx(iR2,iR3)%F)) ALLOCATE(fx(iR2,iR3)%F(3,3,3,nat,nat,nat))
-      fx(iR2,iR3)%F = 0._dp
       IF(idR23(iR2,iR3)>0) THEN
-      CALL fc_3idx_2_6idx(nat, &
-                          fc%fc(:,:,:,  idR23(iR2,iR3)), &
-                          fx(iR2,iR3)%F, &
-                          +1 )
+        CALL fc_3idx_2_6idx(nat, &
+                            fc%fc(:,:,:,  idR23(iR2,iR3)), &
+                            fx(iR2,iR3)%F, dir )
+      
       ENDIF
     ENDDO
     ENDDO
@@ -235,7 +245,7 @@ MODULE asr3_module
   ! Note that the first R of the FC is always zero, hence we have to
   ! use translational symmetry, i.e.:
   ! F^3(R2,0,R3| b,a,c | j,i,k )  --> F^3(0,-R3,R3-R2| b,a,c | j,i,k )
-  SUBROUTINE perm_symmetrize_fc3(nat,idx,fx)
+  FUNCTION perm_symmetrize_fc3(nat,idx,fx) RESULT(delta)
     USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
@@ -245,6 +255,9 @@ MODULE asr3_module
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
+    REAL(DP) :: avg, delta
+    
+    delta = 0._dp
     
     DO iR2 = 1,idx%nR
     R3_LOOP : &
@@ -256,9 +269,9 @@ MODULE asr3_module
       iR3mR2 = idx%idRmR(iR3,iR2)
       !
       IF(iR2mR3<0 .or. iR3mR2<0) THEN
-!         IF( ANY(ABS(fx(iR2,iR3)%F) > 1.e-24_dp) ) &
-!           CALL errore('impose_asr3', 'this should be zero', 1)
-        fx(iR2,iR3)%F(a,b,c, i,j,k) = 0._dp
+        IF( ANY(ABS(fx(iR2,iR3)%F) > 1.e-24_dp) ) &
+          CALL errore('impose_asr3', 'this should be zero', 1)
+        fx(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
       !
@@ -269,7 +282,7 @@ MODULE asr3_module
         DO j = 1,nat
         DO k = 1,nat
         
-          fx(iR2,iR3)%F(a,b,c, i,j,k) = 1._dp/6._dp * ( &
+          avg = 1._dp/6._dp * ( &
                     fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
                   + fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
                   + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
@@ -277,6 +290,9 @@ MODULE asr3_module
                   + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
                   + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
                   )
+
+          delta = delta + (fx(iR2,iR3)%F(a,b,c, i,j,k) - avg)**2
+          fx(iR2,iR3)%F(a,b,c, i,j,k) = avg
 
         
         ENDDO
@@ -288,9 +304,12 @@ MODULE asr3_module
     ENDDO R3_LOOP
     ENDDO
     !
-  END SUBROUTINE perm_symmetrize_fc3
+    delta = SQRT(delta)
+!     WRITE(*,'(75x,a,f12.6)') "ps", SQRT(delta)
+    !
+  END FUNCTION perm_symmetrize_fc3
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE impose_asr3(nat,idx,fx)
+  SUBROUTINE impose_asr3_6idx(nat,idx,fx)
     USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
@@ -299,12 +318,9 @@ MODULE asr3_module
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
-    REAL(DP):: delta, d, deltot, delta2
+    REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1,d2,d3,d4,d5,d6, q1,q2,q3,q4,q5,q6
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
-    
-    !write(2000+iter,*)"start"
-    !iR0 = idx%iRe0
     !
     deltot = 0._dp
     DO iR2 = 1,idx%nR
@@ -315,16 +331,17 @@ MODULE asr3_module
         DO j = 1,nat
         DO k = 1,nat
           !
-          delta = 0._dp
-          delta2 = 0._dp
           ! The sum is on one R (it does not matter which)
           ! and the first atom index
+          d1 = 0._dp; q1 = 0._dp
+          d2 = 0._dp; q2 = 0._dp
+          d3 = 0._dp; q3 = 0._dp
+          d4 = 0._dp; q4 = 0._dp
+          d5 = 0._dp; q5 = 0._dp
+          d6 = 0._dp; q6 = 0._dp
           R3_LOOP : &
           DO iR3 = 1,idx%nR
           DO i = 1,nat
-            delta  = delta  + fx(iR2,iR3)%F(a,b,c, i,j,k)
-            delta2 = delta2 + fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-
               mR2 = idx%idmR(iR2)
               mR3 = idx%idmR(iR3)
               !
@@ -332,84 +349,86 @@ MODULE asr3_module
               iR3mR2 = idx%idRmR(iR3,iR2)
               !
               IF(iR2mR3<0 .or. iR3mR2<0) THEN
-                !fx(iR2,iR3)%F(a,b,c, i,j,k) = 0._dp
+                IF( ANY(fx(iR2,iR3)%F > eps0) ) &
+                  CALL errore("asr6","missing bits",1)
                 CYCLE R3_LOOP
               ENDIF
-                d1 = fx(iR2,   iR3   )%F(a,b,c, i,j,k)
-                q1 = fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
-                                        
-                d2 = fx(iR3,   iR2   )%F(a,c,b, i,k,j)
-                q2 = fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
-                                        
-                d3 = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)
-                q3 = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
-                                        
-                d4 = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)
-                q4 = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
-                                        
-                d5 = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)
-                q5 = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
-                                        
-                d6 = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)
-                q6 = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              d1 = d1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)
+              q1 = q1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+                                      
+              d2 = d2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)
+              q2 = q2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+                                      
+              d3 = d3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)
+              q3 = q3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+                                      
+              d4 = d4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)
+              q4 = q4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+                                      
+              d5 = d5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)
+              q5 = q5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+                                      
+              d6 = d6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)
+              q6 = q6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
           ENDDO
           ENDDO R3_LOOP
           !
-
-          deltot = deltot + ABS(d1)+ABS(d2)+ABS(d3)+ABS(d4)+ABS(d5)+ABS(d6)
-
-          !IMPOSE_DA_RULE : &
-          !IF(ABS(delta)>1.d-6) THEN
-          !  write(2000+iter,'(2i6,3x,3i2,2x,2i2,2f20.5)') &
-          !      iter, iR2,a,b,c,j,k,delta*1e+9, delta2*1.e+9
+          deltot = deltot + SUM( (/d1,d2,d3,d4,d5,d5/)**2 )
+          delsig = delsig + SUM( (/d1,d2,d3,d4,d5,d5/) )
+          
+!           d1 = (d1+d2+d3+d4+d5+d6)/6._dp
+!           q1 = (q1+q2+q3+q4+q5+q6)/6._dp
+!           d2=d1; d3=d1; d4=d1; d5=d1; d6=d1
+!           q2=q1; q3=q1; q4=q1; q5=q1; q6=q1
+          !
+          R3_LOOPb : &
+          DO iR3 = 1,idx%nR
             !
-          !DELTA2_NOT_ZERO : &
-          !IF(delta2>(delta**2)/10.)THEN
+            mR2 = idx%idmR(iR2)
+            mR3 = idx%idmR(iR3)
             !
-            R3_LOOPb : &
-            DO iR3 = 1,idx%nR
-              !
-              mR2 = idx%idmR(iR2)
-              mR3 = idx%idmR(iR3)
-              !
-              iR2mR3 = idx%idRmR(iR2,iR3)
-              iR3mR2 = idx%idRmR(iR3,iR2)
-              !
-              IF(iR2mR3<0 .or. iR3mR2<0) THEN
-                !fx(iR2,iR3)%F(a,b,c, i,j,k) = 0._dp
-                CYCLE R3_LOOPb
-              ENDIF
-              !
-              DO i = 1,nat
+            iR2mR3 = idx%idRmR(iR2,iR3)
+            iR3mR2 = idx%idRmR(iR3,iR2)
+            !
+            IF(iR2mR3<0 .or. iR3mR2<0) THEN
+              IF( ANY(fx(iR2,iR3)%F > eps0) ) &
+                CALL errore("asr6","missing bits",2)
+              CYCLE R3_LOOPb
+            ENDIF
+            !
+            DO i = 1,nat
 
-                IF(q1>(d1**2)/10._dp) &
-                fx(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
+              IF(ABS(q1)>eps2 .and. ABS(d1)>eps &
+                 .and. ABS(fx(iR2,   iR3   )%F(a,b,c, i,j,k))>eps0 ) &
+              fx(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
                                         - d1/q1 * fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
-                                        
-                IF(q2>(d2**2)/10._dp) &
-                fx(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
-                                        - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
-                                        
-                IF(q3>(d3**2)/10._dp) &
-                fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
-                                        - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
-                                        
-                IF(q4>(d4**2)/10._dp) &
-                fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
-                                        - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
-                                        
-                IF(q5>(d5**2)/10._dp) &
-                fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
-                                        - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
-                                        
-                IF(q6>(d6**2)/10._dp) &
-                fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
-                                        - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
-              ENDDO
-            ENDDO R3_LOOPb
-            !
-!           ENDIF DELTA2_NOT_ZERO 
-!           ENDIF IMPOSE_DA_RULE
+                                      
+              IF(ABS(q2)>eps2 .and. ABS(d2)>eps &
+                 .and. ABS(fx(iR3,   iR2   )%F(a,c,b, i,k,j))>eps0 ) &
+              fx(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
+                                      - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+                                      
+              IF(ABS(q3)>eps2 .and. ABS(d3)>eps &
+                 .and. ABS(fx(mR2,   iR3mR2)%F(b,a,c, j,i,k))>eps0 ) &
+              fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
+                                      - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+                                      
+              IF(ABS(q4)>eps2 .and. ABS(d4)>eps &
+                 .and. ABS(fx(iR3mR2,mR2   )%F(b,c,a, j,k,i))>eps0 ) &
+              fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
+                                      - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+
+              IF(ABS(q5)>eps2 .and. ABS(d5)>eps &
+                 .and. ABS(fx(mR3,   iR2mR3)%F(c,a,b, k,i,j))>eps0 ) &
+              fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
+                                      - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+                                      
+              IF(ABS(q6)>eps2 .and. ABS(d6)>eps &
+                 .and. ABS(fx(iR2mR3,mR3   )%F(c,b,a, k,j,i))>eps0 ) &
+              fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
+                                      - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+            ENDDO
+          ENDDO R3_LOOPb
           !
         ENDDO
         ENDDO
@@ -417,13 +436,78 @@ MODULE asr3_module
       ENDDO
       ENDDO
     ENDDO
-
-    print*, "asr3 iter", iter, deltot
-
-    iter = iter+1
-
     !
-  END SUBROUTINE impose_asr3
+    delperm = perm_symmetrize_fc3(nat,idx,fx)
+    PRINT*, "asr6", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
+    iter = iter+1
+    !
+  END SUBROUTINE impose_asr3_6idx
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE impose_asr3_1idx(nat,idx,fx)
+    USE input_fc,       ONLY : forceconst3_grid
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in) :: nat
+    TYPE(index_r_type) :: idx
+    TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
+    !
+    INTEGER :: iR2,iR3, a,b,c, i,j,k
+    REAL(DP):: deltot, delsig, delperm
+    REAL(DP):: d1, q1, r1
+    !
+    deltot = 0._dp
+    DO iR2 = 1,idx%nR
+      !
+      DO a = 1,3
+      DO b = 1,3
+      DO c = 1,3
+        DO j = 1,nat
+        DO k = 1,nat
+          !
+          ! The sum is on one R (it does not matter which)
+          ! and the first atom index
+          d1 = 0._dp
+          q1 = 0._dp
+          R3_LOOP : &
+          DO iR3 = 1,idx%nR
+          DO i = 1,nat
+              d1 = d1+fx(iR2,   iR3   )%F(a,b,c, i,j,k)
+              q1 = q1+fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+          ENDDO
+          ENDDO R3_LOOP
+          !
+          deltot = deltot + d1**2
+          delsig = delsig + d1
+          !
+          r1 = d1/q1
+          IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
+            !
+            R3_LOOPb : &
+            DO iR3 = 1,idx%nR
+            DO i = 1,nat
+                IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
+                fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+                                       - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
+            ENDDO
+            ENDDO R3_LOOPb
+            !
+          ENDIF
+          !
+        ENDDO
+        ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+    ENDDO
+    !
+    ! Re-symmetrize the matrix
+    delperm = perm_symmetrize_fc3(nat,idx,fx)
+    !
+    PRINT*, "asr3", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
+    !
+    iter = iter+1
+    !
+  END SUBROUTINE impose_asr3_1idx
   ! \/o\________\\\_________________________________________/^>
 
 END MODULE asr3_module
@@ -446,7 +530,9 @@ PROGRAM asr3
     INTEGER(kind=c_int)    :: kb
     INTEGER,ALLOCATABLE :: idR23(:,:)
     TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
-    integer :: j
+    !
+    INTEGER :: j
+    REAL(DP) :: delta
     !
     CALL read_fc3("mat3R", S, fc)
     CALL aux_system(s)
@@ -469,9 +555,7 @@ PROGRAM asr3
     IF(ANY(idx2%idRmR/=idx3%idRmR))&
       CALL errore("asr3", "problem with R-R",3)
     !
-    CALL index_2R(idx2%nR, idx2%nRx, idx2%nRi, idx2%idR, &
-                  idx3%nR, idx3%nRx, idx3%nRi, idx3%idR, &
-                  idR23)
+    CALL index_2R(idx2,idx3, fc, idR23)
     
     CALL memstat(kb)
     WRITE(stdout,*) "R indexing : done. //  Mem used:", kb/1000, "Mb"
@@ -482,18 +566,21 @@ PROGRAM asr3
     CALL memstat(kb)
     WRITE(stdout,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
 
-    !CALL impose_asr3(S%nat,idx2,fx)
-    CALL memstat(kb)
-    WRITE(stdout,*) "Impose asr3 1st iter : done. //  Mem used:", kb/1000, "Mb"
+!     write(333, '(1i6)') idR23
     
-!     CALL perm_symmetrize_fc3(S%nat,idx2,fx)
-    do j = 1,1000
-      CALL impose_asr3(S%nat,idx2,fx)
-      CALL perm_symmetrize_fc3(S%nat,idx2,fx)
-    enddo
+    DO j =1,100/6
+      CALL impose_asr3_6idx(S%nat,idx2,fx)
+!       delta = perm_symmetrize_fc3(S%nat,idx2,fx)
+    ENDDO
+
+!    DO j = 1,2000
+!      CALL impose_asr3_1idx(S%nat,idx2,fx)
+!    ENDDO
+!     !
+    CALL memstat(kb)
+    WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
 
     CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
-
 
     CALL write_fc3("mat3R_asr", S, fc)
     !

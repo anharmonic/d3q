@@ -27,7 +27,7 @@ MoS2b_anh ! title is optional
    !nk1=16, nk2=16,nk3=4
    !degauss=0.03d0
  /
- 4 4 1
+ 2 2 1
 
 ! eventually, the d3_debug namelist can be used to do a partial calculation
 ! WARNING! no sanity check is done on these variables, setting this namelist can result

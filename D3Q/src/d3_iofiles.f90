@@ -113,6 +113,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : rho
   USE io_rho_xml,       ONLY : write_rho
+  USE mp_world,      ONLY : world_comm
   !
   IMPLICIT NONE
   REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
@@ -127,9 +128,9 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
     tmp_dir = tmp_dir_d3
     wfc_dir = tmp_dir_d3
   ENDIF
-  CALL mp_bcast(tmp_dir,    ionode_id)
-  CALL mp_bcast(wfc_dir,    ionode_id)
-  CALL mp_bcast(tmp_dir_d3, ionode_id)
+  CALL mp_bcast(tmp_dir,    ionode_id, world_comm)
+  CALL mp_bcast(wfc_dir,    ionode_id, world_comm)
+  CALL mp_bcast(tmp_dir_d3, ionode_id, world_comm)
   !
   CALL check_tempdir(tmp_dir_d3, exists, parallel_fs)
   CALL write_rho( rho, nspin )
@@ -146,10 +147,10 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
     ENDDO
   ENDIF
   !
-  CALL mp_barrier()
+  CALL mp_barrier(world_comm)
   !
   DO iq=1,3
-    CALL mp_bcast(fildrho_q(iq)%name, ionode_id)
+    CALL mp_bcast(fildrho_q(iq)%name, ionode_id, world_comm)
   ENDDO
   !
   !
@@ -169,6 +170,7 @@ SUBROUTINE openfile_drho()
   USE lsda_mod,   ONLY : nspin
   USE phcom,      ONLY : nlcc_any
   USE mp,         ONLY : mp_barrier
+  USE mp_world,   ONLY : world_comm
   !
   IMPLICIT NONE
   CHARACTER (len=256) :: filint
@@ -260,7 +262,7 @@ SUBROUTINE openfile_drho()
   END IF &
   ONLY_ROOT_PROCESSOR
   !
-  CALL mp_barrier()
+  CALL mp_barrier(world_comm)
   !
   ! FIXME:
   !tmp_dir = tmp_dir_save

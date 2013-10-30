@@ -42,6 +42,7 @@ SUBROUTINE generate_dwfc2()
   USE d3_iofiles,  ONLY : iu_dwfc, iu_psi_dH_psi
   USE efermi_shift,ONLY : write_efsh
   USE mp,          ONLY : mp_barrier
+  USE mp_world,    ONLY : world_comm
   !
   USE d3_restart, ONLY : done_dwfc, done_pdvp, done_lmetq0, d3_check_restart
   !
@@ -113,7 +114,7 @@ SUBROUTINE generate_dwfc2()
                                 iq_wfc, iq_prj, iq_prt, patq(iq_prt)%u, kplusq(iq_prt)%xq, &
                                 unit_psidqvpsi, unit_dpsi, lmetq0, ldwfc)
         !
-        CALL mp_barrier()
+        CALL mp_barrier(world_comm)
         !
       ENDDO
       !

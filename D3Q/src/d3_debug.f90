@@ -83,28 +83,29 @@ SUBROUTINE bcast_d3_debug
 #ifdef __MPI
     USE mp,             ONLY : mp_bcast
     USE io_global,      ONLY : ionode_id
+    USE mp_world,   ONLY : world_comm
     !
     IMPLICIT NONE
     !
-    CALL mp_bcast( dbg_do_dwfc, ionode_id)
-    CALL mp_bcast( dbg_do_dpdvp, ionode_id)
+    CALL mp_bcast( dbg_do_dwfc, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_dpdvp, ionode_id, world_comm)
     !
-    CALL mp_bcast( dbg_do_dpdvdp, ionode_id)
-    CALL mp_bcast( dbg_do_dpdpdv, ionode_id)
-    CALL mp_bcast( dbg_do_drhod2v, ionode_id)
-    CALL mp_bcast( dbg_do_rhod3v, ionode_id)
-    CALL mp_bcast( dbg_do_ion, ionode_id)
-    CALL mp_bcast( dbg_do_smearing, ionode_id)
-      CALL mp_bcast( dbg_do_smr_ijk, ionode_id)
-      CALL mp_bcast( dbg_do_smr_ij, ionode_id)
-      CALL mp_bcast( dbg_do_smr_g, ionode_id)
-    CALL mp_bcast( dbg_do_exc, ionode_id)
-    CALL mp_bcast( dbg_do_nlcc, ionode_id)
-      CALL mp_bcast( dbg_do_nlcc_0, ionode_id)
-      CALL mp_bcast( dbg_do_nlcc_123, ionode_id)
+    CALL mp_bcast( dbg_do_dpdvdp, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_dpdpdv, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_drhod2v, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_rhod3v, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_ion, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_smearing, ionode_id, world_comm)
+      CALL mp_bcast( dbg_do_smr_ijk, ionode_id, world_comm)
+      CALL mp_bcast( dbg_do_smr_ij, ionode_id, world_comm)
+      CALL mp_bcast( dbg_do_smr_g, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_exc, ionode_id, world_comm)
+    CALL mp_bcast( dbg_do_nlcc, ionode_id, world_comm)
+      CALL mp_bcast( dbg_do_nlcc_0, ionode_id, world_comm)
+      CALL mp_bcast( dbg_do_nlcc_123, ionode_id, world_comm)
    !
-   CALL mp_bcast( dbg_write_d3_parts, ionode_id)
-   CALL mp_bcast( dbg_add_core, ionode_id)
+   CALL mp_bcast( dbg_write_d3_parts, ionode_id, world_comm)
+   CALL mp_bcast( dbg_add_core, ionode_id, world_comm)
 #endif
     !   
   !-----------------------------------------------------------------------

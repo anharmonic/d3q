@@ -293,51 +293,52 @@ SUBROUTINE d3_readin()
 #ifdef __MPI
     USE mp,             ONLY : mp_bcast
     USE io_global,      ONLY : ionode_id
+    USE mp_world,       ONLY : world_comm
     !
     IMPLICIT NONE
     !
-    CALL mp_bcast(mode,    ionode_id)
-    CALL mp_bcast(tmp_dir, ionode_id)
-    CALL mp_bcast(d3dir,   ionode_id)
-    CALL mp_bcast(prefix,  ionode_id)
+    CALL mp_bcast(mode,    ionode_id, world_comm)
+    CALL mp_bcast(tmp_dir, ionode_id, world_comm)
+    CALL mp_bcast(d3dir,   ionode_id, world_comm)
+    CALL mp_bcast(prefix,  ionode_id, world_comm)
     !
-    CALL mp_bcast(xq1, ionode_id)
-    CALL mp_bcast(xq2, ionode_id)
-    CALL mp_bcast(xq3, ionode_id)
+    CALL mp_bcast(xq1, ionode_id, world_comm)
+    CALL mp_bcast(xq2, ionode_id, world_comm)
+    CALL mp_bcast(xq3, ionode_id, world_comm)
     !
-    CALL mp_bcast(nq1, ionode_id)
-    CALL mp_bcast(nq2, ionode_id)
-    CALL mp_bcast(nq3, ionode_id)
+    CALL mp_bcast(nq1, ionode_id, world_comm)
+    CALL mp_bcast(nq2, ionode_id, world_comm)
+    CALL mp_bcast(nq3, ionode_id, world_comm)
     !
-    CALL mp_bcast(fildrho,  ionode_id)
-    CALL mp_bcast(fild1rho, ionode_id)
-    CALL mp_bcast(fild2rho, ionode_id)
-    CALL mp_bcast(fild3rho, ionode_id)
+    CALL mp_bcast(fildrho,  ionode_id, world_comm)
+    CALL mp_bcast(fild1rho, ionode_id, world_comm)
+    CALL mp_bcast(fild2rho, ionode_id, world_comm)
+    CALL mp_bcast(fild3rho, ionode_id, world_comm)
     !
-    CALL mp_bcast(first,   ionode_id)
-    CALL mp_bcast(last,    ionode_id)
-    CALL mp_bcast(step,    ionode_id)
-    CALL mp_bcast(offset,  ionode_id)
-    CALL mp_bcast(safe_io, ionode_id)
+    CALL mp_bcast(first,   ionode_id, world_comm)
+    CALL mp_bcast(last,    ionode_id, world_comm)
+    CALL mp_bcast(step,    ionode_id, world_comm)
+    CALL mp_bcast(offset,  ionode_id, world_comm)
+    CALL mp_bcast(safe_io, ionode_id, world_comm)
     !
-    CALL mp_bcast(fild3dyn,   ionode_id)
-    CALL mp_bcast(ethr_ph,    ionode_id)
-    CALL mp_bcast(amass,      ionode_id)
-    CALL mp_bcast(iverbosity, ionode_id)
-    CALL mp_bcast(lgamma,     ionode_id)
+    CALL mp_bcast(fild3dyn,   ionode_id, world_comm)
+    CALL mp_bcast(ethr_ph,    ionode_id, world_comm)
+    CALL mp_bcast(amass,      ionode_id, world_comm)
+    CALL mp_bcast(iverbosity, ionode_id, world_comm)
+    CALL mp_bcast(lgamma,     ionode_id, world_comm)
     !
-    CALL mp_bcast(restart,    ionode_id)
-    CALL mp_bcast(max_seconds,ionode_id)
-    CALL mp_bcast(print_star, ionode_id)
-    CALL mp_bcast(print_perm, ionode_id)
+    CALL mp_bcast(restart,    ionode_id, world_comm)
+    CALL mp_bcast(max_seconds,ionode_id, world_comm)
+    CALL mp_bcast(print_star, ionode_id, world_comm)
+    CALL mp_bcast(print_perm, ionode_id, world_comm)
     !
-    CALL mp_bcast(nk1, ionode_id)
-    CALL mp_bcast(nk2, ionode_id)
-    CALL mp_bcast(nk3, ionode_id)
-    CALL mp_bcast(k1, ionode_id)
-    CALL mp_bcast(k2, ionode_id)
-    CALL mp_bcast(k3, ionode_id)
-    CALL mp_bcast(degauss, ionode_id)
+    CALL mp_bcast(nk1, ionode_id, world_comm)
+    CALL mp_bcast(nk2, ionode_id, world_comm)
+    CALL mp_bcast(nk3, ionode_id, world_comm)
+    CALL mp_bcast(k1, ionode_id, world_comm)
+    CALL mp_bcast(k2, ionode_id, world_comm)
+    CALL mp_bcast(k3, ionode_id, world_comm)
+    CALL mp_bcast(degauss, ionode_id, world_comm)
     !
 #endif
     RETURN

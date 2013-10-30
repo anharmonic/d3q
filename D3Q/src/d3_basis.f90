@@ -65,15 +65,15 @@ pure SUBROUTINE d3_cart2pat(d3in, nat, u1, u2, u3, d3out)
   !
   ALLOCATE(d3tmp(3*nat, 3*nat, 3*nat))
   !
-  DO i = 1, 3*nat
-  DO j = 1, 3*nat
   DO k = 1, 3*nat
+  DO j = 1, 3*nat
+  DO i = 1, 3*nat
       !
       work = (0._dp, 0._dp)
       !
-      DO a = 1, 3 * nat
-      DO b = 1, 3 * nat
       DO c = 1, 3 * nat
+      DO b = 1, 3 * nat
+      DO a = 1, 3 * nat
           work = work + d3in(a, b, c) * &
                         u1(i,a) * u2(j,b) * u3(k,c)
       ENDDO

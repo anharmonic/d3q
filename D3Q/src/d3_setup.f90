@@ -119,6 +119,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   !
   USE d3_iofiles,       ONLY : fildrho_q, tmp_dir_d3, fildrho_dir
   USE mp,               ONLY : mp_bcast, mp_barrier
+  USE mp_world,         ONLY : world_comm
   !
   IMPLICIT NONE
   !
@@ -243,10 +244,10 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
           IF(ionode) &
             CALL io_pattern(nat, fildrho_tmp, symq(iq)%nirr, symq(iq)%npert,&
                             patq(iq)%u, kplusq(iq)%xq_drho, fildrho_dir,-1)
-          CALL mp_bcast(symq(iq)%nirr,      ionode_id)
-          CALL mp_bcast(symq(iq)%npert,     ionode_id)
-          CALL mp_bcast(kplusq(iq)%xq_drho, ionode_id)
-          CALL mp_bcast(patq(iq)%u,         ionode_id)
+          CALL mp_bcast(symq(iq)%nirr,      ionode_id, world_comm)
+          CALL mp_bcast(symq(iq)%npert,     ionode_id, world_comm)
+          CALL mp_bcast(kplusq(iq)%xq_drho, ionode_id, world_comm)
+          CALL mp_bcast(patq(iq)%u,         ionode_id, world_comm)
           !
           tmp_dir = tmp_dir_d3
           !
@@ -343,7 +344,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   WRITE(stdout, "(5x,a,//)") "=================== setup done ===================="
   CALL stop_clock (sub)
 
-  CALL mp_barrier()
+  CALL mp_barrier(world_comm)
 
   RETURN
   !-----------------------------------------------------------------------

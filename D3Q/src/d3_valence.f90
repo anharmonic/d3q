@@ -27,6 +27,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   USE mp_global,    ONLY : inter_pool_comm
   USE io_global,    ONLY : stdout
   USE mp,           ONLY : mp_sum
+  USE mp_world,     ONLY : world_comm
   USE kplus3q,      ONLY : kplusq, q_sum_rule
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
 
@@ -190,7 +191,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   DEALLOCATE(w0g_i, w0g_j, w0g_k )
   DEALLOCATE(w1g_i, w1g_j, w1g_k )
   !
-  CALL mp_sum( d3dyn_aux, inter_pool_comm )
+  CALL mp_sum( d3dyn_aux, inter_pool_comm)
   d3dyn = d3dyn + d3dyn_aux
   !
   DEALLOCATE(d3dyn_aux)

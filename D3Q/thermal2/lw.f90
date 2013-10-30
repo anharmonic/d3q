@@ -29,7 +29,7 @@ MODULE linewidth_program
     USE iso_c_binding,  ONLY : c_int
     USE input_fc,       ONLY : same_system, read_fc2, read_fc3, &
                                aux_system, div_mass_fc2, div_mass_fc3
-    USE io_global,	ONLY : stdout
+    USE io_global,      ONLY : stdout
     IMPLICIT NONE
     !
     TYPE(forceconst2_grid),INTENT(inout) :: fc2
@@ -39,16 +39,16 @@ MODULE linewidth_program
     !
     INTEGER(kind=c_int) :: kb
     !
-    CALL read_fc2("mat2R", s,  fc2)
-    CALL read_fc3("mat3R", s3, fc3)
-    IF(.not.same_system(s, s3)) THEN
+    CALL read_fc2("mat2R", S,  fc2)
+    CALL read_fc3("mat3R_asr", S3, fc3)
+    IF(.not.same_system(S, S3)) THEN
       !PRINT*, "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
       CALL errore("INPUT", "FC2 and FC3 crystals DO NOT MATCH !!!", 1)
     ENDIF
     !
-!     CALL write_fc3("mat3bis", S, fc3)
+!     CALL write_fc3("mat3R", S, fc3)
     !
-    CALL aux_system(s)
+    CALL aux_system(S)
     !
     CALL memstat(kb)
     WRITE(stdout,*) "Reading : done."
@@ -133,7 +133,7 @@ MODULE linewidth_program
     pl = 0._dp
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 16,16,1, grid)
+    CALL setup_simple_grid(S, 8,8,8, grid)
     !
     CALL print_header()
     !
@@ -144,6 +144,7 @@ MODULE linewidth_program
       
 !       lw = LW_TEST2(xq, 300._dp, S, fc2, fc3)
       lw = linewidth_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
+      WRITE(*,*) i, xq
       WRITE(666, '(i4,f12.6,2x,3f12.6,2x,9f12.6,2x,9e15.4)') &
                    i,pl,xq, SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1
 
@@ -165,7 +166,7 @@ MODULE linewidth_program
     USE functions,      ONLY : f_bose
     USE mp_world,       ONLY : mpime, nproc, world_comm
     USE mp,             ONLY : mp_sum
-    USE io_global,	ONLY : stdout
+    USE io_global,      ONLY : stdout
     IMPLICIT NONE
     !
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -256,13 +257,13 @@ PROGRAM linewidth
   
   CALL INPUT(s, fc2, fc3)
  
-  CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
-                   200, S, fc2)
+!   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
+!                    200, S, fc2)
   
-!   CALL LW_QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
-!                    200, S, fc2, fc3)
+  CALL LW_QBZ_LINE((/0.5_dp,0._dp,0._dp/), (/0._dp,0._dp,0._dp/),&
+                   20, S, fc2, fc3)
 
-  CALL SMA_TRANSPORT(S, fc2, fc3, 3,3,1, 300._dp, 10._dp/RY_TO_CMM1)
+!   CALL SMA_TRANSPORT(S, fc2, fc3, 8,8,8, 300._dp, 10._dp/RY_TO_CMM1)
 
   CALL environment_end('LW')
   CALL mp_global_end()

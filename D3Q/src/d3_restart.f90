@@ -51,6 +51,7 @@ SUBROUTINE d3_check_restart(what)
   USE io_files,   ONLY : prefix
   USE io_global,  ONLY : ionode, ionode_id, stdout
   USE d3_iofiles, ONLY : tmp_dir_d3
+  USE mp_world,   ONLY : world_comm
   IMPLICIT NONE
   CHARACTER(len=*),INTENT(in) :: what 
   !
@@ -87,7 +88,7 @@ SUBROUTINE d3_check_restart(what)
       IF (ios==0) CLOSE(runit, iostat=ios)
 
     ENDIF
-    CALL mp_bcast(ios, ionode_id)
+    CALL mp_bcast(ios, ionode_id, world_comm)
     IF(ios/=0) CALL errore(sub,'cannot write restart file "'//TRIM(rfile)//'"',1)
     !
     ! this is a nice spot to stop: check time!
@@ -109,20 +110,20 @@ SUBROUTINE d3_check_restart(what)
       CLOSE(runit)
     ENDIF
     !
-    CALL mp_bcast(ios, ionode_id)
+    CALL mp_bcast(ios, ionode_id, world_comm)
     IF (ios/=0) THEN
       WRITE(stdout,'(5x,a)') "REMARK: recover data not found or invalid: restarting from scratch."
       ! Reinitialize, in case some garbage was read
       CALL d3_from_scratch()
     ELSE
       WRITE(stdout,'(5x,a)') "REMARK: recover data has been read succesfully."
-      CALL mp_bcast(done_nscf,   ionode_id)
-      CALL mp_bcast(done_dwfc,   ionode_id)
-      CALL mp_bcast(done_pdvp,   ionode_id)
-      CALL mp_bcast(done_lmetq0, ionode_id)
+      CALL mp_bcast(done_nscf,   ionode_id, world_comm)
+      CALL mp_bcast(done_dwfc,   ionode_id, world_comm)
+      CALL mp_bcast(done_pdvp,   ionode_id, world_comm)
+      CALL mp_bcast(done_lmetq0, ionode_id, world_comm)
       ! check the number of processors
-      CALL mp_bcast(rst_nproc,      ionode_id)
-      CALL mp_bcast(rst_nproc_pool, ionode_id)
+      CALL mp_bcast(rst_nproc,      ionode_id, world_comm)
+      CALL mp_bcast(rst_nproc_pool, ionode_id, world_comm)
       IF(rst_nproc/=cur_nproc .or. rst_nproc_pool/=cur_nproc_pool) &
         CALL errore(sub, 'Trying to restart with a different number of processor or pools.', 2)
     ENDIF
@@ -134,7 +135,7 @@ SUBROUTINE d3_check_restart(what)
            FORM  ='formatted', status='unknown', iostat=ios)
       IF (ios==0) CLOSE(runit, iostat=ios, status='DELETE')
     ENDIF
-    CALL mp_bcast(ios, ionode_id)
+    CALL mp_bcast(ios, ionode_id, world_comm)
     IF(ios/=0) CALL errore(sub,'cannot delete restart file "'//TRIM(rfile)//'"',3)  
   ! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ..... >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   ELSE
