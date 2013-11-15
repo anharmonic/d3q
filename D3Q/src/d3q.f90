@@ -16,7 +16,7 @@ program d3toten
   USE ions_base,     ONLY : nat
   USE io_global,     ONLY : stdout
   USE control_flags, ONLY : gamma_only
-  USE mp_global,     ONLY : mp_startup, mpime
+  USE mp_global,     ONLY : mp_startup
   USE environment,   ONLY : environment_start
   USE d3_basis,      ONLY : patq
   USE kplus3q,       ONLY : kplusq
@@ -177,10 +177,10 @@ program d3toten
       !           CALL allocate_d3_pattern(nat, patq(iq))
       !           CALL set_irr_nosym (nat, at, bg, kplusq(iq)%xq, s, invs, nsym, rtau, &
     !
-    write( stdout, '(/,5x,"=============== run_nscf_d3 start",i3," ==============",/)') mpime
+    write( stdout, '(/,5x,"=============== run_nscf_d3 start",i3," ==============",/)') 
     CALL run_nscf_d3(.true.)
 !     CALL run_nscf_d3(.false.)
-    write( stdout, '(/,5x,"=============== run_nscf_d3 done",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"=============== run_nscf_d3 done",i3," ===============",/)') 
     CALL flush_unit( stdout )
     ! inside run_nscf_d3 subroutine setup_nscf_d3 is CALLed which increases the number
     ! of kpoints in order to generate k, k+/-q1, k+/-q2, k+/-q3
@@ -197,36 +197,36 @@ program d3toten
       !               CALL punch( 'all' )
       !               CALL seqopn( 4, 'restart', 'UNFORMATTED', exst )
       !               CALL close_files()
-    write( stdout, '(/,5x,"=============== allocate_d3 start",i3," ==============",/)') mpime
+    write( stdout, '(/,5x,"=============== allocate_d3 start",i3," ==============",/)') 
     CALL allocate_d3() !(~allocate_phq)
-    write( stdout, '(/,5x,"=============== allocate_d3 done",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"=============== allocate_d3 done",i3," ===============",/)') 
     !CALL d3_summary()
     !
-    write( stdout, '(/,5x,"============== openfile_drho start",i3," =============",/)') mpime
+    write( stdout, '(/,5x,"============== openfile_drho start",i3," =============",/)') 
     CALL openfile_drho()
-    write( stdout, '(/,5x,"============== openfile_drho done",i3," ==============",/)') mpime
+    write( stdout, '(/,5x,"============== openfile_drho done",i3," ==============",/)') 
     CALL flush_unit( stdout )
       !           CALL drho_change_q
       !                 CALL drho_add_phase
-    write( stdout, '(/,5x,"================ openfild3 start",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"================ openfild3 start",i3," ===============",/)') 
     CALL openfild3()
     CALL flush_unit( stdout )
-    write( stdout, '(/,5x,"================ openfild3 done",i3," ================",/)') mpime
+    write( stdout, '(/,5x,"================ openfild3 done",i3," ================",/)') 
     !
     CALL listu_d3(-1)
     CALL flush_unit( stdout )
     !
-    write( stdout, '(/,5x,"================= d3_init start",i3," ================",/)') mpime
+    write( stdout, '(/,5x,"================= d3_init start",i3," ================",/)') 
     CALL d3_init()
-    write( stdout, '(/,5x,"================= d3_init done",i3," =================",/)') mpime
+    write( stdout, '(/,5x,"================= d3_init done",i3," =================",/)') 
     CALL flush_unit( stdout )
       !           IF ( nlcc_any ) CALL set_drhoc(kplusq(iq)%xq, d3c(iq)%drc)
       !           CALL setlocq_coul( kplusq(iq)%xq, upf(nt)%zp, tpiba2, ngm, g, omega,d3v(iq)%loc(1,nt) )
       !           CALL setlocq( kplusq(iq)%xq, rgrid(nt)%mesh, msh(nt), rgrid(nt)%rab, rgrid(nt)%r,&
       !           CALL write_igkq_d3(ik)
-    write( stdout, '(/,5x,"========== d3_check_permutations start",i3," =========",/)') mpime
+    write( stdout, '(/,5x,"========== d3_check_permutations start",i3," =========",/)') 
     CALL d3_check_permutations()
-    write( stdout, '(/,5x,"========== d3_check_permutations done",i3," ==========",/)') mpime
+    write( stdout, '(/,5x,"========== d3_check_permutations done",i3," ==========",/)') 
     CALL flush_unit( stdout )
     !
     CALL print_clock(code)
@@ -257,7 +257,7 @@ program d3toten
     ! The variation of the charge, modified this way is used by
     ! the routines d3_exc and d3dyn_cc.
     !
-    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') mpime
+    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') 
     WRITE( stdout, '(/,5x,"Adding derivative of core charge")')
     !printed = .false.
     IF(dbg_add_core) THEN
@@ -270,7 +270,7 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
     CALL flush_unit( stdout )
 
     !______________________________________________________________________________________________
@@ -292,7 +292,7 @@ program d3toten
     ! write on files terms of the type: <dpsi| dH | psi>, that
     ! will be used for the metallic case
     !
-    write( stdout, '(/,5x,"================== precomp start",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"================== precomp start",i3," ===============",/)') 
     !printed = .false.
     WRITE( stdout, '(/,5x,"Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >")')
     IF(dbg_do_dpdvp) &
@@ -301,7 +301,7 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"gen_dpsi1dv2psi     cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== precomp done",i3," ================",/)') mpime
+    write( stdout, '(/,5x,"================== precomp done",i3," ================",/)') 
     CALL flush_unit( stdout )
     !______________________________________________________________________________________________
     !
@@ -311,7 +311,7 @@ program d3toten
     ! calculate the terms < dpsi| dH | dpsi >
     !
     DBG_dpdvdp : IF(dbg_do_dpdvdp) THEN 
-    write( stdout, '(/,5x,"================== dpdvdp start",i3," ================",/)') mpime
+    write( stdout, '(/,5x,"================== dpdvdp start",i3," ================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <dpsi |dH |dpsi>")')
     d3tmp = (0._dp, 0._dp)
     DO iperm = 1,nperms
@@ -336,14 +336,14 @@ program d3toten
     !
     WRITE( stdout, '(5x,"dpsi1dv2dpsi3 cpu time:",f9.2, &
           &   " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== dpdvdp done",i3," =================",/)') mpime
+    write( stdout, '(/,5x,"================== dpdvdp done",i3," =================",/)') 
     CALL flush_unit( stdout )
     ENDIF DBG_dpdvdp
     !______________________________________________________________________________________________
     !
     ! calculate the term < dpsi| dpsi > < psi | dH | psi>
     DBG_dpdpdv : IF(dbg_do_dpdpdv) THEN 
-    write( stdout, '(/,5x,"================== dpdpdv start",i3," ================",/)') mpime
+    write( stdout, '(/,5x,"================== dpdpdv start",i3," ================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> ")')
     d3tmp = (0._dp, 0._dp)
     DO iperm = 1,nperms
@@ -368,7 +368,7 @@ program d3toten
     !
     WRITE( stdout, '(5x,"dpsi1dpsi2dv3 cpu time:",f9.2, &
           &   " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== dpdpdv done",i3," =================",/)') mpime
+    write( stdout, '(/,5x,"================== dpdpdv done",i3," =================",/)') 
     CALL flush_unit( stdout )
     ENDIF DBG_dpdpdv
     !______________________________________________________________________________________________
@@ -376,7 +376,7 @@ program d3toten
     ! calculate the term   drho * d2V
     !
     DBG_drhod2v : IF(dbg_do_drhod2v) THEN
-    write( stdout, '(/,5x,"================== dpd2v start",i3," =================",/)') mpime
+    write( stdout, '(/,5x,"================== dpd2v start",i3," =================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <psi |d^2 v |dpsi>")')
     !
     d3tmp = (0._dp, 0._dp)
@@ -408,7 +408,7 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"drhod2v       cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== dpd2v done",i3," ==================",/)') mpime
+    write( stdout, '(/,5x,"================== dpd2v done",i3," ==================",/)') 
     CALL flush_unit( stdout )
     ENDIF DBG_drhod2v
     !______________________________________________________________________________________________
@@ -434,7 +434,7 @@ program d3toten
     ! It calculates the contribution due to ionic term
     !
     DBG_ion : IF(dbg_do_ion) THEN
-    write( stdout, '(/,5x,"================== ewald start",i3," =================",/)') mpime
+    write( stdout, '(/,5x,"================== ewald start",i3," =================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the Ewald contribution")')
     d3dyn_ion = (0._dp, 0._dp)
     CALL d3ionq( kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, &
@@ -444,7 +444,7 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3ionq        cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================== ewald done",i3," ==================",/)') mpime
+    write( stdout, '(/,5x,"================== ewald done",i3," ==================",/)') 
     CALL flush_unit( stdout )
     ENDIF DBG_ion
     !______________________________________________________________________________________________
@@ -458,7 +458,7 @@ program d3toten
       d3dyn_smear = 0._dp
       !
       DBG_smr1 : IF(dbg_do_smr_ijk) THEN
-      write( stdout, '(/,5x,"================== valence start",i3," ==============",/)') mpime
+      write( stdout, '(/,5x,"================== valence start",i3," ==============",/)') 
       WRITE( stdout, '(/,5x,"Calculating the valence contribution")')
        ! first term
       d3tmp = (0._dp, 0._dp)
@@ -522,7 +522,7 @@ program d3toten
       t0 = get_clock (code)
       WRITE( stdout, '(5x,"d3_valence    cpu time:",f9.2, &
           &         " sec    Total time:",f12.2," sec")') t1, t0
-      write( stdout, '(/,5x,"================== valence done",i3," ===============",/)') mpime
+      write( stdout, '(/,5x,"================== valence done",i3," ===============",/)') 
       CALL flush_unit( stdout )
     ENDIF ADD_SMEARING_CONTRIBUTION
     !______________________________________________________________________________________________
@@ -532,7 +532,7 @@ program d3toten
     ! The variation of the charge, modified this way is used by
     ! the routines d3_exc and d3dyn_cc.
     !
-!    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') mpime
+!    write( stdout, '(/,5x,"================== add core start",i3," ==============",/)') 
 !    WRITE( stdout, '(/,5x,"Adding derivative of core charge")')
 !    !printed = .false.
 !    IF(dbg_add_core) THEN
@@ -545,7 +545,7 @@ program d3toten
 !    t0 = get_clock (code)
 !    WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
 !        &         " sec    Total time:",f12.2," sec")') t1, t0
-!    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') mpime
+!    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
 !    CALL flush_unit( stdout )
     !______________________________________________________________________________________________
     !
@@ -554,7 +554,7 @@ program d3toten
     ! Kohn-Sham-Energy term depending on the charge density.
     !
     DBG_exc : IF(dbg_do_exc) THEN
-    write( stdout, '(/,5x,"================ exc contrib start",i3," =============",/)') mpime
+    write( stdout, '(/,5x,"================ exc contrib start",i3," =============",/)') 
     WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
     d3dyn_exc = (0._dp, 0._dp)
     !printed = .false.
@@ -564,7 +564,7 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3_exc        cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"================ exc contrib done",i3," =============",/)') mpime
+    write( stdout, '(/,5x,"================ exc contrib done",i3," =============",/)') 
     ENDIF DBG_exc
     CALL flush_unit( stdout )
     !______________________________________________________________________________________________
@@ -576,7 +576,7 @@ program d3toten
     !
     ADD_NLCC_CORRECTION : &
     IF (nlcc_any .and. dbg_do_nlcc) THEN
-      write( stdout, '(/,5x,"=============== nlcc contrib start",i3," ============",/)') mpime
+      write( stdout, '(/,5x,"=============== nlcc contrib start",i3," ============",/)') 
       WRITE( stdout, '(/,5x,"Calculating the core-correction contribution")')
       !
       ! One diagonal term (correction to rho d3v):
@@ -615,13 +615,13 @@ program d3toten
       CALL flush_unit( stdout )
       ENDIF DBG_nlcc_123
       !
-      write( stdout, '(/,5x,"=============== nlcc contrib done",i3," =============",/)') mpime
+      write( stdout, '(/,5x,"=============== nlcc contrib done",i3," =============",/)') 
     ENDIF ADD_NLCC_CORRECTION
     !______________________________________________________________________________________________
     !
     ! Sum all contributions
     !
-    write( stdout, '(/,5x,"=============== computing D3 start",i3," ============",/)') mpime
+    write( stdout, '(/,5x,"=============== computing D3 start",i3," ============",/)') 
     !
     d3dyn = d3dyn_dpdvdp & ! <dpsi|dV|dpsi>
            +d3dyn_dpdpdv &
@@ -654,10 +654,10 @@ program d3toten
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3matrix      cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
-    write( stdout, '(/,5x,"=============== computing D3 done",i3," =============",/)') mpime
+    write( stdout, '(/,5x,"=============== computing D3 done",i3," =============",/)') 
     CALL flush_unit( stdout )
     !
-    write( stdout, '(/,5x,"================== cleanup start",i3," ==============",/)') mpime
+    write( stdout, '(/,5x,"================== cleanup start",i3," ==============",/)') 
     ! Deallocate
     DO iperm = 1, nperms
       DEALLOCATE(d3(iperm)%dyn)
@@ -670,7 +670,7 @@ program d3toten
     !
     CALL d3_reset(print_clock=(n_triplets_done<n_triplets_todo), cleanup=.true.)
     !
-    write( stdout, '(/,5x,"================== cleanup done",i3," ===============",/)') mpime
+    write( stdout, '(/,5x,"================== cleanup done",i3," ===============",/)') 
     CALL flush_unit( stdout )
     !
   ENDDO &
