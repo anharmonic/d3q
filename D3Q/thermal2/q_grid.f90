@@ -22,7 +22,7 @@ MODULE q_grid
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
 !   !
-!   ! Nasty subroutine that sets some global variabels of QE.
+!   ! Nasty subroutine that sets some global variables of QE.
 !
 !       NOTE: all the at, bg, nat, tau and so on must be set in 
 !             the QE global modules for this to work

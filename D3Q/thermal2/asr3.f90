@@ -25,7 +25,7 @@ MODULE asr3_module
   END TYPE
   
   INTEGER,SAVE :: iter = 1
-  REAL(DP),PARAMETER :: eps  = 1.e-10_dp, eps2 = 1.e-20_dp
+  REAL(DP),PARAMETER :: eps  = 1.e-8_dp, eps2 = 1.e-16_dp
   REAL(DP),PARAMETER :: eps0 = 1.e-30_dp
   
   CONTAINS
@@ -244,7 +244,7 @@ MODULE asr3_module
   ! symmetrize 3-body force constants wrt permutation of the indexes
   ! Note that the first R of the FC is always zero, hence we have to
   ! use translational symmetry, i.e.:
-  ! F^3(R2,0,R3| b,a,c | j,i,k )  --> F^3(0,-R3,R3-R2| b,a,c | j,i,k )
+  ! F^3(R2,0,R3| b,a,c | j,i,k )  --> F^3(0,-R2,R3-R2| b,a,c | j,i,k )
   FUNCTION perm_symmetrize_fc3(nat,idx,fx) RESULT(delta)
     USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
@@ -399,34 +399,34 @@ MODULE asr3_module
             DO i = 1,nat
 
               IF(ABS(q1)>eps2 .and. ABS(d1)>eps &
-                 .and. ABS(fx(iR2,   iR3   )%F(a,b,c, i,j,k))>eps0 ) &
+                 .and. ABS(fx(iR2,   iR3   )%F(a,b,c, i,j,k))>eps ) &
               fx(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
                                         - d1/q1 * fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
                                       
               IF(ABS(q2)>eps2 .and. ABS(d2)>eps &
-                 .and. ABS(fx(iR3,   iR2   )%F(a,c,b, i,k,j))>eps0 ) &
+                 .and. ABS(fx(iR3,   iR2   )%F(a,c,b, i,k,j))>eps ) &
               fx(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
-                                      - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+                                        - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
                                       
               IF(ABS(q3)>eps2 .and. ABS(d3)>eps &
-                 .and. ABS(fx(mR2,   iR3mR2)%F(b,a,c, j,i,k))>eps0 ) &
+                 .and. ABS(fx(mR2,   iR3mR2)%F(b,a,c, j,i,k))>eps ) &
               fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
-                                      - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+                                        - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
                                       
               IF(ABS(q4)>eps2 .and. ABS(d4)>eps &
-                 .and. ABS(fx(iR3mR2,mR2   )%F(b,c,a, j,k,i))>eps0 ) &
+                 .and. ABS(fx(iR3mR2,mR2   )%F(b,c,a, j,k,i))>eps ) &
               fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
-                                      - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+                                        - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
 
               IF(ABS(q5)>eps2 .and. ABS(d5)>eps &
-                 .and. ABS(fx(mR3,   iR2mR3)%F(c,a,b, k,i,j))>eps0 ) &
+                 .and. ABS(fx(mR3,   iR2mR3)%F(c,a,b, k,i,j))>eps ) &
               fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
-                                      - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+                                        - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
                                       
               IF(ABS(q6)>eps2 .and. ABS(d6)>eps &
-                 .and. ABS(fx(iR2mR3,mR3   )%F(c,b,a, k,j,i))>eps0 ) &
+                 .and. ABS(fx(iR2mR3,mR3   )%F(c,b,a, k,j,i))>eps ) &
               fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
-                                      - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+                                        - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
             ENDDO
           ENDDO R3_LOOPb
           !
@@ -568,7 +568,7 @@ PROGRAM asr3
 
 !     write(333, '(1i6)') idR23
     
-    DO j =1,100/6
+    DO j =1,10
       CALL impose_asr3_6idx(S%nat,idx2,fx)
 !       delta = perm_symmetrize_fc3(S%nat,idx2,fx)
     ENDDO

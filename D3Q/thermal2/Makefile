@@ -2,11 +2,13 @@
 
 include ../../make.sys
 
-STRIP = strip
+STRIP = true #strip
 
 # location of needed modules
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).  
+
+IFLAGS=-I../../include
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -22,10 +24,11 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #lw.o \
 
 #MPIF90 = ifort
-F90FLAGS += -fopenmp #-fcheck=all -fbacktrace -g
+F90FLAGS += -fopenmp -ffpe-trap=invalid,zero,overflow -fcheck=all -fbacktrace -g
 LDFLAGS  += -fopenmp
 
 D3QTOOLSLIBS = \
+asr2.o \
 input_fc.o \
 interp_fc.o \
 nanoclock.o \

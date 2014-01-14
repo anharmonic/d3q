@@ -106,7 +106,7 @@ MODULE linewidth_program
   
   !  
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
-  SUBROUTINE LW_QBZ_LINE(xq0, xq1, nq, S, fc2, fc3)
+  SUBROUTINE LW_QBZ_LINE(xq0, xq1, nq, S, fc2, fc3,pl0)
     USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag, linewidth_q
     USE constants,   ONLY : RY_TO_CMM1
     USE ph_velocity 
@@ -119,21 +119,28 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq0(3),xq1(3) ! line from xq0 to xq1
     INTEGER,INTENT(in)  :: nq            ! number of points
+    REAL(DP),INTENT(inout),OPTIONAL   :: pl0 !initial length of the path (zero otherwise)
     !
     COMPLEX(DP),ALLOCATABLE :: D(:,:)
     REAL(DP),ALLOCATABLE    :: w2(:), lw(:)
     REAL(DP) :: xq(3), dxq, pl,dpl
     INTEGER :: i
     TYPE(q_grid_type) :: grid
+    COMPLEX(DP)::ls
     !
     ALLOCATE(D(S%nat3, S%nat3))
     ALLOCATE(w2(S%nat3), lw(S%nat3))
     !
     dxq = 1._dp / REAL(nq-1,kind=DP)
-    pl = 0._dp
+    IF(present(pl0)) THEN
+      pl = pl0
+    ELSE
+      pl = 0._dp
+    ENDIF
+    !
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 8,8,8, grid)
+    CALL setup_simple_grid(S, 120,120,1, grid)
     !
     CALL print_header()
     !
@@ -144,12 +151,22 @@ MODULE linewidth_program
       
 !       lw = LW_TEST2(xq, 300._dp, S, fc2, fc3)
       lw = linewidth_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
+      ls = lineshift_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
       WRITE(*,*) i, xq
+      WHERE(w2>0._dp)
+        w2=SQRT(w2)
+      ELSEWHERE
+        w2= -SQRT(-w2)
+      ENDWHERE
       WRITE(666, '(i4,f12.6,2x,3f12.6,2x,9f12.6,2x,9e15.4)') &
-                   i,pl,xq, SQRT(w2)*RY_TO_CMM1, lw*RY_TO_CMM1
+                   i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
 
       pl = pl + dpl
     ENDDO
+    
+    IF(present(pl0)) THEN
+      pl0=pl-dpl ! if you're going to chain points it's convenient to overlap one point
+    ENDIF
     !
     DEALLOCATE(D, w2, lw)
     !
@@ -243,30 +260,39 @@ PROGRAM linewidth
   USE linewidth_program
   USE environment,      ONLY : environment_start, environment_end
   USE constants,        ONLY : RY_TO_CMM1
-  USE mp_world,         ONLY : mp_global_start, mp_global_end
+  USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
+  USE asr2_module,      ONLY : impose_asr2
   USE input_fc
   
   TYPE(forceconst2_grid) :: fc2
   TYPE(forceconst3_grid) :: fc3
   TYPE(ph_system_info)   :: s
   
-  REAL(DP) :: xq(3,3)
+  REAL(DP) :: M(3),K(3),G(3),pl
   
-  CALL mp_global_start()
+  CALL mp_world_start(world_comm)
   CALL environment_start('LW')
   
   CALL INPUT(s, fc2, fc3)
+  CALL impose_asr2(s%nat, fc2)
  
 !   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
 !                    200, S, fc2)
-  
-  CALL LW_QBZ_LINE((/0.5_dp,0._dp,0._dp/), (/0._dp,0._dp,0._dp/),&
-                   20, S, fc2, fc3)
+
+  G = (/ 0._dp, 0._dp, 0._dp /)
+  M = (/ 0.5_dp,      sqrt(3._dp)/6, 0._dp /)
+  K = (/ 1._dp/3._dp, sqrt(3._dp)/3, 0._dp /)
+  pl = 0._dp
+  CALL LW_QBZ_LINE(M, G, 50, S, fc2, fc3,pl)
+!   pl = pl-SQRT(SUM((M-G)**2))/(50-1)
+  CALL LW_QBZ_LINE(G, K, 42, S, fc2, fc3,pl)
+!   pl = pl-SQRT(SUM((G-K)**2))/(42-1)
+  CALL LW_QBZ_LINE(K, M ,36, S, fc2, fc3,pl)
 
 !   CALL SMA_TRANSPORT(S, fc2, fc3, 8,8,8, 300._dp, 10._dp/RY_TO_CMM1)
 
   CALL environment_end('LW')
-  CALL mp_global_end()
+  CALL mp_world_end()
  
 END PROGRAM
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

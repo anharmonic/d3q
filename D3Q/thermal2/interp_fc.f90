@@ -174,16 +174,18 @@ MODULE interp_fc
           !
           freqtot = freq(i,1) * freq(j,2) * freq(k,3)
           !
-          bose_X = bose(j,2) + bose(k,3) + 1
-          bose_C = bose(j,2) - bose(k,3)
-          !
-          dom_X =(freq(i,1)+freq(j,2)-freq(k,3))
-          dom_C =(freq(i,1)-freq(j,2)-freq(k,3))
-          !
-          ctm_X = 2 * bose_C * f_gauss(dom_X, sigma)
-          ctm_C =     bose_X * f_gauss(dom_C, sigma)
-          !
-          lw(i) = lw(i) + norm/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
+          IF(ABS(freqtot)>1.d-8)THEN
+            bose_X = bose(j,2) + bose(k,3) + 1
+            bose_C = bose(j,2) - bose(k,3)
+            !
+            dom_X =(freq(i,1)+freq(j,2)-freq(k,3))
+            dom_C =(freq(i,1)-freq(j,2)-freq(k,3))
+            !
+            ctm_X = 2 * bose_C * f_gauss(dom_X, sigma)
+            ctm_C =     bose_X * f_gauss(dom_C, sigma)
+            !
+            lw(i) = lw(i) + norm/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
+          ENDIF
           !
         ENDDO
       ENDDO
@@ -349,8 +351,15 @@ MODULE interp_fc
       !
       CALL fftinterp_mat2(xq, S, fc2, U)
       CALL mat2_diag(S, U, freq)
-      freq = SQRT(freq)
-      bose = f_bose(freq, T)
+      WHERE(freq>0._dp)
+        freq = SQRT(freq)
+        bose = f_bose(freq, T)
+      ELSEWHERE
+        ! this should only happen at Gamma for the 3 acoustic bands
+        ! and they normally do not matter for symmetry or velocity = 0
+        freq = 0._dp
+        bose = 0._dp
+      ENDWHERE
       U = CONJG(U)
       !
   END SUBROUTINE prepare_phq
