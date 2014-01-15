@@ -27,7 +27,8 @@ MODULE nanoclock
   TYPE(nanotimer) :: c2pat = nanotimer("c2pat")
   TYPE(nanotimer) :: tv3sq = nanotimer("v3sq")
   TYPE(nanotimer) :: i_ph  = nanotimer("i_ph")
-  TYPE(nanotimer) :: lwtot = nanotimer("LW_2tot")
+  TYPE(nanotimer) :: lwtot = nanotimer("LW_tot")
+  TYPE(nanotimer) :: lstot = nanotimer("LS_tot")
   TYPE(nanotimer) :: tsum = nanotimer("sum_bands")
   TYPE(nanotimer) :: d3time= nanotimer("D3")
   !

@@ -107,7 +107,7 @@ MODULE linewidth_program
   !  
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(xq0, xq1, nq, S, fc2, fc3,pl0)
-    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag, linewidth_q
+    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag, linewidth_q, lineshift_q
     USE constants,   ONLY : RY_TO_CMM1
     USE ph_velocity 
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
@@ -123,13 +123,13 @@ MODULE linewidth_program
     !
     COMPLEX(DP),ALLOCATABLE :: D(:,:)
     REAL(DP),ALLOCATABLE    :: w2(:), lw(:)
-    REAL(DP) :: xq(3), dxq, pl,dpl
+    REAL(DP) :: xq(3), dxq, pl,dpl, sigma
     INTEGER :: i
     TYPE(q_grid_type) :: grid
-    COMPLEX(DP)::ls
+    COMPLEX(DP),ALLOCATABLE::ls(:)
     !
     ALLOCATE(D(S%nat3, S%nat3))
-    ALLOCATE(w2(S%nat3), lw(S%nat3))
+    ALLOCATE(w2(S%nat3), lw(S%nat3), ls(S%nat3))
     !
     dxq = 1._dp / REAL(nq-1,kind=DP)
     IF(present(pl0)) THEN
@@ -140,26 +140,29 @@ MODULE linewidth_program
     !
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 120,120,1, grid)
+    CALL setup_simple_grid(S, 200,200,1, grid)
     !
-    CALL print_header()
+!     CALL print_header()
     !
     DO i = 0,nq-1
       xq = (xq0*(nq-1-i) + xq1*i)*dxq
       CALL fftinterp_mat2(xq, S, fc2, D)
       CALL mat2_diag(S, D, w2)
       
-!       lw = LW_TEST2(xq, 300._dp, S, fc2, fc3)
-      lw = linewidth_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
-      ls = lineshift_q(xq, 300._dp, 10._dp/RY_TO_CMM1, S, grid, fc2, fc3)
+      sigma = 1._dp/RY_TO_CMM1
+      lw = linewidth_q(xq, 300._dp, sigma,       S, grid, fc2, fc3)
+      ls = lineshift_q(xq, 300._dp, sigma/2, S, grid, fc2, fc3)
+
       WRITE(*,*) i, xq
       WHERE(w2>0._dp)
         w2=SQRT(w2)
       ELSEWHERE
         w2= -SQRT(-w2)
       ENDWHERE
-      WRITE(666, '(i4,f12.6,2x,3f12.6,2x,9f12.6,2x,9e15.4)') &
-                   i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
+
+
+      WRITE(667, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x,6e15.5)') &
+                   i+1,pl,xq, w2*RY_TO_CMM1, -DIMAG(ls)*RY_TO_CMM1, DBLE(ls)*RY_TO_CMM1
 
       pl = pl + dpl
     ENDDO
@@ -266,15 +269,15 @@ PROGRAM linewidth
   
   TYPE(forceconst2_grid) :: fc2
   TYPE(forceconst3_grid) :: fc3
-  TYPE(ph_system_info)   :: s
+  TYPE(ph_system_info)   :: S
   
   REAL(DP) :: M(3),K(3),G(3),pl
   
   CALL mp_world_start(world_comm)
   CALL environment_start('LW')
   
-  CALL INPUT(s, fc2, fc3)
-  CALL impose_asr2(s%nat, fc2)
+  CALL INPUT(S, fc2, fc3)
+  CALL impose_asr2(S%nat, fc2)
  
 !   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
 !                    200, S, fc2)
