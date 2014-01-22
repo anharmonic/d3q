@@ -122,14 +122,14 @@ MODULE linewidth_program
     REAL(DP),INTENT(inout),OPTIONAL   :: pl0 !initial length of the path (zero otherwise)
     !
     COMPLEX(DP),ALLOCATABLE :: D(:,:)
-    REAL(DP),ALLOCATABLE    :: w2(:), lw(:)
+    REAL(DP) :: w2(S%nat3), lw(S%nat3)
     REAL(DP) :: xq(3), dxq, pl,dpl, sigma
     INTEGER :: i
     TYPE(q_grid_type) :: grid
-    COMPLEX(DP),ALLOCATABLE::ls(:)
+    COMPLEX(DP):: ls(S%nat3)
+    REAL(DP)   :: ratio(S%nat3)
     !
     ALLOCATE(D(S%nat3, S%nat3))
-    ALLOCATE(w2(S%nat3), lw(S%nat3), ls(S%nat3))
     !
     dxq = 1._dp / REAL(nq-1,kind=DP)
     IF(present(pl0)) THEN
@@ -140,29 +140,43 @@ MODULE linewidth_program
     !
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 200,200,1, grid)
+    CALL setup_simple_grid(S, 300,300,1, grid)
     !
 !     CALL print_header()
     !
-    DO i = 0,nq-1
-      xq = (xq0*(nq-1-i) + xq1*i)*dxq
+    DO i = 1,nq
+      xq = (xq0*(nq-i) + xq1*(i-1))*dxq
+      WRITE(*,'(i6,3f15.8)') i, xq
       CALL fftinterp_mat2(xq, S, fc2, D)
       CALL mat2_diag(S, D, w2)
-      
-      sigma = 1._dp/RY_TO_CMM1
-      lw = linewidth_q(xq, 300._dp, sigma,       S, grid, fc2, fc3)
-      ls = lineshift_q(xq, 300._dp, sigma/2, S, grid, fc2, fc3)
 
-      WRITE(*,*) i, xq
       WHERE(w2>0._dp)
         w2=SQRT(w2)
       ELSEWHERE
         w2= -SQRT(-w2)
       ENDWHERE
+      
+      sigma = 2._dp/RY_TO_CMM1
+
+      ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
+      ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
+      ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
+      ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
+      !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) c = 0.83255 c
+      !
+      lw = linewidth_q(xq, 300._dp, sigma,         S, grid, fc2, fc3)
+      ls = lineshift_q(xq, 300._dp, 0.83255*sigma, S, grid, fc2, fc3)
 
 
+
+      WRITE(666, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5)') &
+                   i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
       WRITE(667, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x,6e15.5)') &
-                   i+1,pl,xq, w2*RY_TO_CMM1, -DIMAG(ls)*RY_TO_CMM1, DBLE(ls)*RY_TO_CMM1
+                   i,pl,xq, w2*RY_TO_CMM1, -DIMAG(ls)*RY_TO_CMM1, DBLE(ls)*RY_TO_CMM1
+      ratio = 0._dp
+      WHERE(lw/=0._dp) ratio = -DIMAG(ls)/lw
+      WRITE(668, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x)') &
+                   i,pl,xq, w2*RY_TO_CMM1, ratio
 
       pl = pl + dpl
     ENDDO
@@ -171,7 +185,7 @@ MODULE linewidth_program
       pl0=pl-dpl ! if you're going to chain points it's convenient to overlap one point
     ENDIF
     !
-    DEALLOCATE(D, w2, lw)
+    DEALLOCATE(D)
     !
   END SUBROUTINE LW_QBZ_LINE
   
@@ -265,7 +279,7 @@ PROGRAM linewidth
   USE constants,        ONLY : RY_TO_CMM1
   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE asr2_module,      ONLY : impose_asr2
-  USE input_fc
+  USE input_fc,         ONLY : print_citations_linewidth
   
   TYPE(forceconst2_grid) :: fc2
   TYPE(forceconst3_grid) :: fc3
@@ -275,6 +289,7 @@ PROGRAM linewidth
   
   CALL mp_world_start(world_comm)
   CALL environment_start('LW')
+  CALL print_citations_linewidth()
   
   CALL INPUT(S, fc2, fc3)
   CALL impose_asr2(S%nat, fc2)

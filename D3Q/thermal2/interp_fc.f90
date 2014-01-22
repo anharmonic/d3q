@@ -310,7 +310,9 @@ MODULE interp_fc
     lw(:) = 0._dp
     !
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) REDUCTION(+: lw) COLLAPSE(3)
+!$OMP PARALLEL DO DEFAULT(SHARED) &
+!$OMP             PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) &
+!$OMP             REDUCTION(+: lw) COLLAPSE(3)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
         DO i = 1,S%nat3
@@ -444,45 +446,44 @@ MODULE interp_fc
     COMPLEX(DP) :: sum_complex_modes(S%nat3)
     !
     ! _P -> scattering, _M -> cohalescence
-    REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
+    REAL(DP) :: bose_P, bose_M, freqtot      ! final/initial state populations 
     REAL(DP) :: omega_P,  omega_M   ! \delta\omega
     REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
-    COMPLEX(DP) :: ctm_P, ctm_M, reg, num   !
+    COMPLEX(DP) :: ctm_P, ctm_M, reg, num
     !
     INTEGER :: i,j,k
     COMPLEX(DP) :: ls(S%nat3)
-    COMPLEX(DP),PARAMETER :: ii = (0._dp, 1._dp)
+!     COMPLEX(DP),PARAMETER :: ii = (0._dp, 1._dp)
     ls(:) = (0._dp, 0._dp)
     !
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg) &
+!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot) &
 !$OMP             REDUCTION(+: ls) COLLAPSE(2)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
         !
-        bose_P = 1 + bose(j,2) + bose(k,3)
-        omega_P  =(freq(j,2)+freq(k,3))
+        bose_P   = 1 + bose(j,2) + bose(k,3)
+        omega_P  = freq(j,2)+freq(k,3)
         omega_P2 = omega_P**2
         !
-        bose_M = bose(k,3) - bose(j,2)
-        omega_M =(freq(j,2)-freq(k,3))
+        bose_M   = bose(k,3) - bose(j,2)
+        omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
         DO i = 1,S%nat3
           !
-          ! regularization:
-          reg = CMPLX(freq(i,1), delta, kind=DP)
-          reg = reg**2
+          freqtot = 4*freq(i,1)*freq(j,2)*freq(k,3)
           !
-!           num = exp(-log(omega_P2-reg))
-!           ctm_P = 2 * bose_P *omega_P * num
-          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
-!           num = exp(-log(omega_M2-reg))
-!           ctm_M = 2 * bose_M *omega_M * num
-          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
-          !
-          ls(i) = ls(i) + (ctm_P + ctm_M) * V3sq(i,j,k)
+          IF(ABS(freqtot)>1.d-8)THEN
+            ! regularization:
+            reg = CMPLX(freq(i,1), delta, kind=DP)**2
+            !
+            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
+            !
+            ls(i) = ls(i) + (ctm_P + ctm_M) * V3sq(i,j,k) / freqtot
+          ENDIF
           !
         ENDDO
       ENDDO
@@ -494,7 +495,6 @@ MODULE interp_fc
   END FUNCTION sum_complex_modes
   !
   SUBROUTINE prepare_phq(xq, T, S, fc2, freq, bose, U)
-!     USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag
     USE functions,      ONLY : f_bose
     IMPLICIT NONE
       REAL(DP),INTENT(in)  :: xq(3), T
@@ -506,7 +506,7 @@ MODULE interp_fc
       !
       CALL fftinterp_mat2(xq, S, fc2, U)
       CALL mat2_diag(S, U, freq)
-      ! Is the following mess really necessary?
+      ! Is the following mess really necessary? (3 days later: it is)
       WHERE    (freq >  eps)
         freq = SQRT(freq)
         bose = f_bose(freq, T)

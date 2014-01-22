@@ -6,7 +6,7 @@
 MODULE asr3_module
   USE kinds,    ONLY : DP
   TYPE forceconst3_ofRR
-    REAL(DP),ALLOCATABLE :: F(:,:, :,:, :,:)
+    REAL(DP),ALLOCATABLE :: F(:,:,:, :,:,:) !dimension: (3,3,3, nat,nat,nat)
   ENDTYPE forceconst3_ofRR
   
   TYPE index_r_type
@@ -224,7 +224,7 @@ MODULE asr3_module
         ALLOCATE(fc%fc(3*nat,3*nat,3*nat, fc%n_R))
       fc%fc = 0._dp
     ELSE
-          CALL errore("reindex_fc3","bad dir",1)
+          CALL errore("reindex_fc3","bad direction (+1/-1)",1)
     ENDIF
 
     
@@ -252,13 +252,21 @@ MODULE asr3_module
     INTEGER,INTENT(in) :: nat
     TYPE(index_r_type) :: idx
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
+    TYPE(forceconst3_ofRR) :: fsym(idx%nR,idx%nR)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
     REAL(DP) :: avg, delta
     
     delta = 0._dp
-    
+
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      ALLOCATE(fsym(iR2,iR3)%F(3,3,3, nat,nat,nat))
+      fsym(iR2,iR3)%F = 0._dp
+    ENDDO
+    ENDDO
+    !
     DO iR2 = 1,idx%nR
     R3_LOOP : &
     DO iR3 = 1,idx%nR
@@ -271,7 +279,7 @@ MODULE asr3_module
       IF(iR2mR3<0 .or. iR3mR2<0) THEN
         IF( ANY(ABS(fx(iR2,iR3)%F) > 1.e-24_dp) ) &
           CALL errore('impose_asr3', 'this should be zero', 1)
-        fx(iR2,iR3)%F = 0._dp
+        fsym(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
       !
@@ -292,7 +300,7 @@ MODULE asr3_module
                   )
 
           delta = delta + (fx(iR2,iR3)%F(a,b,c, i,j,k) - avg)**2
-          fx(iR2,iR3)%F(a,b,c, i,j,k) = avg
+          fsym(iR2,iR3)%F(a,b,c, i,j,k) = avg
 
         
         ENDDO
@@ -302,6 +310,13 @@ MODULE asr3_module
       ENDDO
       ENDDO
     ENDDO R3_LOOP
+    ENDDO
+    !
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      fx(iR2,iR3)%F = fsym(iR2,iR3)%F
+      DEALLOCATE(fsym(iR2,iR3)%F)
+    ENDDO
     ENDDO
     !
     delta = SQRT(delta)
@@ -437,13 +452,15 @@ MODULE asr3_module
       ENDDO
     ENDDO
     !
-    delperm = perm_symmetrize_fc3(nat,idx,fx)
+!     delperm = perm_symmetrize_fc3(nat,idx,fx)
     PRINT*, "asr6", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
     iter = iter+1
     !
   END SUBROUTINE impose_asr3_6idx
+  !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE impose_asr3_1idx(nat,idx,fx)
+  !
+  REAL(DP) FUNCTION impose_asr3_1idx(nat,idx,fx) RESULT(delta)
     USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
@@ -455,14 +472,24 @@ MODULE asr3_module
     REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1, q1, r1
     !
+    TYPE(forceconst3_ofRR) :: fasr(idx%nR,idx%nR)
+    !
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
+!       fasr(iR2,iR3)%F = 0._dp
+      fasr(iR2,iR3)%F = fx(iR2,iR3)%F
+    ENDDO
+    ENDDO
+
     deltot = 0._dp
     DO iR2 = 1,idx%nR
       !
-      DO a = 1,3
-      DO b = 1,3
-      DO c = 1,3
-        DO j = 1,nat
-        DO k = 1,nat
+      DO j = 1,nat
+      DO i = 1,nat
+        DO c = 1,3
+        DO b = 1,3
+        DO a = 1,3
           !
           ! The sum is on one R (it does not matter which)
           ! and the first atom index
@@ -470,44 +497,57 @@ MODULE asr3_module
           q1 = 0._dp
           R3_LOOP : &
           DO iR3 = 1,idx%nR
-          DO i = 1,nat
-              d1 = d1+fx(iR2,   iR3   )%F(a,b,c, i,j,k)
-              q1 = q1+fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+          DO k = 1,nat
+              d1 = d1+fx(iR2, iR3 )%F(a,b,c, i,j,k)
+              q1 = q1+fx(iR2, iR3 )%F(a,b,c, i,j,k)**2
           ENDDO
           ENDDO R3_LOOP
           !
           deltot = deltot + d1**2
           delsig = delsig + d1
           !
-          r1 = d1/q1
-          IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
-            !
-            R3_LOOPb : &
-            DO iR3 = 1,idx%nR
-            DO i = 1,nat
-                IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
-                fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
-                                       - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-            ENDDO
-            ENDDO R3_LOOPb
-            !
-          ENDIF
+          fasr(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - d1
+          
+!           IF(q1>eps2)THEN
+!             r1 = d1/q1
+!             IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
+!               !
+!               R3_LOOPb : &
+!               DO iR3 = 1,idx%nR
+!               DO k = 1,nat
+!                   IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
+!                   fasr(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+!                                            - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
+!               ENDDO
+!               ENDDO R3_LOOPb
+!               !
+!             ENDIF
+!           ENDIF
           !
         ENDDO
         ENDDO
-      ENDDO
+        ENDDO
       ENDDO
       ENDDO
     ENDDO
     !
+    !
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      fx(iR2,iR3)%F = fasr(iR2,iR3)%F
+      DEALLOCATE(fasr(iR2,iR3)%F)
+    ENDDO
+    ENDDO
+
     ! Re-symmetrize the matrix
     delperm = perm_symmetrize_fc3(nat,idx,fx)
     !
     PRINT*, "asr3", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
-    !
     iter = iter+1
+    delta = SQRT(deltot)
     !
-  END SUBROUTINE impose_asr3_1idx
+    !
+  END FUNCTION impose_asr3_1idx
   ! \/o\________\\\_________________________________________/^>
 
 END MODULE asr3_module
@@ -546,7 +586,7 @@ PROGRAM asr3
     CALL index_R(fc%n_R, fc%yR2, idx3%nR, idx3%nRx, idx3%nRi, &
                  idx3%yR, idx3%idR, idx3%iRe0, idx3%idmR, idx3%idRmR)
     !
-    ! Check that indeces are identical, this is not strictly necessary, 
+    ! Check that indexes are identical, this is not strictly necessary, 
     ! but it makes the rest easier
     IF(idx2%nR/=idx3%nR .or. ANY(idx2%yR/=idx3%yR) )&
       CALL errore("asr3", "problem with R",1)
@@ -568,14 +608,14 @@ PROGRAM asr3
 
 !     write(333, '(1i6)') idR23
     
-    DO j =1,10
-      CALL impose_asr3_6idx(S%nat,idx2,fx)
+!    DO j =1,10
+!      CALL impose_asr3_6idx(S%nat,idx2,fx)
 !       delta = perm_symmetrize_fc3(S%nat,idx2,fx)
-    ENDDO
-
-!    DO j = 1,2000
-!      CALL impose_asr3_1idx(S%nat,idx2,fx)
 !    ENDDO
+
+    DO j = 1,1000
+      IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
+    ENDDO
 !     !
     CALL memstat(kb)
     WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
@@ -586,16 +626,3 @@ PROGRAM asr3
     !
 END PROGRAM asr3
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-
-
-
-
-
-
-
-
-
-
-
-
-
