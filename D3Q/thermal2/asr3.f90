@@ -472,8 +472,9 @@ MODULE asr3_module
     REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1, q1, r1
     !
-    TYPE(forceconst3_ofRR) :: fasr(idx%nR,idx%nR)
+    TYPE(forceconst3_ofRR),ALLOCATABLE :: fasr(:,:)
     !
+    ALLOCATE(fasr(idx%nR,idx%nR))
     DO iR2 = 1,idx%nR
     DO iR3 = 1,idx%nR
       ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
@@ -538,6 +539,7 @@ MODULE asr3_module
       DEALLOCATE(fasr(iR2,iR3)%F)
     ENDDO
     ENDDO
+    DEALLOCATE(fasr)
 
     ! Re-symmetrize the matrix
     delperm = perm_symmetrize_fc3(nat,idx,fx)

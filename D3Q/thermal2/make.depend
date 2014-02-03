@@ -12,10 +12,14 @@ input_fc.o : ../../Modules/parameters.o
 interp_fc.o : ../../D3Q/src/d3_basis.o
 interp_fc.o : ../../Modules/constants.o
 interp_fc.o : ../../Modules/kind.o
-interp_fc.o : ./functions.o
 interp_fc.o : ./input_fc.o
 interp_fc.o : ./nanoclock.o
-interp_fc.o : ./q_grid.o
+linewidth.o : ../../Modules/constants.o
+linewidth.o : ../../Modules/kind.o
+linewidth.o : ./functions.o
+linewidth.o : ./input_fc.o
+linewidth.o : ./nanoclock.o
+linewidth.o : ./q_grid.o
 lw.o : ../../Modules/constants.o
 lw.o : ../../Modules/environment.o
 lw.o : ../../Modules/io_global.o
@@ -26,6 +30,7 @@ lw.o : ./asr2.o
 lw.o : ./functions.o
 lw.o : ./input_fc.o
 lw.o : ./interp_fc.o
+lw.o : ./linewidth.o
 lw.o : ./lw.o
 lw.o : ./nanoclock.o
 lw.o : ./ph_velocity.o

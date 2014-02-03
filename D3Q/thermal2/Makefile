@@ -24,13 +24,16 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #lw.o \
 
 #MPIF90 = ifort
-F90FLAGS += -fopenmp -ffpe-trap=invalid,zero,overflow -fcheck=all -fbacktrace -g
+#F90FLAGS += -fopenmp -ffpe-trap=invalid,zero,overflow -fcheck=all -fbacktrace -g
+F90FLAGS += -fopenmp -fcheck=all -fbacktrace -g
+#F90FLAGS += -fopenmp -Ofast
 LDFLAGS  += -fopenmp
 
 D3QTOOLSLIBS = \
 asr2.o \
 input_fc.o \
 interp_fc.o \
+linewidth.o \
 nanoclock.o \
 nanosec.o \
 ph_velocity.o \

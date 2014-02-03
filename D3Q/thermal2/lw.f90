@@ -107,9 +107,10 @@ MODULE linewidth_program
   !  
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(xq0, xq1, nq, S, fc2, fc3,pl0)
-    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag, linewidth_q, lineshift_q
+    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
+    USE linewidth,   ONLY : linewidth_q, lineshift_q
     USE constants,   ONLY : RY_TO_CMM1
-    USE ph_velocity 
+!     USE ph_velocity
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
     USE nanoclock
     IMPLICIT NONE
@@ -122,16 +123,21 @@ MODULE linewidth_program
     REAL(DP),INTENT(inout),OPTIONAL   :: pl0 !initial length of the path (zero otherwise)
     !
     COMPLEX(DP),ALLOCATABLE :: D(:,:)
-    REAL(DP) :: w2(S%nat3), lw(S%nat3)
+    REAL(DP) :: w2(S%nat3)
+!     REAL(DP) :: lw(S%nat3)
     REAL(DP) :: xq(3), dxq, pl,dpl, sigma
-    INTEGER :: i
+    INTEGER :: i, it
     TYPE(q_grid_type) :: grid
-    COMPLEX(DP):: ls(S%nat3)
-    REAL(DP)   :: ratio(S%nat3)
+!     REAL(DP)   :: ratio(S%nat3)
+    INTEGER,PARAMETER :: ntem = 20
+    REAL(DP)   :: T(ntem)
+    COMPLEX(DP):: ls(S%nat3,ntem)
     !
     ALLOCATE(D(S%nat3, S%nat3))
     !
-    dxq = 1._dp / REAL(nq-1,kind=DP)
+    dxq=0._dp
+    IF(nq>1) dxq = 1._dp / REAL(nq-1,kind=DP)
+    !
     IF(present(pl0)) THEN
       pl = pl0
     ELSE
@@ -140,8 +146,15 @@ MODULE linewidth_program
     !
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 300,300,1, grid)
+    CALL setup_simple_grid(S, 60,60,60, grid)
     !
+!     T = (/ 300._dp, 500._dp /)
+    T = (/ 1._dp, 5._dp, 10._dp, 50._dp, 100._dp, 150._dp, 200._dp, &
+           250._dp, 300._dp, 350._dp, 400._dp, 450._dp, 500._dp, 550._dp, &
+           600._dp, 700._dp, 800._dp, 1000._dp, 1200._dp, 1500._dp /)
+    DO it = 1,ntem
+      WRITE(1000+it, *) "#", it, T(it)
+    ENDDO
 !     CALL print_header()
     !
     DO i = 1,nq
@@ -156,27 +169,29 @@ MODULE linewidth_program
         w2= -SQRT(-w2)
       ENDWHERE
       
-      sigma = 2._dp/RY_TO_CMM1
+      sigma = 5._dp/RY_TO_CMM1
 
       ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
       ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
       ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
       ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
-      !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) c = 0.83255 c
+      !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) d = 0.83255 c
       !
-      lw = linewidth_q(xq, 300._dp, sigma,         S, grid, fc2, fc3)
-      ls = lineshift_q(xq, 300._dp, 0.83255*sigma, S, grid, fc2, fc3)
+!       lw = linewidth_q(xq, 300._dp, sigma,         S, grid, fc2, fc3)
+      ls = lineshift_q(xq, ntem, T, 0.83255*sigma, S, grid, fc2, fc3)
 
 
 
-      WRITE(666, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5)') &
-                   i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
-      WRITE(667, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x,6e15.5)') &
-                   i,pl,xq, w2*RY_TO_CMM1, -DIMAG(ls)*RY_TO_CMM1, DBLE(ls)*RY_TO_CMM1
-      ratio = 0._dp
-      WHERE(lw/=0._dp) ratio = -DIMAG(ls)/lw
-      WRITE(668, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x)') &
-                   i,pl,xq, w2*RY_TO_CMM1, ratio
+!       WRITE(666, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5)') &
+!                    i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
+      DO it = 1,ntem
+        WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x,6e15.5)') &
+              i,pl,xq, w2*RY_TO_CMM1, -DIMAG(ls(:,it))*RY_TO_CMM1, DBLE(ls(:,it))*RY_TO_CMM1
+      ENDDO
+!       ratio = 0._dp
+!       WHERE(lw/=0._dp) ratio = -DIMAG(ls)/lw
+!       WRITE(668, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5,2x)') &
+!                    i,pl,xq, w2*RY_TO_CMM1, ratio
 
       pl = pl + dpl
     ENDDO
@@ -192,7 +207,8 @@ MODULE linewidth_program
   !  
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE SMA_TRANSPORT(S, fc2, fc3, n1,n2,n3, T, sigma)
-    USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag, linewidth_q
+    USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag
+    USE linewidth,      ONLY : linewidth_q
     USE constants,      ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
     USE more_constants, ONLY : RY_TO_WATTMM1KM1
     USE ph_velocity ,   ONLY : velocity_proj
@@ -301,11 +317,13 @@ PROGRAM linewidth
   M = (/ 0.5_dp,      sqrt(3._dp)/6, 0._dp /)
   K = (/ 1._dp/3._dp, sqrt(3._dp)/3, 0._dp /)
   pl = 0._dp
-  CALL LW_QBZ_LINE(M, G, 50, S, fc2, fc3,pl)
-!   pl = pl-SQRT(SUM((M-G)**2))/(50-1)
-  CALL LW_QBZ_LINE(G, K, 42, S, fc2, fc3,pl)
-!   pl = pl-SQRT(SUM((G-K)**2))/(42-1)
-  CALL LW_QBZ_LINE(K, M ,36, S, fc2, fc3,pl)
+  CALL LW_QBZ_LINE(G, G, 1, S, fc2, fc3,pl)
+  !
+!   CALL LW_QBZ_LINE(M, G, 50, S, fc2, fc3,pl)
+! !   pl = pl-SQRT(SUM((M-G)**2))/(50-1)
+!   CALL LW_QBZ_LINE(G, K, 42, S, fc2, fc3,pl)
+! !   pl = pl-SQRT(SUM((G-K)**2))/(42-1)
+!   CALL LW_QBZ_LINE(K, M ,36, S, fc2, fc3,pl)
 
 !   CALL SMA_TRANSPORT(S, fc2, fc3, 8,8,8, 300._dp, 10._dp/RY_TO_CMM1)
 
