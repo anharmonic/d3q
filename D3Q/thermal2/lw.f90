@@ -146,7 +146,7 @@ MODULE linewidth_program
     !
     dpl = SQRT(SUM( (dxq*(xq1-xq0))**2 ))
     !
-    CALL setup_simple_grid(S, 60,60,60, grid)
+    CALL setup_simple_grid(S, 20,20,20, grid)
     !
 !     T = (/ 300._dp, 500._dp /)
     T = (/ 1._dp, 5._dp, 10._dp, 50._dp, 100._dp, 150._dp, 200._dp, &
@@ -179,8 +179,6 @@ MODULE linewidth_program
       !
 !       lw = linewidth_q(xq, 300._dp, sigma,         S, grid, fc2, fc3)
       ls = lineshift_q(xq, ntem, T, 0.83255*sigma, S, grid, fc2, fc3)
-
-
 
 !       WRITE(666, '(i4,f12.6,2x,3f12.6,2x,6f12.6,2x,6e15.5)') &
 !                    i,pl,xq, w2*RY_TO_CMM1, lw*RY_TO_CMM1
