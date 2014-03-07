@@ -8,7 +8,8 @@ MODULE q_grid
   USE kinds,     ONLY : DP
   
   TYPE q_grid_type
-    INTEGER :: n(3), nq
+    INTEGER :: n(3) = -1
+    INTEGER :: nq = 0
     REAL(DP),ALLOCATABLE :: xq(:,:)
     !REAL(DP),ALLOCATABLE :: w(:)
   END TYPE
@@ -80,6 +81,55 @@ MODULE q_grid
     !IF(present(xq0)) grid%xq = grid%xq + xq0
     !
   END SUBROUTINE setup_simple_grid
+  !
+  SUBROUTINE setup_path(xqi, xqf, nq, path)
+    USE input_fc, ONLY : ph_system_info 
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: nq
+    REAL(DP),INTENT(in) :: xqi(3), xqf(3)
+    TYPE(q_grid_type),INTENT(inout) :: path
+    !
+    INTEGER :: i, n0
+    REAL(DP),PARAMETER:: eps = 1.d-8
+    REAL(DP),ALLOCATABLE :: auxq(:,:)
+    REAL(DP) :: dq(3)
+    !
+    IF(nq==0) RETURN
+    !
+    IF(path%nq >0)THEN
+      ALLOCATE(auxq(3,path%nq))
+      auxq = path%xq
+      DEALLOCATE(path%xq)
+      ! Correctly chain up series of points
+      IF(SUM(ABS(auxq(:,path%nq)-xqi))<eps) THEN
+        n0 = path%nq 
+        path%nq = path%nq + nq -1
+      ELSE
+        n0 = path%nq +1
+        path%nq = path%nq + nq
+      ENDIF
+      !
+      ALLOCATE(path%xq(3,path%nq))
+      path%xq(:,1:size(auxq,2)) = auxq(:,1:size(auxq,2))
+      DEALLOCATE(auxq)
+    ELSE
+      n0 = 1
+      path%nq = nq
+      ALLOCATE(path%xq(3,path%nq))
+    ENDIF
+    !
+    IF(nq>1)THEN
+      dq = (xqf-xqi)/(nq-1)
+      DO i = n0, path%nq
+        path%xq(:,i) = xqi + dq * (i-n0)
+      ENDDO
+    ELSE
+        ! With nq=1 xqf is appended to the list, xqi is ignored
+        ! note that repeated points are dropped
+        path%xq(:,path%nq) = xqf
+    ENDIF
+    !
+  END SUBROUTINE setup_path
   !
 END MODULE q_grid
 

@@ -65,22 +65,33 @@ MODULE input_fc
     !
     same = .true.
     same = same .and. (S%ntyp == Z%ntyp)
+    IF(.not.same) WRITE(*,*) "ntyp", S%ntyp, Z%ntyp
     same = same .and. (S%nat == Z%nat)
+    IF(.not.same) WRITE(*,*) "nat", S%nat, Z%nat
     same = same .and. (S%ibrav == Z%ibrav)
+    IF(.not.same) WRITE(*,*) "ibrav", S%ibrav, Z%ibrav
     same = same .and. ALL( S%ityp(1:S%ntyp) == Z%ityp(1:Z%ntyp))
+    IF(.not.same) WRITE(*,*) "ityp", S%ityp, Z%ityp
     
     IF(allocated(S%tau).and.allocated(Z%tau)) &
       same = same .and. ALL( ABS(S%tau -Z%tau) < eps)
+      IF(.not.same) WRITE(*,*) "tau", S%tau, Z%tau
     IF(allocated(S%zeu).and.allocated(Z%zeu)) &
       same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
+      IF(.not.same) WRITE(*,*) "zeu", S%zeu, Z%zeu
 
     same = same .and. ALL( ABS(S%celldm -Z%celldm) < eps)
+    IF(.not.same) WRITE(*,*) "celldm", S%celldm, Z%celldm
     same = same .and. ALL( ABS(S%at -Z%at) < eps)
+    IF(.not.same) WRITE(*,*) "at", S%at, Z%at
     same = same .and. ALL( ABS(S%bg -Z%bg) < eps)
+    IF(.not.same) WRITE(*,*) "bg", S%bg, Z%bg
     same = same .and. ( ABS(S%omega -Z%omega) < eps)
+    IF(.not.same) WRITE(*,*) "omega", S%omega, Z%omega
 
 !     same = same .and. (S%lrigid .or. Z%lrigid)
-    same = same .and. ALL( ABS(S%epsil -Z%epsil) < eps)
+!     same = same .and. ALL( ABS(S%epsil -Z%epsil) < eps)
+!     IF(.not.same) WRITE(*,*) "epsil", S%epsil, Z%epsil
     
   END FUNCTION same_system
   ! \/o\________\\\_________________________________________/^>
@@ -298,8 +309,11 @@ MODULE input_fc
       jn3 = j3 + (na3-1)*3
           !
           READ(unit,*) j1_, j2_, j3_, na1_, na2_, na3_
-          IF ( ANY((/na1,na2,na3,j1,j2,j3/) /= (/na1_,na2_,na3_,j1_,j2_,j3_/)) ) &
-            CALL errore(sub,'not matching na1,na2,na3,j1,j2,j3',1)
+          IF ( ANY((/na1,na2,na3,j1,j2,j3/) /= (/na1_,na2_,na3_,j1_,j2_,j3_/)) ) THEN
+!             print*, (/na1,na2,na3,j1,j2,j3/)
+!             print*, (/na1_,na2_,na3_,j1_,j2_,j3_/)
+            CALL errore(sub,'not matching na1,na2,na3,j1,j2,j3 in file "'//TRIM(filename)//"'",1)
+          ENDIF
           !
           READ(unit,*) n_R
           IF ( fc%n_R == 0) THEN 

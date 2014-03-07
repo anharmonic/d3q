@@ -25,9 +25,10 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 
 #MPIF90 = ifort
 #F90FLAGS += -fopenmp -ffpe-trap=invalid,zero,overflow -fcheck=all -fbacktrace -g
-F90FLAGS += -fopenmp -fcheck=all -fbacktrace -g
-#F90FLAGS += -fopenmp -Ofast
-LDFLAGS  += -fopenmp
+#F90FLAGS += -fopenmp -fcheck=all -fbacktrace -g
+F90FLAGS += -openmp 
+#-check all -traceback -g
+LDFLAGS  += -openmp
 
 D3QTOOLSLIBS = \
 asr2.o \

@@ -82,6 +82,32 @@ MODULE functions
     f_bosei = 1 / (EXP(x*Tm1) - 1)
   END FUNCTION
   !
+  ! Write a number from a list wit has many digits after the dot as the longest in the list.
+  CHARACTER(len=6) FUNCTION write_temperature(it,nt,T) RESULT(str)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: it, nt
+    REAL(DP),INTENT(in) :: T(nt)
+    
+    INTEGER :: max_digit_left=0, max_digit_right=0, jt
+    REAL(DP) :: Tx
+    CHARACTER(len=64):: fmt1='', fmt2=''
+    
+    DO jt = 1,nt      
+      max_digit_left = MAX( max_digit_left , CEILING(LOG10(T(jt))) )
+      IF(T(jt)>0) THEN
+        Tx = 1._dp/(T(jt)-INT(T(jt)))
+        max_digit_right = MAX( max_digit_right , CEILING(LOG10(Tx)) )
+      ENDIF
+    ENDDO
+    
+    WRITE(fmt1,'(i6)') max_digit_right
+    fmt2 = "(1f6."//TRIM(ADJUSTL(fmt1))//")"
+  !     print*, fmt2, max_digit_left, max_digit_right
+    
+    WRITE(str,fmt2) T(it)
+    str=ADJUSTL(str)
+    
+  END FUNCTION
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 
