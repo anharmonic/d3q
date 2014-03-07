@@ -153,14 +153,13 @@ MODULE interp_fc
     ! patterns (transposed, with respect to what we use in the d3q.x code)
     COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
     !
-    !COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
-    COMPLEX(DP)  :: d3tmp(nat3,nat3,nat3)
-
+    COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
+    !
     INTEGER :: a, b, c, i, j, k
-    COMPLEX(DP) :: AUX
+    COMPLEX(DP) :: AUX,AUX2
     REAL(DP),PARAMETER :: EPS = 1.e-8_dp
     !
-    !ALLOCATE(d3tmp(nat3, nat3, nat3))
+    ALLOCATE(d3tmp(nat3, nat3, nat3))
     d3tmp = (0._dp, 0._dp)
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp) COLLAPSE(2)
@@ -168,11 +167,12 @@ MODULE interp_fc
     DO c = 1,nat3
     IF(ABS(u3(c,k))>EPS)THEN
       !
-     DO j = 1,nat3
+      DO j = 1,nat3
       DO b = 1,nat3
       IF(ABS(u2(b,j))>EPS)THEN
         !
         AUX = u2(b,j) * u3(c,k)
+        AUX2 = 0._dp
         DO i = 1,nat3
         DO a = 1,nat3
             d3tmp(i, j, k) = d3tmp(i, j, k) &
@@ -190,7 +190,7 @@ MODULE interp_fc
 !$OMP END PARALLEL DO
     !
     d3in  = d3tmp
-    !DEALLOCATE(d3tmp)
+    DEALLOCATE(d3tmp)
     !
     RETURN
   END SUBROUTINE ip_cart2pat
