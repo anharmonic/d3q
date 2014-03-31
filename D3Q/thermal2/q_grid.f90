@@ -8,6 +8,7 @@ MODULE q_grid
   USE kinds,     ONLY : DP
   
   TYPE q_grid_type
+    CHARACTER(len=9) :: basis = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
     REAL(DP),ALLOCATABLE :: xq(:,:)
@@ -77,6 +78,7 @@ MODULE q_grid
     ENDDO
     !
     CALL cryst_to_cart(grid%nq,grid%xq,S%bg, +1)
+    grid%basis = 'cartesian'
     !
     !IF(present(xq0)) grid%xq = grid%xq + xq0
     !

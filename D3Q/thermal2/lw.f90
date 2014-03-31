@@ -25,11 +25,19 @@ MODULE linewidth_program
   REAL(DP) :: default_sigma = 10._dp
   
   TYPE lwinput_type
+    !
+    CHARACTER(len=16) :: calculation ! lw=linewidth, spf=spectral function
+    CHARACTER(len=16) :: mode        ! "full" or "simple" spectral function 
+    !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
     LOGICAL            :: asr2
+    !
     INTEGER            :: nconf
     REAL(DP),ALLOCATABLE :: T(:), sigma(:)
+    ! for spectral function:
+    INTEGER :: ne
+    REAL(DP) :: e0, de
     !
     INTEGER :: nk(3)
   END TYPE lwinput_type
@@ -37,7 +45,7 @@ MODULE linewidth_program
   CONTAINS
   !
   ! read everything from files mat2R and mat3R
-  SUBROUTINE READ_INPUT(input, qpath)
+  SUBROUTINE READ_INPUT(input, qpath, S, fc2, fc3)
     USE io_global,      ONLY : stdout
     USE q_grid,         ONLY : q_grid_type, setup_path
     USE constants,      ONLY : RY_TO_CMM1
@@ -46,8 +54,12 @@ MODULE linewidth_program
     !
     TYPE(lwinput_type),INTENT(out) :: input
     TYPE(q_grid_type),INTENT(out)  :: qpath
+    TYPE(forceconst2_grid),INTENT(out) :: fc2
+    TYPE(forceconst3_grid),INTENT(out) :: fc3
+    TYPE(ph_system_info),INTENT(out)   :: S    
     !
     ! Input variable, and defaul values:
+    CHARACTER(len=16)  ::  calculation = "lw" ! "spf"
     CHARACTER(len=256) :: file_mat3 = '///'
     CHARACTER(len=256) :: file_mat2 = '///'
     LOGICAL            :: asr2 = .false.
@@ -55,13 +67,19 @@ MODULE linewidth_program
     INTEGER            :: nq = -1
     INTEGER            :: nk(3) = (/-1, -1, -1/)
     !
+    INTEGER  :: ne = -1
+    REAL(DP) :: de = 1._dp, e0 = 0._dp
+    !
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, naux
     CHARACTER(len=1024) :: line, word
+    CHArACTER(len=16)   :: word2, word3
     !
     NAMELIST  / lwinput / &
+      calculation, &
       file_mat2, file_mat3, asr2, &
-      nconf, nq, nk
+      nconf, nq, nk, &
+      ne, de, e0
 
     WRITE(*,*) "Waiting for input"
     !
@@ -78,7 +96,20 @@ MODULE linewidth_program
     input%asr2      = asr2
     input%nconf     = nconf
     input%nk        = nk
-
+    !
+    CALL READ_DATA (input, s, fc2, fc3)
+    !
+    READ(calculation,*,iostat=ios) input%calculation, input%mode
+    IF(ios/=0) THEN
+      input%calculation = calculation
+      input%mode = "full"
+    ENDIF
+    !
+    IF(TRIM(input%calculation) == 'spf' .and. ne < 0) &
+      CALL errore('READ_INPUT', 'Missing ne for spf calculation', 1)    
+    input%ne = ne
+    input%de = de
+    input%e0 = e0
     !
     ALLOCATE(input%T(nconf), input%sigma(nconf))
     !
@@ -93,8 +124,14 @@ MODULE linewidth_program
       ENDIF
       !
       SELECT CASE (TRIM(word))
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("QPOINTS")
         WRITE(*,*) "Reading QPOINTS"
+        !
+        qpath%basis = 'cartesian'
+        READ(line,*,iostat=ios) word2, word3
+        IF(ios==0) qpath%basis = TRIM(word3(1:9))
+        !
         QPOINT_LOOP : &
         DO i = 1, nq
           READ(*,'(a1024)', iostat=ios) line
@@ -123,9 +160,16 @@ MODULE linewidth_program
         ENDDO &
         QPOINT_LOOP
         
-        WRITE(*,"(2x,a,i4,a)") "Read ", qpath%nq, " q-points."
+        WRITE(*,"(2x,a,i4,a)") "Read ", qpath%nq, " q-points, "//TRIM(qpath%basis)//" basis"
+        !
+        IF(TRIM(qpath%basis) == "crystal")  THEN
+          CALL cryst_to_cart(qpath%nq,qpath%xq,S%bg, +1)
+          qpath%basis = "cartesian"
+          WRITE(*,"(4x,a,i4,a)") "q-points converted to cartesian basis"
+        ENDIF
         WRITE(*,"(2x,3f12.6)") qpath%xq
         WRITE(*,*)
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("CONFIGS")
         WRITE(*,*) "Reading CONFIGS", nconf
         DO i = 1,nconf
@@ -146,6 +190,7 @@ MODULE linewidth_program
         WRITE(*,'(2x,a,/,100(8f9.1,/))') "Sigma       ", input%sigma
         WRITE(*,*)
 
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE DEFAULT
 !         WRITE(*,*) "Skip:", TRIM(line)
       END SELECT
@@ -196,7 +241,7 @@ MODULE linewidth_program
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
-    USE linewidth,   ONLY : linewidth_q, lineshift_q
+    USE linewidth,   ONLY : linewidth_q, lineshift_q, spectre_q, freq_phq
     USE constants,   ONLY : RY_TO_CMM1
 !     USE ph_velocity
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
@@ -212,48 +257,31 @@ MODULE linewidth_program
     !
     COMPLEX(DP),ALLOCATABLE :: D(:,:)
     REAL(DP) :: w2(S%nat3)
-!     REAL(DP) :: lw(S%nat3)
     REAL(DP) :: pl,dpl
     INTEGER :: i, it
     TYPE(q_grid_type) :: grid
-!     REAL(DP)   :: ratio(S%nat3)
-!     INTEGER,PARAMETER :: nconf = 21
-!     REAL(DP)   :: T(nconf), sigma
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     !
     ALLOCATE(D(S%nat3, S%nat3))
     !
-!     WRITE(*,'(2x,a,/,100(12f6.1))') "Temperatures", input%T
-!     WRITE(*,'(2x,a,/,100(12f6.1))') "Sigma       ", input%sigma
-
     CALL setup_simple_grid(S, input%nk(1), input%nk(2), input%nk(3), grid)
     !
-!     T = (/ 300._dp, 500._dp /)
-!     T = (/ 1._dp, 5._dp, 10._dp, 50._dp, 100._dp, 150._dp, 200._dp, &
-!            250._dp, 300._dp, 350._dp, 400._dp, 450._dp, 500._dp, 550._dp, &
-!            600._dp, 700._dp, 800._dp, 900._dp, 1000._dp, 1200._dp, 1500._dp /)
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file="lw.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
                                 "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
       WRITE(1000+it, *) "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       CALL flush_unit(1000+it)
     ENDDO
-!     CALL print_header()
+    CALL print_header()
     dpl = 0._dp; pl = 0._dp
     !
     WRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
     
     DO i = 1,qpath%nq
       WRITE(*,'(i6,3f15.8)') i, qpath%xq(:,i)
-      CALL fftinterp_mat2(qpath%xq(:,i), S, fc2, D)
-      CALL mat2_diag(S, D, w2)
       !
-      WHERE(w2>0._dp)
-        w2=SQRT(w2)
-      ELSEWHERE
-        w2= -SQRT(-w2)
-      ENDWHERE
-      !
+      CALL freq_phq(qpath%xq(:,i), S, fc2, w2, D)
+        !
         ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
         ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
         ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
@@ -282,7 +310,93 @@ MODULE linewidth_program
     !
   END SUBROUTINE LW_QBZ_LINE
   !   
- END MODULE linewidth_program
+  !  
+  ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
+  SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
+    USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
+    USE linewidth,   ONLY : linewidth_q, lineshift_q, spectre_q, simple_spectre_q
+    USE constants,   ONLY : RY_TO_CMM1
+!     USE ph_velocity
+    USE q_grid,      ONLY : q_grid_type, setup_simple_grid
+    USE functions,   ONLY : write_temperature
+    USE nanoclock
+    IMPLICIT NONE
+    !
+    TYPE(lwinput_type),INTENT(in)     :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid_type),INTENT(in)      :: qpath
+    !
+    REAL(DP) :: pl,dpl
+    INTEGER :: iq, it, ie
+    TYPE(q_grid_type) :: grid
+    COMPLEX(DP):: ls(S%nat3,input%nconf)
+    !
+    REAL(DP),PARAMETER :: inv2_RY_TO_CMM1 = 1/(RY_TO_CMM1)**2
+    !
+    REAL(DP),ALLOCATABLE :: ener(:), spectralf(:,:,:)
+    !
+    ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
+    !
+    CALL setup_simple_grid(S, input%nk(1), input%nk(2), input%nk(3), grid)
+    !
+    ALLOCATE(ener(input%ne))
+    FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
+    !
+    DO it = 1,input%nconf
+      OPEN(unit=1000+it, file="spf.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
+                                "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
+      WRITE(1000+it, *) "# spectral function mode: ", input%mode
+      WRITE(1000+it, *) "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
+      WRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
+      CALL flush_unit(1000+it)
+    ENDDO
+    !
+    dpl = 0._dp; pl = 0._dp
+    !
+    WRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
+    
+    DO iq = 1,qpath%nq
+      WRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+      DO it = 1,input%nconf
+        WRITE(1000+it, *)
+        WRITE(1000+it, *) "#  xq",  qpath%xq(:,iq)
+      ENDDO
+      !
+      IF (TRIM(input%mode) == "full") THEN
+        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, 0.83255 *input%sigma/RY_TO_CMM1, &
+                                  S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
+      ELSE IF (TRIM(input%mode) == "simple") THEN
+        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, 0.83255 *input%sigma/RY_TO_CMM1, &
+                                  S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
+      ELSE
+        CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
+      ENDIF
+      !
+      IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
+      pl = pl + dpl
+      !
+      DO it = 1,input%nconf
+        DO ie = 1,input%ne
+          WRITE(1000+it, '(2f14.8,100e14.6)') &
+                pl, ener(ie), SUM(spectralf(ie,:,it))*inv2_RY_TO_CMM1, spectralf(ie,:,it)*inv2_RY_TO_CMM1
+          CALL flush_unit(1000+it)
+        ENDDO
+      ENDDO
+      !
+    ENDDO
+    !
+    !
+    DO it = 1,input%nconf
+      CLOSE(unit=1000+it)
+    ENDDO
+    !
+    DEALLOCATE(spectralf, ener)
+    !
+  END SUBROUTINE SPECTR_QBZ_LINE
+  !   
+  END MODULE linewidth_program
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -311,22 +425,21 @@ PROGRAM linewidth
   CALL environment_start('LW')
   CALL print_citations_linewidth()
 
-  CALL READ_INPUT(lwinput, qpath)
-  CALL READ_DATA (lwinput, s, fc2, fc3)
-  !CALL impose_asr2(S%nat, fc2)
- 
-!   CALL QBZ_LINE((/0.5_dp,0.288675_dp,0._dp/), (/0.0_dp,0._dp,0._dp/),&
-!                    200, S, fc2)
-
-!   G = (/ 0._dp, 0._dp, 0._dp /)
-!   M = (/ 0.5_dp,      sqrt(3._dp)/6, 0._dp /)
-!   K = (/ 1._dp/3._dp, sqrt(3._dp)/3, 0._dp /)
-!   
-!   CALL setup_path(G, M, 50, qpath)
-!   CALL setup_path(M, K, 42, qpath)
-!   CALL setup_path(K, G, 36, qpath)
+  ! Read input also read force constants from disk, using subroutine READ_DATA
+  CALL READ_INPUT(lwinput, qpath, S, fc2, fc3)
   !
-  CALL LW_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
+  IF(TRIM(lwinput%calculation) == "lw") THEN
+    !
+    CALL LW_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
+    !
+  ELSE &
+  IF(TRIM(lwinput%calculation) == "spf") THEN
+    !
+    CALL SPECTR_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
+    !
+  ELSE
+    CALL errore("lw", "nothing to do?", 1)
+  ENDIF
   !
   CALL environment_end('LW')
   CALL mp_world_end()
