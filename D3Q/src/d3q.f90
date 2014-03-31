@@ -17,6 +17,7 @@ program d3toten
   USE io_global,     ONLY : stdout
   USE control_flags, ONLY : gamma_only
   USE mp_global,     ONLY : mp_startup
+  USE mp_world,      ONLY : mpime
   USE environment,   ONLY : environment_start
   USE d3_basis,      ONLY : patq
   USE kplus3q,       ONLY : kplusq

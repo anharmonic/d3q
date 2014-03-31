@@ -23,7 +23,7 @@ PROGRAM q2r
   USE common_var
   IMPLICIT NONE
   !
-  integer, parameter :: nax=3, nrx1=6, nrx2=6, nrx3=1
+  integer, parameter :: nax=2, nrx1=4, nrx2=4, nrx3=4
   integer :: nqx=0,nRlistx=0,nperx=0
   real(DP), parameter :: eps=1.0d-5
   integer ::  jj,kk,ii

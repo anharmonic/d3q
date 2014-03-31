@@ -6,7 +6,7 @@ d3 for graphene
    fild3dyn = 'FILD3DYN/anh',
    ethr_ph = 1.d-9
    offset=__OFFSET__
-   step=8
+   !step=8
    restart=.true.
  /
  8 8 1

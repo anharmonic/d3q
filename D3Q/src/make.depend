@@ -14,6 +14,7 @@ d3_debug.o : ../../Modules/io_global.o
 d3_debug.o : ../../Modules/ions_base.o
 d3_debug.o : ../../Modules/kind.o
 d3_debug.o : ../../Modules/mp.o
+d3_debug.o : ../../Modules/mp_world.o
 d3_debug.o : ../../PHonon/PH/phcom.o
 d3_debug.o : ../../PW/src/symm_base.o
 d3_debug.o : d3_basis.o
@@ -56,6 +57,7 @@ d3_init.o : ../../Modules/ions_base.o
 d3_init.o : ../../Modules/kind.o
 d3_init.o : ../../Modules/mp.o
 d3_init.o : ../../Modules/mp_global.o
+d3_init.o : ../../Modules/mp_world.o
 d3_init.o : ../../Modules/uspp.o
 d3_init.o : ../../PHonon/PH/phcom.o
 d3_init.o : ../../PW/src/pwcom.o
@@ -72,6 +74,7 @@ d3_iofiles.o : ../../Modules/ions_base.o
 d3_iofiles.o : ../../Modules/kind.o
 d3_iofiles.o : ../../Modules/mp.o
 d3_iofiles.o : ../../Modules/mp_global.o
+d3_iofiles.o : ../../Modules/mp_world.o
 d3_iofiles.o : ../../Modules/recvec.o
 d3_iofiles.o : ../../Modules/uspp.o
 d3_iofiles.o : ../../Modules/wrappers.o
@@ -95,6 +98,7 @@ d3_nlcc.o : ../../Modules/ions_base.o
 d3_nlcc.o : ../../Modules/kind.o
 d3_nlcc.o : ../../Modules/mp.o
 d3_nlcc.o : ../../Modules/mp_global.o
+d3_nlcc.o : ../../Modules/mp_world.o
 d3_nlcc.o : ../../Modules/recvec.o
 d3_nlcc.o : ../../PHonon/PH/phcom.o
 d3_nlcc.o : ../../PW/src/pwcom.o
@@ -112,6 +116,7 @@ d3_readin.o : ../../Modules/io_global.o
 d3_readin.o : ../../Modules/ions_base.o
 d3_readin.o : ../../Modules/kind.o
 d3_readin.o : ../../Modules/mp.o
+d3_readin.o : ../../Modules/mp_world.o
 d3_readin.o : ../../Modules/noncol.o
 d3_readin.o : ../../Modules/parameters.o
 d3_readin.o : ../../Modules/run_info.o
@@ -127,6 +132,7 @@ d3_readin.o : run_nscf_d3.o
 d3_recover.o : ../../Modules/io_files.o
 d3_recover.o : ../../Modules/io_global.o
 d3_recover.o : ../../Modules/mp.o
+d3_recover.o : ../../Modules/mp_world.o
 d3_recover.o : ../../PHonon/PH/phcom.o
 d3_reset.o : ../../PHonon/PH/phcom.o
 d3_reset.o : allocate_d3.o
@@ -141,6 +147,7 @@ d3_restart.o : ../../Modules/io_global.o
 d3_restart.o : ../../Modules/kind.o
 d3_restart.o : ../../Modules/mp.o
 d3_restart.o : ../../Modules/mp_global.o
+d3_restart.o : ../../Modules/mp_world.o
 d3_restart.o : d3_iofiles.o
 d3_restart.o : d3_reset.o
 d3_restart.o : d3com.o
@@ -155,6 +162,7 @@ d3_setup.o : ../../Modules/io_global.o
 d3_setup.o : ../../Modules/ions_base.o
 d3_setup.o : ../../Modules/kind.o
 d3_setup.o : ../../Modules/mp.o
+d3_setup.o : ../../Modules/mp_world.o
 d3_setup.o : ../../Modules/noncol.o
 d3_setup.o : ../../Modules/uspp.o
 d3_setup.o : ../../PHonon/PH/phcom.o
@@ -183,6 +191,7 @@ d3_valence.o : ../../Modules/ions_base.o
 d3_valence.o : ../../Modules/kind.o
 d3_valence.o : ../../Modules/mp.o
 d3_valence.o : ../../Modules/mp_global.o
+d3_valence.o : ../../Modules/mp_world.o
 d3_valence.o : ../../PHonon/PH/phcom.o
 d3_valence.o : ../../PW/src/pwcom.o
 d3_valence.o : d3_debug.o
@@ -225,6 +234,7 @@ d3q.o : ../../Modules/io_global.o
 d3q.o : ../../Modules/ions_base.o
 d3q.o : ../../Modules/mp.o
 d3q.o : ../../Modules/mp_global.o
+d3q.o : ../../Modules/mp_world.o
 d3q.o : ../../PHonon/PH/phcom.o
 d3q.o : ../../PW/src/pwcom.o
 d3q.o : allocate_d3.o
@@ -328,6 +338,7 @@ efermi_shift.o : ../../Modules/io_global.o
 efermi_shift.o : ../../Modules/kind.o
 efermi_shift.o : ../../Modules/mp.o
 efermi_shift.o : ../../Modules/mp_global.o
+efermi_shift.o : ../../Modules/mp_world.o
 efermi_shift.o : ../../Modules/recvec.o
 efermi_shift.o : ../../PHonon/PH/phcom.o
 efermi_shift.o : ../../PW/src/pwcom.o
@@ -417,6 +428,7 @@ solve_linter_d3q.o : ../../Modules/ions_base.o
 solve_linter_d3q.o : ../../Modules/kind.o
 solve_linter_d3q.o : ../../Modules/mp.o
 solve_linter_d3q.o : ../../Modules/mp_global.o
+solve_linter_d3q.o : ../../Modules/mp_world.o
 solve_linter_d3q.o : ../../Modules/recvec.o
 solve_linter_d3q.o : ../../Modules/uspp.o
 solve_linter_d3q.o : ../../PHonon/PH/phcom.o
