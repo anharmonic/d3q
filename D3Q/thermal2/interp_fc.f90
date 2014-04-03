@@ -142,13 +142,14 @@ MODULE interp_fc
     !
   END SUBROUTINE scatter_3q
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3, d3out)
     !   Rotates third derivative of the dynamical basis from cartesian axis
     !   to the basis of the modes. Rotation is not really in place
     USE kinds, ONLY : DP
     IMPLICIT NONE
     ! d3 matrix, input: in cartesian basis, output: on the patterns basis
     COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(out) :: d3out(nat3, nat3, nat3)
     INTEGER,INTENT(in)        :: nat3
     ! patterns (transposed, with respect to what we use in the d3q.x code)
     COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
@@ -189,7 +190,11 @@ MODULE interp_fc
     ENDDO
 !$OMP END PARALLEL DO
     !
-    d3in  = d3tmp
+    IF(present(d3out)) THEN
+      d3out = d3tmp
+    ELSE
+      d3in  = d3tmp
+    ENDIF
     DEALLOCATE(d3tmp)
     !
     RETURN

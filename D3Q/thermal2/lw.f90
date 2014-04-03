@@ -28,6 +28,7 @@ MODULE linewidth_program
     !
     CHARACTER(len=16) :: calculation ! lw=linewidth, spf=spectral function
     CHARACTER(len=16) :: mode        ! "full" or "simple" spectral function 
+    CHARACTER(len=256) :: outdir
     !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
@@ -62,6 +63,7 @@ MODULE linewidth_program
     CHARACTER(len=16)  ::  calculation = "lw" ! "spf"
     CHARACTER(len=256) :: file_mat3 = '///'
     CHARACTER(len=256) :: file_mat2 = '///'
+    CHARACTER(len=256) :: outdir = './'
     LOGICAL            :: asr2 = .false.
     INTEGER            :: nconf = 1
     INTEGER            :: nq = -1
@@ -73,10 +75,11 @@ MODULE linewidth_program
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, naux
     CHARACTER(len=1024) :: line, word
-    CHArACTER(len=16)   :: word2, word3
+    CHARACTER(len=16)   :: word2, word3
+    CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
     !
     NAMELIST  / lwinput / &
-      calculation, &
+      calculation, outdir, &
       file_mat2, file_mat3, asr2, &
       nconf, nq, nk, &
       ne, de, e0
@@ -93,6 +96,7 @@ MODULE linewidth_program
     
     input%file_mat2 = file_mat2
     input%file_mat3 = file_mat3
+    input%outdir    = TRIMCHECK(outdir)
     input%asr2      = asr2
     input%nconf     = nconf
     input%nk        = nk
@@ -267,7 +271,8 @@ MODULE linewidth_program
     CALL setup_simple_grid(S, input%nk(1), input%nk(2), input%nk(3), grid)
     !
     DO it = 1,input%nconf
-      OPEN(unit=1000+it, file="lw.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
+      OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
+                                "lw.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
                                 "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
       WRITE(1000+it, *) "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       CALL flush_unit(1000+it)
@@ -345,8 +350,9 @@ MODULE linewidth_program
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
     !
     DO it = 1,input%nconf
-      OPEN(unit=1000+it, file="spf.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
-                                "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
+      OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
+                              "spf.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
+                              "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
       WRITE(1000+it, *) "# spectral function mode: ", input%mode
       WRITE(1000+it, *) "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       WRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
@@ -425,7 +431,7 @@ PROGRAM linewidth
   CALL environment_start('LW')
   CALL print_citations_linewidth()
 
-  ! Read input also read force constants from disk, using subroutine READ_DATA
+  ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
   CALL READ_INPUT(lwinput, qpath, S, fc2, fc3)
   !
   IF(TRIM(lwinput%calculation) == "lw") THEN
@@ -438,7 +444,7 @@ PROGRAM linewidth
     CALL SPECTR_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
     !
   ELSE
-    CALL errore("lw", "nothing to do?", 1)
+    CALL errore("lw", "what else to do?", 1)
   ENDIF
   !
   CALL environment_end('LW')
