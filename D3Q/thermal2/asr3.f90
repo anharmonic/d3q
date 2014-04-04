@@ -252,7 +252,7 @@ MODULE asr3_module
     INTEGER,INTENT(in) :: nat
     TYPE(index_r_type) :: idx
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
-    TYPE(forceconst3_ofRR) :: fsym(idx%nR,idx%nR)
+    TYPE(forceconst3_ofRR),ALLOCATABLE :: fsym(:,:)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
@@ -260,6 +260,7 @@ MODULE asr3_module
     
     delta = 0._dp
 
+    ALLOCATE(fsym(idx%nR,idx%nR))
     DO iR2 = 1,idx%nR
     DO iR3 = 1,idx%nR
       ALLOCATE(fsym(iR2,iR3)%F(3,3,3, nat,nat,nat))
@@ -318,6 +319,7 @@ MODULE asr3_module
       DEALLOCATE(fsym(iR2,iR3)%F)
     ENDDO
     ENDDO
+    DEALLOCATE(fsym)
     !
     delta = SQRT(delta)
 !     WRITE(*,'(75x,a,f12.6)') "ps", SQRT(delta)
@@ -484,6 +486,7 @@ MODULE asr3_module
     ENDDO
 
     deltot = 0._dp
+    delsig = 0._dp
     DO iR2 = 1,idx%nR
       !
       DO j = 1,nat
@@ -507,23 +510,23 @@ MODULE asr3_module
           deltot = deltot + d1**2
           delsig = delsig + d1
           !
-          fasr(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - d1
+!           fasr(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - d1
           
-!           IF(q1>eps2)THEN
-!             r1 = d1/q1
-!             IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
-!               !
-!               R3_LOOPb : &
-!               DO iR3 = 1,idx%nR
-!               DO k = 1,nat
-!                   IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
-!                   fasr(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
-!                                            - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-!               ENDDO
-!               ENDDO R3_LOOPb
-!               !
-!             ENDIF
-!           ENDIF
+          IF(q1>eps2)THEN
+            r1 = d1/q1
+            IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
+              !
+              R3_LOOPb : &
+              DO iR3 = 1,idx%nR
+              DO k = 1,nat
+                  IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
+                  fasr(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+                                           - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
+              ENDDO
+              ENDDO R3_LOOPb
+              !
+            ENDIF
+          ENDIF
           !
         ENDDO
         ENDDO
@@ -544,7 +547,11 @@ MODULE asr3_module
     ! Re-symmetrize the matrix
     delperm = perm_symmetrize_fc3(nat,idx,fx)
     !
-    PRINT*, "asr3", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
+    IF(iter==1) THEN
+    WRITE(*,'(2x,a)') "Minimization started: create a file named 'STOP' to stop."
+    WRITE(*,'(2x,a,a10,3a20)')   "asr3", "iter", "SQRT(deltot)", "SQRT(ABS(deltot-delsig**2))", "delperm"
+    ENDIF
+    WRITE(*,'(2x,a,i10,3e20.6)') "asr3", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
     iter = iter+1
     delta = SQRT(deltot)
     !
@@ -573,7 +580,7 @@ PROGRAM asr3
     INTEGER,ALLOCATABLE :: idR23(:,:)
     TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
     !
-    INTEGER :: j
+    INTEGER :: j, ios
     REAL(DP) :: delta
     !
     CALL read_fc3("mat3R", S, fc)
@@ -597,6 +604,7 @@ PROGRAM asr3
     IF(ANY(idx2%idRmR/=idx3%idRmR))&
       CALL errore("asr3", "problem with R-R",3)
     !
+    ! Map couple of in
     CALL index_2R(idx2,idx3, fc, idR23)
     
     CALL memstat(kb)
@@ -612,12 +620,17 @@ PROGRAM asr3
     
 !    DO j =1,10
 !      CALL impose_asr3_6idx(S%nat,idx2,fx)
-!       delta = perm_symmetrize_fc3(S%nat,idx2,fx)
 !    ENDDO
 
-    DO j = 1,1000
+    APPLY_ASR : &
+    DO j = 1,10000
       IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
-    ENDDO
+      OPEN(unit=100, file="STOP", status='OLD', disp='DELETE' , iostat=ios)
+      IF(ios==0) THEN
+        CLOSE(100)
+        EXIT APPLY_ASR 
+      ENDIF
+    ENDDO APPLY_ASR 
 !     !
     CALL memstat(kb)
     WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
