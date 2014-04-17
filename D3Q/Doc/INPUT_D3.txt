@@ -1,0 +1,97 @@
+MoS2b_anh ! title is optional
+&inputph
+   mode='full'
+! mode can be one of the following:
+!   * "gamma-only" : compute the D3 matrix of (0,0,0)
+!   * "gamma-q"    : compute the matrix at (0,-q,q), like the old d3.x code; you have
+!                    to specify the point after the namelist (units of 2pi/alat)
+!   * "single"     : compute a single triplet (q1,q2,q3), you will have to specify q1 and q2 points,
+!                    on two separate lines, after the namelist (units 2pi/alat); q3 is just -(q1+q2)
+!   * "partial"    : compute a full grid around a specific point q0: (q0, q0+q, q0-q)
+!                    you will have to specify the point (2pi/alat) and then, on a 
+!                    new line,  the size of the grid (nqx nqy nqz)
+!   * "full"       : compute a full grid of q1 and q2 points, q3=-(q1+q2) you will have
+!                    to specify the size of the grid after this namelist (nqx nqy nqz)
+   prefix = 'MoS2b'
+! prefix must be the same as in the pw.x and ph.x 
+   fild3dyn = 'FILD3DYN/anh'
+! prefix of the file names where D3 matrices will be saved
+   ethr_ph = 1.d-8
+! threshold to solve Sterb-Heimer equations, do not exagerate, it should be in the same
+! order as the one obtained in phonon, i.e. the "thresh" in these lines
+!
+!      iter #   5 total cpu time :     0.3 secs   av.it.:   5.8
+!      thresh= 1.541E-08 alpha_mix =  0.700 |ddv_scf|^2 =  7.224E-16
+!
+! At the *last* iteration.
+
+   fildrho = 'auto:drho'
+! fildrho must be the same as in ph.x, and it must be auto:something
+! when doing a grid calculation (see phonon manual for details)
+
+! If you only want to compute a subset of the q-point use the following variables:
+   first=10
+   last=50
+   offset=20
+   step=8
+! This will compute one point every 8 (with an offset of 2) between 10 and 50, i.e. 
+! 12, 20, 28, 36, and 44
+! Note that you can run several simultaneous instances of d3.x in the same directory
+! and with the same prefix as long as they work on different q-points.
+!
+
+   restart=.true.
+! do no repeat calculations if you find the corresponding fild3dyn
+! Restart of partially-computed q-points is currenlty implemented but disabled as
+! still unreliable. You can activate it modifying the code AT YOUR OWN RISK!
+
+   ! max time format : hh.mm 
+   !max_time=22.00
+   max_seconds = 3600
+
+   !nk1=16, nk2=16,nk3=4
+   !degauss=0.03d0
+! You can change the k-points grid and smearing used in d3q
+ /
+! q-point coordinate, or grid specification have to be specified here, these are some examples:
+! "gamma-q" case, compute the M point:
+ 0.5 0.0 0.0
+! "single" case, compute M,X,-M-X
+ 0.5 0.0 0.0
+ 0.333333 0.333333 0.0
+! "partial" case, compute 4x4x1 a grid centered around M
+ 0.5 0.0 0.0
+ 4 4 1
+! "full" case, compute a 4x4x1 grid
+ 4 4 1
+ 
+
+! 
+! The d3_debug namelist can be used to do a partial calculation
+! WARNING! no sanity check is done on these variables, setting this namelist can result
+! in crash and random results. No bug report will be considered if this namelist is used
+! All values default to .TRUE.
+!&d3_debug
+    !
+    dbg_do_dwfc = .false.   ! compute d^q psi
+    dbg_do_dpdvp = .false.  ! pre-compute <d psi | dV| psi>
+    !
+    dbg_do_dpdvdp = .false.     ! compute the <d psi| d V | d psi> term 
+    dbg_do_dpdpdv = .false.     ! compute the <d psi|d psi><psi| dV |psi>  term
+    dbg_do_drhod2v = .false.    ! compute the d \rho d^2 V term (and related wfc terms)
+    dbg_do_rhod3v = .false.     ! compute the tho d^3 V term (and related)
+    dbg_do_ion = .false.        ! compute Ewald term
+    dbg_do_smearing = .false.   ! compute metal only terms
+      dbg_do_smr_ijk = .false.  !  - no fermi shift
+      dbg_do_smr_ij = .false.   !  - one fermi shift
+      dbg_do_smr_g = .false.    !  - 2 and 3 fermi shifts
+    dbg_do_exc = .TRUE.         !  - compute exc term
+    dbg_do_nlcc = .false.       ! compute additional non-linear core correction terms
+      dbg_do_nlcc_0 = .false.   !  - correction to rhod3v
+      dbg_do_nlcc_123 = .false. !  - correction to drhod2v
+    !
+    dbg_write_d3_parts = .TRUE. ! write separate files for each term
+    dbg_add_core = .TRUE.       ! add core correction to drho (only applies to exc and nlcc terms)
+ /
+
+
