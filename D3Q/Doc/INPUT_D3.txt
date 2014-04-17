@@ -23,19 +23,52 @@ MoS2b_anh ! title is optional
 !      iter #   5 total cpu time :     0.3 secs   av.it.:   5.8
 !      thresh= 1.541E-08 alpha_mix =  0.700 |ddv_scf|^2 =  7.224E-16
 !
-! At the *last* iteration.
+! take the value from the *last* iteration.!
+!
+  amass(1) = 95.96
+! With amass you change the mass of atomic species. This is pointless, as you can change
+! it again later if you wish, no part of the DFPT calculation depends on ionic mass
+!
 
+   outdir="./tmp"
+! Workspace, must be the same used for pw.x. You can also use the ESPRESSO_TMPDIR
+! environment variable to set this parameter.
+
+   fildrho_dir
+! The directory where the charge density variations, compute with ph.x, are stored. You can also
+! use the environment variable ESPRESSO_FILDRHO_DIR to set this parameter.
+
+   d3dir = "./tmp/D3"
+! Workspace, where the D3 temporary data will be stored. You cas set this via the 
+! ESPRESSO_D3DIR variable. A further sub-directory will be created which depends on
+! the coordinates of the q-points, it is hence safe to use the same value of d3dir even
+! when running several d3.x calculation at the same time with the same prefix, as long as the
+! q-points are different.
+
+! Only files inside d3dir will be opened read/write. Files in fildrho_dir and outdir are opened
+! read only. (Except at the very beginning the save file in outdir, because the restart
+! subroutine from pw.x is used)
+!
+! Data in d3dir is normally deleted after each triplet is computed. If for some reason
+! you need this data, you will have to change d3q.f90 to always call d3_reset with parameter
+! cleanup = .false. 
+!
    fildrho = 'auto:drho'
 ! fildrho must be the same as in ph.x, and it must be auto:something
 ! when doing a grid calculation (see phonon manual for details)
+! Alternatively, you can use fild1rho, fild2rho and fild3rho to specify
+! the rho variation at q point 1, 2 and 3. In special cases, i.e. q2=-q3 and q2=q3,
+! you only need to specify fild1rho and fild2rho. In some other case, i.e. q1=-q2
+! and q1=q2, you only need fild1rho and fild3rho.
+! In the Gamma-only case  only fild1rho file is needed.
 
 ! If you only want to compute a subset of the q-point use the following variables:
    first=10
    last=50
    offset=20
    step=8
-! This will compute one point every 8 (with an offset of 2) between 10 and 50, i.e. 
-! 12, 20, 28, 36, and 44
+! This will compute one point every 8 (with an offset of 2) starting from 10 and up to 50,
+! i.e. these points: 12, 20, 28, 36, and 44.
 ! Note that you can run several simultaneous instances of d3.x in the same directory
 ! and with the same prefix as long as they work on different q-points.
 !
@@ -50,8 +83,30 @@ MoS2b_anh ! title is optional
    max_seconds = 3600
 
    !nk1=16, nk2=16,nk3=4
+   ! k1=0, k2=0, k3=1
    !degauss=0.03d0
-! You can change the k-points grid and smearing used in d3q
+! You can change the k-points grid and smearing used in d3q, do it with care
+! and only if you udnerstand how this things work. nkX is the grid size along direction X,
+! kX can be 1 or 0, it means shift or no shift.
+
+! Per default, the code saves the D3 matrix of each triple computed and of the star
+! of those triplet. It does not compute the permutations (q1,q2,q3) -> (q2,q3,q1); etc...
+! (although some symmetry operations may be equivalent to permutations)
+! It also does not use time-reversal symmetry to send q->-q. You can control this
+!  behaviour with the following variables (default values listed):
+print_star = .true.,
+print_perm =.false.,
+print_trev = .false.
+! Please note that the subsequent codes in the toolchain REQUIRE print_star=.true. in order to work
+! correctly.
+!
+safe_io = .false.
+! If you set safe_io to true, every file is closed and reopened after each write. This can
+! make the code much slower, but can solve some problems with parallel filesystem not syncing or
+! corrupted file when trying to restart. As long as partial q-point restart is not implemented and
+! tested, there is not point in using this option.
+
+
  /
 ! q-point coordinate, or grid specification have to be specified here, these are some examples:
 ! "gamma-q" case, compute the M point:
