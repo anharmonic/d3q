@@ -30,6 +30,8 @@ MODULE linewidth_program
     CHARACTER(len=16) :: mode        ! "full" or "simple" spectral function 
     CHARACTER(len=256) :: outdir
     !
+    LOGICAL :: exp_t_factor
+    !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
     LOGICAL            :: asr2
@@ -50,6 +52,7 @@ MODULE linewidth_program
     USE io_global,      ONLY : stdout
     USE q_grid,         ONLY : q_grid_type, setup_path
     USE constants,      ONLY : RY_TO_CMM1
+    USE wrappers,       ONLY : f_mkdir_safe
     !
     IMPLICIT NONE
     !
@@ -60,14 +63,16 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(out)   :: S    
     !
     ! Input variable, and defaul values:
+    CHARACTER(len=3),PARAMETER :: INVALID = '///'
     CHARACTER(len=16)  ::  calculation = "lw" ! "spf"
-    CHARACTER(len=256) :: file_mat3 = '///'
-    CHARACTER(len=256) :: file_mat2 = '///'
+    CHARACTER(len=256) :: file_mat3 = INVALID
+    CHARACTER(len=256) :: file_mat2 = INVALID
     CHARACTER(len=256) :: outdir = './'
     LOGICAL            :: asr2 = .false.
     INTEGER            :: nconf = 1
     INTEGER            :: nq = -1
     INTEGER            :: nk(3) = (/-1, -1, -1/)
+    LOGICAL            :: exp_t_factor = .false.
     !
     INTEGER  :: ne = -1
     REAL(DP) :: de = 1._dp, e0 = 0._dp
@@ -82,14 +87,15 @@ MODULE linewidth_program
       calculation, outdir, &
       file_mat2, file_mat3, asr2, &
       nconf, nq, nk, &
-      ne, de, e0
+      ne, de, e0, exp_t_factor
 
     WRITE(*,*) "Waiting for input"
     !
     READ(*, lwinput)
-    
-    IF(TRIM(file_mat2) == '///' ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
-    IF(TRIM(file_mat3) == '///' ) CALL errore('READ_INPUT', 'Missing file_mat3', 1)
+    WRITE(*, lwinput)
+    !
+    IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
+    IF(TRIM(file_mat3) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
     IF(nq<0)      CALL errore('READ_INPUT', 'Missing nq', 1)    
     IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
@@ -100,6 +106,10 @@ MODULE linewidth_program
     input%asr2      = asr2
     input%nconf     = nconf
     input%nk        = nk
+    input%exp_t_factor = exp_t_factor
+    !
+    ios = f_mkdir_safe(input%outdir)
+    IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
     !
     CALL READ_DATA (input, s, fc2, fc3)
     !
@@ -158,7 +168,8 @@ MODULE linewidth_program
             CALL setup_path(xq, xq, 1, qpath)
             CYCLE QPOINT_LOOP
           ENDIF
-          IF(ios/=0) CALL errore("READ_INPUT","Expecting q point, got: '"//TRIM(line)//"'.", 1)
+          
+          IF(ios2/=0) CALL errore("READ_INPUT","Expecting q point, got: '"//TRIM(line)//"'.", 1)
           EXIT QPOINT_LOOP
           
         ENDDO &
@@ -245,7 +256,7 @@ MODULE linewidth_program
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
-    USE linewidth,   ONLY : linewidth_q, lineshift_q, spectre_q, freq_phq
+    USE linewidth,   ONLY : linewidth_q, selfnrg_q, spectre_q, freq_phq
     USE constants,   ONLY : RY_TO_CMM1
 !     USE ph_velocity
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
@@ -293,7 +304,7 @@ MODULE linewidth_program
         ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
         !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) d = 0.83255 c
         !input%sigma = 0.83255 *input%sigma/RY_TO_CMM1
-      ls = lineshift_q(qpath%xq(:,i), input%nconf, input%T, 0.83255 *input%sigma/RY_TO_CMM1, &
+      ls = selfnrg_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
                        S, grid, fc2, fc3)
       !
       DO it = 1,input%nconf
@@ -319,7 +330,8 @@ MODULE linewidth_program
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
-    USE linewidth,   ONLY : linewidth_q, lineshift_q, spectre_q, simple_spectre_q
+    USE linewidth,   ONLY : linewidth_q, selfnrg_q, spectre_q, simple_spectre_q, &
+                            add_exp_t_factor
     USE constants,   ONLY : RY_TO_CMM1
 !     USE ph_velocity
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
@@ -371,14 +383,16 @@ MODULE linewidth_program
       ENDDO
       !
       IF (TRIM(input%mode) == "full") THEN
-        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, 0.83255 *input%sigma/RY_TO_CMM1, &
+        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
                                   S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
       ELSE IF (TRIM(input%mode) == "simple") THEN
-        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, 0.83255 *input%sigma/RY_TO_CMM1, &
+        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
                                   S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
       ELSE
         CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
       ENDIF
+      !
+      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener/RY_TO_CMM1, spectralf)
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl

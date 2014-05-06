@@ -127,6 +127,13 @@ MODULE input_fc
       IF(ios/=0) CALL errore(sub,"reading nt, S%atm(nt), S%amass(nt)", nt)
     ENDDO
     !
+    IF(any(S%amass(1:S%ntyp)<500._dp)) THEN
+        WRITE(*,*) "WARNING: Masses seem to be in Dalton units: rescaling"
+        WRITE(*,*) "old:", S%amass(1:S%ntyp)
+        S%amass(1:S%ntyp) = S%amass(1:S%ntyp)* 0.5_dp*1822.88839_dp
+        WRITE(*,*) "new:", S%amass(1:S%ntyp)
+    ENDIF
+    !
     ALLOCATE(S%ityp(S%nat), S%tau(3,S%nat))
     DO na = 1, S%nat
       READ(unit,*,iostat=ios) dummy, S%ityp(na), S%tau(:,na)
@@ -380,7 +387,7 @@ MODULE input_fc
           WRITE(unit,'(i9)') fc%n_R
           !
           DO i = 1, fc%n_R
-            WRITE(unit,'(3i4,3x,3i4,e35.16)') fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
+            WRITE(unit,'(3i4,3x,3i4,1pe25.15)') fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
           ENDDO
       ENDDO
       ENDDO

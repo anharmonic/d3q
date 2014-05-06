@@ -8,7 +8,9 @@ MODULE asr3_module
   TYPE forceconst3_ofRR
     REAL(DP),ALLOCATABLE :: F(:,:,:, :,:,:) !dimension: (3,3,3, nat,nat,nat)
   ENDTYPE forceconst3_ofRR
-  
+  TYPE todo3_ofRR
+    LOGICAL,ALLOCATABLE :: F(:,:,:, :,:,:) !dimension: (3,3,3, nat,nat,nat)
+  ENDTYPE todo3_ofRR
   TYPE index_r_type
     ! list of R vectors, used only for acoustic sum rule
     INTEGER :: nR                    ! number of distinc R
@@ -25,7 +27,7 @@ MODULE asr3_module
   END TYPE
   
   INTEGER,SAVE :: iter = 1
-  REAL(DP),PARAMETER :: eps  = 1.e-8_dp, eps2 = 1.e-16_dp
+  REAL(DP),PARAMETER :: eps  = 1.e-12_dp, eps2 = 1.e-24_dp
   REAL(DP),PARAMETER :: eps0 = 1.e-30_dp
   
   CONTAINS
@@ -121,6 +123,114 @@ MODULE asr3_module
     ENDDO
     
   END SUBROUTINE
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE stable_index_R(nR0, R0, nR,nRx, nRi, R, idR, iRe0, idmR, idRmR)
+    USE input_fc, ONLY : ph_system_info, forceconst3_grid
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nR0, R0(3,nR0)
+    !
+    INTEGER,INTENT(out) :: nR                    ! number of distinc R
+    INTEGER,ALLOCATABLE,INTENT(out) :: nRi(:)    ! how many times each R appears
+    INTEGER,INTENT(out) :: nRx                   ! maxval(nRi); nRi <= nRx
+    INTEGER,ALLOCATABLE,INTENT(out) :: R(:,:)    ! the list of distinct R
+    INTEGER,ALLOCATABLE,INTENT(out) :: idR(:,:)  ! for each of the nR distinct R, the index
+                                ! of its nRi-th occurence in the global list
+                                ! yR(:, idR(1:nRi(1:nR2), 1:nR2) (padded with zeroes)
+    INTEGER,ALLOCATABLE,INTENT(out) :: idmR(:)   ! for each of the nR, index of -R
+    INTEGER,ALLOCATABLE,INTENT(out) :: idRmR(:,:)! for each couple i,j=1,..nR
+                                                 ! index of R_i-R_j
+    INTEGER,INTENT(out) :: iRe0                  ! index of R = (0,0,0)      
+    !
+    INTEGER :: i, j, k, kk, n
+    INTEGER,ALLOCATABLE :: nRi_(:) ! how many times each R2,R3 appears
+    INTEGER,ALLOCATABLE :: R_(:,:)
+    !
+    INTEGER :: minR(3), maxR(3), Rgr(3)
+    !
+    ALLOCATE(R_(3,nR0),nRi_(nR0))
+    !
+    ! Find lowest and highest possivble value of x, y z among all R's
+    DO i = 1,3
+      minR(i) = MINVAL(R0(i,:))
+      maxR(i) = MAXVAL(R0(i,:))
+    ENDDO
+    !
+    nR = 0
+    R_(:,:) = 0
+    nRi_ = 0
+    !
+    DO i = minR(1), maxR(1)
+    DO j = minR(2), maxR(2)
+    DO k = minR(3), maxR(3)
+      Rgr = (/ i,j,k /)
+      ! Find if this R is used
+      IF(find_index(nR0, R0, Rgr)>0)THEN
+        nR = nR+1
+        R_(:,nR) = Rgr
+        ! County them
+        DO n = 1,nR0
+          IF(ALL(R0(:,n)==Rgr)) nRi_(nR) = nRi_(nR)+1
+        ENDDO
+      ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+    !
+    ALLOCATE(R(3,nR),nRi(nR))
+    R(:,1:nR) = R_(:,1:nR)
+    nRi(1:nR) = nRi_(1:nR)
+    DEALLOCATE(R_, nRi_)
+    
+    nRx = MAXVAL(nRi)
+    ALLOCATE(idR(nRx,nR))
+    idR = 0
+    !
+    kk = 0
+    DO j = 1,nR
+      !
+      k = 0
+      DO i = 1, nR0
+        IF ( ALL(R(:,j) == R0(:,i)) ) THEN
+          k = k+1
+          IF(k>nRi(j)) CALL errore("index_R", "too many r",1)
+          idR(k,j) = i
+        ENDIF
+        IF( ALL(R(:,j) == 0)) iRe0 = j
+      ENDDO
+      kk = kk +k
+      !
+    ENDDO
+    !
+    IF(kk/=nR0) CALL errore('index_R', "some R not found",2)
+    !
+    ! Find -R for each R
+    ALLOCATE(idmR(nR))
+    idmR = -1
+    DO j = 1,nR
+    DO i = 1,nR
+      IF ( ALL(R(:,i) == -R(:,j)) ) idmR(i) = j
+    ENDDO
+    ENDDO
+    !
+    ! Find R_k = R_i-R_j for each i and j
+    ALLOCATE(idRmR(nR,nR))
+    idRmR = -1
+    DO k = 1,nR
+    DO j = 1,nR
+    DO i = 1,nR
+      IF ( ALL(R(:,k) == R(:,i)-R(:,j)) ) idRmR(i,j) = k
+    ENDDO
+    ENDDO
+    ENDDO
+    !
+    !
+    print*, "R ===================", nR, iRe0
+    DO i = 1, nR
+      WRITE(*,'(2i4,2x,3i3,2x,i3,2x,1000i5)') i,idmR(i), R(:,i), nRi(i)!, idR(1:nRi(i),i)
+    ENDDO
+    
+  END SUBROUTINE stable_index_R
+  !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE index_2R(idx2,idx3,fc,idR23)
     USE input_fc,       ONLY : forceconst3_grid
@@ -278,7 +388,7 @@ MODULE asr3_module
       iR3mR2 = idx%idRmR(iR3,iR2)
       !
       IF(iR2mR3<0 .or. iR3mR2<0) THEN
-        IF( ANY(ABS(fx(iR2,iR3)%F) > 1.e-24_dp) ) &
+        IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
           CALL errore('impose_asr3', 'this should be zero', 1)
         fsym(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
@@ -326,12 +436,13 @@ MODULE asr3_module
     !
   END FUNCTION perm_symmetrize_fc3
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE impose_asr3_6idx(nat,idx,fx)
+  FUNCTION impose_asr3_6idx(nat,idx,fx) RESULT(delta)
     USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
+    REAL(DP) :: delta
     INTEGER,INTENT(in) :: nat
-    TYPE(index_r_type) :: idx
+    TYPE(index_r_type),INTENT(in) :: idx
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
@@ -339,7 +450,23 @@ MODULE asr3_module
     REAL(DP):: d1,d2,d3,d4,d5,d6, q1,q2,q3,q4,q5,q6
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
     !
+    TYPE(forceconst3_ofRR),ALLOCATABLE :: fasr(:,:)
+    TYPE(todo3_ofRR),ALLOCATABLE  :: todo(:,:)
+    !
+    ALLOCATE(fasr(idx%nR,idx%nR))
+    ALLOCATE(todo(idx%nR,idx%nR))
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
+      fasr(iR2,iR3)%F = 0._dp
+!       fasr(iR2,iR3)%F = fx(iR2,iR3)%F
+      ALLOCATE(todo(iR2,iR3)%F(3,3,3, nat,nat,nat))
+      todo(iR2,iR3)%F= .true.
+    ENDDO
+    ENDDO
+    !
     deltot = 0._dp
+    delsig = 0._dp
     DO iR2 = 1,idx%nR
       !
       DO a = 1,3
@@ -368,35 +495,43 @@ MODULE asr3_module
               IF(iR2mR3<0 .or. iR3mR2<0) THEN
                 IF( ANY(fx(iR2,iR3)%F > eps0) ) &
                   CALL errore("asr6","missing bits",1)
+                
                 CYCLE R3_LOOP
               ENDIF
-              d1 = d1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)
-              q1 = q1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
-                                      
-              d2 = d2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)
-              q2 = q2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
-                                      
-              d3 = d3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)
-              q3 = q3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
-                                      
-              d4 = d4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)
-              q4 = q4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
-                                      
-              d5 = d5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)
-              q5 = q5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
-                                      
-              d6 = d6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)
-              q6 = q6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              IF(todo(iR2,   iR3   )%F(a,b,c, i,j,k))THEN
+                d1 = d1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)
+                q1 = q1 + fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+              ENDIF
+              IF(todo(iR3,   iR2   )%F(a,c,b, i,k,j))THEN
+                d2 = d2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)
+                q2 = q2 + fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+              ENDIF
+              IF(todo(mR2,   iR3mR2)%F(b,a,c, j,i,k))THEN
+                d3 = d3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)
+                q3 = q3 + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+              ENDIF
+              IF(todo(iR3mR2,mR2   )%F(b,c,a, j,k,i))THEN
+                d4 = d4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)
+                q4 = q4 + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+              ENDIF
+              IF(todo(mR3,   iR2mR3)%F(c,a,b, k,i,j))THEN
+                d5 = d5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)
+                q5 = q5 + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+              ENDIF
+              IF(todo(iR2mR3,mR3   )%F(c,b,a, k,j,i))THEN
+                d6 = d6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)
+                q6 = q6 + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              ENDIF
           ENDDO
           ENDDO R3_LOOP
           !
-          deltot = deltot + SUM( (/d1,d2,d3,d4,d5,d5/)**2 )
-          delsig = delsig + SUM( (/d1,d2,d3,d4,d5,d5/) )
+          deltot = deltot + SUM( (/d1,d2,d3,d4,d5,d6/)**2 )
+          delsig = delsig + SUM( (/d1,d2,d3,d4,d5,d6/) )
           
-!           d1 = (d1+d2+d3+d4+d5+d6)/6._dp
-!           q1 = (q1+q2+q3+q4+q5+q6)/6._dp
-!           d2=d1; d3=d1; d4=d1; d5=d1; d6=d1
-!           q2=q1; q3=q1; q4=q1; q5=q1; q6=q1
+          d1 = (d1+d2+d3+d4+d5+d6)/6._dp
+          q1 = (q1+q2+q3+q4+q5+q6)/6._dp
+          d2=d1; d3=d1; d4=d1; d5=d1; d6=d1
+          q2=q1; q3=q1; q4=q1; q5=q1; q6=q1
           !
           R3_LOOPb : &
           DO iR3 = 1,idx%nR
@@ -415,35 +550,41 @@ MODULE asr3_module
             !
             DO i = 1,nat
 
-              IF(ABS(q1)>eps2 .and. ABS(d1)>eps &
-                 .and. ABS(fx(iR2,   iR3   )%F(a,b,c, i,j,k))>eps ) &
-              fx(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
-                                        - d1/q1 * fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
-                                      
-              IF(ABS(q2)>eps2 .and. ABS(d2)>eps &
-                 .and. ABS(fx(iR3,   iR2   )%F(a,c,b, i,k,j))>eps ) &
-              fx(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
-                                        - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
-                                      
-              IF(ABS(q3)>eps2 .and. ABS(d3)>eps &
-                 .and. ABS(fx(mR2,   iR3mR2)%F(b,a,c, j,i,k))>eps ) &
-              fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
-                                        - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
-                                      
-              IF(ABS(q4)>eps2 .and. ABS(d4)>eps &
-                 .and. ABS(fx(iR3mR2,mR2   )%F(b,c,a, j,k,i))>eps ) &
-              fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
-                                        - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+              IF(q1>eps2.and.ABS(fx(iR2,   iR3   )%F(a,b,c, i,j,k))>eps0.and.todo(iR2,   iR3   )%F(a,b,c, i,j,k)) THEN
+              fasr(iR2,   iR3   )%F(a,b,c, i,j,k) = fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
+                                          - d1/q1 * fx(iR2,   iR3   )%F(a,b,c, i,j,k)**2
+              todo(iR2,   iR3   )%F(a,b,c, i,j,k) = .false.
+              ENDIF
 
-              IF(ABS(q5)>eps2 .and. ABS(d5)>eps &
-                 .and. ABS(fx(mR3,   iR2mR3)%F(c,a,b, k,i,j))>eps ) &
-              fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
-                                        - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+              IF(q2>eps2.and.ABS(fx(iR3,   iR2   )%F(a,c,b, i,k,j))>eps0.and.todo(iR3,   iR2   )%F(a,c,b, i,k,j)) THEN
+              fasr(iR3,   iR2   )%F(a,c,b, i,k,j) = fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
+                                          - d2/q2 * fx(iR3,   iR2   )%F(a,c,b, i,k,j)**2
+              todo(iR3,   iR2   )%F(a,c,b, i,k,j) = .false.
+              ENDIF
                                       
-              IF(ABS(q6)>eps2 .and. ABS(d6)>eps &
-                 .and. ABS(fx(iR2mR3,mR3   )%F(c,b,a, k,j,i))>eps ) &
-              fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
-                                        - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              IF(q3>eps2.and.ABS(fx(mR2,   iR3mR2)%F(b,a,c, j,i,k))>eps0.and.todo(mR2,   iR3mR2)%F(b,a,c, j,i,k)) THEN
+              fasr(mR2,   iR3mR2)%F(b,a,c, j,i,k) = fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
+                                          - d3/q3 * fx(mR2,   iR3mR2)%F(b,a,c, j,i,k)**2
+              todo(mR2,   iR3mR2)%F(b,a,c, j,i,k) = .false.
+              ENDIF
+                                      
+              IF(q4>eps2.and.ABS(fx(iR3mR2,mR2   )%F(b,c,a, j,k,i))>eps0.and.todo(iR3mR2,mR2   )%F(b,c,a, j,k,i)) THEN
+              fasr(iR3mR2,mR2   )%F(b,c,a, j,k,i) = fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
+                                          - d4/q4 * fx(iR3mR2,mR2   )%F(b,c,a, j,k,i)**2
+              todo(iR3mR2,mR2   )%F(b,c,a, j,k,i) = .false.
+              ENDIF
+
+              IF(q5>eps2.and.ABS(fx(mR3,   iR2mR3)%F(c,a,b, k,i,j))>eps0.and.todo(mR3,   iR2mR3)%F(c,a,b, k,i,j)) THEN
+              fasr(mR3,   iR2mR3)%F(c,a,b, k,i,j) = fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
+                                          - d5/q5 * fx(mR3,   iR2mR3)%F(c,a,b, k,i,j)**2
+              todo(mR3,   iR2mR3)%F(c,a,b, k,i,j) = .false.
+              ENDIF
+                                      
+              IF(q6>eps2.and.ABS(fx(iR2mR3,mR3   )%F(c,b,a, k,j,i))>eps0.and.todo(iR2mR3,mR3   )%F(c,b,a, k,j,i)) THEN
+              fasr(iR2mR3,mR3   )%F(c,b,a, k,j,i) = fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
+                                          - d6/q6 * fx(iR2mR3,mR3   )%F(c,b,a, k,j,i)**2
+              todo(iR2mR3,mR3   )%F(c,b,a, k,j,i) = .false.
+              ENDIF
             ENDDO
           ENDDO R3_LOOPb
           !
@@ -454,11 +595,22 @@ MODULE asr3_module
       ENDDO
     ENDDO
     !
-!     delperm = perm_symmetrize_fc3(nat,idx,fx)
-    PRINT*, "asr6", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
-    iter = iter+1
+    DO iR2 = 1,idx%nR
+    DO iR3 = 1,idx%nR
+      fx(iR2,iR3)%F = fasr(iR2,iR3)%F
+      DEALLOCATE(fasr(iR2,iR3)%F)
+      DEALLOCATE(todo(iR2,iR3)%F)
+    ENDDO
+    ENDDO
+    DEALLOCATE(fasr)
+    DEALLOCATE(todo)
     !
-  END SUBROUTINE impose_asr3_6idx
+!     delperm = perm_symmetrize_fc3(nat,idx,fx)
+    WRITE(*,'(2x,a,i10,3e20.6)') "asr3/6", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
+    iter = iter+1
+    delta = SQRT(deltot)
+    !
+  END FUNCTION impose_asr3_6idx
   !
   ! \/o\________\\\_________________________________________/^>
   !
@@ -480,8 +632,8 @@ MODULE asr3_module
     DO iR2 = 1,idx%nR
     DO iR3 = 1,idx%nR
       ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
-!       fasr(iR2,iR3)%F = 0._dp
-      fasr(iR2,iR3)%F = fx(iR2,iR3)%F
+      fasr(iR2,iR3)%F = 0._dp
+!       fasr(iR2,iR3)%F = fx(iR2,iR3)%F
     ENDDO
     ENDDO
 
@@ -513,8 +665,9 @@ MODULE asr3_module
 !           fasr(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - d1
           
           IF(q1>eps2)THEN
-            r1 = d1/q1
-            IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
+            !IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
+            IF(ABS(q1)>eps2) THEN
+              r1 = d1/q1
               !
               R3_LOOPb : &
               DO iR3 = 1,idx%nR
@@ -589,10 +742,10 @@ PROGRAM asr3
     CALL memstat(kb)
     WRITE(stdout,*) "Reading : done. //  Mem used:", kb/1000, "Mb"
     !
-    CALL index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
+    CALL stable_index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
                  idx2%yR, idx2%idR, idx2%iRe0, idx2%idmR, idx2%idRmR)
     !
-    CALL index_R(fc%n_R, fc%yR2, idx3%nR, idx3%nRx, idx3%nRi, &
+    CALL stable_index_R(fc%n_R, fc%yR3, idx3%nR, idx3%nRx, idx3%nRi, &
                  idx3%yR, idx3%idR, idx3%iRe0, idx3%idmR, idx3%idRmR)
     !
     ! Check that indexes are identical, this is not strictly necessary, 
@@ -616,15 +769,16 @@ PROGRAM asr3
     CALL memstat(kb)
     WRITE(stdout,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
 
-!     write(333, '(1i6)') idR23
-    
-!    DO j =1,10
-!      CALL impose_asr3_6idx(S%nat,idx2,fx)
-!    ENDDO
+!     delta = perm_symmetrize_fc3(S%nat,idx2,fx)
 
     APPLY_ASR : &
     DO j = 1,10000
-      IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
+!       IF(j<3)THEN
+!         IF( impose_asr3_6idx(S%nat,idx2,fx) < 1.d-6) EXIT
+!       ELSE
+        IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
+!       ENDIF
+      
       OPEN(unit=100, file="STOP", status='OLD', disp='DELETE' , iostat=ios)
       IF(ios==0) THEN
         CLOSE(100)

@@ -82,7 +82,7 @@ MODULE functions
     f_bosei = 1 / (EXP(x*Tm1) - 1)
   END FUNCTION
   !
-  ! Write a number from a list wit has many digits after the dot as the longest in the list.
+  ! Write a number from a list using as many digits after the dot as the longest in the list.
   CHARACTER(len=6) FUNCTION write_temperature(it,nt,T) RESULT(str)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: it, nt
