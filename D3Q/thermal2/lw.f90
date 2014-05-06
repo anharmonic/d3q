@@ -276,6 +276,7 @@ MODULE linewidth_program
     INTEGER :: i, it
     TYPE(q_grid_type) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
+    REAL(DP)   :: lw(S%nat3,input%nconf)
     !
     ALLOCATE(D(S%nat3, S%nat3))
     !
@@ -304,14 +305,26 @@ MODULE linewidth_program
         ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
         !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) d = 0.83255 c
         !input%sigma = 0.83255 *input%sigma/RY_TO_CMM1
-      ls = selfnrg_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                       S, grid, fc2, fc3)
+      IF (TRIM(input%mode) == "full") THEN
+        ls = selfnrg_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
+                        S, grid, fc2, fc3)
+        DO it = 1,input%nconf
+          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5,6x,6e15.5)') &
+                i,pl,qpath%xq(:,i), w2*RY_TO_CMM1, -DIMAG(ls(:,it))*RY_TO_CMM1, DBLE(ls(:,it))*RY_TO_CMM1
+          CALL flush_unit(1000+it)
+        ENDDO
+      ELSE IF (TRIM(input%mode) == "real") THEN
+        lw = linewidth_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
+                        S, grid, fc2, fc3)
+        DO it = 1,input%nconf
+          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5,6x,6e15.5)') &
+                i,pl,qpath%xq(:,i), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
+          CALL flush_unit(1000+it)
+        ENDDO
+      ELSE
+        CALL errore('LW_QBZ_LINE', 'wrong mode (real or full)', 1)
+      ENDIF
       !
-      DO it = 1,input%nconf
-        WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5)') &
-              i,pl,qpath%xq(:,i), w2*RY_TO_CMM1, -DIMAG(ls(:,it))*RY_TO_CMM1, DBLE(ls(:,it))*RY_TO_CMM1
-        CALL flush_unit(1000+it)
-      ENDDO
       !
       IF(i>1) dpl = SQRT(SUM( (qpath%xq(:,i-1)-qpath%xq(:,i))**2 ))
       pl = pl + dpl
@@ -330,8 +343,7 @@ MODULE linewidth_program
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE interp_fc,   ONLY : fftinterp_mat2, mat2_diag
-    USE linewidth,   ONLY : linewidth_q, selfnrg_q, spectre_q, simple_spectre_q, &
-                            add_exp_t_factor
+    USE linewidth,   ONLY : spectre_q, simple_spectre_q, add_exp_t_factor
     USE constants,   ONLY : RY_TO_CMM1
 !     USE ph_velocity
     USE q_grid,      ONLY : q_grid_type, setup_simple_grid
