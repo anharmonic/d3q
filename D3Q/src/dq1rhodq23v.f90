@@ -14,7 +14,9 @@ MODULE dq1rhodq23v_module
   PUBLIC  :: dq1rhodq23v, dq1rhodqv
   PRIVATE :: dpsi_correction, dq23v_nonlocal, dq23v_local
   !
-CONTAINS
+  LOGICAL,PARAMETER :: prof_dq1rhod2v = .false.
+  !
+  CONTAINS
 !----------------------------------------------------------------------
 SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   !-----------------------------------------------------------------------
@@ -145,6 +147,20 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
     ENDDO
     ENDDO
     !
+    !CALL print_clock('dq1rhodq23v')
+    CALL print_clock('dq23v_loc')
+    CALL print_clock('dq23v_nlc')
+    CALL print_clock('dq23v_nlc:10')
+    CALL print_clock('dq23v_nlc:20')
+    CALL print_clock('dq23v_nlc:30')
+    CALL print_clock('dq23v_nlc:40')
+    CALL print_clock('dpsi_corr')
+    CALL print_clock('dpsi_corr:10')
+    CALL print_clock('dpsi_corr:20')
+    CALL print_clock('dpsi_corr:30')
+    CALL print_clock('dpsi_corr:40')
+    CALL print_clock('dpsi_corr:50')
+    !
   ENDDO &
   RHO_PERTURBATION
 
@@ -194,6 +210,8 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
   INTEGER :: na, icart, jcart, na_icart, na_jcart
   INTEGER :: ng
   !
+  IF (prof_dq1rhod2v) CALL start_clock('dq23v_loc')
+  !
   xq(:) = kplusq(iq_drho)%xq(:)
   !
   ALLOCATE  (d3dyn_wrk( 3 * nat, 3 * nat))
@@ -230,6 +248,7 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
   !
   DEALLOCATE(struct_factor)
   DEALLOCATE(d3dyn_wrk)
+  IF (prof_dq1rhod2v) CALL stop_clock('dq23v_loc')
   !
   !-----------------------------------------------------------------------
 END SUBROUTINE dq23v_local
@@ -267,9 +286,9 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   INTEGER :: ik, ikq_gamm, ikq_drho ! k-points
   INTEGER :: nrec, ios              ! auxiliary for i/o 
 
-  COMPLEX (DP) :: ZDOTC, alpha(4), beta(4)
+  COMPLEX (DP) :: ZDOTC
   !
-  COMPLEX(DP),ALLOCATABLE :: d3dyn_wrk (:,:)
+  COMPLEX(DP),ALLOCATABLE :: d3dyn_wrk (:,:), alpha(:,:), beta(:,:)
   COMPLEX(DP),ALLOCATABLE :: psi(:,:), dpsi(:,:)
   COMPLEX(DP),ALLOCATABLE :: work1 (:), work2 (:), work3 (:), work4 (:), work5 (:), work6 (:)
   ! work space
@@ -279,6 +298,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   ! for readability
   INTEGER,PARAMETER :: iq_gamm = 0
 
+  IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc')
   ALLOCATE(d3dyn_wrk(3*nat, 3*nat))
   ALLOCATE(vkb_drho (npwx, nkb), vkb_gamm(npwx, nkb))
   !
@@ -290,7 +310,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   ALLOCATE(igk_gamm(npwx))
   ALLOCATE(igk_drho(npwx))
 
-  d3dyn_wrk (:,:) = (0.d0, 0.d0)
+  d3dyn_wrk = (0.d0, 0.d0)
   !
   ! Here the contribution deriving from the local part of the potential;
   ! it is computed only by the first pool (no sum over k needed)
@@ -307,6 +327,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   LOOP_ON_KPOINTS : &
   DO ik = 1, nksq
     !
+    IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:10')
     ikq_drho = kplusq(iq_drho)%ikqs(ik)
     ikq_gamm = kplusq(iq_gamm)%ikqs(ik)
     !
@@ -335,8 +356,12 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     !
     ! In the metallic case corrects dpsi so as that the density matrix
     ! will be:   Sum_{k,nu} 2 * | dpsi > < psi |
+    IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:10')
+
+    IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:20')
     IF (degauss /= 0._dp) &
       CALL dpsi_correction(dpsi, ik, iq_drho, nu_drho, npw_gamm, npw_drho)
+    IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:20')
     !
     DO icart = 1, 3
       DO jcart = 1, 3
@@ -344,6 +369,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
           DO ibnd = 1, nbnd_occ(ikq_gamm)
             ! Note: in this loops, xk(*,ikq_drho) is actually k+q
             !
+            IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:30')
             ! w1 = 2pi/a \psi_k * (k+g)_icart
             FORALL(ng = 1:npw_gamm) work1(ng)= psi(ng,ibnd)*tpiba*(xk(icart,ikq_gamm)+g(icart,igk_gamm(ng)))
             ! w2 = 2pi/a \psi_k * (k+g)_jcart
@@ -357,9 +383,11 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
             FORALL(ng = 1:npw_drho) work4(ng)=dpsi(ng,ibnd)*tpiba*(xk(jcart,ikq_drho)+g(jcart,igk_drho(ng)))
             ! w6 = 2pi/a d^q \psi_k * (k+q+g)_icart * (k+q+g)_jcart
             FORALL(ng = 1:npw_drho) work6(ng)=    work3(ng)*tpiba*(xk(jcart,ikq_drho)+g(jcart,igk_drho(ng)))
+            IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:30')
             !
             ijkb0 = 0
             !
+            IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:40')
             LOOP_ON_TYPES : &
             DO nt = 1, ntyp
               LOOP_ON_ATOMS : &
@@ -370,38 +398,47 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
                   na_icart = 3 * (na - 1) + icart
                   na_jcart = 3 * (na - 1) + jcart
                   !
+                  ALLOCATE(alpha(4,nh(nt)), beta(4,nh(nt)))
+                  !
                   DO ih = 1, nh(nt)
                      ikb = ijkb0 + ih
+                     alpha(1,ih) = ZDOTC(npw_gamm, work1,       1, vkb_gamm(:,ikb), 1)
+                     alpha(2,ih) = ZDOTC(npw_gamm, work2,       1, vkb_gamm(:,ikb), 1)
+                     alpha(3,ih) = ZDOTC(npw_gamm, work5,       1, vkb_gamm(:,ikb), 1)
+                     alpha(4,ih) = ZDOTC(npw_gamm, psi(:,ibnd), 1, vkb_gamm(:,ikb), 1)
                      !
-                     alpha(1) = ZDOTC(npw_gamm, work1,       1, vkb_gamm(:,ikb), 1)
-                     alpha(2) = ZDOTC(npw_gamm, work2,       1, vkb_gamm(:,ikb), 1)
-                     alpha(3) = ZDOTC(npw_gamm, work5,       1, vkb_gamm(:,ikb), 1)
-                     alpha(4) = ZDOTC(npw_gamm, psi(:,ibnd), 1, vkb_gamm(:,ikb), 1)
+                  ENDDO
                      !
-                     CALL mp_sum( alpha, intra_pool_comm )
-                     !
-                     DO jh = 1, nh(nt)
-                        jkb = ijkb0 + jh
-                        beta(1) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work4,        1)
-                        beta(2) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work3,        1)
-                        beta(3) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, dpsi(:,ibnd), 1)
-                        beta(4) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work6,        1)
-                        !
-                        CALL mp_sum( beta, intra_pool_comm )
-                        !
-                        d3dyn_wrk(na_icart,na_jcart) = d3dyn_wrk(na_icart,na_jcart) &
-                              +( alpha(1) * beta(1) + alpha(2) * beta(2) - &
-                                 alpha(3) * beta(3) - alpha(4) * beta(4) ) &
-                               * dvan(ih, jh, nt) * kplusq(iq_gamm)%wk(ik) !* 2._dp
-                     ENDDO
+                  DO jh = 1, nh(nt)
+                    jkb = ijkb0 + jh
+                    beta(1,jh) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work4,        1)
+                    beta(2,jh) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work3,        1)
+                    beta(3,jh) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, dpsi(:,ibnd), 1)
+                    beta(4,jh) = ZDOTC(npw_drho, vkb_drho(:,jkb), 1, work6,        1)
+                  ENDDO
+                  !
+                  CALL mp_sum( alpha, intra_pool_comm )
+                  CALL mp_sum( beta, intra_pool_comm )
+                  !
+                  DO ih = 1, nh(nt)
+                  DO jh = 1, nh(nt)
+                    d3dyn_wrk (na_icart,na_jcart) = d3dyn_wrk (na_icart,na_jcart) &
+                           +( alpha(1,ih) * beta(1,jh) + alpha(2,ih) * beta(2,jh) - &
+                              alpha(3,ih) * beta(3,jh) - alpha(4,ih) * beta(4,jh) ) &
+                            * dvan(ih, jh, nt) * kplusq(iq_gamm)%wk(ik) !* 2._dp
+                  ENDDO
                   ENDDO
                   !
                   ijkb0 = ijkb0 + nh(nt)
+                  !
+                  DEALLOCATE(alpha,beta)
                   !
               ENDIF CORRECT_TYPE
               !
               ENDDO LOOP_ON_ATOMS
             END DO LOOP_ON_TYPES
+            !            
+            IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:40')
           END DO LOOP_ON_BANDS
       ENDDO ! jcart
     ENDDO ! icart
@@ -414,6 +451,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   DEALLOCATE(psi,dpsi)
   DEALLOCATE(vkb_drho, vkb_gamm)
   DEALLOCATE(d3dyn_wrk)
+  IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc')
   !
   RETURN
   !-----------------------------------------------------------------------
@@ -459,27 +497,35 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   COMPLEX(DP) :: work         ! workspace
 
 
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr')
   ik0 = kplusq( 0)%ikqs(ik)
   ikq = kplusq(iq)%ikqs(ik)
   degaussm1 = 1._dp / degauss
   !
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:10')
   ! we need  the wave function at k+q point
   ALLOCATE(psi_q(npwx, nbnd))
   CALL davcio(psi_q, lrwfc, iuwfc, ikq, -1)
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr:10')
 
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:20')
   ! we also need < psi_{k+q} | V(q) | psi_k >
   ALLOCATE(psidvpsi(nbnd, nbnd))
   nrec = nu + (ik - 1) * 3 * nat
   CALL davcio(psidvpsi, lrpdqvp, iu_psi_dH_psi(0,iq), nrec, -1)
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr:20')
   !
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:30')
   ! Multiply dpsi by the theta function
   DO ibnd = 1, nbnd_occ(ik0)
      wg1 = wgauss( (ef - et(ibnd, ik0) )*degaussm1, ngauss)
      CALL dscal(2 * npwq, wg1, dpsi (1, ibnd), 1)
   ENDDO
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr:30')
   !
   ! Adds to dpsi the term containing the valence wavefunctions
   !
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:40')
   DO ibnd = 1, nbnd_occ(ik0)
      DO jbnd = 1, nbnd_occ(ikq)
         deltae = et(ibnd, ik0) - et(jbnd, ikq)
@@ -496,9 +542,11 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   ENDDO
   !
   DEALLOCATE(psidvpsi)
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr:40')
   !
   ! If necessary corrects dpsi with a term depending on FermiEnergy shift
   !
+  IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:50')
   IF (kplusq(iq)%lgamma) THEN
     ! Next line is only used when memory-saving tricks are disabled in set_kplus3q
     IF(ik0/=ikq) THEN ! or, equivalently: .not.kplusq(iq)%lsame(0)
@@ -517,7 +565,9 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   ENDIF
   !
   DEALLOCATE(psi_q)
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr:50')
   !
+  IF (prof_dq1rhod2v) CALL stop_clock('dpsi_corr')
   RETURN
   !----------------------------------------------------------------------
 END SUBROUTINE dpsi_correction
