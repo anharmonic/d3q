@@ -299,16 +299,19 @@ MODULE linewidth_program
       WRITE(*,'(i6,3f15.8)') i, qpath%xq(:,i)
       !
       CALL freq_phq(qpath%xq(:,i), S, fc2, w2, D)
-        !
-        ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
-        ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
-        ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
-        ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
-        !  => 2d = 2 sqrt(log(2) c
-        !      d = sqrt(log(2)) c
-        !      d = 0.83255 c
-        ! IMHO: you need to use a sigma that is 0.6 (=0.5/0.83255) times smaller when using
-        ! linewidth_q than when using selfnrg_q in order to get the same values
+      !
+      IF(i>1) dpl = SQRT(SUM( (qpath%xq(:,i-1)-qpath%xq(:,i))**2 ))
+      pl = pl + dpl
+      !
+      ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
+      ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
+      ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
+      ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
+      !  => 2d = 2 sqrt(log(2) c
+      !      d = sqrt(log(2)) c
+      !      d = 0.83255 c
+      ! IMHO: you need to use a sigma that is 0.6 (=0.5/0.83255) times smaller when using
+      ! linewidth_q than when using selfnrg_q in order to get the same values
       IF (TRIM(input%mode) == "full") THEN
         ls = selfnrg_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
                         S, grid, fc2, fc3)
@@ -329,9 +332,6 @@ MODULE linewidth_program
         CALL errore('LW_QBZ_LINE', 'wrong mode (real or full)', 1)
       ENDIF
       !
-      !
-      IF(i>1) dpl = SQRT(SUM( (qpath%xq(:,i-1)-qpath%xq(:,i))**2 ))
-      pl = pl + dpl
     ENDDO
     !
     !
