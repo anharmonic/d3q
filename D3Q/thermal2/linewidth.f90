@@ -48,7 +48,7 @@ MODULE linewidth
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
-    CALL freq_phq(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
       !
@@ -57,7 +57,7 @@ MODULE linewidth
       xq(:,3) = -(xq(:,2)+xq(:,1))
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
-        CALL freq_phq(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+        CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
       !
@@ -119,7 +119,7 @@ MODULE linewidth
     !
     ! Compute eigenvalues, eigenmodes at q1
     xq(:,1) = xq0
-    CALL freq_phq(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
       !
@@ -127,7 +127,7 @@ MODULE linewidth
       xq(:,3) = -(xq(:,2)+xq(:,1))
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
-        CALL freq_phq(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+        CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
       !
@@ -188,7 +188,7 @@ MODULE linewidth
     REAL(DP) :: freq(S%nat3)
       !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
-    CALL freq_phq(xq0, S, fc2, freq, U)
+    CALL freq_phq_safe(xq0, S, fc2, freq, U)
     !
     ! use lineshift to compute 3rd order linewidth and lineshift
     selfnrg = selfnrg_q(xq0, nconf, T,sigma, S, grid, fc2, fc3)    
@@ -203,7 +203,7 @@ MODULE linewidth
           denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
                    + 4*omega**2 *gamma**2 
           IF(ABS(denom)/=0._dp)THEN
-            spectralf(ie,i,it) = 2*omega*gamma / denom
+            spectralf(ie,i,it) = 4*omega**2 *gamma / denom
           ELSE
             spectralf(ie,i,it) = 0._dp
           ENDIF
@@ -258,7 +258,7 @@ MODULE linewidth
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
-    CALL freq_phq(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
       !
@@ -266,7 +266,7 @@ MODULE linewidth
       xq(:,3) = -(xq(:,2)+xq(:,1))
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
-        CALL freq_phq(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+        CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
       !
@@ -299,7 +299,7 @@ MODULE linewidth
           denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
                    + 4*omega**2 *gamma**2 
           IF(ABS(denom)/=0._dp)THEN
-            spectralf(ie,i,it) = 2*omega*gamma / denom
+            spectralf(ie,i,it) = 4*omega**2 *gamma / denom
           ELSE
             spectralf(ie,i,it) = 0._dp
           ENDIF
@@ -431,7 +431,6 @@ MODULE linewidth
           ! This comes from the definition of u_qj, Ref. 1.
           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
-          !IF(ABS(freqtot)>1.d-8)THEN
           IF(freqtot/=0._dp)THEN
             freqtotm1 = 1 / freqtot
             ! regularization:
@@ -479,23 +478,24 @@ MODULE linewidth
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) &
-!$OMP             REDUCTION(+: lw) COLLAPSE(3)
+!$OMP             REDUCTION(+: lw) COLLAPSE(2)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
+        !
+        bose_X = bose(j,2) + bose(k,3) + 1
+        bose_C = bose(j,2) - bose(k,3)
+        !
         DO i = 1,S%nat3
           !
           freqtot = 8*freq(i,1) * freq(j,2) * freq(k,3)
           !
           IF(ABS(freqtot)/=0._dp)THEN
             !
-            bose_X = bose(j,2) + bose(k,3) + 1
             dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
             ctm_X = bose_C * f_gauss(dom_C, sigma)
             !
-            bose_C = bose(j,2) - bose(k,3)
             dom_C =(freq(i,1)+freq(j,2)-freq(k,3))
             ctm_C = 2*bose_X * f_gauss(dom_X, sigma)
-            !
             !
             lw(i) = lw(i) + pi/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
           ENDIF
@@ -542,6 +542,39 @@ MODULE linewidth
   END SUBROUTINE prepare_phq
   !
   ! Interpolate dynamical matrice at q and diagonalize it
+  SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
+    USE functions,      ONLY : f_bose
+    IMPLICIT NONE
+      REAL(DP),INTENT(in)               :: xq(3)
+      TYPE(ph_system_info),INTENT(in)   :: S
+      TYPE(forceconst2_grid),INTENT(in) :: fc2
+      REAL(DP),INTENT(out)              :: freq(S%nat3)
+      COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
+      REAL(DP),PARAMETER :: epsq = 1.e-6_dp
+      REAL(DP) :: cq(3)
+      !
+      CALL fftinterp_mat2(xq, S, fc2, U)
+      CALL mat2_diag(S, U, freq)
+      U = CONJG(U)
+      
+      ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)
+      cq = xq
+      CALL cryst_to_cart(1,cq,S%at,-1)
+      IF(ALL( ABS(cq-INT(cq))<epsq ) )THEN
+        freq(1:3) = 0._dp
+!         U(:,1:3) = (0._dp, 0._dp)
+      ENDIF
+      
+      WHERE    (freq >  0._dp)
+        freq = SQRT(freq)
+      ELSEWHERE(freq < 0._dp)
+        freq = -SQRT(-freq)
+      ELSEWHERE
+        freq = 0._dp
+      ENDWHERE
+      !
+  END SUBROUTINE freq_phq_safe
+  ! Interpolate dynamical matrice at q and diagonalize it
   SUBROUTINE freq_phq(xq, S, fc2, freq, U)
     USE functions,      ONLY : f_bose
     IMPLICIT NONE
@@ -550,7 +583,7 @@ MODULE linewidth
       TYPE(forceconst2_grid),INTENT(in) :: fc2
       REAL(DP),INTENT(out)              :: freq(S%nat3)
       COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-      REAL(DP),PARAMETER :: eps = 1.e-8_dp
+      REAL(DP),PARAMETER :: eps = 1.e-16_dp
       !
       CALL fftinterp_mat2(xq, S, fc2, U)
       CALL mat2_diag(S, U, freq)
@@ -560,8 +593,6 @@ MODULE linewidth
       ELSEWHERE(freq < -eps)
         freq = -SQRT(-freq)
       ELSEWHERE ! i.e. freq=0
-        ! this should only happen at Gamma for the 3 acoustic bands
-        ! and they normally do not matter for symmetry or velocity = 0
         freq = 0._dp
       ENDWHERE
       !
@@ -575,10 +606,10 @@ MODULE linewidth
       INTEGER,INTENT(in)   :: nat3
       REAL(DP),INTENT(in)  :: freq(nat3)
       REAL(DP),INTENT(out) :: bose(nat3)
-      REAL(DP),PARAMETER :: eps = 1.e-8_dp
       !
       ! Is the following mess really necessary? (3 days later: it is)
-      WHERE    (freq*T >  eps)
+      !WHERE    (freq*T >  eps)
+      WHERE    (freq /=  0._dp)
         bose = f_bose(freq, T)
       ELSEWHERE
         bose = 0._dp

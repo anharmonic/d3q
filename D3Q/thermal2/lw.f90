@@ -286,6 +286,7 @@ MODULE linewidth_program
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                                 "lw.T"//TRIM(write_temperature(it,input%nconf,input%T))//&
                                 "s"//TRIM(write_temperature(it,input%nconf,input%sigma))//"out")
+      WRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
       WRITE(1000+it, *) "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       CALL flush_unit(1000+it)
     ENDDO
@@ -303,8 +304,11 @@ MODULE linewidth_program
         ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
         ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
         ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
-        !  => 2d = 2 sqrt(log(2) c => d = sqrt(log(2)) d = 0.83255 c
-        !input%sigma = 0.83255 *input%sigma/RY_TO_CMM1
+        !  => 2d = 2 sqrt(log(2) c
+        !      d = sqrt(log(2)) c
+        !      d = 0.83255 c
+        ! IMHO: you need to use a sigma that is 0.6 (=0.5/0.83255) times smaller when using
+        ! linewidth_q than when using selfnrg_q in order to get the same values
       IF (TRIM(input%mode) == "full") THEN
         ls = selfnrg_q(qpath%xq(:,i), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
                         S, grid, fc2, fc3)
