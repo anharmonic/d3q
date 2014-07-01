@@ -14,7 +14,7 @@ MODULE dq1rhodq23v_module
   PUBLIC  :: dq1rhodq23v, dq1rhodqv
   PRIVATE :: dpsi_correction, dq23v_nonlocal, dq23v_local
   !
-  LOGICAL,PARAMETER :: prof_dq1rhod2v = .false.
+  LOGICAL,PARAMETER :: prof_dq1rhod2v = .true.
   !
   CONTAINS
 !----------------------------------------------------------------------
@@ -272,7 +272,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE mp,           ONLY : mp_sum
   USE kplus3q,      ONLY : nksq, kplusq !iunigk, iunigkq2, ikks, ikq_drho2s, kplusq
   USE d3_iofiles,   ONLY : iu_dwfc
-  USE efermi_shift, ONLY : read_efsh
+  USE d3_efermi_shift, ONLY : read_efsh
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn_d23v( 3*nat, 3*nat)
@@ -418,7 +418,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
                   ENDDO
                   !
                   CALL mp_sum( alpha, intra_pool_comm )
-                  CALL mp_sum( beta, intra_pool_comm )
+                  CALL mp_sum( beta,  intra_pool_comm )
                   !
                   DO ih = 1, nh(nt)
                   DO jh = 1, nh(nt)
@@ -471,7 +471,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   USE ions_base,    ONLY : nat
   USE pwcom,        ONLY : npwx, nbnd, degauss, ngauss, et, ef
   USE phcom,        ONLY : nbnd_occ, lrwfc, iuwfc
-  USE efermi_shift, ONLY : ef_sh
+  USE d3_efermi_shift, ONLY : ef_sh
   USE io_global,    ONLY : stdout
   USE kplus3q,      ONLY : kplusq
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp

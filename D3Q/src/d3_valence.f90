@@ -216,7 +216,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   USE mp,           ONLY : mp_sum
   USE kplus3q,      ONLY : kplusq, q_sum_rule
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, iudpdvp, lrpdqvp, lrdpdvp
-  USE efermi_shift, ONLY : read_efsh, ef_sh
+  USE d3_efermi_shift, ONLY : read_efsh, ef_sh
   !
   IMPLICIT NONE
   !
@@ -355,7 +355,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   USE mp_global,    ONLY : inter_pool_comm
   USE mp,           ONLY : mp_sum
   USE kplus3q,      ONLY : kplusq
-  USE efermi_shift, ONLY : read_efsh, ef_sh
+  USE d3_efermi_shift, ONLY : read_efsh, ef_sh
   USE io_global,    ONLY : stdout
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
   USE pwcom,        ONLY : degauss, ngauss, nbnd, et, ef

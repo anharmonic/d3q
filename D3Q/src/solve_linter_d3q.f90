@@ -40,7 +40,7 @@ SUBROUTINE generate_dwfc2()
   USE d3_control,  ONLY : safe_io
   USE kplus3q,     ONLY : kplusq, q_names, q_names2, q_sum_rule
   USE d3_iofiles,  ONLY : iu_dwfc, iu_psi_dH_psi
-  USE efermi_shift,ONLY : write_efsh
+  USE d3_efermi_shift,ONLY : write_efsh
   USE mp,          ONLY : mp_barrier
   USE mp_world,    ONLY : world_comm
   !
@@ -199,7 +199,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   ! D3 subroutines called:
   USE dvdpsi_module
   USE incdrhoscf2_module
-  USE efermi_shift, ONLY : set_efsh
+  USE d3_efermi_shift, ONLY : set_efsh
   USE dq_vscf_module
   USE d3_h_psi, ONLY : d3_ch_psi, d3_cg_psi, nproj
 

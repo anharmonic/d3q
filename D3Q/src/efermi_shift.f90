@@ -5,7 +5,7 @@
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
-MODULE efermi_shift
+MODULE d3_efermi_shift
 
   USE kinds, ONLY : DP
   REAL(DP), ALLOCATABLE ::  ef_sh(:) ! E_Fermi shift
@@ -254,5 +254,5 @@ END SUBROUTINE write_efsh
 !----------------------------------------------------------------------
 !
 !---------------------------------------------------------------------
-END MODULE efermi_shift
+END MODULE d3_efermi_shift
 !---------------------------------------------------------------------

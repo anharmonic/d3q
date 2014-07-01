@@ -13,7 +13,7 @@ CONTAINS
 SUBROUTINE deallocate_d3()
   !-----------------------------------------------------------------------
   USE becmod,       ONLY : deallocate_bec_type, becp
-  USE efermi_shift, ONLY : ef_sh
+  USE d3_efermi_shift, ONLY : ef_sh
   !
   IMPLICIT NONE
   !
@@ -35,7 +35,7 @@ SUBROUTINE allocate_d3()
   USE ions_base,    ONLY : nat
   USE uspp,         ONLY : nkb
   USE pwcom,        ONLY : nbnd, degauss
-  USE efermi_shift, ONLY : ef_sh
+  USE d3_efermi_shift, ONLY : ef_sh
   USE becmod, ONLY : allocate_bec_type, becp
 
   IMPLICIT NONE
