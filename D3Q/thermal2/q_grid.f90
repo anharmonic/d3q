@@ -47,13 +47,13 @@ MODULE q_grid
 !   END SUBROUTINE setup_symmetry
 !   ! \/o\________\\\_________________________________________/^>
   
-  SUBROUTINE setup_simple_grid(S, n1,n2,n3, grid)
+  SUBROUTINE setup_simple_grid(S, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid_type),INTENT(inout) :: grid
-!     REAL(DP),OPTIONAl,INTENT(in) :: xq0
+    REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     !
     INTEGER :: i,j,k, idx
     grid%n(1) = n1
@@ -61,6 +61,7 @@ MODULE q_grid
     grid%n(3) = n3
     grid%nq = n1*n2*n3
     !
+    IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
     !
     idx = 0
@@ -80,7 +81,11 @@ MODULE q_grid
     CALL cryst_to_cart(grid%nq,grid%xq,S%bg, +1)
     grid%basis = 'cartesian'
     !
-    !IF(present(xq0)) grid%xq = grid%xq + xq0
+    IF(present(xq0)) THEN
+      DO idx = 1,grid%nq
+        grid%xq(:,idx) = grid%xq(:,idx) + xq0
+      ENDDO
+    ENDIF
     !
   END SUBROUTINE setup_simple_grid
   !

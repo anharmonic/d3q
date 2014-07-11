@@ -24,26 +24,37 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #lw.o \
 
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp 
-#LDFLAGS  += -openmp
+F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
+#-xAVX 
+LDFLAGS  += -openmp #-g
+#F90FLAGS +=  -g -profile-loops=all
+#LDFLAGS  +=  -g
 
 D3QTOOLSLIBS = \
 asr2.o \
+final_state.o \
 input_fc.o \
 interp_fc.o \
 linewidth.o \
+more_constants.o \
 nanoclock.o \
 nanosec.o \
 ph_velocity.o \
 q_grid.o \
 functions.o \
 
-EXECUTABLES = lw.x asr3.x
+EXECUTABLES = lw.x asr3.x sqom.x
 
 all : tldeps $(EXECUTABLES)
 
 lw.x : lw.o $(D3QTOOLSLIBS) d3q
 	$(LD) $(LDFLAGS) -o $@ lw.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+sqom.x : sqom.o $(D3QTOOLSLIBS) d3q
+	$(LD) $(LDFLAGS) -o $@ sqom.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
