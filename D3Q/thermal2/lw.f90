@@ -555,7 +555,7 @@ MODULE linewidth_program
       ENDDO
       !
       fstate = final_state_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                             S, grid, fc2, fc3, input%e_initial/RY_TO_CMM1, input%ne, ener/RY_TO_CMM1)
+                             S, qpath, fc2, fc3, input%e_initial/RY_TO_CMM1, input%ne, ener/RY_TO_CMM1)
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl

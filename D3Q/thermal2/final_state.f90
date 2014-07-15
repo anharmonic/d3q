@@ -11,6 +11,7 @@ MODULE final_state
     USE linewidth,      ONLY : bose_phq, freq_phq_safe  , sum_selfnrg_modes
     USE q_grid,         ONLY : q_grid_type
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
+    USE constants,      ONLY : RY_TO_CMM1
     !
     IMPLICIT NONE
     !
@@ -28,6 +29,8 @@ MODULE final_state
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    ! FUNCTION RESULT:
+    REAL(DP) :: final_state_q(ne,S%nat3,nconf)
     !
     ! To interpolate D2 and D3:
     INTEGER :: iq, jq, nu, it
@@ -39,15 +42,13 @@ MODULE final_state
     INTEGER  :: i, ie
     REAL(DP) :: gamma, delta, omega, denom
     COMPLEX(DP),ALLOCATABLE :: fstate_q(:,:,:)
-    ! FUNCTION RESULT:
-    REAL(DP) :: final_state_q(ne,S%nat3,nconf)
     !
     LOGICAL :: qresolved = .true.
-    COMPLEX(DP) :: sumaux(S%nat3)
-    REAL(DP)    :: dqbar, xqmodmax, xqbarmod, sigmaqbar, qbardist
+    REAL(DP) :: sumaux(ne,S%nat3)
+    REAL(DP)    :: dqbar, xqmodmax, xqbarmod, sigmaqbar, qbarweight
     INTEGER     :: iqbar
     INTEGER,PARAMETER :: nqbar = 101
-    REAL(DP)    :: xqbar(S%nat3,nqbar,nconf)
+    REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
     !
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
@@ -58,6 +59,7 @@ MODULE final_state
     !
     IF(qresolved)THEN
       WRITE(*,'(2x,a,3f10.4,a,f12.6)') "Q-resolved final state", xq0, " mod=",refold_bz_mod(xq0, S%bg)
+      ALLOCATE(xqbar(ne,S%nat3,nqbar,nconf))
       xqbar = 0._dp
       xqmodmax = 0._dp
       DO iq = 1, grid%nq
@@ -96,14 +98,15 @@ MODULE final_state
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        fstate_q(:,:,it) = fstate_q(:,:,it) &
-              + sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, ei, ne, ener )
+        sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, ei, ne, ener )
+!         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
+        fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
         !
         IF(qresolved) THEN
-          sumaux = sum_selfnrg_modes( S, sigma(:,it), freq, bose, V3sq)
+!           sumaux = sum_selfnrg_modes( S, sigma(:,it), freq, bose, V3sq)
           DO iqbar = 1,nqbar
-            qbardist = dqbar*(iqbar-1)-refold_bz_mod(xq(:,2), S%bg)
-            xqbar(:,iqbar,it) = xqbar(:,iqbar,it) - DIMAG(sumaux) * f_gauss( qbardist, sigmaqbar)
+            qbarweight = f_gauss(dqbar*(iqbar-1)-refold_bz_mod(xq(:,2), S%bg), sigmaqbar)
+            xqbar(:,:,iqbar,it) = xqbar(:,:,iqbar,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
         ENDIF
         !
@@ -112,13 +115,17 @@ MODULE final_state
     ENDDO
     !
     IF(qresolved)THEN
-      xqbar = -0.5_dp * xqbar!/grid%nq
+!       xqbar = -0.5_dp * xqbar!/grid%nq
       !
       DO it = 1,nconf
       DO iqbar = 1,nqbar
-        WRITE(90000+it,'(f12.6,100e15.5)') dqbar*(iqbar-1), xqbar(:,iqbar,it)
+        DO ie = 1,ne
+          WRITE(90000+it,'(f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, dqbar*(iqbar-1), xqbar(ie,:,iqbar,it)
+        ENDDO
+        WRITE(90000+it,*) 
       ENDDO
       ENDDO
+      DEALLOCATE(xqbar)
     ENDIF
     !
     final_state_q = -0.5_dp * fstate_q/grid%nq
@@ -165,7 +172,8 @@ MODULE final_state
     !
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(ie,i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot,freqtotm1,wfinal) &
+!$OMP             PRIVATE(ie,i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,&
+!$OMP                     ctm_P,ctm_M,reg,freqtot,freqtotm1,wfinal) &
 !$OMP             REDUCTION(+: fsdf) COLLAPSE(2)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
@@ -185,7 +193,7 @@ MODULE final_state
         DO i = 1,S%nat3
 !           i = 6
           !
-          ! This comes from the definition of u_qj, Ref. 1.
+          ! This comes from the definition of u_qj, Ref. 1. in linewidth.f90
           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
           IF (freqtot/=0._dp) THEN
