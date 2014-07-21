@@ -36,6 +36,7 @@ MODULE linewidth_program
     REAL(DP) :: e0, de
     ! for final state:
     REAL(DP) :: e_initial
+    REAL(DP) :: q_initial(3)
     !
     INTEGER :: nk(3)
   END TYPE lwinput_type
@@ -74,6 +75,7 @@ MODULE linewidth_program
     INTEGER  :: ne = -1
     REAL(DP) :: de = 1._dp, e0 = 0._dp
     REAL(DP) :: e_initial = -1._dp
+    REAL(DP) :: q_initial(3) = 0._dp
     !
     REAL(DP) :: xq(3), xq0(3), sigmaux
     INTEGER  :: ios, ios2, i, naux, nq1, nq2, nq3
@@ -88,7 +90,7 @@ MODULE linewidth_program
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, nq, nk, &
-      ne, de, e0, e_initial, exp_t_factor
+      ne, de, e0, e_initial, q_initial, exp_t_factor
 
     WRITE(*,*) "Waiting for input"
     !
@@ -137,6 +139,7 @@ MODULE linewidth_program
     IF(TRIM(input%calculation) == 'final' .and. e_initial < 0) &
       CALL errore('READ_INPUT', 'Missing e_initial for final state calculation', 1)    
     input%e_initial = e_initial
+    input%q_initial = q_initial
     !
     ALLOCATE(input%T(nconf), input%sigma(S%nat3,nconf))
     !
@@ -546,29 +549,29 @@ MODULE linewidth_program
     !
     WRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
     
-    DO iq = 1,qpath%nq
-      WRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+!     DO iq = 1,qpath%nq
+!       WRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+!       !
+!       DO it = 1,input%nconf
+!         WRITE(1000+it, *)
+!         WRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
+!       ENDDO
       !
-      DO it = 1,input%nconf
-        WRITE(1000+it, *)
-        WRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
-      ENDDO
-      !
-      fstate = final_state_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                             S, qpath, fc2, fc3, input%e_initial/RY_TO_CMM1, input%ne, ener/RY_TO_CMM1)
+      fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, input%sigma/RY_TO_CMM1, &
+                             S, grid, fc2, fc3, input%e_initial/RY_TO_CMM1, input%ne, ener/RY_TO_CMM1)
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl
       !
-      DO it = 1,input%nconf
-        DO ie = 1,input%ne
-          WRITE(1000+it, '(2f14.8,100e18.6e4)') &
-                pl, ener(ie), SUM(fstate(ie,:,it)), fstate(ie,:,it)
-          CALL flush_unit(1000+it)
-        ENDDO
-      ENDDO
-      !
-    ENDDO
+!       DO it = 1,input%nconf
+!         DO ie = 1,input%ne
+!           WRITE(1000+it, '(2f14.8,100e18.6e4)') &
+!                 pl, ener(ie), SUM(fstate(ie,:,it)), fstate(ie,:,it)
+!           CALL flush_unit(1000+it)
+!         ENDDO
+!       ENDDO
+!       !
+!     ENDDO
     !
     !
     DO it = 1,input%nconf

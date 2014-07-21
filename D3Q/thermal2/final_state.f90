@@ -7,7 +7,7 @@ MODULE final_state
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
-  FUNCTION final_state_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ei, ne, ener)
+  FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3, ei, ne, ener)
     USE linewidth,      ONLY : bose_phq, freq_phq_safe  , sum_selfnrg_modes
     USE q_grid,         ONLY : q_grid_type
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
@@ -16,6 +16,7 @@ MODULE final_state
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
+    TYPE(q_grid_type),INTENT(in) :: qpath
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     !
@@ -45,10 +46,10 @@ MODULE final_state
     !
     LOGICAL :: qresolved = .true.
     REAL(DP) :: sumaux(ne,S%nat3)
-    REAL(DP)    :: dqbar, xqmodmax, xqbarmod, sigmaqbar, qbarweight
-    INTEGER     :: iqbar
-    INTEGER,PARAMETER :: nqbar = 101
+    INTEGER     :: iqpath
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
+    REAL(DP) :: qbarweight, sigmaqbar = 0.1_dp
+    REAL(DP) :: pl,dpl
     !
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
@@ -58,19 +59,9 @@ MODULE final_state
     fstate_q = (0._dp, 0._dp)
     !
     IF(qresolved)THEN
-      WRITE(*,'(2x,a,3f10.4,a,f12.6)') "Q-resolved final state", xq0, " mod=",refold_bz_mod(xq0, S%bg)
-      ALLOCATE(xqbar(ne,S%nat3,nqbar,nconf))
-      xqbar = 0._dp
-      xqmodmax = 0._dp
-      DO iq = 1, grid%nq
-        xqbarmod = refold_bz_mod(grid%xq(:,iq), S%bg)
-        xqmodmax = MAX(xqmodmax,xqbarmod)
-      ENDDO
-      xqmodmax = SQRT(xqmodmax)
-      dqbar = xqmodmax/(nqbar-1)
-      sigmaqbar = 5*dqbar
+      WRITE(*,'(2x,a,3f10.4,a,f12.6)') "Q-resolved final state", xq0, " energy = ", ei*RY_TO_CMM1
+      ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf))
     ENDIF
-      WRITE(*,'(2x,a,f10.4)') "Q mod max", xqmodmax
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
@@ -104,9 +95,11 @@ MODULE final_state
         !
         IF(qresolved) THEN
 !           sumaux = sum_selfnrg_modes( S, sigma(:,it), freq, bose, V3sq)
-          DO iqbar = 1,nqbar
-            qbarweight = f_gauss(dqbar*(iqbar-1)-refold_bz_mod(xq(:,2), S%bg), sigmaqbar)
-            xqbar(:,:,iqbar,it) = xqbar(:,:,iqbar,it) - 0.5_dp * sumaux *  qbarweight
+          DO iqpath = 1,qpath%nq
+            !qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaqbar)
+            qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath),S%bg) &
+                                 -refold_bz_mod(xq(:,2), S%bg), sigmaqbar)
+            xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
         ENDIF
         !
@@ -118,9 +111,13 @@ MODULE final_state
 !       xqbar = -0.5_dp * xqbar!/grid%nq
       !
       DO it = 1,nconf
-      DO iqbar = 1,nqbar
+      pl = 0._dp; dpl = 0._dp
+      DO iqpath = 1,qpath%nq
+        IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))
+        pl = pl + dpl
         DO ie = 1,ne
-          WRITE(90000+it,'(f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, dqbar*(iqbar-1), xqbar(ie,:,iqbar,it)
+          WRITE(90000+it,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
+                          pl, xqbar(ie,:,iqpath,it)
         ENDDO
         WRITE(90000+it,*) 
       ENDDO

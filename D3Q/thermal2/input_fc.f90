@@ -48,7 +48,7 @@ MODULE input_fc
     INTEGER :: nq(3) ! initial q-point grid size (unused)
     INTEGER,ALLOCATABLE  :: yR2(:,:), yR3(:,:) ! crystalline coords  3*n_R
     REAL(DP),ALLOCATABLE :: xR2(:,:), xR3(:,:) ! cartesian coords    3*n_R
-    REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat, n_R
+    REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat,3*nat, n_R
     !TYPE(index_r) :: idx2, idx3
   END TYPE forceconst3_grid
   !

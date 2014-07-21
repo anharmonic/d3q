@@ -93,6 +93,7 @@ MODULE functions
     INTEGER  :: i,j,k
     INTEGER,PARAMETER :: far = 2
     !
+    xpmin = xq
     xpmodmin = SUM(xq**2)
     DO i = -far,far
     DO j = -far,far
