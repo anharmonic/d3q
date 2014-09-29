@@ -2,6 +2,13 @@
 ! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
 !   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
+! This program applies acousting sum rules to 3rd order dynamical matrices. 
+! It is currently quite sketchy, but it works. It reads a force constant file in grid format
+! (no sparse) and applies ASR iteratively.
+! This file also contains tentative subroutines that apply asr in one go, but 
+! they are not working properly.
+! This code only reads a file called "mat3R" and writes to a file names "mat3R_asr".
+!
 !
 MODULE asr3_module
   USE kinds,    ONLY : DP
@@ -32,8 +39,16 @@ MODULE asr3_module
   
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
+  ! In the original form (as written by Q2R3) you have a matrix of 3rd order
+  ! force constant for each couple of (R2, R3). The long list of (R2, R3) couples
+  ! repeats many times R2 and R3 in no specific order.
+  ! This subroutine takes the long list of R2 *or* R3 and make a list of the used ones.
+  ! The ordering is the one of appearance, which means that if you call this for R2
+  ! and then for R3 you will get differently ordered lists.
+  ! Furthermore, it finds the posion of -R for each R 
+  ! and of R-R' for each R and R' (if it is in the list)
   SUBROUTINE index_R(nR0, R0, nR,nRx, nRi, R, idR, iRe0, idmR, idRmR)
-    USE input_fc, ONLY : ph_system_info, forceconst3_grid
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nR0, R0(3,nR0)
     !
@@ -122,10 +137,17 @@ MODULE asr3_module
       WRITE(*,'(2i3,2x,3i3,2x,i3,2x,1000i5)') i,idmR(i), R(:,i), nRi(i), idR(1:nRi(i),i)
     ENDDO
     
-  END SUBROUTINE
+  END SUBROUTINE index_R
   ! \/o\________\\\_________________________________________/^>
+  ! In the original form (as written by Q2R3) you have a matrix of 3rd order
+  ! force constant for each couple of (R2, R3). The long list of (R2, R3) couples
+  ! repeats many times R2 and R3 in no specific order.
+  ! This subroutine takes the long list of R2 *or* R3 and make a list of the used ones.
+  ! The ordering is stable as long as the limits are the same.
+  ! Furthermore, it finds the posion of -R for each R 
+  ! and of R-R' for each R and R' (if it is in the list)
   SUBROUTINE stable_index_R(nR0, R0, nR,nRx, nRi, R, idR, iRe0, idmR, idRmR)
-    USE input_fc, ONLY : ph_system_info, forceconst3_grid
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nR0, R0(3,nR0)
     !
@@ -233,11 +255,14 @@ MODULE asr3_module
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE index_2R(idx2,idx3,fc,idR23)
-    USE input_fc,       ONLY : forceconst3_grid
+  ! Find the correspondence between two lists of R vectors (list2 and list3) 
+  ! a single list of couples (R2,R3) 
+  ! i.e. for each R_2 in list2 and R3 in list3 it find the index of (R2,R3) in the big list
+    USE sparse_fc,       ONLY : grid
     IMPLICIT NONE
     !
     TYPE(index_r_type),INTENT(in) :: idx2, idx3
-    TYPE(forceconst3_grid),INTENT(inout) :: fc
+    TYPE(grid),INTENT(inout) :: fc
     INTEGER,INTENT(out),ALLOCATABLE :: idR23(:,:)
     INTEGER :: i2,i3, j
     
@@ -259,15 +284,17 @@ MODULE asr3_module
     
   END SUBROUTINE index_2R
   ! \/o\________\\\_________________________________________/^>
-  INTEGER FUNCTION find_index(n, list, item) RESULT(idR)
+  ! Find the position of an R in a list of Rs
+  INTEGER FUNCTION find_index(n, list, R) RESULT(idR)
     IMPLICIT NONE
-    INTEGER,INTENT(in) ::  n, list(3,n), item(3)
+    INTEGER,INTENT(in) ::  n, list(3,n), R(3)
     DO idR = 1,n
-      IF( ALL(list(:,idR) == item(:)) ) RETURN
+      IF( ALL(list(:,idR) == R(:)) ) RETURN
     ENDDO
     idR = -1
   END FUNCTION
   ! \/o\________\\\_________________________________________/^>
+  ! Reshape 3rd order force constant matrix from 3 to 6 indexes (dir>0), or back (dir<0)
   SUBROUTINE fc_3idx_2_6idx(nat, fc3, fc6, dir)
     USE kinds, ONLY : DP
     IMPLICIT NONE
@@ -299,7 +326,7 @@ MODULE asr3_module
             fc3(i,j,k) = &
                 fc6(pol_i, pol_j, pol_k, at_i, at_j, at_k)
           ELSE
-            CALL errore("fc_3idx_2_6idx","wrong dir",1)
+            CALL errore("fc_3idx_2_6idx","wrong direction",1)
           ENDIF
           !
         ENDDO
@@ -309,12 +336,15 @@ MODULE asr3_module
     RETURN
   END SUBROUTINE fc_3idx_2_6idx
   ! \/o\________\\\_________________________________________/^>
+  ! Initially the force constants are indexed on coupe of (R2,R3)
+  ! this subroutine reshuffle the elements and assign them to two different
+  ! indexes: one for R2 and one for R3. 
   SUBROUTINE reindex_fc3(nat,fc,idR23,idx2,idx3,fx,dir)
-    USE input_fc,       ONLY : forceconst3_grid
+    USE sparse_fc,       ONLY : grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat, dir
-    TYPE(forceconst3_grid),INTENT(inout) :: fc
+    TYPE(grid),INTENT(inout) :: fc
     TYPE(index_r_type) :: idx2, idx3
     INTEGER,INTENT(in) :: idR23(idx2%nR,idx3%nR)
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx2%nR,idx3%nR)
@@ -356,7 +386,6 @@ MODULE asr3_module
   ! use translational symmetry, i.e.:
   ! F^3(R2,0,R3| b,a,c | j,i,k )  --> F^3(0,-R2,R3-R2| b,a,c | j,i,k )
   FUNCTION perm_symmetrize_fc3(nat,idx,fx) RESULT(delta)
-    USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
@@ -436,8 +465,9 @@ MODULE asr3_module
     !
   END FUNCTION perm_symmetrize_fc3
   ! \/o\________\\\_________________________________________/^>
+  ! Experimental subroutine that is supposed to impose asr and symmetrize in a single pass
+  ! CURRENTLY THIS DOES NOT WORK AS EXPECTED
   FUNCTION impose_asr3_6idx(nat,idx,fx) RESULT(delta)
-    USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
     REAL(DP) :: delta
@@ -613,9 +643,8 @@ MODULE asr3_module
   END FUNCTION impose_asr3_6idx
   !
   ! \/o\________\\\_________________________________________/^>
-  !
+  ! Imposes sum rule on the first index of the FCs
   REAL(DP) FUNCTION impose_asr3_1idx(nat,idx,fx) RESULT(delta)
-    USE input_fc,       ONLY : forceconst3_grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
@@ -720,13 +749,13 @@ PROGRAM asr3
 
     USE kinds,          ONLY : DP
     USE iso_c_binding,  ONLY : c_int
-    USE input_fc,       ONLY : read_fc3, aux_system,  write_fc3, &
-                               forceconst3_grid, ph_system_info
+    USE input_fc,       ONLY : aux_system, ph_system_info
+    USE sparse_fc,      ONLY : grid
     USE io_global,      ONLY : stdout
     USE asr3_module
     IMPLICIT NONE
     !
-    TYPE(forceconst3_grid) :: fc
+    TYPE(grid)             :: fc
     TYPE(ph_system_info)   :: s
     TYPE(index_r_type)     :: idx2,idx3
     INTEGER(kind=c_int)    :: kb
@@ -735,13 +764,40 @@ PROGRAM asr3
     !
     INTEGER :: j, ios
     REAL(DP) :: delta
+    ! 
+    INTEGER,INTRINSIC :: iargc
+    CHARACTER(len=256) :: self, filein, fileout
+    INTEGER :: nargs
     !
-    CALL read_fc3("mat3R", S, fc)
+    nargs = iargc()
+    !
+    CALL getarg(0,self)
+    IF(nargs>0) THEN
+      CALL getarg(1, filein)
+    ELSE 
+      WRITE(*,*) "Syntax: "//TRIM(self)//" FILE_IN [FILE_OUT]"
+      WRITE(*,*) "        FILE_IN  : input 3rd order force constants in grid form (no sparse)"
+      WRITE(*,*) "        FILE_OUT : output force constants (default: 'FILE_IN_asr')"
+      WRITE(*,*)
+      CALL errore("asr3", "missing arguments")
+    ENDIF
+    !
+    WRITE(*,*) "Note: create a file called 'STOP' to stop the code at next iteration and write out the result."
+    WRITE(*,*)
+    !
+    IF(nargs>1)THEN
+      CALL getarg(2, fileout)
+    ELSE
+      fileout = TRIM(filein)//"_asr"
+    ENDIF
+    ! ----------------------------------------------------------------------------
+    CALL fc%read(filein, S)
     CALL aux_system(s)
     !
     CALL memstat(kb)
     WRITE(stdout,*) "Reading : done. //  Mem used:", kb/1000, "Mb"
     !
+    ! ----------------------------------------------------------------------------
     CALL stable_index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
                  idx2%yR, idx2%idR, idx2%iRe0, idx2%idmR, idx2%idRmR)
     !
@@ -762,6 +818,7 @@ PROGRAM asr3
     
     CALL memstat(kb)
     WRITE(stdout,*) "R indexing : done. //  Mem used:", kb/1000, "Mb"
+    ! ----------------------------------------------------------------------------
     !
     ALLOCATE(fx(idx2%nR, idx3%nR))
 
@@ -788,10 +845,11 @@ PROGRAM asr3
 !     !
     CALL memstat(kb)
     WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
-
+    ! ----------------------------------------------------------------------------
+    !
     CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
 
-    CALL write_fc3("mat3R_asr", S, fc)
+    CALL fc%write(fileout, S)
     !
 END PROGRAM asr3
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

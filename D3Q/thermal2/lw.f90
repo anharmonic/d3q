@@ -11,8 +11,8 @@ MODULE linewidth_program
   !
   USE kinds,    ONLY : DP
   USE input_fc, ONLY : forceconst2_grid, &
-                       forceconst3_grid, &
                        ph_system_info
+  USE sparse_fc,ONLY : forceconst3
                        
   REAL(DP) :: default_sigma = 10._dp
   
@@ -50,14 +50,15 @@ MODULE linewidth_program
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : INVALID
     USE wrappers,       ONLY : f_mkdir_safe
+    USE sparse_fc,      ONLY : forceconst3
     !
     IMPLICIT NONE
     !
     TYPE(lwinput_type),INTENT(out) :: input
     TYPE(q_grid_type),INTENT(out)  :: qpath
     TYPE(forceconst2_grid),INTENT(out) :: fc2
-    TYPE(forceconst3_grid),INTENT(out) :: fc3
-    TYPE(ph_system_info),INTENT(out)   :: S    
+    CLASS(forceconst3),POINTER,INTENT(inout) :: fc3
+    TYPE(ph_system_info),INTENT(out)   :: S
     !
     ! Input variable, and defaul values:
     CHARACTER(len=16)  :: calculation = "lw" ! "spf"
@@ -278,22 +279,24 @@ MODULE linewidth_program
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, s, fc2, fc3)
     USE iso_c_binding,  ONLY : c_int
-    USE input_fc,       ONLY : same_system, read_fc2, read_fc3, &
-                               aux_system, div_mass_fc2, div_mass_fc3
+    USE input_fc,       ONLY : same_system, read_fc2, aux_system, div_mass_fc2
     USE asr2_module,    ONLY : impose_asr2
     USE io_global,      ONLY : stdout
+    USE sparse_fc,      ONLY : read_fc3, forceconst3
     IMPLICIT NONE
     !
     TYPE(lwinput_type),INTENT(in)        :: input
     TYPE(forceconst2_grid),INTENT(inout) :: fc2
-    TYPE(forceconst3_grid),INTENT(inout) :: fc3
+    CLASS(forceconst3),POINTER,INTENT(inout) :: fc3
     TYPE(ph_system_info),INTENT(inout)   :: s
     TYPE(ph_system_info) :: s3
     !
     INTEGER(kind=c_int) :: kb
     !
     CALL read_fc2(input%file_mat2, S,  fc2)
-    CALL read_fc3(input%file_mat3, S3, fc3)
+    fc3 => read_fc3(input%file_mat3, S3)
+!     CALL read_fc3(input%file_mat3, S3, fc3)
+    !
     IF(.not.same_system(S, S3)) THEN
       PRINT*, "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
     ENDIF
@@ -306,7 +309,8 @@ MODULE linewidth_program
     !
     IF(input%asr2) CALL impose_asr2(S%nat, fc2)
     CALL div_mass_fc2(S, fc2)
-    CALL div_mass_fc3(S, fc3)
+!     CALL div_mass_fc3(S, fc3)
+    CALL fc3%div_mass(S)
     !
   END SUBROUTINE READ_DATA
   !  
@@ -319,11 +323,12 @@ MODULE linewidth_program
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
     USE more_constants, ONLY : write_temperature, write_sigma
     USE nanoclock
+    USE sparse_fc,      ONLY : forceconst3
     IMPLICIT NONE
     !
     TYPE(lwinput_type),INTENT(in)     :: input
     TYPE(forceconst2_grid),INTENT(in) :: fc2
-    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: qpath
     !
@@ -403,7 +408,6 @@ MODULE linewidth_program
     USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag
     USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor, freq_phq
     USE constants,      ONLY : RY_TO_CMM1
-!     USE ph_velocity
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
     USE more_constants, ONLY : write_temperature, write_sigma
     USE nanoclock
@@ -411,7 +415,7 @@ MODULE linewidth_program
     !
     TYPE(lwinput_type),INTENT(in)     :: input
     TYPE(forceconst2_grid),INTENT(in) :: fc2
-    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    CLASS(forceconst3),INTENT(inout)  :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: qpath
     !
@@ -512,7 +516,7 @@ MODULE linewidth_program
     !
     TYPE(lwinput_type),INTENT(in)     :: input
     TYPE(forceconst2_grid),INTENT(in) :: fc2
-    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    CLASS(forceconst3),INTENT(inout)  :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: qpath
     !
@@ -594,10 +598,11 @@ PROGRAM linewidth
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE input_fc,         ONLY : print_citations_linewidth
   USE q_grid,           ONLY : q_grid_type !, setup_simple_grid
+  USE sparse_fc,        ONLY : forceconst3
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
-  TYPE(forceconst3_grid) :: fc3
+  CLASS(forceconst3),POINTER :: fc3
   TYPE(ph_system_info)   :: S
   TYPE(lwinput_type)     :: lwinput
   TYPE(q_grid_type)      :: qpath

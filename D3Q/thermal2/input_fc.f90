@@ -39,18 +39,8 @@ MODULE input_fc
     INTEGER,ALLOCATABLE  :: yR(:,:) ! crystalline coords  3*n_R
     REAL(DP),ALLOCATABLE :: xR(:,:) ! cartesian coords    3*n_R
     REAL(DP),ALLOCATABLE :: FC(:,:,:) ! 3*nat,3*nat, n_R
+    INTEGER :: nq(3) ! initial grid size, only kept for reconstruction purposes
   END TYPE forceconst2_grid
-  ! \/o\________\\\_________________________________________/^>
-  TYPE forceconst3_grid
-    ! q points
-    INTEGER :: n_R = 0
-    INTEGER :: i_00 = -1 ! set to the index where both R2 and R3 are zero
-    INTEGER :: nq(3) ! initial q-point grid size (unused)
-    INTEGER,ALLOCATABLE  :: yR2(:,:), yR3(:,:) ! crystalline coords  3*n_R
-    REAL(DP),ALLOCATABLE :: xR2(:,:), xR3(:,:) ! cartesian coords    3*n_R
-    REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat,3*nat, n_R
-    !TYPE(index_r) :: idx2, idx3
-  END TYPE forceconst3_grid
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
@@ -176,6 +166,22 @@ MODULE input_fc
     !
   END SUBROUTINE write_system
   ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE destroy_system(unit, S)
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(inout)   :: S ! = System
+    INTEGER,INTENT(in) :: unit
+    !
+    S%ntyp = 0
+    S%nat  = 0
+    S%ibrav = 0
+    S%celldm(1:6) = 0._dp
+    S%atm(:) = ""
+    S%amass(:) = 0._dp
+    IF(allocated(S%ityp)) DEALLOCATE(S%ityp)
+    IF(allocated(S%tau))  DEALLOCATE(S%tau)
+    !
+  END SUBROUTINE destroy_system
+  ! \/o\________\\\_________________________________________/^>
   ! compute redundant but useful quantities
   SUBROUTINE aux_system(S)
     IMPLICIT NONE
@@ -217,6 +223,7 @@ MODULE input_fc
     !
     READ(unit, *) jn1, jn2, jn3
     WRITE(stdout,*) "Original FC2 grid:", jn1, jn2, jn3
+    fc%nq(1) = jn1; fc%nq(2) = jn2; fc%nq(3) = jn3
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 
@@ -248,6 +255,50 @@ MODULE input_fc
     CALL cryst_to_cart(n_R,fc%xR,S%at,1)
     !
   END SUBROUTINE read_fc2
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  SUBROUTINE write_fc2(filename, S, fc)
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in)       :: filename
+    TYPE(ph_system_info),INTENT(in)   :: S ! = System
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    !
+    CHARACTER(len=8),PARAMETER :: sub = "write_fc2"
+    !
+    INTEGER :: unit, ios
+    INTEGER, EXTERNAL :: find_free_unit
+    !
+    INTEGER :: na1,  na2,  j1,  j2, jn1, jn2, jn3
+    INTEGER :: n_R, i
+    !
+    unit = find_free_unit()
+    OPEN(unit=unit,file=filename,action='write',status='unknown',iostat=ios)
+    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
+    !
+    CALL write_system(unit, S)
+    !
+    WRITE(unit, '(3i9)') fc%nq
+    !
+    DO na1=1,S%nat
+    DO na2=1,S%nat 
+      DO j1=1,3
+      jn1 = j1 + (na1-1)*3
+      DO j2=1,3     
+      jn2 = j2 + (na2-1)*3            
+          !
+          WRITE(unit,'(2i9,3x,2i9)') j1, j2, na1, na2
+          WRITE(unit,'(i9)') fc%n_R
+          !
+          DO i = 1, fc%n_R
+            WRITE(unit,'(3i4,1pe25.15)') fc%yR(:,i), fc%FC(jn1,jn2,i)
+          ENDDO
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+    !
+    CLOSE(unit)
+    !
+  END SUBROUTINE write_fc2
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE allocate_fc2_grid(n_R, nat, fc)
     IMPLICIT NONE
@@ -280,159 +331,6 @@ MODULE input_fc
     fc%i_0 = -1
     !
   END SUBROUTINE deallocate_fc2_grid
-  ! <<^V^\\=========================================//-//-//========//O\\//
-  SUBROUTINE read_fc3(filename, S, fc)
-    IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in)          :: filename
-    TYPE(ph_system_info),INTENT(inout)   :: S ! = System
-    TYPE(forceconst3_grid),INTENT(inout) :: fc
-    !
-    CHARACTER(len=8),PARAMETER :: sub = "read_fc3"
-    !
-    INTEGER :: unit, ios
-    INTEGER, EXTERNAL :: find_free_unit
-    !
-    INTEGER :: na1,  na2,  na3,  j1,  j2,  j3, jn1, jn2, jn3
-    INTEGER :: na1_, na2_, na3_, j1_, j2_, j3_
-    INTEGER :: n_R, i
-    !
-    unit = find_free_unit()
-    OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
-    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
-    !
-    CALL read_system(unit, S)
-    !
-    READ(unit, *) fc%nq
-    WRITE(stdout,*) "Original FC3 grid:", fc%nq
-    !
-    DO na1=1,S%nat
-    DO na2=1,S%nat 
-    DO na3=1,S%nat 
-      DO j1=1,3
-      jn1 = j1 + (na1-1)*3
-      DO j2=1,3     
-      jn2 = j2 + (na2-1)*3
-      DO j3=1,3     
-      jn3 = j3 + (na3-1)*3
-          !
-          READ(unit,*) j1_, j2_, j3_, na1_, na2_, na3_
-          IF ( ANY((/na1,na2,na3,j1,j2,j3/) /= (/na1_,na2_,na3_,j1_,j2_,j3_/)) ) THEN
-!             print*, (/na1,na2,na3,j1,j2,j3/)
-!             print*, (/na1_,na2_,na3_,j1_,j2_,j3_/)
-            CALL errore(sub,'not matching na1,na2,na3,j1,j2,j3 in file "'//TRIM(filename)//"'",1)
-          ENDIF
-          !
-          READ(unit,*) n_R
-          IF ( fc%n_R == 0) THEN 
-            CALL allocate_fc3_grid(n_R, S%nat, fc)
-          ELSE
-            IF(n_R/=fc%n_R) CALL errore(sub, "cannot read this fc format",1)
-          ENDIF
-          !
-          DO i = 1, fc%n_R
-            READ(unit,*) fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
-            ! also, find the index of R=0
-            IF( ALL(fc%yR2(:,i)==0) .and. ALL(fc%yR3(:,i)==0) ) fc%i_00 = i
-          ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !
-    CLOSE(unit)
-    ! Prepare the lists of R in cartesian coords
-    fc%xR2 = REAL(fc%yR2, kind=DP)
-    CALL cryst_to_cart(n_R,fc%xR2,S%at,1)
-    fc%xR3 = REAL(fc%yR3, kind=DP)
-    CALL cryst_to_cart(n_R,fc%xR3,S%at,1)
-    !
-  END SUBROUTINE read_fc3
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE write_fc3(filename, S, fc)
-    IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in)          :: filename
-    TYPE(ph_system_info),INTENT(in)   :: S ! = System
-    TYPE(forceconst3_grid),INTENT(in) :: fc
-    !
-    CHARACTER(len=8),PARAMETER :: sub = "write_fc3"
-    !
-    INTEGER :: unit, ios
-    INTEGER, EXTERNAL :: find_free_unit
-    !
-    INTEGER :: na1,  na2,  na3,  j1,  j2,  j3, jn1, jn2, jn3
-    INTEGER :: i
-    !
-    unit = find_free_unit()
-    OPEN(unit=unit,file=filename,action='write',status='unknown',iostat=ios)
-    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
-    !
-    CALL write_system(unit, S)
-    !
-    WRITE(unit, '(3i9)') fc%nq
-    !
-    DO na1=1,S%nat
-    DO na2=1,S%nat 
-    DO na3=1,S%nat 
-      DO j1=1,3
-      jn1 = j1 + (na1-1)*3
-      DO j2=1,3     
-      jn2 = j2 + (na2-1)*3
-      DO j3=1,3     
-      jn3 = j3 + (na3-1)*3
-          !
-          WRITE(unit,'(3i9,3x,3i9)') j1, j2, j3, na1, na2, na3
-          !
-          WRITE(unit,'(i9)') fc%n_R
-          !
-          DO i = 1, fc%n_R
-            WRITE(unit,'(3i4,3x,3i4,1pe25.15)') fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
-          ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !
-    CLOSE(unit)
-    !
-  END SUBROUTINE write_fc3
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE allocate_fc3_grid(n_R, nat, fc)
-    IMPLICIT NONE
-    INTEGER,INTENT(in) :: n_R, nat
-    TYPE(forceconst3_grid),INTENT(inout) :: fc
-    CHARACTER(len=16),PARAMETER :: sub = "allocate_fc3_grid"
-    !
-    IF(allocated(fc%yR2) .or. allocated(fc%xR2) .or. allocated(fc%FC) .or. &
-       allocated(fc%yR3) .or. allocated(fc%xR3) ) &
-      CALL errore(sub, 'some element is already allocated', 1)
-    !
-    ALLOCATE(fc%yR2(3,n_R), fc%yR3(3,n_R))
-    ALLOCATE(fc%xR2(3,n_R), fc%xR3(3,n_R))
-    ALLOCATE(fc%FC(3*nat,3*nat,3*nat,n_R))
-    fc%n_R = n_R
-    !
-  END SUBROUTINE allocate_fc3_grid
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE deallocate_fc3_grid(fc)
-    IMPLICIT NONE
-    TYPE(forceconst3_grid),INTENT(inout) :: fc
-    CHARACTER(len=18),PARAMETER :: sub = "deallocate_fc3_grid"
-    !
-    IF(.NOT.(allocated(fc%yR2) .and. allocated(fc%xR2) .and. allocated(fc%FC) .and. &
-             allocated(fc%yR3) .and. allocated(fc%xR3) )) &
-      CALL errore(sub, 'some element is already deallocated', 1)
-    !
-    DEALLOCATE(fc%yR2, fc%yR3)
-    DEALLOCATE(fc%xR2, fc%yR3)
-    DEALLOCATE(fc%FC)
-    fc%n_R = 0
-    fc%i_00 = -1
-    !
-  END SUBROUTINE deallocate_fc3_grid
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE div_mass_fc2 (S,fc)
     USE kinds, only : DP
@@ -454,54 +352,6 @@ MODULE input_fc
     ENDDO
     !
   END SUBROUTINE div_mass_fc2
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE div_mass_fc3 (S,fc)
-    USE kinds, only : DP
-    IMPLICIT NONE
-    TYPE(forceconst3_grid) :: fc
-    TYPE(ph_system_info)   :: S
-    !
-    INTEGER :: i, j, k, i_R
-    !
-    IF(.not.ALLOCATED(S%sqrtmm1)) &
-      call errore('div_mass_fc2', 'missing sqrtmm1, call aux_system first', 1)
-    
-    DO i_R = 1, fc%n_R
-      DO k = 1, S%nat3
-      DO j = 1, S%nat3
-      DO i = 1, S%nat3
-        fc%FC(i, j, k, i_R) = fc%FC(i, j, k, i_R) &
-                    * S%sqrtmm1(i)*S%sqrtmm1(j)*S%sqrtmm1(k)
-      ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    !
-  END SUBROUTINE div_mass_fc3
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE asr_fc2 (S,fc)
-    USE kinds, only : DP
-    IMPLICIT NONE
-    TYPE(forceconst3_grid) :: fc
-    TYPE(ph_system_info)   :: S
-    !
-    INTEGER :: i, j, k, i_R
-    !
-    IF(.not.ALLOCATED(S%sqrtmm1)) &
-      call errore('div_mass_fc2', 'missing sqrtmm1, call aux_system first', 1)
-    
-    DO i_R = 1, fc%n_R
-      DO k = 1, S%nat3
-      DO j = 1, S%nat3
-      DO i = 1, S%nat3
-        fc%FC(i, j, k, i_R) = fc%FC(i, j, k, i_R) &
-                    * S%sqrtmm1(i)*S%sqrtmm1(j)*S%sqrtmm1(k)
-      ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    !
-  END SUBROUTINE asr_fc2
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_citations_linewidth
     WRITE(stdout,*)

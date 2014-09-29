@@ -8,7 +8,7 @@ STRIP = true #strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).  
 
-IFLAGS=-I../../include
+IFLAGS=-I../../include -I../../PHonon/PH
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -23,8 +23,8 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #D3QTOOLSOBJS = \
 #lw.o \
 
-#F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
+F90FLAGS += -check all -traceback -g
+#F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
 #-xAVX 
 LDFLAGS  += -openmp #-g
 #F90FLAGS +=  -g -profile-loops=all
@@ -33,6 +33,7 @@ LDFLAGS  += -openmp #-g
 D3QTOOLSLIBS = \
 asr2.o \
 final_state.o \
+functions.o \
 input_fc.o \
 interp_fc.o \
 linewidth.o \
@@ -41,9 +42,11 @@ nanoclock.o \
 nanosec.o \
 ph_velocity.o \
 q_grid.o \
-functions.o \
+quter.o \
+sparse_fc.o \
+vector.o 
 
-EXECUTABLES = lw.x asr3.x sqom.x
+EXECUTABLES = lw.x asr3.x sqom.x gen_sparse.x q2r.x
 
 all : tldeps $(EXECUTABLES)
 
@@ -53,8 +56,21 @@ lw.x : lw.o $(D3QTOOLSLIBS) d3q
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
+gen_sparse.x : gen_sparse.o $(D3QTOOLSLIBS) d3q
+	$(LD) $(LDFLAGS) -o $@ gen_sparse.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+
 sqom.x : sqom.o $(D3QTOOLSLIBS) d3q
 	$(LD) $(LDFLAGS) -o $@ sqom.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+q2r.x : q2r.o $(D3QTOOLSLIBS) d3q
+	$(LD) $(LDFLAGS) -o $@ q2r.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )

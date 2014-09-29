@@ -1,8 +1,9 @@
 !
 MODULE final_state
-  USE kinds,    ONLY : DP
-  USE input_fc, ONLY : ph_system_info, forceconst2_grid, forceconst3_grid
-  USE interp_fc,      ONLY : fftinterp_mat2, mat2_diag, fftinterp_mat3, ip_cart2pat
+  USE kinds,     ONLY : DP
+  USE input_fc,  ONLY : ph_system_info, forceconst2_grid
+  USE interp_fc, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
+  USE sparse_fc, ONLY : forceconst3
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
@@ -26,7 +27,7 @@ MODULE final_state
     REAL(DP),INTENT(in) :: ener(ne) ! the final state energies
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
-    TYPE(forceconst3_grid),INTENT(in) :: fc3
+    CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
@@ -78,7 +79,7 @@ MODULE final_state
 !$OMP END PARALLEL DO
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
-      CALL fftinterp_mat3(xq(:,2), xq(:,3), S, fc3, D3)
+      CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
       !
