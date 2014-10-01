@@ -290,6 +290,7 @@ MODULE input_fc
           !
           DO i = 1, fc%n_R
             WRITE(unit,'(3i4,1pe25.15)') fc%yR(:,i), fc%FC(jn1,jn2,i)
+!             WRITE(unit,'(3i4,2x,1pe18.11)') fc%yR(:,i), fc%FC(jn1,jn2,i)
           ENDDO
       ENDDO
       ENDDO

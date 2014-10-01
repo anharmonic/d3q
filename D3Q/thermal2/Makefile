@@ -43,6 +43,7 @@ nanosec.o \
 ph_velocity.o \
 q_grid.o \
 quter.o \
+quter_standalone.o \
 sparse_fc.o \
 vector.o 
 
