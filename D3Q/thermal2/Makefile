@@ -23,8 +23,8 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #D3QTOOLSOBJS = \
 #lw.o \
 
-F90FLAGS += -check all -traceback -g
-#F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
+#F90FLAGS += -check all -traceback -g
+F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
 #-xAVX 
 LDFLAGS  += -openmp #-g
 #F90FLAGS +=  -g -profile-loops=all
@@ -43,7 +43,6 @@ nanosec.o \
 ph_velocity.o \
 q_grid.o \
 quter.o \
-quter_standalone.o \
 sparse_fc.o \
 vector.o 
 

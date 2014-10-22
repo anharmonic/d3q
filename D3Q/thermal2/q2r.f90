@@ -281,7 +281,7 @@ PROGRAM q2r
 !     ! auxiliary quantities:
 !     REAL(DP),ALLOCATABLE :: sqrtmm1(:) ! 1/sqrt(amass)
 !     INTEGER :: nat3, nat32, nat33     
-     ALLOCATE(S%tau(3,nat), S%ityp(ntyp))
+     ALLOCATE(S%tau(3,nat), S%ityp(nat))
      S%ntyp  = ntyp
      S%amass = amass
      S%atm   = atm

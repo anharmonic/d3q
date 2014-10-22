@@ -151,6 +151,7 @@ MODULE quter_module
 !       print*, "new matR space created"
       ALLOCATE(matR(3,3,nat,nat,1))
       nR = 1
+      matR = 0._dp
       RETURN
     ENDIF
     !
@@ -158,11 +159,11 @@ MODULE quter_module
     !
 !     print*, "expanded matR to hold", nR, "R vectors"
     auxR => matR
-    ALLOCATE(matR(3,3,nat,nat,nR+1))
+    ALLOCATE(matR(3,3,nat,nat,iR))
     matR(1:3,1:3,1:nat,1:nat,1:nR) = auxR(1:3,1:3,1:nat,1:nat,1:nR) 
-    matR(1:3,1:3,1:nat,1:nat,nR+1) = 0._dp
+    matR(1:3,1:3,1:nat,1:nat,nR+1:iR) = 0._dp
     DEALLOCATE(auxR)
-    nR = nR+1
+    nR = iR
   END SUBROUTINE
   !
   ! given a list of R vectors, find the index of R in the list, 

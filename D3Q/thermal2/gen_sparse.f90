@@ -49,8 +49,8 @@ PROGRAM gen_sparse
     
     INTEGER :: i
     !
-    TYPE(nanotimer) :: t_fc  = nanotimer("t_fc")
-    TYPE(nanotimer) :: t_sfc  = nanotimer("t_sfc")
+    TYPE(nanotimer) :: t_fc  = nanotimer("Full matrix form")
+    TYPE(nanotimer) :: t_sfc  = nanotimer("Sparse matrix form")
     !
     INTEGER,INTRINSIC :: iargc
     CHARACTER(len=256) :: argx, filein, fileout
@@ -80,6 +80,7 @@ PROGRAM gen_sparse
 !     afc => read_fc3("mat3R_sparse", S)
 
     CALL fc%read(filein, S)
+    CALL aux_system(S)
     CALL memstat(kb)
     WRITE(stdout,*) "FC Memory used : ", kb/1000, "Mb"
 

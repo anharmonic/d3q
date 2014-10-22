@@ -51,7 +51,6 @@ MODULE quter_standalone
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE impose_asr2(nat,nR,gridR,matR)
-    USE input_fc,       ONLY : forceconst2_grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in)     :: nat, nR
@@ -312,18 +311,20 @@ MODULE quter_standalone
 !       print*, "new cmatR space created"
       ALLOCATE(cmatR(3,3,nat,nat,1))
       nR = 1
+      matR = 0._dp
       RETURN
     ENDIF
     !
+    ! If matrix is large enough, quit now
     IF(iR<=nR) RETURN
     !
-!     print*, "expanded cmatR to hold", nR, "R vectors"
+    ! Otherwise, expand cmatR to hold iR vectors
     auxR => cmatR
-    ALLOCATE(cmatR(3,3,nat,nat,nR+1))
+    ALLOCATE(cmatR(3,3,nat,nat,iR))
     cmatR(1:3,1:3,1:nat,1:nat,1:nR) = auxR(1:3,1:3,1:nat,1:nat,1:nR) 
-    cmatR(1:3,1:3,1:nat,1:nat,nR+1) = 0._dp
+    cmatR(1:3,1:3,1:nat,1:nat,nR+1:iR) = 0._dp
     DEALLOCATE(auxR)
-    nR = nR+1
+    nR = iR
   END SUBROUTINE
   !
   ! given a list of R vectors, find the index of R in the list, 

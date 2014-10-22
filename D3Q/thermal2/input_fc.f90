@@ -63,12 +63,14 @@ MODULE input_fc
     same = same .and. ALL( S%ityp(1:S%ntyp) == Z%ityp(1:Z%ntyp))
     IF(.not.same) WRITE(*,*) "ityp", S%ityp, Z%ityp
     
-    IF(allocated(S%tau).and.allocated(Z%tau)) &
+    IF(allocated(S%tau).and.allocated(Z%tau)) THEN
       same = same .and. ALL( ABS(S%tau -Z%tau) < eps)
       IF(.not.same) WRITE(*,*) "tau", S%tau, Z%tau
-    IF(allocated(S%zeu).and.allocated(Z%zeu)) &
+    ENDIF
+    IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
       same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
       IF(.not.same) WRITE(*,*) "zeu", S%zeu, Z%zeu
+    ENDIF
 
     same = same .and. ALL( ABS(S%celldm -Z%celldm) < eps)
     IF(.not.same) WRITE(*,*) "celldm", S%celldm, Z%celldm

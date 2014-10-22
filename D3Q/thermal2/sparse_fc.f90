@@ -479,8 +479,8 @@ MODULE sparse_fc
           !
           READ(unit,*) j1_, j2_, j3_, na1_, na2_, na3_
           IF ( ANY((/na1,na2,na3,j1,j2,j3/) /= (/na1_,na2_,na3_,j1_,j2_,j3_/)) ) THEN
-!             print*, (/na1,na2,na3,j1,j2,j3/)
-!             print*, (/na1_,na2_,na3_,j1_,j2_,j3_/)
+            print*, (/na1,na2,na3,j1,j2,j3/)
+            print*, (/na1_,na2_,na3_,j1_,j2_,j3_/)
             CALL errore(sub,'not matching na1,na2,na3,j1,j2,j3 in file "'//TRIM(filename)//"'",1)
           ENDIF
           !
@@ -547,7 +547,7 @@ MODULE sparse_fc
     WRITE(unit, '(3i9)') fc%nq
     !
     n_digits(1) = CEILING(LOG10(DBLE(S%nat)))+1
-    cformat='(i1,2i2,3i'//int_to_char((1))//')'
+    cformat='(i1,2i2,x,3i'//int_to_char(n_digits(1))//')'
     !
     n_digits(2) = CEILING(LOG10(DBLE((MAXVAL(fc%yR2)))))+2 ! +2 to account minus signs
     n_digits(1) = n_digits(2)-1 ! no space at lines beginning
