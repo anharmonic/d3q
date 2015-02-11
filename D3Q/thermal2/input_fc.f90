@@ -1,6 +1,7 @@
 !
-! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE input_fc
@@ -14,6 +15,7 @@ MODULE input_fc
     ! atoms
     INTEGER              :: ntyp
     REAL(DP)             :: amass(ntypx)
+    REAL(DP)             :: amass_variance(ntypx)
     CHARACTER(len=3  )   :: atm(ntypx)
     ! atoms basis
     INTEGER              :: nat
@@ -88,6 +90,7 @@ MODULE input_fc
   END FUNCTION same_system
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE read_system(unit, S)
+    USE more_constants, ONLY : MASS_DALTON_TO_RY
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(out)   :: S ! = System
     INTEGER,INTENT(in) :: unit
@@ -122,9 +125,10 @@ MODULE input_fc
     IF(any(S%amass(1:S%ntyp)<500._dp)) THEN
         WRITE(*,*) "WARNING: Masses seem to be in Dalton units: rescaling"
         WRITE(*,*) "old:", S%amass(1:S%ntyp)
-        S%amass(1:S%ntyp) = S%amass(1:S%ntyp)* 0.5_dp*1822.88839_dp
+        S%amass(1:S%ntyp) = S%amass(1:S%ntyp)* MASS_DALTON_TO_RY
         WRITE(*,*) "new:", S%amass(1:S%ntyp)
     ENDIF
+    S%amass_variance = 0._dp
     !
     ALLOCATE(S%ityp(S%nat), S%tau(3,S%nat))
     DO na = 1, S%nat

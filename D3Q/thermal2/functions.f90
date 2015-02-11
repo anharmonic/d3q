@@ -1,12 +1,14 @@
 !
-! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE functions
   !
   USE kinds,     ONLY : DP
   USE constants, ONLY : pi
+  IMPLICIT NONE
   
   REAL(DP),PARAMETER :: one_over_sqrt_2_pi = 1._dp / SQRT( 2*pi)
   REAL(DP),PARAMETER :: one_over_sqrt_pi = 1._dp / SQRT(pi)
@@ -29,9 +31,9 @@ MODULE functions
     REAL(DP),INTENT(in) :: x,sm1
     f_ngaussi = (one_over_sqrt_2_pi*sm1) * EXP( -0.5_dp*(sm1*x)**2)
   END FUNCTION
-  REAL(DP) ELEMENTAL & ! <`\.......''..','
   !
   !  1b. GAUSSIAN DISTRIBUTION
+  REAL(DP) ELEMENTAL & ! <`\.......''..','
   FUNCTION f_gauss(x,s)
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: x,s

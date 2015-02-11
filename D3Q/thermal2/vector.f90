@@ -1,5 +1,10 @@
-
-
+!
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!
+! This is a didactical example on how to use object oriented fortran 2003 features.
+! It is quite pointless.
 MODULE vector_class
   USE kinds, ONLY : DP
   !
@@ -25,17 +30,20 @@ MODULE vector_class
       procedure :: reverse ! reverse(i,j) exchange value of element i with element j
       procedure :: get => vector_get       ! return all data
       procedure :: size => vector_size     ! return number of elements
-      procedure :: space__ => vector_space ! return allocated size (deprecated)
+      procedure :: space__ => vector_space ! return allocated size (should not be used explicitly)
       procedure :: assign_vector           ! assign_vector(to,from)  copy "from" over "to"
       procedure :: write => write_vector   ! writes content of vector with specified format
       procedure :: extend          ! increase available space
+      !procedur :: compact ! reduce allocation to minimal possible size (TODO)
       !
-      generic :: assignment(=) => assign_vector  !
+      generic :: assignment(=) => assign_vector !
       final   :: destroy                        ! calls self%free
       generic :: write(formatted) => write      ! calls self%write (unsupported by intel compiler!)
     END TYPE vector
     !
+    ! When running out of space inrcease the allocation size by this factor:
     INTEGER,PARAMETER,PRIVATE :: grow_factor = 2
+    ! Initial allocated size:
     INTEGER,PARAMETER,PRIVATE :: initial_size = 128
 
   CONTAINS
@@ -64,6 +72,7 @@ MODULE vector_class
     RETURN
   END SUBROUTINE free
   ! \/o\________\\\_________________________________________/^>
+  ! aka %init
   SUBROUTINE initialize_vector(self, space_)
     IMPLICIT NONE
     CLASS(vector),INTENT(out) :: self
@@ -80,8 +89,10 @@ MODULE vector_class
     RETURN
   END SUBROUTINE initialize_vector
   ! \/o\________\\\_________________________________________/^>
+  ! aka %new and default constructor
   TYPE(vector) FUNCTION new_vector(space_) RESULT(self)
     IMPLICIT NONE
+    ! Note: the "optional" status is passed down to %init
     INTEGER,INTENT(in),OPTIONAL :: space_
     CALL self%init(space_)
     RETURN
@@ -103,6 +114,7 @@ MODULE vector_class
     
   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>
+  ! aka the operator "="
   SUBROUTINE assign_vector(to, from)
     IMPLICIT NONE
     CLASS(vector),INTENT(out) :: to
@@ -110,7 +122,8 @@ MODULE vector_class
     !
     !IF(to%space_ < from%space_) 
     !print*, "copying from to", from%space_, to%space_
-    CALL to%extend(from%space_)
+    ! NOTE: we can use from%size_ or from%space_, I think the latter is neater
+    CALL to%extend(from%size_)
     to%size_ = from%size_
     to%x(1:to%size_) = from%x(1:from%size_)
     RETURN

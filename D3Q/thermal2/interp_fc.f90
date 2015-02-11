@@ -1,6 +1,7 @@
 !
-! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE interp_fc
@@ -12,6 +13,8 @@ MODULE interp_fc
 
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
+  ! Compute the Dynamical matrix D by Fourier-interpolation of the
+  ! force constants fc
   SUBROUTINE fftinterp_mat2(xq, S, fc, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE

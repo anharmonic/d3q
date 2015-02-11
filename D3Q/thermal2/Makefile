@@ -36,22 +36,31 @@ final_state.o \
 functions.o \
 input_fc.o \
 interp_fc.o \
+isotopes.o \
 linewidth.o \
 more_constants.o \
 nanoclock.o \
 nanosec.o \
+nist_isotopes_database.o \
 ph_velocity.o \
 q_grid.o \
 quter.o \
 sparse_fc.o \
+timers.o \
 vector.o 
 
-EXECUTABLES = lw.x asr3.x sqom.x gen_sparse.x q2r.x
+EXECUTABLES = lw.x asr3.x sqom.x gen_sparse.x q2r.x r2q.x
 
 all : tldeps $(EXECUTABLES)
 
 lw.x : lw.o $(D3QTOOLSLIBS) d3q
 	$(LD) $(LDFLAGS) -o $@ lw.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+r2q.x : r2q.o $(D3QTOOLSLIBS) d3q
+	$(LD) $(LDFLAGS) -o $@ r2q.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )

@@ -1,6 +1,5 @@
 !
 ! Copyright (C) Lorenzo Paulatto, 2014
-! Algorithm from Giorgia Fugallo and Michele Lazzeri
 ! Uses wsweight from PW/src
 ! 
 ! This file is distributed under the terms of the

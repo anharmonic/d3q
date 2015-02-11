@@ -1,9 +1,14 @@
 !
-! Phys. Rev. B 75, 174508 – Published 14 May 2007 
-! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013-2014 - released under the CeCILL licence v 2.1 
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
+! Convolutes a phonon spectral function with a certain experimental linewidth,
+! which is assumed proportional to the energy (as in neutron scattering experiments)
+! Reads files produced by lw.x 
 !
+! NOTE: heavily work in progress, not user friendly.
+! 
 ! CONVENTIONS :
 ! xR, xq --> cartesian coordinates
 ! yR, yq --> crystalline coordinates
@@ -116,6 +121,8 @@ MODULE sqom_program
   USE constants, ONLY : BOHR_RADIUS_SI
   IMPLICIT NONE
     ! Data from http://www.ncnr.nist.gov/resources/n-lengths/
+    ! This software is open source, do not complain about the 
+    ! table being incomplete: fill it yourself.
     !
     ! internal units are in femto-meters (aka fm, fermi)
     ! output is in bohr

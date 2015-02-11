@@ -1,11 +1,12 @@
 !
-! Copyright Lorenzo Paulatto, Giorgia Fugallo 2013 - released under the CeCILL licence v 2.1 
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2014) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! This program applies acousting sum rules to 3rd order dynamical matrices. 
 ! It is currently quite sketchy, but it works. It reads a force constant file in grid format
 ! (no sparse) and applies ASR iteratively.
-! This file also contains tentative subroutines that apply asr in one go, but 
+! This file also contains tentative subroutines that applies asr in one go, but 
 ! they are not working properly.
 ! This code only reads a file called "mat3R" and writes to a file names "mat3R_asr".
 !

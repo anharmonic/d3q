@@ -1,7 +1,7 @@
 !
-! Copyright Lorenzo Paulatto, 2013-2014 - released under the CeCILL licence v 2.1 
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
-!
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! CONVENTIONS :
 ! xR, xq --> cartesian coordinates
@@ -16,6 +16,8 @@ MODULE linewidth_program
                        
   REAL(DP) :: default_sigma = 10._dp
   
+  ! NOTE: energies in the LWINPUT_TYPE structure are assumed to be in CM^-1
+  !       in the rest of the code energies are in Rydberg!
   TYPE lwinput_type
     !
     CHARACTER(len=16) :: calculation ! lw=linewidth, spf=spectral function
@@ -30,13 +32,17 @@ MODULE linewidth_program
     LOGICAL            :: asr2
     !
     INTEGER            :: nconf
-    REAL(DP),ALLOCATABLE :: T(:), sigma(:,:)
+    REAL(DP),ALLOCATABLE :: T(:), sigma(:)
     ! for spectral function:
     INTEGER :: ne
     REAL(DP) :: e0, de
     ! for final state:
     REAL(DP) :: e_initial
     REAL(DP) :: q_initial(3)
+    LOGICAL  :: q_resolved
+    REAL(DP) :: sigmaq
+    ! for isotope contribution to lw
+    LOGICAL  :: isotopic_disorder
     !
     INTEGER :: nk(3)
   END TYPE lwinput_type
@@ -48,9 +54,10 @@ MODULE linewidth_program
     USE io_global,      ONLY : stdout
     USE q_grid,         ONLY : q_grid_type, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1
-    USE more_constants, ONLY : INVALID
+    USE more_constants, ONLY : INVALID, MASS_DALTON_TO_RY
     USE wrappers,       ONLY : f_mkdir_safe
     USE sparse_fc,      ONLY : forceconst3
+    USE nist_isotopes_database, ONLY : compute_gs
     !
     IMPLICIT NONE
     !
@@ -77,21 +84,28 @@ MODULE linewidth_program
     REAL(DP) :: de = 1._dp, e0 = 0._dp
     REAL(DP) :: e_initial = -1._dp
     REAL(DP) :: q_initial(3) = 0._dp
+    LOGICAL  :: q_resolved = .false.
+    REAL(DP) :: sigmaq = 0.1_dp
     !
-    REAL(DP) :: xq(3), xq0(3), sigmaux
-    INTEGER  :: ios, ios2, i, naux, nq1, nq2, nq3
+    LOGICAL  :: isotopic_disorder = .true.
+    REAL(DP),ALLOCATABLE :: isotopes_mass(:), isotopes_conc(:), auxm(:), auxs(:)
+    INTEGER :: n_isotopes, atomic_N
+    !
+    REAL(DP) :: xq(3), xq0(3)
+    INTEGER  :: ios, ios2, i, j, naux, nq1, nq2, nq3
     CHARACTER(len=1024) :: line, word
     CHARACTER(len=16)   :: word2, word3
     CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
     CHARACTER (LEN=6), EXTERNAL :: int_to_char
     !
-    LOGICAL :: qpoints_ok=.false., configs_ok=.false.
+    LOGICAL :: qpoints_ok=.false., configs_ok=.false., isotopes_ok=.false.
     !
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, nq, nk, &
-      ne, de, e0, e_initial, q_initial, exp_t_factor
+      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, &
+      isotopic_disorder
 
     WRITE(*,*) "Waiting for input"
     !
@@ -110,6 +124,7 @@ MODULE linewidth_program
     input%nconf     = nconf
     input%nk        = nk
     input%exp_t_factor = exp_t_factor
+    input%isotopic_disorder = isotopic_disorder
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
@@ -141,8 +156,13 @@ MODULE linewidth_program
       CALL errore('READ_INPUT', 'Missing e_initial for final state calculation', 1)    
     input%e_initial = e_initial
     input%q_initial = q_initial
+    ! if we also want the q of the final state:
+    input%q_resolved = q_resolved
+    input%sigmaq  = sigmaq
     !
-    ALLOCATE(input%T(nconf), input%sigma(S%nat3,nconf))
+    ! Read the configurations:
+    !
+    ALLOCATE(input%T(nconf), input%sigma(nconf))
     !
     READ(*,'(a1024)', iostat=ios) line
     READ_CARDS : &
@@ -219,43 +239,109 @@ MODULE linewidth_program
         !
         WRITE(*,*) "Reading CONFIGS", nconf
         DO i = 1,nconf
-        
           READ(*,'(a1024)', iostat=ios2) line
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
-          ! Try to read 3*nat sigma and temperature
-          READ(line,*,iostat=ios2) input%sigma(:,i), input%T(i)
-            ! If it fails, try to read a single sigma and temperature
-            IF(ios2/=0) THEN
-            READ(line,*,iostat=ios2) sigmaux, input%T(i)
-              ! Divide by 2 as later I'll use the sum of sigmas from two bands
-              IF(ios==0) input%sigma(:,i) = 0.5_dp*sigmaux
-              ! If it still fails, read just temperature
-              IF(ios2/=0) THEN
-              READ(line,*,iostat=ios2) input%T(i)
-                ! If this fails, complain
-                IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration, got: '"//TRIM(line)//"'.", 1)
-                IF(i>1) THEN
-                  input%sigma(:,i) = input%sigma(:,i-1)
-                ELSE
-                  CALL errore("READ_INPUT","I need at least one value of sigma", 1)
-                ENDIF
+          !
+          ! try to read sigma and temperature
+          READ(line,*,iostat=ios2) input%sigma(i), input%T(i)
+          ! If it fails, read just temperature
+          IF(ios2/=0) THEN
+            READ(line,*,iostat=ios2) input%T(i)
+            ! If this fails, complain
+            IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration, got: '"//TRIM(line)//"'.", 1)
+            ! reuse previous value of sigma if we read jus ttemperature
+            IF(i>1) THEN
+              input%sigma(i) = input%sigma(i-1)
+            ELSE
+              CALL errore("READ_INPUT","I need at least one value of sigma", 1)
             ENDIF
           ENDIF
         ENDDO
         WRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
-        WRITE(*,'(2x,a)') "Sigma:"
-        DO i = 1,nconf
-          WRITE(*,'(5x,99f9.1)') input%sigma(:,i)
-        ENDDO
+        WRITE(*,'(2x,a,/,100(8f9.1,/))') "Smearings:   ", input%sigma
         WRITE(*,*)
-        !line = ""
+
+      CASE ("ISOTOPES")
+        IF(isotopes_ok) CALL errore("READ_INPUT", "Won't reads isotopes twice", 1)
+        isotopes_ok = .true.
+        !
+        WRITE(*,*) "Reading ISOTOPES", S%ntyp
+        IF(.not.isotopic_disorder) WRITE(*,*) "WARNING! you did not se isotopic_disorder to true!"
+        ALLOCATE(auxs(S%ntyp), auxm(S%ntyp))
+        !
+        ISOTOPE_TYPE_LOOP : &
+        DO i = 1,S%ntyp
+          READ(*,'(a1024)', iostat=ios2) line
+          IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope: input error.", 1)
+          !
+
+!     DO it = 1, S%ntyp
+!       CALL compute_gs(auxm(it), auxs(it), S%atm(it), 0, 0)
+!     ENDDO
+!     ! Rearrange the cross sections with the mode index, for simplicity
+!     nu = 0
+!     DO ia = 1, S%nat
+!       it = S%ityp(ia)
+!       DO alpha = 1,3
+!         nu = nu+1
+!         gm(nu)  = auxm(it)
+!         gs2(nu) = auxs(it)
+!       ENDDO
+!     ENDDO
+          ! Try to read isotope name and method
+          READ(line,*,iostat=ios2) word2, word3
+          !
+          ! If this fails, complain
+          IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope, got: '"//TRIM(line)//"'.", 1)
+          IF(word2 /= S%atm(i)) &
+            WRITE(*,"(a,i3,2a)") "WARNING: isotope name from input does not match FC file", i, word2, S%atm(i)
+          !
+          !
+          IF (word3=="natural") THEN
+            CALL compute_gs(auxm(i), auxs(i), word2, 0, 0)
+            
+          ELSE IF (word3=="N") THEN
+            READ(line,*,iostat=ios2) word2, word3, atomic_N
+            IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope atomic number: input error.", 2)
+            CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, 0)
+            
+          ELSE IF (word3=="M") THEN
+            n_isotopes = 1
+            ALLOCATE(isotopes_mass(n_isotopes), isotopes_conc(n_isotopes))
+            isotopes_conc = 1._dp
+            READ(line,*,iostat=ios2) word2, word3, isotopes_mass(1)
+            IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope atomic mass: input error.", 3)
+            CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
+            DEALLOCATE(isotopes_mass, isotopes_conc)
+            
+          ELSE IF (word3=="isotopes") THEN
+            READ(line,*,iostat=ios2) word2, word3, n_isotopes
+            ALLOCATE(isotopes_mass(n_isotopes), isotopes_conc(n_isotopes))
+            DO j = 1,n_isotopes
+              READ(*,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
+              IF(ios2/=0) CALL errore("READ_INPUT","REading isotope line: input error.", 4)
+            ENDDO
+            CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
+            DEALLOCATE(isotopes_mass, isotopes_conc)
+
+          ELSE
+            CALL errore("READ_INPUT","I do not understand this isotope choice '"//TRIM(word2)//"'.", 1)
+          ENDIF
+        ENDDO &
+        ISOTOPE_TYPE_LOOP 
+        !
+        ! Replace atomic masses with those from input:
+        S%amass = auxm * MASS_DALTON_TO_RY
+        S%amass_variance = auxs
+        DEALLOCATE(auxs, auxm)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE DEFAULT
-!         WRITE(*,*) "Skip:", TRIM(line)
+        IF(TRIM(line) /= '') WRITE(*,*) "Skip:", TRIM(line)
       END SELECT
-
-    READ(*,'(a1024)', iostat=ios) line
-    word = ''
+      !
+      READ(*,'(a1024)', iostat=ios) line
+      word = ''
+      !
     ENDDO &
     READ_CARDS
     !
@@ -271,6 +357,14 @@ MODULE linewidth_program
                 "."//TRIM(int_to_char(nq3))
     ENDIF
     !
+    ! Set natural isotope concentration for every species, if not read from input
+    IF(input%isotopic_disorder.and..not.isotopes_ok)THEN
+      DO j = 1,S%ntyp
+        CALL compute_gs(S%amass(i), S%amass_variance(i), S%atm(j), 0, 0)
+      ENDDO
+      S%amass = S%amass * MASS_DALTON_TO_RY
+    ENDIF
+    
     IF(.not.qpoints_ok) CALL errore("READ_INPUT", "I did not find QPOINTS card", 1)
     IF(.not.configs_ok) CALL errore("READ_INPUT", "I did not find CONFIGS card", 1)
     !
@@ -321,8 +415,8 @@ MODULE linewidth_program
     USE constants,      ONLY : RY_TO_CMM1
 !     USE ph_velocity
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
-    USE more_constants, ONLY : write_temperature, write_sigma
-    USE nanoclock
+    USE more_constants, ONLY : write_conf
+    USE timers
     USE sparse_fc,      ONLY : forceconst3
     IMPLICIT NONE
     !
@@ -339,17 +433,26 @@ MODULE linewidth_program
     TYPE(q_grid_type) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     REAL(DP)   :: lw(S%nat3,input%nconf)
+    REAL(DP)   :: sigma_ry(input%nconf)
+    CHARACTER(len=15) :: f1, f2
     !
     CALL setup_simple_grid(S, input%nk(1), input%nk(2), input%nk(3), grid)
     !
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//".T"//TRIM(write_temperature(it,input%nconf,input%T))//&
-                                "s"//TRIM(write_sigma(it,S%nat3,input%nconf,input%sigma))//"out")
-      WRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
-      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(:,it)
+                              TRIM(input%prefix)//".T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                "s"//TRIM(write_conf(it,input%nconf,input%sigma))//"out")
+      IF (TRIM(input%mode) == "full") THEN
+        WRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
+      ELSE
+        WRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
+      ENDIF
+      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
       CALL flush_unit(1000+it)
     ENDDO
+    ! Prepare formats to write out data
+    WRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
+    WRITE(f2,'(i6,a)') S%nat3, "e15.5,6x,"
     !
     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
     ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
@@ -360,8 +463,9 @@ MODULE linewidth_program
     !      d = 0.83255 c
     ! IMHO: you need to use a sigma that is 0.6 (=0.5/0.83255) times smaller when using
     ! linewidth_q than when using selfnrg_q in order to get the same values
+    ! THIS FACTOR IS NOW INCLUDED DIRECTLY IN SUM_LINEWIDTH_MODES!
+    sigma_ry = input%sigma/RY_TO_CMM1
     !
-    CALL print_header()
     dpl = 0._dp; pl = 0._dp
     !
     WRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
@@ -375,18 +479,20 @@ MODULE linewidth_program
       pl = pl + dpl
       !
       IF (TRIM(input%mode) == "full") THEN
-        ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T,  input%sigma/RY_TO_CMM1, &
+        ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                         S, grid, fc2, fc3)
         DO it = 1,input%nconf
-          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5,6x,6e15.5)') &
+!           WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5)') &
+          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(ls(:,it))*RY_TO_CMM1, DBLE(ls(:,it))*RY_TO_CMM1
           CALL flush_unit(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real") THEN
-        lw = linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  input%sigma/RY_TO_CMM1, &
+        lw = linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
                         S, grid, fc2, fc3)
         DO it = 1,input%nconf
-          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5,6x,6e15.5,6x,6e15.5)') &
+!           WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,6f12.6,6x,6e15.5)') &
+          WRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
                 iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
           CALL flush_unit(1000+it)
         ENDDO
@@ -401,6 +507,12 @@ MODULE linewidth_program
       CLOSE(unit=1000+it)
     ENDDO
     !
+    CALL t_freq%print() 
+    CALL t_sum%print() 
+    CALL t_fc3int%print() 
+    CALL t_fc3m2%print() 
+    CALL t_fc3rot%print() 
+    !
   END SUBROUTINE LW_QBZ_LINE
   !   
   !  
@@ -409,7 +521,7 @@ MODULE linewidth_program
     USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor, freq_phq
     USE constants,      ONLY : RY_TO_CMM1
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
-    USE more_constants, ONLY : write_temperature, write_sigma
+    USE more_constants, ONLY : write_conf
     USE nanoclock
     IMPLICIT NONE
     !
@@ -423,8 +535,7 @@ MODULE linewidth_program
     INTEGER :: iq, it, ie
     TYPE(q_grid_type) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
-    !
-    REAL(DP),PARAMETER :: inv2_RY_TO_CMM1 = 1/(RY_TO_CMM1)**2
+    REAL(DP)   :: sigma_ry(input%nconf)
     !
     REAL(DP),ALLOCATABLE :: ener(:), spectralf(:,:,:)
     !
@@ -436,6 +547,7 @@ MODULE linewidth_program
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
+    ener = ener/RY_TO_CMM1
     !
     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
     ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
@@ -446,13 +558,14 @@ MODULE linewidth_program
     !      d = 0.83255 c
     ! IMHO: you need to use a sigma that is 0.6 (=0.5/0.83255) times smaller when using
     ! linewidth_q than when using selfnrg_q in order to get the same values
+    sigma_ry = input%sigma/RY_TO_CMM1
     !
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//".T"//TRIM(write_temperature(it,input%nconf,input%T))//&
-                              "s"//TRIM(write_sigma(it,S%nat3,input%nconf,input%sigma))//"out")
+                              TRIM(input%prefix)//".T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                              "s"//TRIM(write_conf(it,input%nconf,input%sigma))//"out")
       WRITE(1000+it, *) "# spectral function mode: ", input%mode
-      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(:,it)
+      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       WRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
       CALL flush_unit(1000+it)
     ENDDO
@@ -471,16 +584,16 @@ MODULE linewidth_program
       ENDDO
       !
       IF (TRIM(input%mode) == "full") THEN
-        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                                  S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
+        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                  S, grid, fc2, fc3, input%ne, ener)
       ELSE IF (TRIM(input%mode) == "simple") THEN
-        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                                  S, grid, fc2, fc3, input%ne, ener/RY_TO_CMM1)
+        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                  S, grid, fc2, fc3, input%ne, ener)
       ELSE
         CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
       ENDIF
       !
-      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener/RY_TO_CMM1, spectralf)
+      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener, spectralf)
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl
@@ -488,7 +601,7 @@ MODULE linewidth_program
       DO it = 1,input%nconf
         DO ie = 1,input%ne
           WRITE(1000+it, '(2f14.8,100e14.6)') &
-                pl, ener(ie), SUM(spectralf(ie,:,it))*inv2_RY_TO_CMM1, spectralf(ie,:,it)*inv2_RY_TO_CMM1
+                pl, ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2
           CALL flush_unit(1000+it)
         ENDDO
       ENDDO
@@ -510,7 +623,7 @@ MODULE linewidth_program
     USE  final_state,   ONLY : final_state_q
     USE constants,      ONLY : RY_TO_CMM1
     USE q_grid,         ONLY : q_grid_type, setup_simple_grid
-    USE more_constants, ONLY : write_temperature, write_sigma
+    USE more_constants, ONLY : write_conf
     USE nanoclock
     IMPLICIT NONE
     !
@@ -520,10 +633,11 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: qpath
     !
-    REAL(DP) :: pl,dpl
+    REAL(DP) :: pl,dpl, e_inital_ry 
     INTEGER :: iq, it, ie
     TYPE(q_grid_type) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
+    REAL(DP) :: sigma_ry(input%nconf)
     !
     REAL(DP),PARAMETER :: inv2_RY_TO_CMM1 = 1/(RY_TO_CMM1)**2
     !
@@ -536,15 +650,19 @@ MODULE linewidth_program
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
+    ! Convert to Rydberg:
+    ener = ener/RY_TO_CMM1
+    e_inital_ry = input%e_initial/RY_TO_CMM1
+    sigma_ry = input%sigma/RY_TO_CMM1
     !
     DO it = 1,input%nconf
       filename = TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//".T"//TRIM(write_temperature(it,input%nconf,input%T))//&
-                              "s"//TRIM(write_sigma(it,S%nat3,input%nconf,input%sigma))//"out"
+                              TRIM(input%prefix)//".T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                              "s"//TRIM(write_conf(it,input%nconf,input%sigma))//"out"
       OPEN(unit=1000+it, file=filename)
       WRITE(*,*) "opening ", TRIM(filename)
-      WRITE(1000+it, *) "# spectral function mode: ", input%mode
-      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(:,it)
+      WRITE(1000+it, *) "# final state decompositions, mode: ", input%mode
+      WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       WRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
       CALL flush_unit(1000+it)
     ENDDO
@@ -561,20 +679,21 @@ MODULE linewidth_program
 !         WRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
 !       ENDDO
       !
-      fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, input%sigma/RY_TO_CMM1, &
-                             S, grid, fc2, fc3, input%e_initial/RY_TO_CMM1, input%ne, ener/RY_TO_CMM1)
+      fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
+                             S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
+                             input%q_resolved, input%sigmaq, input%outdir, input%prefix)
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl
       !
-!       DO it = 1,input%nconf
-!         DO ie = 1,input%ne
-!           WRITE(1000+it, '(2f14.8,100e18.6e4)') &
-!                 pl, ener(ie), SUM(fstate(ie,:,it)), fstate(ie,:,it)
-!           CALL flush_unit(1000+it)
-!         ENDDO
-!       ENDDO
-!       !
+      DO it = 1,input%nconf
+        DO ie = 1,input%ne
+          WRITE(1000+it, '(2f14.8,100e18.6e4)') &
+                pl, ener(ie), SUM(fstate(ie,:,it)), fstate(ie,:,it)
+          CALL flush_unit(1000+it)
+        ENDDO
+      ENDDO
+      !
 !     ENDDO
     !
     !
@@ -587,9 +706,9 @@ MODULE linewidth_program
   END SUBROUTINE FINAL_STATE_LINE
   !   
   END MODULE linewidth_program
-
-
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+!               !               !               !               !               !               !
+!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM linewidth
 
   USE kinds,            ONLY : DP
@@ -625,11 +744,11 @@ PROGRAM linewidth
     !
     CALL SPECTR_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
     !
-  ELSE &
-  IF(TRIM(lwinput%calculation) == "grid") THEN
-    !
-    ! Compute the linewidth over the grid, will be reused later to do self-consistent linewidth
-    CALL LW_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
+!   ELSE &
+!   IF(TRIM(lwinput%calculation) == "grid") THEN
+!     !
+!     ! Compute the linewidth over the grid, will be reused later to do self-consistent linewidth
+!     CALL LW_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
   ELSE &
   IF(TRIM(lwinput%calculation) == "final") THEN
     !
@@ -644,16 +763,4 @@ PROGRAM linewidth
  
 END PROGRAM
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-
-
-
-
-
-
-
-
-
-
-
-
 

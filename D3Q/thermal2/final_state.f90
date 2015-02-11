@@ -1,4 +1,8 @@
 !
+! Written by Lorenzo Paulatto (2014-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!
 MODULE final_state
   USE kinds,     ONLY : DP
   USE input_fc,  ONLY : ph_system_info, forceconst2_grid
@@ -8,11 +12,13 @@ MODULE final_state
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
-  FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3, ei, ne, ener)
+  FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3,&
+                         ei, ne, ener, qresolved, sigmaq, outdir, prefix)
     USE linewidth,      ONLY : bose_phq, freq_phq_safe  , sum_selfnrg_modes
     USE q_grid,         ONLY : q_grid_type
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
     USE constants,      ONLY : RY_TO_CMM1
+    USE more_constants, ONLY : write_conf
     !
     IMPLICIT NONE
     !
@@ -25,15 +31,20 @@ MODULE final_state
     !
     INTEGER,INTENT(in)  :: ne       ! number of final state energies
     REAL(DP),INTENT(in) :: ener(ne) ! the final state energies
+    REAL(DP),INTENT(in) :: sigmaq ! gaussian width used to select the q points
+    LOGICAL,INTENT(in) :: qresolved
+    CHARACTER(len=256),INTENT(in) :: outdir, prefix
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     ! FUNCTION RESULT:
     REAL(DP) :: final_state_q(ne,S%nat3,nconf)
     !
+    INTEGER :: unit
+    INTEGER, EXTERNAL :: find_free_unit
     ! To interpolate D2 and D3:
     INTEGER :: iq, jq, nu, it
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
@@ -45,11 +56,10 @@ MODULE final_state
     REAL(DP) :: gamma, delta, omega, denom
     COMPLEX(DP),ALLOCATABLE :: fstate_q(:,:,:)
     !
-    LOGICAL :: qresolved = .true.
     REAL(DP) :: sumaux(ne,S%nat3)
     INTEGER     :: iqpath
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
-    REAL(DP) :: qbarweight, sigmaqbar = 0.1_dp
+    REAL(DP) :: qbarweight
     REAL(DP) :: pl,dpl
     !
     ALLOCATE(U(S%nat3, S%nat3,3))
@@ -90,16 +100,16 @@ MODULE final_state
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, ei, ne, ener )
+        sumaux = sum_final_state_e( S, sigma(it), freq, bose, V3sq, ei, ne, ener )
 !         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
         !
         IF(qresolved) THEN
-!           sumaux = sum_selfnrg_modes( S, sigma(:,it), freq, bose, V3sq)
+!           sumaux = sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq)
           DO iqpath = 1,qpath%nq
-            !qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaqbar)
+            !qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
             qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath),S%bg) &
-                                 -refold_bz_mod(xq(:,2), S%bg), sigmaqbar)
+                                 -refold_bz_mod(xq(:,2), S%bg), sigmaq)
             xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
         ENDIF
@@ -109,19 +119,23 @@ MODULE final_state
     ENDDO
     !
     IF(qresolved)THEN
-!       xqbar = -0.5_dp * xqbar!/grid%nq
       !
+      unit = find_free_unit()
       DO it = 1,nconf
-      pl = 0._dp; dpl = 0._dp
-      DO iqpath = 1,qpath%nq
-        IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))
-        pl = pl + dpl
-        DO ie = 1,ne
-          WRITE(90000+it,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
-                          pl, xqbar(ie,:,iqpath,it)
+        OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
+                        ".q_resolved.T"//TRIM(write_conf(it,nconf,T))//&
+                        "s"//TRIM(write_conf(it,nconf,sigma))//"out")
+        pl = 0._dp; dpl = 0._dp
+        DO iqpath = 1,qpath%nq
+          IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))
+          pl = pl + dpl
+          DO ie = 1,ne
+            WRITE(unit,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
+                            pl, xqbar(ie,:,iqpath,it)
+          ENDDO
+          WRITE(unit,*) 
         ENDDO
-        WRITE(90000+it,*) 
-      ENDDO
+        CLOSE(unit)
       ENDDO
       DEALLOCATE(xqbar)
     ENDIF
@@ -138,7 +152,7 @@ MODULE final_state
     USE functions, ONLY : f_gauss
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma(S%nat3)   ! smearing (regularization) (Ry)
+    REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
     REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
@@ -151,7 +165,7 @@ MODULE final_state
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtot, freqtotm1, eta
+    REAL(DP) :: freqtot, freqtotm1
     REAL(DP) :: omega_P,  omega_M   ! \delta\omega
     REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
     REAL(DP) :: wfinal(ne)
@@ -186,8 +200,6 @@ MODULE final_state
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        eta = sigma(k)+sigma(j)
-        !
         DO i = 1,S%nat3
 !           i = 6
           !
@@ -199,7 +211,7 @@ MODULE final_state
             !
             DO ie = 1, ne
             ! regularization:
-              reg = CMPLX(ei, eta, kind=DP)**2
+              reg = CMPLX(ei, sigma, kind=DP)**2
               !
               ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
               ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)

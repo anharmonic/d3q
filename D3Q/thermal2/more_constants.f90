@@ -1,4 +1,8 @@
 !
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!
 MODULE more_constants
   USE kinds, ONLY : DP
   REAL(DP),PARAMETER :: RY_TO_JOULE =  0.5* 4.35974394e-18
@@ -6,30 +10,30 @@ MODULE more_constants
   REAL(DP),PARAMETER :: RY_TO_METER = 5.2917721092e-11
   REAL(DP),PARAMETER :: RY_TO_WATTMM1KM1 = RY_TO_JOULE / (RY_TO_SECOND * RY_TO_METER)
   CHARACTER(len=3),PARAMETER :: INVALID = '///'
-  
+  REAL(DP),PARAMETER :: MASS_DALTON_TO_RY = 0.5_dp*1822.88839_dp
   CONTAINS
   !
-  CHARACTER(len=256) &
-  FUNCTION sigma_file_name(prefix, nq1, nq2, nq3, cT, csigma)
-    IMPLICIT NONE
-    CHARACTER(len=256),INTENT(in) :: prefix
-    INTEGER,INTENT(in) :: nq1, nq2, nq3
-    CHARACTER(len=6),INTENT(in) ::  cT, csigma
-    !
-    CHARACTER (LEN=6), EXTERNAL :: int_to_char
-    !
-    sigma_file_name= TRIM(prefix)//&
-                "."//TRIM(int_to_char(nq1))// &
-                "."//TRIM(int_to_char(nq2))// &
-                "."//TRIM(int_to_char(nq3))// &
-                "."//TRIM(cT)// &
-                "."//TRIM(csigma)//".out"
-    !
-  END FUNCTION sigma_file_name
-  !
+!   CHARACTER(len=256) &
+!   FUNCTION sigma_file_name(prefix, nq1, nq2, nq3, cT, csigma)
+!     IMPLICIT NONE
+!     CHARACTER(len=256),INTENT(in) :: prefix
+!     INTEGER,INTENT(in) :: nq1, nq2, nq3
+!     CHARACTER(len=6),INTENT(in) ::  cT, csigma
+!     !
+!     CHARACTER (LEN=6), EXTERNAL :: int_to_char
+!     !
+!     sigma_file_name= TRIM(prefix)//&
+!                 "."//TRIM(int_to_char(nq1))// &
+!                 "."//TRIM(int_to_char(nq2))// &
+!                 "."//TRIM(int_to_char(nq3))// &
+!                 "."//TRIM(cT)// &
+!                 "."//TRIM(csigma)//".out"
+!     !
+!   END FUNCTION sigma_file_name
+!   !
   ! Write a number from a list using as many digits after the dot as the longest in the list.
   CHARACTER(len=6) &
-  FUNCTION write_temperature(it,nt,T) RESULT(str)
+  FUNCTION write_conf(it,nt,T) RESULT(str)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: it, nt
     REAL(DP),INTENT(in) :: T(nt)
@@ -54,40 +58,40 @@ MODULE more_constants
     WRITE(str,fmt2) T(it)
     str=ADJUSTL(str)
     
-  END FUNCTION
+  END FUNCTION write_conf
   !
-  CHARACTER(len=6) &
-  FUNCTION write_sigma(it,nat3,nt,sigma) RESULT(str)
-    USE constants, ONLY : eps12
-    IMPLICIT NONE
-    INTEGER,INTENT(in)  :: it, nt, nat3
-    REAL(DP),INTENT(in) :: sigma(nat3,nt)
-    REAL(DP) :: csigma(nt)
-    INTEGER :: jt, is
-    LOGICAL :: same
-    CHARACTER(len=6),EXTERNAL :: int_to_char
-
-    same = .true.
-    DO is = 1,nat3
-      same=same.and.(ABS(sigma(1,it)-sigma(is,it))<eps12)
-    ENDDO
-    IF(.not.same) THEN
-        str="X"//TRIM(int_to_char(it))//"."
-        RETURN
-    ENDIF
-    !
-    csigma = 0._dp
-    DO jt = 1,nt
-      same = .true.
-      DO is = 1,nat3
-        same=same.and.(ABS(sigma(1,jt)-sigma(is,jt))<eps12)
-      ENDDO
-      IF(same) csigma(jt) = sigma(1,jt)
-    ENDDO
-    csigma = 2*csigma
-    str = write_temperature(it,nt,csigma)
-    
-  END FUNCTION
+!   CHARACTER(len=6) &
+!   FUNCTION write_sigma(it,nat3,nt,sigma) RESULT(str)
+!     USE constants, ONLY : eps12
+!     IMPLICIT NONE
+!     INTEGER,INTENT(in)  :: it, nt, nat3
+!     REAL(DP),INTENT(in) :: sigma(nat3,nt)
+!     REAL(DP) :: csigma(nt)
+!     INTEGER :: jt, is
+!     LOGICAL :: same
+!     CHARACTER(len=6),EXTERNAL :: int_to_char
+! 
+!     same = .true.
+!     DO is = 1,nat3
+!       same=same.and.(ABS(sigma(1,it)-sigma(is,it))<eps12)
+!     ENDDO
+!     IF(.not.same) THEN
+!         str="X"//TRIM(int_to_char(it))//"."
+!         RETURN
+!     ENDIF
+!     !
+!     csigma = 0._dp
+!     DO jt = 1,nt
+!       same = .true.
+!       DO is = 1,nat3
+!         same=same.and.(ABS(sigma(1,jt)-sigma(is,jt))<eps12)
+!       ENDDO
+!       IF(same) csigma(jt) = sigma(1,jt)
+!     ENDDO
+!     csigma = 2*csigma
+!     str = write_temperature(it,nt,csigma)
+!     
+!   END FUNCTION
   
 END MODULE more_constants
 !

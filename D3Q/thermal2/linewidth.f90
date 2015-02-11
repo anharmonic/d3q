@@ -1,6 +1,12 @@
+!
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!
 ! References:
 ! [1] Calandra, Lazzeri, Mauri : Physica C 456 (2007) 38-44
 ! [2] arXiv: 1312.7467v1
+#define timer_CALL CALL
 
 MODULE linewidth
 
@@ -8,17 +14,13 @@ MODULE linewidth
   USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   USE interp_fc, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   USE sparse_fc, ONLY : forceconst3
+  USE timers
 
   CONTAINS
 
 ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3) &
-  RESULT(lw)
-    !
-    USE nanoclock
-    !
+  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
     USE q_grid,         ONLY : q_grid_type
-    
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -29,10 +31,11 @@ MODULE linewidth
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
     ! FUNCTION RESULT:
-    REAL(DP) :: lw(S%nat3,nconf)
+    REAL(DP) :: linewidth_q(S%nat3,nconf)
+    REAL(DP) :: lw(S%nat3,nconf) !aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
@@ -48,11 +51,14 @@ MODULE linewidth
     lw = 0._dp
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
+      timer_CALL t_freq%start()
     xq(:,1) = xq0
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      timer_CALL t_freq%stop()
     !
     DO iq = 1, grid%nq
       !
+        timer_CALL t_freq%start()
       ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
@@ -61,26 +67,37 @@ MODULE linewidth
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
+        timer_CALL t_freq%stop()
       !
+        timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+        timer_CALL t_fc3int%stop()
+        timer_CALL t_fc3rot%start()
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+        timer_CALL t_fc3rot%stop()
+        timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+        timer_CALL t_fc3m2%stop()
       !
       DO it = 1,nconf
+          timer_CALL t_freq%start()
         ! Compute bose-einstein occupation at q2 and q3
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        lw(:,it) = lw(:,it) + sum_modes( S, sigma(:,it), freq, bose, V3sq )
+          timer_CALL t_freq%stop()
+          timer_CALL t_sum%start()
+        lw(:,it) = lw(:,it) + sum_linewidth_modes( S, sigma(it), freq, bose, V3sq )
+          timer_CALL t_sum%stop()
       ENDDO
       !
     ENDDO
     !
-    lw = -0.5_dp * lw/grid%nq
+    linewidth_q = -0.5_dp * lw/grid%nq
     !
-    DEALLOCATE(U, V3sq)
+    DEALLOCATE(U, V3sq, D3)
     !
   END FUNCTION linewidth_q  
   ! <<^V^\\=========================================//-//-//========//O\\//
@@ -88,9 +105,7 @@ MODULE linewidth
   !  its real part is the order contribution to lineshift
   !  its complex part is the intrinsic linewidth
   FUNCTION selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
-    !
     USE q_grid,         ONLY : q_grid_type
-    !
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -101,10 +116,11 @@ MODULE linewidth
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
     ! FUNCTION RESULT:
     COMPLEX(DP) :: selfnrg_q(S%nat3,nconf)
+    COMPLEX(DP) :: se(S%nat3,nconf) ! aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
@@ -116,7 +132,7 @@ MODULE linewidth
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
     !
-    selfnrg_q = (0._dp, 0._dp)
+    se = (0._dp, 0._dp)
     !
     ! Compute eigenvalues, eigenmodes at q1
     xq(:,1) = xq0
@@ -144,13 +160,13 @@ MODULE linewidth
         ENDDO
 !$OMP END PARALLEL DO
         !
-        selfnrg_q(:,it) = selfnrg_q(:,it) + sum_selfnrg_modes( S, sigma(:,it), freq, bose, V3sq )
+        se(:,it) = se(:,it) + sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq )
         !
       ENDDO
       !
     ENDDO
     !
-    selfnrg_q = -0.5_dp * selfnrg_q/grid%nq
+    selfnrg_q = -0.5_dp * se/grid%nq
     !
     DEALLOCATE(U, V3sq)
     !
@@ -175,7 +191,7 @@ MODULE linewidth
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     ! FUNCTION RESULT:
     REAL(DP) :: spectralf(ne,S%nat3,nconf)
     ! Local variables
@@ -193,7 +209,7 @@ MODULE linewidth
     CALL freq_phq_safe(xq0, S, fc2, freq, U)
     !
     ! use lineshift to compute 3rd order linewidth and lineshift
-    selfnrg = selfnrg_q(xq0, nconf, T,sigma, S, grid, fc2, fc3)    
+    selfnrg = selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)    
     DO it = 1,nconf
       WRITE(*,'(30x,6e12.2,5x,6e12.2)') -DIMAG(selfnrg(:,it))*RY_TO_CMM1, DBLE(selfnrg(:,it))*RY_TO_CMM1
     ENDDO
@@ -239,7 +255,7 @@ MODULE linewidth
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid_type),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(S%nat3,nconf) ! ry
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
     ! To interpolate D2 and D3:
     INTEGER :: iq, jq, nu, it
@@ -287,7 +303,7 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + sum_selfnrg_spectre( S, sigma(:,it), freq, bose, V3sq, ne, ener )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener )
         !
       ENDDO
       !
@@ -321,7 +337,7 @@ MODULE linewidth
   FUNCTION sum_selfnrg_spectre(S, sigma, freq, bose, V3sq, ne, ener)
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma(S%nat3)   ! smearing (regularization) (Ry)
+    REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
     REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
@@ -331,7 +347,7 @@ MODULE linewidth
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtot, freqtotm1, eta
+    REAL(DP) :: freqtot, freqtotm1
     REAL(DP) :: omega_P,  omega_M   ! \delta\omega
     REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
     COMPLEX(DP) :: ctm_P, ctm_M, reg, num
@@ -359,8 +375,6 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        eta = sigma(k)+sigma(j)
-        !
         DO i = 1,S%nat3
           !
           ! This comes from the definition of u_qj, Ref. 1.
@@ -371,7 +385,7 @@ MODULE linewidth
             !
             DO ie = 1, ne
               ! regularization:
-              reg = CMPLX(ener(ie), eta, kind=DP)**2
+              reg = CMPLX(ener(ie), sigma, kind=DP)**2
               !
               ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
               ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
@@ -395,14 +409,14 @@ MODULE linewidth
   FUNCTION sum_selfnrg_modes(S, sigma, freq, bose, V3sq)
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma(S%nat3)
+    REAL(DP),INTENT(in) :: sigma
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtot, freqtotm1, eta
+    REAL(DP) :: freqtot
     REAL(DP) :: omega_P,  omega_M   ! \sigma\omega
     REAL(DP) :: omega_P2, omega_M2  ! \sigma\omega
     COMPLEX(DP) :: ctm_P, ctm_M, reg
@@ -410,13 +424,12 @@ MODULE linewidth
     INTEGER :: i,j,k
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
     COMPLEX(DP) :: sum_selfnrg_modes(S%nat3)
-    COMPLEX(DP),ALLOCATABLE :: se(:)
-    ALLOCATE(se(S%nat3))
+    COMPLEX(DP) :: se(S%nat3)
+    !
     se(:) = (0._dp, 0._dp)
     !
-    !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot,freqtotm1) &
+!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot) &
 !$OMP             REDUCTION(+: se) COLLAPSE(2)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
@@ -429,22 +442,19 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        eta = sigma(k)+sigma(j)
-        !
         DO i = 1,S%nat3
           !
           ! This comes from the definition of u_qj, Ref. 1.
           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
           IF(freqtot/=0._dp)THEN
-            freqtotm1 = 1 / freqtot
             ! regularization:
-            reg = CMPLX(freq(i,1), eta, kind=DP)**2
+            reg = CMPLX(freq(i,1), sigma, kind=DP)**2
             !
             ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
             ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
             !
-            se(i) = se(i) + (ctm_P + ctm_M) * V3sq(i,j,k) * freqtotm1
+            se(i) = se(i) + (ctm_P + ctm_M)/freqtot * V3sq(i,j,k)
           ENDIF
           !
         ENDDO
@@ -456,54 +466,56 @@ MODULE linewidth
     !
   END FUNCTION sum_selfnrg_modes
   !
+  ! Sum the Imaginary part of the self energy for the phonon modes, uses gaussian function for energy delta
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_modes(S, sigma, freq, bose, V3sq)
-    USE functions, ONLY : f_gauss
+  FUNCTION sum_linewidth_modes(S, sigma, freq, bose, V3sq)
+    USE functions, ONLY : f_gauss => f_gauss
     USE constants, ONLY : pi
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma(S%nat)
+    REAL(DP),INTENT(in) :: sigma
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
     !
-    REAL(DP) :: sum_modes(S%nat3)
+    REAL(DP) :: sum_linewidth_modes(S%nat3)
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C ! final/initial state populations 
     REAL(DP) :: dom_X, dom_C   ! \delta\omega
     REAL(DP) :: ctm_X, ctm_C   !
-    REAL(DP) :: freqtot, eta
+    REAL(DP) :: freqtot, tsigma
     !
+    REAL(DP),PARAMETER :: norm = pi/8
+    !REAL(DP),PARAMETER :: csig = 1._dp / (2 * DSQRT(2*DLOG(2._dp)))
+    REAL(DP),PARAMETER :: csig = 1._dp / (2 * DSQRT(DLOG(2._dp)))
     !
     INTEGER :: i,j,k
     REAL(DP) :: lw(S%nat3)
     lw(:) = 0._dp
     !
+    tsigma = csig*sigma
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,freqtot,bose_X,bose_C,dom_X,dom_C,ctm_X,ctm_C) &
-!$OMP             REDUCTION(+: lw) COLLAPSE(2)
+!$OMP             REDUCTION(+: lw) COLLAPSE(3)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
-        !
-        bose_X = bose(j,2) + bose(k,3) + 1
-        bose_C = bose(j,2) - bose(k,3)
-        eta = sigma(k)+sigma(j)
-        !
         DO i = 1,S%nat3
           !
-          freqtot = 8*freq(i,1) * freq(j,2) * freq(k,3)
+          freqtot = freq(i,1) * freq(j,2) * freq(k,3)
           !
-          IF(ABS(freqtot)/=0._dp)THEN
+          IF(freqtot/=0._dp)THEN
+            bose_X = bose(j,2) + bose(k,3) + 1
+            bose_C = bose(j,2) - bose(k,3)
             !
-            dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
-            ctm_X = bose_C * f_gauss(dom_C, eta)
+            dom_X =(freq(i,1)+freq(j,2)-freq(k,3))
+            dom_C =(freq(i,1)-freq(j,2)-freq(k,3))
             !
-            dom_C =(freq(i,1)+freq(j,2)-freq(k,3))
-            ctm_C = 2*bose_X * f_gauss(dom_X, eta)
+            ctm_X = 2 * bose_C * f_gauss(dom_X, tsigma)
+            ctm_C =     bose_X * f_gauss(dom_C, tsigma)
             !
-            lw(i) = lw(i) + pi/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
+            lw(i) = lw(i) - norm/freqtot * (ctm_X + ctm_C) * V3sq(i,j,k)
           ENDIF
           !
         ENDDO
@@ -511,9 +523,27 @@ MODULE linewidth
     ENDDO
 !$OMP END PARALLEL DO
     !
-    sum_modes = lw
+    sum_linewidth_modes = lw
     !
-  END FUNCTION sum_modes
+  END FUNCTION sum_linewidth_modes
+  ! Sum the Imaginary part of the self energy for the phonon modes,
+  ! NOTE: test function! It computes the full self-energy then it takes the imag part
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION sum_linewidth_modes2(S, sigma, freq, bose, V3sq)
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: sigma
+    REAL(DP),INTENT(in) :: freq(S%nat3,3)
+    REAL(DP),INTENT(in) :: bose(S%nat3,3)
+    REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+    !
+    REAL(DP) :: sum_linewidth_modes2(S%nat3)
+    COMPLEX(DP) :: se(S%nat3)
+    !
+    se = sum_selfnrg_modes(S, sigma, freq, bose, V3sq)
+    sum_linewidth_modes2  = -DIMAG(se)
+    !
+  END FUNCTION sum_linewidth_modes2
   !
   ! Auxiliary subroutines follow:
   ! \/o\________\\\_________________________________________/^>

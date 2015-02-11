@@ -1,14 +1,23 @@
 !
-! Copyright Lorenzo Paulatto 2013 - released under the CeCILL licence v 2.1 
-!   <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+!  released under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 !
+! The nanotimer type describes a nanonsecond-grained timer, it can be started,
+! stopped and retrieved via start_nanosecond and stop_nanosecond. Item %tot contains
+! the total elapsed time, %calls the number of calls and %t0 the starting time
+! (for running clocks)
+! f_nanosec returns a system nanoclocs timer, relative to the first call of 
+! the c_nanotimer functions, it is not used here (we always use the C routine directly).
+! 
 MODULE nanoclock
   !
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
   USE io_global,        ONLY : stdout
+  IMPLICIT NONE
   !
 !   TYPE(nanoclock) :: timer
 !   timer%name = "MAIN"
@@ -22,16 +31,24 @@ MODULE nanoclock
     REAL(kind=c_double) :: t0 = -1._c_double
     REAL(kind=c_double) :: tot = 0._c_double
     INTEGER :: calls = 0
+    
+    CONTAINS
+      procedure :: read  => read_nanoclock
+      procedure :: print => print_nanoclock
+      procedure :: start => start_nanoclock
+      procedure :: stop  => stop_nanoclock
   END TYPE nanotimer
   !
-  TYPE(nanotimer) :: c2pat = nanotimer("c2pat")
-  TYPE(nanotimer) :: tv3sq = nanotimer("v3sq")
-  TYPE(nanotimer) :: i_ph  = nanotimer("i_ph")
-  TYPE(nanotimer) :: lwtot = nanotimer("LW_tot")
-  TYPE(nanotimer) :: lstot = nanotimer("LS_tot")
-  TYPE(nanotimer) :: tsum = nanotimer("sum_bands")
-  TYPE(nanotimer) :: d3time= nanotimer("D3")
+  ! You can define timers like this:
+!   TYPE(nanotimer) :: c2pat = nanotimer("c2pat")
+!   TYPE(nanotimer) :: tv3sq = nanotimer("v3sq")
+!   TYPE(nanotimer) :: i_ph  = nanotimer("i_ph")
+!   TYPE(nanotimer) :: lwtot = nanotimer("LW_tot")
+!   TYPE(nanotimer) :: lstot = nanotimer("LS_tot")
+!   TYPE(nanotimer) :: tsum  = nanotimer("sum_bands")
+!   TYPE(nanotimer) :: d3time= nanotimer("D3")
   !
+  ! c_nanosec returns the nanoseconds relative to the first time it was called
   INTERFACE
     FUNCTION c_nanosec() BIND(C,name="c_nanosec")
       USE iso_c_binding, ONLY : c_double
@@ -53,7 +70,7 @@ MODULE nanoclock
   !
   SUBROUTINE start_nanoclock(timer)
     IMPLICIT NONE
-    TYPE(nanotimer),INTENT(inout) :: timer
+    CLASS(nanotimer),INTENT(inout) :: timer
     IF( .not. timer%t0 < 0) CALL errore("start_nanoclock", &
                                         TRIM(timer%name)//" clock is already running", 1)
     timer%t0 = c_nanosec()
@@ -63,7 +80,7 @@ MODULE nanoclock
   !
   SUBROUTINE stop_nanoclock(timer)
     IMPLICIT NONE
-    TYPE(nanotimer),INTENT(inout) :: timer
+    CLASS(nanotimer),INTENT(inout) :: timer
     IF( timer%t0 < 0) CALL errore("stop_nanoclock", &
                                   TRIM(timer%name)//" clock is not running", 1)
     timer%tot = timer%tot + (c_nanosec()-timer%t0)
@@ -71,33 +88,32 @@ MODULE nanoclock
   END SUBROUTINE stop_nanoclock
   ! \/o\________\\\_________________________________________/^>
   !
-  SUBROUTINE print_nanoline()
+  REAL(DP) FUNCTION read_nanoclock(timer)
     IMPLICIT NONE
-    WRITE(*,'(2x," * ",16("*")," * ",12("*"),"***** * ", 14("*")," * ", 6("*")," *")') 
-  END SUBROUTINE print_nanoline
-  SUBROUTINE print_header()
-    IMPLICIT NONE
-    WRITE(*,'(2x," * ",a16," * ",5x,a12," * ",a14," * ", a6," *")') &
-    "TIMER NAME", " TIME (s) ", "TIME/CALL (ms)", "CALLS"
-  END SUBROUTINE print_header
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_nanoclock(timer)
-    IMPLICIT NONE
-    TYPE(nanotimer),INTENT(in),OPTIONAL :: timer
+    CLASS(nanotimer),INTENT(in) :: timer
     !
-    IF(.not. present(timer)) THEN
-      CALL print_header()
-      CALL print_nanoline()
-      RETURN
+    IF(timer%t0>0) THEN
+      read_nanoclock = REAL(timer%tot + (c_nanosec()-timer%t0), kind=DP)
+    ELSE
+      read_nanoclock = REAL(timer%tot, kind=DP)
     ENDIF
     
+  END FUNCTION read_nanoclock
+  ! \/o\________\\\_________________________________________/^>
+  !
+  SUBROUTINE print_nanoclock(timer)
+    IMPLICIT NONE
+    CLASS(nanotimer),INTENT(in) :: timer
+    !
     IF(timer%t0>0) THEN
       ! print a running clock
-      WRITE(*,'(2x," * ",a16," * ",f12.6,"s (r) * ", i12," *")') &
-      TRIM(timer%name), timer%tot + (c_nanosec()-timer%t0), "(r)", timer%calls
+      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f12.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
+      TRIM(timer%name), timer%tot+ (c_nanosec()-timer%t0), (1000*timer%tot)/timer%calls, &
+      100*(timer%tot+ (c_nanosec()-timer%t0))/c_nanosec(), timer%calls
     ELSE
-      WRITE(*,'(2x," * ",a16," * ",f12.6,"s     * ",f12.6,"ms * ", i6," *")') &
-      TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, timer%calls
+      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f12.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
+      TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, &
+      100*timer%tot/c_nanosec(), timer%calls
     ENDIF
     
   END SUBROUTINE print_nanoclock
@@ -118,15 +134,6 @@ MODULE nanoclock
     !
   END SUBROUTINE print_memory
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_nanoq(xq)
-    USE iso_c_binding,  ONLY : c_int
-    IMPLICIT NONE
-    REAL(DP),INTENT(in) :: xq(3)
-    !
-    WRITE(*,'(2x," * ",10x,a3,3f12.6,13x," *")') "q =",xq
-    !
-  END SUBROUTINE print_nanoq
-
   
 END MODULE
 
