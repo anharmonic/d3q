@@ -10,7 +10,7 @@ MODULE gen_sparse_program
   CONTAINS
   !
   SUBROUTINE test_classes(fc)
-    USE sparse_fc
+    USE fc3_interpolate
     IMPLICIT NONE
     !
     CLASS(forceconst3),INTENT(in) :: fc
@@ -33,7 +33,7 @@ PROGRAM gen_sparse
 
     USE kinds,          ONLY : DP
     USE iso_c_binding,  ONLY : c_int, c_long
-    USE sparse_fc,      ONLY : grid, sparse, forceconst3, fc3_grid_to_sparse, read_fc3
+    USE fc3_interpolate,      ONLY : grid, sparse, forceconst3, fc3_grid_to_sparse, read_fc3
     USE input_fc,       ONLY : aux_system,  ph_system_info
     USE io_global,      ONLY : stdout
     USE nanoclock
@@ -60,6 +60,7 @@ PROGRAM gen_sparse
     INTEGER,INTRINSIC :: iargc
     CHARACTER(len=256) :: argx, filein, fileout
     INTEGER :: nargs, ntest
+    REAL(DP) :: thr, delta, deltasum, deltamax
     !
     nargs = iargc()
     !
@@ -67,14 +68,16 @@ PROGRAM gen_sparse
     IF(nargs>0) THEN
       CALL getarg(1, filein)
     ELSE 
-      WRITE(*,*) "Syntax: "//TRIM(argx)//" FILE_IN [FILE_OUT] [n_test]"
-      WRITE(*,*) "        FILE_IN  : input 3rd order force constants in grid form"
-      WRITE(*,*) "        FILE_OUT : output force constants in sparse form; use 'none' to avoid writing FILE_OUT"
-      WRITE(*,*) "                   (default: 'FILE_IN_sparse')"
-      WRITE(*,*) "        n_test   : put an integer number to test speed of grid vs. sparse over"
-      WRITE(*,*) "                   interpolation of n_test random q-points (default: no test)"
+      WRITE(*,'(a)') "Syntax: "//TRIM(argx)//" FILE_IN [FILE_OUT] [threshold] [n_test]"
+      WRITE(*,'(a)') "        FILE_IN  : input 3rd order force constants in grid form"
+      WRITE(*,'(a)') "        FILE_OUT : output force constants in sparse form; use 'none' to avoid writing FILE_OUT"
+      WRITE(*,'(a)') "                   (default: 'FILE_IN_sparse')"
+      WRITE(*,'(a)') "        threshold: force constants smaller than this times the largest FC will be ignored; "
+      WRITE(*,'(a)') "                   can make the result faster, at the expense of some precision (default: 0.d0)"
+      WRITE(*,'(a)') "        n_test   : put an integer number to test speed of grid vs. sparse over"
+      WRITE(*,'(a)') "                   interpolation of n_test random q-points (default: no test)"
       
-      CALL errore("asr3", "missing arguments")
+      CALL errore("asr3", "missing arguments", 1)
     ENDIF
     IF(nargs>1)THEN
       CALL getarg(2, fileout)
@@ -89,12 +92,22 @@ PROGRAM gen_sparse
     CALL memstat(kb)
     WRITE(stdout,*) "FC Memory used : ", kb/1000, "Mb"
 
-    CALL fc3_grid_to_sparse(S%nat, fc, sfc, 1.d-8)
+    IF(nargs>2)THEN
+      CALL getarg(3, argx)
+      READ(argx, *,iostat=i) thr
+      IF(i/=0) CALL errore("gen_sparse","bad threshold, run without arguments for help",1)
+    ELSE
+      thr = 0._dp
+    ENDIF
+    thr = thr*MAXVAL(ABS(fc%FC))
+    WRITE(stdout,*) "Cutting off FCs smaller than : ", thr, "Ry/bohr^3"
+
+    CALL fc3_grid_to_sparse(S%nat, fc, sfc, thr)
     WRITE(stdout,*) "FC+Sparse Memory used : ", kb/1000, "Mb"
     IF(fileout/="none") CALL sfc%write(fileout, S)
 
-    IF(nargs>2)THEN
-      CALL getarg(3, argx)
+    IF(nargs>3)THEN
+      CALL getarg(4, argx)
       READ(argx, *,iostat=i) ntest
       IF(i/=0) CALL errore("gen_sparse","bad test number, run without arguments for help",1)
       
@@ -103,27 +116,36 @@ PROGRAM gen_sparse
       ALLOCATE(D1(S%nat3, S%nat3, S%nat3))
       ALLOCATE(D2(S%nat3, S%nat3, S%nat3))
 
-      x = randy(ntest)
-      CALL start_nanoclock(t_fc)
-      DO i = 1,ntest
-        xq1 = (/ randy(), randy(), randy() /)
-        xq2 = (/ randy(), randy(), randy() /)
-        CALL fc%interpolate(xq1,xq2,S%nat3,D1)
-      ENDDO
-      CALL stop_nanoclock(t_fc)
-      CALL print_nanoclock(t_fc)
+      deltasum=0._dp
+      deltamax=0._dp
 
       x = randy(ntest)
-      CALL start_nanoclock(t_sfc)
       DO i = 1,ntest
         xq1 = (/ randy(), randy(), randy() /)
         xq2 = (/ randy(), randy(), randy() /)
-        CALL sfc%interpolate(xq1,xq2,S%nat3,D2)
+        
+        CALL t_fc%start()
+          CALL fc%interpolate(xq1,xq2,S%nat3,D1)
+        CALL t_fc%stop()
+
+        CALL t_sfc%start()
+          CALL sfc%interpolate(xq1,xq2,S%nat3,D2)
+        CALL t_sfc%stop()
+
+        delta=MAXVAL(ABS(D1-D2))
+        deltasum=deltasum+delta
+        deltamax=MAX(delta,deltamax)
+
       ENDDO
-      CALL stop_nanoclock(t_sfc)
-      CALL print_nanoclock(t_sfc)
 
       DEALLOCATE(D1,D2)
+
+      WRITE(*,*) "Max delta: ", deltamax, deltamax/DSQRT(DBLE(ntest))
+      WRITE(*,*) "Avg delta: ", deltasum/DBLE(ntest)
+      WRITE(*,*) "Speedup:   ", t_fc%tot/t_sfc%tot
+
+      CALL t_fc%print()
+      CALL t_sfc%print()
 
     ENDIF
 

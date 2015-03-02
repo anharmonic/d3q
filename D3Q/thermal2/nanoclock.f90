@@ -16,7 +16,6 @@ MODULE nanoclock
   !
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
-  USE io_global,        ONLY : stdout
   IMPLICIT NONE
   !
 !   TYPE(nanoclock) :: timer
@@ -40,13 +39,12 @@ MODULE nanoclock
   END TYPE nanotimer
   !
   ! You can define timers like this:
-!   TYPE(nanotimer) :: c2pat = nanotimer("c2pat")
-!   TYPE(nanotimer) :: tv3sq = nanotimer("v3sq")
-!   TYPE(nanotimer) :: i_ph  = nanotimer("i_ph")
-!   TYPE(nanotimer) :: lwtot = nanotimer("LW_tot")
-!   TYPE(nanotimer) :: lstot = nanotimer("LS_tot")
-!   TYPE(nanotimer) :: tsum  = nanotimer("sum_bands")
-!   TYPE(nanotimer) :: d3time= nanotimer("D3")
+!   TYPE(nanotimer) :: my_timer = nanotimer("Timer description")
+!   ...
+!   CALL my_timer%start()
+!   ...
+!   CALL my_timer%stop()
+!   CALL my_timer%print()
   !
   ! c_nanosec returns the nanoseconds relative to the first time it was called
   INTERFACE
@@ -105,13 +103,15 @@ MODULE nanoclock
     IMPLICIT NONE
     CLASS(nanotimer),INTENT(in) :: timer
     !
+    IF(timer%calls<=0) RETURN
+    !
     IF(timer%t0>0) THEN
       ! print a running clock
-      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f12.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
+      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
       TRIM(timer%name), timer%tot+ (c_nanosec()-timer%t0), (1000*timer%tot)/timer%calls, &
       100*(timer%tot+ (c_nanosec()-timer%t0))/c_nanosec(), timer%calls
     ELSE
-      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f12.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
+      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
       TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, &
       100*timer%tot/c_nanosec(), timer%calls
     ENDIF

@@ -259,7 +259,7 @@ MODULE asr3_module
   ! Find the correspondence between two lists of R vectors (list2 and list3) 
   ! a single list of couples (R2,R3) 
   ! i.e. for each R_2 in list2 and R3 in list3 it find the index of (R2,R3) in the big list
-    USE sparse_fc,       ONLY : grid
+    USE fc3_interpolate,       ONLY : grid
     IMPLICIT NONE
     !
     TYPE(index_r_type),INTENT(in) :: idx2, idx3
@@ -341,7 +341,7 @@ MODULE asr3_module
   ! this subroutine reshuffle the elements and assign them to two different
   ! indexes: one for R2 and one for R3. 
   SUBROUTINE reindex_fc3(nat,fc,idR23,idx2,idx3,fx,dir)
-    USE sparse_fc,       ONLY : grid
+    USE fc3_interpolate,       ONLY : grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat, dir
@@ -751,7 +751,7 @@ PROGRAM asr3
     USE kinds,          ONLY : DP
     USE iso_c_binding,  ONLY : c_int
     USE input_fc,       ONLY : aux_system, ph_system_info
-    USE sparse_fc,      ONLY : grid
+    USE fc3_interpolate,      ONLY : grid
     USE io_global,      ONLY : stdout
     USE asr3_module
     IMPLICIT NONE

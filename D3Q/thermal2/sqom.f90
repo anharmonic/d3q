@@ -199,7 +199,7 @@ MODULE sqom_program
   SUBROUTINE neutron_function_convolution(xq, xg, T, S, fc2, ff, neutron_lw, ne, ee, spf)
     USE functions,      ONLY : f_bose, f_ngauss
     USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
-    USE linewidth,      ONLY : freq_phq_safe
+    USE fc2_interpolate,     ONLY : freq_phq_safe
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: xq(3), xg(3), T
     TYPE(ph_system_info),INTENT(in)   :: S

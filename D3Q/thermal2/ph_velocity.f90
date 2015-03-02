@@ -20,7 +20,7 @@ MODULE ph_velocity
   ! Compute ph group velocity by simple straightforward finite difference
   ! This algorithm can fail at band crossings
   FUNCTION velocity_simple(S,fc, xq)
-    USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
+    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -74,7 +74,7 @@ MODULE ph_velocity
   !     w^2_i(q+h) = W(q+h)_i,i
   ! This algorithm does not fail at band crossings
   FUNCTION velocity_proj(S,fc, xq)
-    USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
+    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -137,7 +137,7 @@ MODULE ph_velocity
   ! \/o\________\\\_________________________________________/^>
   ! As in Fugallo et. al. PRB 
   SUBROUTINE velocity_var(S,fc, xq, xvel)
-    USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
+    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S

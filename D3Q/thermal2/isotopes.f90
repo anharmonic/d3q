@@ -7,20 +7,20 @@ MODULE isotopes_linewidth
 
   USE kinds, ONLY : DP
   USE input_fc, ONLY : ph_system_info, forceconst2_grid
-  USE interp_fc, ONLY : fftinterp_mat2, mat2_diag
+  USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
   !
   !
   CONTAINS
   !
   ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION isotope_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2) &
+  FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2) &
   RESULT(lw)
     !
     USE nanoclock
     !
     USE q_grid,                 ONLY : q_grid_type
-    USE linewidth,              ONLY : freq_phq_safe, bose_phq
-    USE nist_isotopes_database, ONLY : compute_gs
+    USE fc2_interpolate,             ONLY : freq_phq_safe, bose_phq
+    USE nist_isotopes_db, ONLY : compute_gs
 
 
     IMPLICIT NONE
@@ -41,28 +41,28 @@ MODULE isotopes_linewidth
     INTEGER  :: iq, jq, nu, it, ia, alpha
     !
     REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,2)
-    REAL(DP) :: gm(S%nat3), gs2(S%nat3), auxm(S%ntyp), auxs(S%ntyp)
+    REAL(DP) :: gs2(S%nat3) !, gm(S%nat3), auxm(S%ntyp), auxs(S%ntyp)
     !
     lw = 0._dp
-    ! Compute isotope-phonon cross section for the various atomic species
-    ! NOTE: move this code to input!
-    DO it = 1, S%ntyp
-      CALL compute_gs(auxm(it), auxs(it), S%atm(it), 0, 0)
-    ENDDO
+!     ! Compute isotope-phonon cross section for the various atomic species
+!     ! NOTE: move this code to input!
+!     DO it = 1, S%ntyp
+!       CALL compute_gs(auxm(it), auxs(it), S%atm(it), 0, 0)
+!     ENDDO
     ! Rearrange the cross sections with the mode index, for simplicity
     nu = 0
     DO ia = 1, S%nat
       it = S%ityp(ia)
       DO alpha = 1,3
         nu = nu+1
-        gm(nu)  = auxm(it)
-        gs2(nu) = auxs(it)
+        !gm(nu)  = auxm(it)
+        gs2(nu) = S%amass_variance(it)
       ENDDO
     ENDDO
     !
-    print*, "gm and gs: "
-    print*, gm
-    print*, gs2
+!     print*, "gm and gs: "
+!     print*, gm
+!     print*, gs2
     
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
@@ -75,10 +75,6 @@ MODULE isotopes_linewidth
       CALL freq_phq_safe(xq(:,2), S, fc2, freq(:,2), U(:,:,2))
       !
       DO it = 1,nconf
-!         ! Compute bose-einstein occupation at q1 and q2
-!         DO jq = 1,2
-!           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
-!         ENDDO
         !
         lw(:,it) = lw(:,it) + sum_isotope_modes( S%nat3, sigma(it), freq, gs2, U )
         !
@@ -88,7 +84,7 @@ MODULE isotopes_linewidth
     !
     lw = lw/grid%nq
     !
-  END FUNCTION isotope_linewidth_q
+  END FUNCTION isotopic_linewidth_q
   ! \/o\________\\\_________________________________________/^>
   FUNCTION sum_isotope_modes(nat3, sigma, freq, gs2, zz)
     USE functions, ONLY : f_gauss

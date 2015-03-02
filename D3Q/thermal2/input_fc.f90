@@ -197,7 +197,7 @@ MODULE input_fc
     S%nat32 = S%nat3**2
     S%nat33 = S%nat3**3
     
-    IF(allocated(S%sqrtmm1)) CALL errore("aux_system","should be called twice",1)
+    IF(allocated(S%sqrtmm1)) CALL errore("aux_system","should not be called twice",1)
     ALLOCATE(S%sqrtmm1(S%nat3))
     DO i = 1,S%nat3
       na = (i-1)/3 +1

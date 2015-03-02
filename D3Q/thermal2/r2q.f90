@@ -19,7 +19,7 @@ PROGRAM r2q
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grid,           ONLY : q_grid_type
   USE constants,        ONLY : RY_TO_CMM1
-  USE linewidth,        ONLY : freq_phq_safe
+  USE fc2_interpolate,       ONLY : freq_phq_safe
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2

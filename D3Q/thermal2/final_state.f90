@@ -6,15 +6,16 @@
 MODULE final_state
   USE kinds,     ONLY : DP
   USE input_fc,  ONLY : ph_system_info, forceconst2_grid
-  USE interp_fc, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
-  USE sparse_fc, ONLY : forceconst3
+  USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
+  USE fc3_interpolate, ONLY : forceconst3
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
   FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3,&
                          ei, ne, ener, qresolved, sigmaq, outdir, prefix)
-    USE linewidth,      ONLY : bose_phq, freq_phq_safe  , sum_selfnrg_modes
+    USE fc2_interpolate,     ONLY : bose_phq, freq_phq_safe
+    USE linewidth,      ONLY : sum_selfnrg_modes
     USE q_grid,         ONLY : q_grid_type
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
     USE constants,      ONLY : RY_TO_CMM1
