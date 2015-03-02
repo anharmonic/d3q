@@ -240,8 +240,9 @@ MODULE linewidth
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
   FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener) &
   RESULT(spectralf)
-    USE q_grid,         ONLY : q_grid_type
-    USE fc2_interpolate,     ONLY : freq_phq_safe, bose_phq
+    USE q_grid,           ONLY : q_grid_type
+    USE fc2_interpolate,  ONLY : freq_phq_safe, bose_phq
+    USE functions,        ONLY : set_nu0
     !
     IMPLICIT NONE
     !
@@ -266,6 +267,7 @@ MODULE linewidth
     !
     ! To compute the spectral function from the self energy:
     INTEGER  :: i, ie
+    INTEGER  :: nu0(3)
     REAL(DP) :: gamma, delta, omega, denom
     COMPLEX(DP),ALLOCATABLE :: selfnrg(:,:,:)
     ! FUNCTION RESULT:
@@ -290,6 +292,7 @@ MODULE linewidth
       DO jq = 2,3
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
+      nu0 = set_nu0(xq, S%at)
 !$OMP END PARALLEL DO
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
@@ -304,7 +307,7 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
         !
       ENDDO
       !
@@ -345,6 +348,7 @@ MODULE linewidth
     !
     INTEGER,INTENT(in)  :: ne           ! number of energies...
     REAL(DP),INTENT(in) :: ener(ne)     ! energies for which to compute the spectral function
+    INTEGER,INTENT(in)  :: nu0(3)       ! first non-zero phomnon frequency
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
@@ -382,17 +386,17 @@ MODULE linewidth
           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
 !           IF (freqtot/=0._dp) THEN
-            freqtotm1 = 1 / freqtot
+          freqtotm1 = 1 / freqtot
+          !
+          DO ie = 1, ne
+            ! regularization:
+            reg = CMPLX(ener(ie), sigma, kind=DP)**2
             !
-            DO ie = 1, ne
-              ! regularization:
-              reg = CMPLX(ener(ie), sigma, kind=DP)**2
-              !
-              ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
-              ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
-              !
-              spf(ie,i) = spf(ie,i) + (ctm_P + ctm_M) * V3sq(i,j,k) * freqtotm1
-            ENDDO
+            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+            !
+            spf(ie,i) = spf(ie,i) + (ctm_P + ctm_M) * V3sq(i,j,k) * freqtotm1
+          ENDDO
 !           ENDIF
           !
         ENDDO
@@ -407,13 +411,14 @@ MODULE linewidth
   !
   ! \/o\________\\\_________________________________________/^>
   ! Sum the self energy for the phonon modes
-  FUNCTION sum_selfnrg_modes(S, sigma, freq, bose, V3sq)
+  FUNCTION sum_selfnrg_modes(S, sigma, freq, bose, V3sq, nu0)
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+    INTEGER,INTENT(in)  :: nu0(3)
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
@@ -432,8 +437,8 @@ MODULE linewidth
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot) &
 !$OMP             REDUCTION(+: se) COLLAPSE(2)
-    DO k = 1,S%nat3
-      DO j = 1,S%nat3
+    DO k = nu0(1),S%nat3
+      DO j = nu0(2),S%nat3
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
@@ -443,20 +448,20 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        DO i = 1,S%nat3
+        DO i = nu0(3),S%nat3
           !
           ! This comes from the definition of u_qj, Ref. 1.
           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
-!           IF(freqtot/=0._dp)THEN
-            ! regularization:
-            reg = CMPLX(freq(i,1), sigma, kind=DP)**2
-            !
-            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
-            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
-            !
-            se(i) = se(i) + (ctm_P + ctm_M)/freqtot * V3sq(i,j,k)
-!           ENDIF
+!         IF(freqtot/=0._dp)THEN
+          ! regularization:
+          reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+          !
+          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
+          !
+          se(i) = se(i) + (ctm_P + ctm_M)/freqtot * V3sq(i,j,k)
+!         ENDIF
           !
         ENDDO
       ENDDO
@@ -503,22 +508,21 @@ MODULE linewidth
           !
           freqtot = freq(i,1) * freq(j,2) * freq(k,3)
           !
-          IF(freqtot/=0._dp)THEN
-!           IF(freq(i,1)>1.d0/RY_TO_CMM1.and. freq(j,2)>1.d0/RY_TO_CMM1.and.freq(k,3)>1.d0/RY_TO_CMM1)THEN
-            bose_C = 2* (bose(j,2) - bose(k,3))
-            dom_C =(freq(i,1)+freq(j,2)-freq(k,3))
-            ctm_C = bose_C * f_gauss(dom_C, sigma)
-!             Rewrite Cohalescence as scattering, using time reversal
-!             bose_C = 1 + bose(j,1) + bose(k,2)
-!             dom_C =(freq(i,3)-freq(j,1)-freq(k,2))
-!             ctm_C = bose_C * f_gauss(dom_C, sigma)
-            !
-            bose_X = bose(j,2) + bose(k,3) + 1
-            dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
-            ctm_X = bose_X * f_gauss(dom_X, sigma)
-            !
-            lw(i) = lw(i) - norm/freqtot * (ctm_C + ctm_X) * V3sq(i,j,k)
-          ENDIF
+!         IF(freqtot/=0._dp)THEN
+          bose_C = 2* (bose(j,2) - bose(k,3))
+          dom_C =(freq(i,1)+freq(j,2)-freq(k,3))
+          ctm_C = bose_C * f_gauss(dom_C, sigma)
+!         Rewrite Cohalescence as scattering, using time reversal
+!         bose_C = 1 + bose(j,1) + bose(k,2)
+!         dom_C =(freq(i,3)-freq(j,1)-freq(k,2))
+!         ctm_C = bose_C * f_gauss(dom_C, sigma)
+          !
+          bose_X = bose(j,2) + bose(k,3) + 1
+          dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
+          ctm_X = bose_X * f_gauss(dom_X, sigma)
+          !
+          lw(i) = lw(i) - norm/freqtot * (ctm_C + ctm_X) * V3sq(i,j,k)
+!         ENDIF
           !
         ENDDO
       ENDDO
