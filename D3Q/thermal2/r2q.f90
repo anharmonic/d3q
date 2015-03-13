@@ -17,14 +17,14 @@ PROGRAM r2q
                               forceconst2_grid, ph_system_info, &
                               print_citations_linewidth
   USE asr2_module,      ONLY : impose_asr2
-  !USE q_grid,           ONLY : q_grid_type
+  !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
   USE fc2_interpolate,       ONLY : freq_phq_safe
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
   TYPE(ph_system_info)   :: S
-  !TYPE(q_grid_type)      :: qpath
+  !TYPE(q_grid)      :: qpath
   !
   LOGICAL :: asr2 = .true.
   CHARACTER(len=512) :: file_mat2 = "quter.fc"

@@ -19,7 +19,7 @@ MODULE linewidth_program
     USE fc2_interpolate,         ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
-    USE q_grid,             ONLY : q_grid_type, setup_simple_grid
+    USE q_grids,            ONLY : q_grid, setup_simple_grid
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -33,13 +33,13 @@ MODULE linewidth_program
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid_type),INTENT(in)      :: qpath
+    TYPE(q_grid),INTENT(in)      :: qpath
     !
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
     REAL(DP) :: pl,dpl
     INTEGER :: iq, it
-    TYPE(q_grid_type) :: grid
+    TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     REAL(DP)   :: lw(S%nat3,input%nconf)
     REAL(DP)   :: lw_casimir(S%nat3)
@@ -153,7 +153,7 @@ MODULE linewidth_program
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor
     USE constants,      ONLY : RY_TO_CMM1
-    USE q_grid,         ONLY : q_grid_type, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_simple_grid
     USE more_constants, ONLY : write_conf
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
@@ -164,11 +164,11 @@ MODULE linewidth_program
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(inout)  :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid_type),INTENT(in)      :: qpath
+    TYPE(q_grid),INTENT(in)      :: qpath
     !
     REAL(DP) :: pl,dpl
     INTEGER :: iq, it, ie
-    TYPE(q_grid_type) :: grid
+    TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     REAL(DP)   :: sigma_ry(input%nconf)
     !
@@ -247,7 +247,7 @@ MODULE linewidth_program
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag
     USE  final_state,   ONLY : final_state_q
     USE constants,      ONLY : RY_TO_CMM1
-    USE q_grid,         ONLY : q_grid_type, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_simple_grid
     USE more_constants, ONLY : write_conf
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
@@ -258,11 +258,11 @@ MODULE linewidth_program
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(inout)  :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid_type),INTENT(in)      :: qpath
+    TYPE(q_grid),INTENT(in)      :: qpath
     !
     REAL(DP) :: pl,dpl, e_inital_ry 
     INTEGER :: iq, it, ie
-    TYPE(q_grid_type) :: grid
+    TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     REAL(DP) :: sigma_ry(input%nconf)
     !
@@ -343,7 +343,7 @@ PROGRAM linewidth
 !   USE environment,      ONLY : environment_start, environment_end
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, ph_system_info
-  USE q_grid,           ONLY : q_grid_type !, setup_simple_grid
+  USE q_grids,          ONLY : q_grid !, setup_simple_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   IMPLICIT NONE
@@ -352,7 +352,7 @@ PROGRAM linewidth
   CLASS(forceconst3),POINTER :: fc3
   TYPE(ph_system_info)   :: S
   TYPE(code_input_type)     :: lwinput
-  TYPE(q_grid_type)      :: qpath
+  TYPE(q_grid)      :: qpath
 
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('LW')

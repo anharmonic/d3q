@@ -8,7 +8,7 @@ STRIP = true #strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
-IFLAGS=-I../../include -I../../PHonon/PH
+IFLAGS=-I../../include -I../../PHonon/PH -I/opt/intel/composer_xe_2013_sp1.4.211/mkl/include/intel64/lp64/
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -46,10 +46,11 @@ nanoclock.o \
 nanosec.o \
 nist_isotopes_db.o \
 ph_velocity.o \
-q_grid.o \
+q_grids.o \
 quter.o \
 timers.o \
-vector.o
+variational_tk.o
+#vector.o
 
 EXECUTABLES = lw.x tk.x asr3.x sqom.x gen_sparse.x q2r.x r2q.x
 

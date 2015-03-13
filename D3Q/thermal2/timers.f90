@@ -16,7 +16,8 @@ MODULE timers
                      t_fc3rot = nanotimer("fc3 rotate"), &
                      t_lwphph = nanotimer("lw ph-ph"), &
                      t_lwisot = nanotimer("lw isotopes"), &
-                     t_lwcasi = nanotimer("lw casimir")
+                     t_lwcasi = nanotimer("lw casimir"), &
+                     t_velcty = nanotimer("ph group velocity")
 !    *      lw isotopes *       48.455432 s     *   272.221529 ms/call *    7.365 % wtime *          178 calls *
 !    *       lw casimir *        0.092465 s     *     0.519465 ms/call *    0.014 % wtime *          178 calls *
 !    *         lw ph-ph *      608.567777 s     *  3418.920093 ms/call *   92.498 % wtime *          178 calls *
@@ -27,6 +28,7 @@ MODULE timers
 !    *   fc3 modulus sq *        0.967292 s     *     0.001327 ms/call *    0.147 % wtime *       729088 calls *
 !    *       fc3 rotate *       17.824916 s     *     0.024448 ms/call *    2.709 % wtime *       729088 calls *
 
-  TYPE(nanotimer) :: t_tksma = nanotimer("SMA thermalk"), &
-                     t_tksum = nanotimer("sum of TK terms")
+  TYPE(nanotimer) :: t_tksma = nanotimer("sma thermalk"), &
+                     t_tksum = nanotimer("sum of tk terms"), &
+                     t_lwinout = nanotimer("lw input/output")
 END MODULE

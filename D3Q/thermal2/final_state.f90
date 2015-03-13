@@ -6,7 +6,7 @@
 MODULE final_state
   USE kinds,     ONLY : DP
   USE input_fc,  ONLY : ph_system_info, forceconst2_grid
-  USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
+  USE fc2_interpolate, ONLY : ip_cart2pat
   USE fc3_interpolate, ONLY : forceconst3
   !
   CONTAINS
@@ -16,7 +16,7 @@ MODULE final_state
                          ei, ne, ener, qresolved, sigmaq, outdir, prefix)
     USE fc2_interpolate,     ONLY : bose_phq, freq_phq_safe
     USE linewidth,      ONLY : sum_selfnrg_modes
-    USE q_grid,         ONLY : q_grid_type
+    USE q_grids,        ONLY : q_grid
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : write_conf
@@ -24,7 +24,7 @@ MODULE final_state
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
-    TYPE(q_grid_type),INTENT(in) :: qpath
+    TYPE(q_grid),INTENT(in) :: qpath
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     !
@@ -39,7 +39,7 @@ MODULE final_state
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid_type),INTENT(in)      :: grid
+    TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     ! FUNCTION RESULT:
     REAL(DP) :: final_state_q(ne,S%nat3,nconf)
@@ -83,11 +83,11 @@ MODULE final_state
       !
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
-!$OMP END PARALLEL DO
+!/nope/!$OMP END PARALLEL DO
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
@@ -96,11 +96,11 @@ MODULE final_state
       !
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
-!$OMP END PARALLEL DO
+!/nope/!$OMP END PARALLEL DO
         sumaux = sum_final_state_e( S, sigma(it), freq, bose, V3sq, ei, ne, ener )
 !         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux

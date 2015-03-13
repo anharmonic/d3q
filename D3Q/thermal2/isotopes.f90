@@ -7,7 +7,7 @@ MODULE isotopes_linewidth
 
   USE kinds, ONLY : DP
   USE input_fc, ONLY : ph_system_info, forceconst2_grid
-  USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
+  USE fc2_interpolate, ONLY : mat2_diag
   !
   !
   CONTAINS
@@ -18,7 +18,7 @@ MODULE isotopes_linewidth
     !
     USE nanoclock
     !
-    USE q_grid,                 ONLY : q_grid_type
+    USE q_grids,                ONLY : q_grid
     USE fc2_interpolate,             ONLY : freq_phq_safe, bose_phq
     USE nist_isotopes_db, ONLY : compute_gs
 
@@ -31,7 +31,7 @@ MODULE isotopes_linewidth
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid_type),INTENT(in)      :: grid
+    TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
     ! FUNCTION RESULT:
@@ -108,6 +108,8 @@ MODULE isotopes_linewidth
     lw(:) = 0._dp
     !
     !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
+!$OMP REDUCTION(+:lw) COLLAPSE(2)
     DO j = 1,nat3
       DO i = 1,nat3
         !
@@ -125,6 +127,7 @@ MODULE isotopes_linewidth
         !
       ENDDO
     ENDDO
+!$OMP END PARALLEL DO 
     !
     sum_isotope_modes = 0.5_dp*pi*lw
     !

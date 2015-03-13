@@ -15,7 +15,7 @@ MODULE fc3_interpolate
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
   USE io_global,        ONLY : stdout
-  USE fc2_interpolate,        ONLY : ph_system_info
+  !USE input_fc,              ONLY : ph_system_info
   ! Base implementation: all methods stop with error
   TYPE,ABSTRACT :: forceconst3
     ! q points
@@ -46,7 +46,7 @@ MODULE fc3_interpolate
   !
   ABSTRACT INTERFACE
   SUBROUTINE read_fc3_error(fc, filename, S)
-    USE fc2_interpolate,        ONLY : ph_system_info
+    USE input_fc,              ONLY : ph_system_info
     IMPORT forceconst3 
     CHARACTER(len=*),INTENT(in)        :: filename
     TYPE(ph_system_info),INTENT(inout) :: S ! = System
@@ -56,7 +56,7 @@ MODULE fc3_interpolate
   !
   ABSTRACT INTERFACE
   SUBROUTINE write_fc3_error(fc, filename, S)
-    USE fc2_interpolate,        ONLY : ph_system_info
+    USE input_fc,              ONLY : ph_system_info
     IMPORT forceconst3 
     CHARACTER(len=*),INTENT(in)     :: filename
     TYPE(ph_system_info),INTENT(in) :: S ! = System
@@ -66,7 +66,7 @@ MODULE fc3_interpolate
   !
   ABSTRACT INTERFACE
   SUBROUTINE div_mass_fc3_error(fc, S)
-    USE fc2_interpolate,        ONLY : ph_system_info
+    USE input_fc,              ONLY : ph_system_info
     IMPORT forceconst3 
     CLASS(forceconst3),INTENT(inout) :: fc
     TYPE(ph_system_info),INTENT(in)  :: S ! = System
@@ -79,7 +79,12 @@ MODULE fc3_interpolate
     REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat,3*nat, n_R
     !
     CONTAINS
-      procedure :: interpolate  => fftinterp_mat3_grid
+      ! There are 2 version of the interpolation routine, that differ on the 
+      ! parallelism model via OMP, in principle they are both correct but only 
+      ! _flat works, because of some unclear problem with the reduction of arrays
+      !procedure :: interpolate  => fftinterp_mat3_grid_reduce
+      procedure :: interpolate  => fftinterp_mat3_grid_flat
+      !
       procedure :: destroy      => destroy_fc3_grid
       procedure :: read         => read_fc3_grid
       procedure :: write        => write_fc3_grid
@@ -121,7 +126,7 @@ MODULE fc3_interpolate
   ! This will read both sparse and grid files, there is room for improvement but not much.
   !
   FUNCTION read_fc3(filename, S) RESULT(fc)
-    USE input_fc, ONLY : read_system
+    USE input_fc, ONLY : read_system, ph_system_info
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(out)   :: S ! = System
@@ -231,7 +236,7 @@ MODULE fc3_interpolate
     !
   END SUBROUTINE fc3_grid_to_sparse
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE fftinterp_mat3_grid(fc, xq2,xq3, nat3, D)
+  SUBROUTINE fftinterp_mat3_grid_reduce(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -242,7 +247,7 @@ MODULE fc3_interpolate
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
-    INTEGER :: i
+    INTEGER :: i, a,b,c
     !
     D = (0._dp, 0._dp)
     !
@@ -253,7 +258,39 @@ MODULE fc3_interpolate
       D(:,:,:) = D(:,:,:) + phase * fc%fc(:,:,:, i)
     END DO
 !$OMP END PARALLEL DO
-  END SUBROUTINE fftinterp_mat3_grid
+  END SUBROUTINE fftinterp_mat3_grid_reduce
+  !
+  SUBROUTINE fftinterp_mat3_grid_flat(fc, xq2,xq3, nat3, D)
+    USE constants, ONLY : tpi
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    CLASS(grid),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    !
+    REAL(DP) :: arg
+    COMPLEX(DP) :: phase
+    INTEGER :: i, a,b,c
+    !
+    D = (0._dp, 0._dp)
+    !
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(a,b,c)
+    DO i = 1, fc%n_R
+      arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+      phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+!$OMP DO COLLAPSE(3)
+      DO c = 1,nat3
+      DO b = 1,nat3
+      DO a = 1,nat3
+        D(:,:,:) = D(:,:,:) + phase * fc%fc(:,:,:, i)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END DO      
+    END DO
+!$OMP END PARALLEL
+  END SUBROUTINE fftinterp_mat3_grid_flat
   !
   SUBROUTINE fftinterp_mat3_sparse(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
@@ -285,7 +322,7 @@ MODULE fc3_interpolate
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE read_fc3_sparse(fc, filename, S)
-    USE input_fc, ONLY : read_system
+    USE input_fc, ONLY : read_system, ph_system_info
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(inout)   :: S ! = System
@@ -344,7 +381,7 @@ MODULE fc3_interpolate
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE write_fc3_sparse(fc, filename, S)
-    USE input_fc, ONLY : write_system
+    USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
@@ -401,7 +438,7 @@ MODULE fc3_interpolate
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE destroy_fc3_sparse(fc)
-    USE input_fc, ONLY : write_system
+    USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
     CLASS(sparse),INTENT(inout) :: fc
     INTEGER :: i
@@ -422,9 +459,10 @@ MODULE fc3_interpolate
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE div_mass_fc3_sparse (fc,S)
     USE kinds, only : DP
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     CLASS(sparse),INTENT(inout) :: fc
-    TYPE(ph_system_info)   :: S
+    TYPE(ph_system_info),INTENT(in) :: S
     !
     INTEGER :: i, j
     !
@@ -444,6 +482,7 @@ MODULE fc3_interpolate
   ! <<^V^\\=========================================//-//-//========//O\\//
   SUBROUTINE read_fc3_grid(fc, filename, S)
     USE input_fc, ONLY : read_system
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(inout)   :: S ! = System
@@ -523,7 +562,7 @@ MODULE fc3_interpolate
   END SUBROUTINE read_fc3_grid
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE write_fc3_grid(fc, filename, S)
-    USE input_fc, ONLY : write_system
+    USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
@@ -602,10 +641,11 @@ MODULE fc3_interpolate
   END SUBROUTINE destroy_fc3_grid
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE div_mass_fc3_grid(fc,S)
-    USE kinds, only : DP
+    USE kinds,    ONLY : DP
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     CLASS(grid),INTENT(inout) :: fc
-    TYPE(ph_system_info)   :: S
+    TYPE(ph_system_info),INTENT(in) :: S
     !
     INTEGER :: i, j, k, i_R
     !
@@ -626,7 +666,6 @@ MODULE fc3_interpolate
   END SUBROUTINE div_mass_fc3_grid
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE destroy_fc3_(fc)
-    USE input_fc, ONLY : write_system
     IMPLICIT NONE
     CLASS(forceconst3),INTENT(inout) :: fc
     !

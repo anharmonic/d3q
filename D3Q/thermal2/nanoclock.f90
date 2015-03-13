@@ -25,7 +25,7 @@ MODULE nanoclock
 !   CALL print_nanoclock(timer)
   !
   TYPE nanotimer
-    CHARACTER(len=16)   :: name = "unknown"
+    CHARACTER(len=24)   :: name = "unknown"
     !
     REAL(kind=c_double) :: t0 = -1._c_double
     REAL(kind=c_double) :: tot = 0._c_double
@@ -107,11 +107,11 @@ MODULE nanoclock
     !
     IF(timer%t0>0) THEN
       ! print a running clock
-      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
+      WRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
       TRIM(timer%name), timer%tot+ (c_nanosec()-timer%t0), (1000*timer%tot)/timer%calls, &
       100*(timer%tot+ (c_nanosec()-timer%t0))/c_nanosec(), timer%calls
     ELSE
-      WRITE(*,'(2x," * ",a16," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
+      WRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
       TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, &
       100*timer%tot/c_nanosec(), timer%calls
     ENDIF

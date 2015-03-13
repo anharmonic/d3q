@@ -41,7 +41,7 @@ MODULE sqom_program
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(input, S, fc2)
     USE io_global,      ONLY : stdout
-    USE q_grid,         ONLY : q_grid_type, setup_path, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : INVALID
     USE wrappers,       ONLY : f_mkdir_safe
@@ -445,7 +445,7 @@ PROGRAM sqom
   USE kinds,            ONLY : DP
   USE sqom_program
   USE input_fc,         ONLY : print_citations_linewidth
-  USE q_grid,           ONLY : q_grid_type !, setup_simple_grid
+  USE q_grids,          ONLY : q_grid !, setup_simple_grid
   USE parameters,       ONLY : ntypx
   IMPLICIT NONE
   !

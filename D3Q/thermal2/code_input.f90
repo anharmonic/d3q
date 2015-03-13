@@ -50,7 +50,7 @@ MODULE code_input
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     USE io_global,      ONLY : stdout
-    USE q_grid,         ONLY : q_grid_type, setup_path, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
     USE more_constants, ONLY : INVALID, MASS_DALTON_TO_RY
     USE wrappers,       ONLY : f_mkdir_safe
@@ -62,7 +62,7 @@ MODULE code_input
     !
     CHARACTER(len=*),INTENT(in)    :: code
     TYPE(code_input_type),INTENT(out) :: input
-    TYPE(q_grid_type),INTENT(out)  :: qpts
+    TYPE(q_grid),INTENT(out)  :: qpts
     TYPE(forceconst2_grid),INTENT(out) :: fc2
     CLASS(forceconst3),POINTER,INTENT(inout) :: fc3
     TYPE(ph_system_info),INTENT(out)   :: S

@@ -837,9 +837,9 @@ PROGRAM asr3
         IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
 !       ENDIF
       
-      OPEN(unit=100, file="STOP", status='OLD', disp='DELETE' , iostat=ios)
+      OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
       IF(ios==0) THEN
-        CLOSE(100)
+        CLOSE(100,status="DELETE")
         EXIT APPLY_ASR 
       ENDIF
     ENDDO APPLY_ASR 

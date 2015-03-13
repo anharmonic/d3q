@@ -39,19 +39,20 @@ MODULE ph_velocity
     !
     xvel = 0._dp
     !
-!$OMP PARALLEL DO DEFAULT(shared) &
-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
-!$OMP             REDUCTION(+:xvel)
+! NOTE: not using OMP here because it is used in fftinterp_mat2
+!-!$OMP PARALLEL DO DEFAULT(shared) &
+!-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
+!-!$OMP             REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
-      CALL fftinterp_mat2(xqp, S, fc, D2)
-      CALL mat2_diag(S, D2, w2p)
+      CALL fftinterp_mat2(xqp, S%nat3, fc, D2)
+      CALL mat2_diag(S%nat3, D2, w2p)
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
-      CALL fftinterp_mat2(xqm, S, fc, D2)
-      CALL mat2_diag(S, D2, w2m)
+      CALL fftinterp_mat2(xqm, S%nat3, fc, D2)
+      CALL mat2_diag(S%nat3, D2, w2m)
       !
       dh = ( xqp(ix)-xqm(ix) )
       FORALL (nu = 1:S%nat3)
@@ -59,7 +60,7 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
-!$OMP END PARALLEL DO
+!-!$OMP END PARALLEL DO
     !
     velocity_simple = xvel
     !
@@ -92,35 +93,63 @@ MODULE ph_velocity
     ALLOCATE(D2(S%nat3,S%nat3), U(S%nat3,S%nat3), W(S%nat3,S%nat3), &
              w2p(S%nat3), w2m(S%nat3), xvel(3,S%nat3))
     !
-    CALL fftinterp_mat2(xq, S, fc, U)
-    CALL mat2_diag(S, U, w2p)
+    CALL fftinterp_mat2(xq, S%nat3, fc, U)
+    CALL mat2_diag(S%nat3, U, w2p)
     !
     xvel = 0._dp
     !
 ! NOTE: the rotation U must be shared!
-!$OMP PARALLEL DO DEFAULT(shared) &
-!$OMP          PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
-!$OMP          REDUCTION(+:xvel)
+! NOTE2: not using OMP here because it is used in fftinterp_mat2
+!-!$OMP PARALLEL DO DEFAULT(shared) &
+!-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
+!-!$OMP             REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
-      CALL fftinterp_mat2(xqp, S, fc, D2)
+      CALL fftinterp_mat2(xqp, S%nat3, fc, D2)
       W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2p(nu) = REAL(W(nu,nu),kind=DP)
+      WHERE(w2p>=0._dp)
+        w2p = DSQRT(w2p)
+      ELSEWHERE
+        w2p = -DSQRT(-w2p)
+      END WHERE
+      
+!       DO nu = 1,S%nat3
+!         w2p(nu) = REAL(W(nu,nu),kind=DP)
+!         IF(w2p(nu)>=0._dp) THEN
+!           w2p(nu) = SQRT(w2p(nu))
+!         ELSE
+!           w2p(nu) = -SQRT(-w2p(nu))
+!         ENDIF
+!       ENDDO
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
-      CALL fftinterp_mat2(xqm, S, fc, D2)
+      CALL fftinterp_mat2(xqm, S%nat3, fc, D2)
       W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2m(nu) = REAL(W(nu,nu),kind=DP)
+      WHERE(w2m>=0._dp)
+        w2m = DSQRT(w2m)
+      ELSEWHERE
+        w2m = -DSQRT(-w2m)
+      END WHERE
+      !       DO nu = 1,S%nat3
+!         w2m(nu) = REAL(W(nu,nu),kind=DP)
+!         IF(w2m(nu)>=0._dp) THEN
+!           w2m(nu) = SQRT(w2m(nu))
+!         ELSE
+!           w2m(nu) = -SQRT(-w2m(nu))
+!         ENDIF
+!       ENDDO
       !
       dh = ( xqp(ix)-xqm(ix) )
       FORALL (nu = 1:S%nat3)
-        xvel(ix, nu) = ( SQRT(w2p(nu))-SQRT(w2m(nu)) ) / dh
+        xvel(ix, nu) = ( w2p(nu)-w2m(nu) ) / dh
       END FORALL
       !
     ENDDO
-!$OMP END PARALLEL DO
+!-!$OMP END PARALLEL DO
     !
     velocity_proj = xvel
     DEALLOCATE(D2, U, W, w2p, w2m, xvel)

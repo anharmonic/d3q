@@ -136,29 +136,6 @@ MODULE functions
     refold_bz_mod = SQRT(xpmodmin)
   END FUNCTION
 
-
-  FUNCTION set_nu0(xq, at) RESULT(nu0)
-    IMPLICIT NONE
-    REAL(DP), INTENT(in) :: xq(3,3), at(3,3)
-    INTEGER :: nu0(3)
-    !
-    REAL(DP),PARAMETER :: epsq = 1.d-8
-    REAL(DP) :: yq(3,3)
-    INTEGER  :: jq
-        
-       yq = xq
-       CALL cryst_to_cart(3,yq,at,-1)
-       yq = yq-NINT(yq)
-       DO jq = 1,3
-        IF(SUM(ABS(yq(:,jq))) < epsq) THEN
-          nu0(jq) = 4
-          !WRITE(*,'(a,i6,3f12.6)') "gamma", jq, xq(:,jq)
-        ELSE
-          nu0(jq) = 1
-        ENDIF
-       ENDDO
-  END FUNCTION
-
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 

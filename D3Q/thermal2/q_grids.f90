@@ -4,24 +4,29 @@
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
-MODULE q_grid
+MODULE q_grids
 
   USE kinds,     ONLY : DP
   
-  TYPE q_grid_type
+  TYPE q_grid
     CHARACTER(len=9) :: basis = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
     REAL(DP),ALLOCATABLE :: xq(:,:)
-    !REAL(DP),ALLOCATABLE :: w(:)
-  END TYPE
+  END TYPE q_grid
   !
-!   TYPE q_3grid_type
-!     INTEGER :: n(3), nq
-!     TYPE(q_grid_type) :: sub(3)
-!     !REAL(DP),ALLOCATABLE :: w(:)
-!   END TYPE
-
+  TYPE  q_basis
+    INTEGER :: nbnd  ! number of phonon bands
+    INTEGER :: nconf ! number of temperatures
+    REAL(DP),ALLOCATABLE :: w(:,:)    ! phonon frequencies
+    REAL(DP),ALLOCATABLE :: c(:,:,:)  ! phonon group velocity, \nabla_q w
+    REAL(DP),ALLOCATABLE :: be(:,:,:) ! bose-einstein occupation (one per configuration)
+    !REAL(DP),ALLOCATABLE :: b(:,:,:)  ! b vector, as in PRB 88, 045430 (2013)
+    TYPE(q_grid),POINTER :: grid
+    CONTAINS
+      procedure :: B  => B_right_hand_side
+  END TYPE q_basis
+  !
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
 !   !
@@ -47,13 +52,12 @@ MODULE q_grid
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !   END SUBROUTINE setup_symmetry
 !   ! \/o\________\\\_________________________________________/^>
-  
   SUBROUTINE setup_simple_grid(S, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
-    TYPE(q_grid_type),INTENT(inout) :: grid
+    TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     !
     INTEGER :: i,j,k, idx
@@ -89,13 +93,13 @@ MODULE q_grid
     ENDIF
     !
   END SUBROUTINE setup_simple_grid
-  !
+  ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_path(xqi, xqf, nq, path)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nq
     REAL(DP),INTENT(in) :: xqi(3), xqf(3)
-    TYPE(q_grid_type),INTENT(inout) :: path
+    TYPE(q_grid),INTENT(inout) :: path
     !
     INTEGER :: i, n0
     REAL(DP),PARAMETER:: eps = 1.d-8
@@ -138,8 +142,58 @@ MODULE q_grid
     ENDIF
     !
   END SUBROUTINE setup_path
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE prepare_q_basis(qgrid, qbasis, nconf, T, S, fc2)
+    USE fc2_interpolate,    ONLY : freq_phq_safe, bose_phq
+    USE ph_velocity,        ONLY : velocity_proj
+    USE input_fc,           ONLY : ph_system_info, forceconst2_grid
+    IMPLICIT NONE
+    TYPE(q_grid),INTENT(in),TARGET  :: qgrid
+    TYPE(q_basis),INTENT(out) :: qbasis
+    TYPE(ph_system_info)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    INTEGER             :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)
+    !
+    INTEGER :: iq, it
+    COMPLEX(DP),ALLOCATABLE :: U(:,:)
+    !
+    IF(qgrid%nq<=0) CALL errore("prepare_q_basis", "grid must be set up first", 1)
+    !
+    qbasis%nbnd = S%nat3
+    qbasis%nconf = nconf
+    qbasis%grid => qgrid
+    !
+    ALLOCATE(qbasis%w(qbasis%nbnd, qgrid%nq))
+    ALLOCATE(qbasis%c(3, qbasis%nbnd, qgrid%nq))
+    ALLOCATE(qbasis%be(qbasis%nbnd, qbasis%nconf, qgrid%nq))
+    !
+    ALLOCATE(U(qbasis%nbnd,qbasis%nbnd))
+    
+    DO iq = 1,qgrid%nq
+      qbasis%c(:,:,iq) = velocity_proj(S, fc2, qgrid%xq(:,iq))
+      CALL  freq_phq_safe(qgrid%xq(:,iq), S, fc2, qbasis%w(:,iq), U)
+      DO it = 1, qbasis%nconf
+        CALL  bose_phq(T(it), qbasis%nbnd, qbasis%w(:,iq), qbasis%be(:,it,iq))
+      ENDDO
+    ENDDO
+    !
+    DEALLOCATE(U)
+    
+  END SUBROUTINE prepare_q_basis
+  ! \/o\________\\\_________________________________________/^>
+  REAL(DP) FUNCTION B_right_hand_side(self, ix, it, nu, iq) &
+           RESULT (B)
+    IMPLICIT NONE
+    CLASS(q_basis),INTENT(in) :: self
+    INTEGER :: ix, nu, iq, it
+    !
+    B = -self%c(ix,nu,iq) * self%w(nu,iq) * self%be(it,nu,iq) * (self%be(it,nu,iq)+1)
+    !
+  END FUNCTION B_right_hand_side
+
   !
-END MODULE q_grid
+END MODULE q_grids
 
 
 
