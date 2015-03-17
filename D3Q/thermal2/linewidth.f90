@@ -11,9 +11,9 @@
 MODULE linewidth
 
   USE kinds,     ONLY : DP
-  USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
-  USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
-  USE fc3_interpolate, ONLY : forceconst3
+  !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
+  !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
+  !USE fc3_interpolate, ONLY : forceconst3
   USE timers
 
   CONTAINS
@@ -21,7 +21,9 @@ MODULE linewidth
 ! <<^V^\\=========================================//-//-//========//O\\//
   FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
     USE q_grids,          ONLY : q_grid
-    USE fc2_interpolate,  ONLY : freq_phq_safe, bose_phq, set_nu0
+    USE input_fc,         ONLY : ph_system_info
+    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -109,7 +111,9 @@ MODULE linewidth
   !  its complex part is the intrinsic linewidth
   FUNCTION selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
     USE q_grids,          ONLY : q_grid
-    USE fc2_interpolate,  ONLY : freq_phq_safe, bose_phq, set_nu0
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -182,9 +186,11 @@ MODULE linewidth
   ! Simple spectral function, computed as a superposition of Lorentzian functions
   FUNCTION simple_spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener) &
   RESULT(spectralf)
-    USE q_grids,        ONLY : q_grid
-    USE constants,      ONLY : RY_TO_CMM1
-    USE fc2_interpolate,     ONLY : freq_phq_safe, bose_phq
+    USE q_grids,            ONLY : q_grid
+    USE constants,          ONLY : RY_TO_CMM1
+    USE input_fc,           ONLY : ph_system_info
+    USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe
+    USE fc3_interpolate,    ONLY : forceconst3
     
     IMPLICIT NONE
     ! ARGUMENTS:
@@ -243,7 +249,9 @@ MODULE linewidth
   FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener) &
   RESULT(spectralf)
     USE q_grids,          ONLY : q_grid
-    USE fc2_interpolate,  ONLY : freq_phq_safe, bose_phq, set_nu0
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
     !
     IMPLICIT NONE
     !
@@ -342,6 +350,7 @@ MODULE linewidth
   ! Sum the self energy at the provided ener(ne) input energies
   ! \/o\________\\\_________________________________________/^>
   FUNCTION sum_selfnrg_spectre(S, sigma, freq, bose, V3sq, ne, ener, nu0)
+    USE input_fc,           ONLY : ph_system_info
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
@@ -415,6 +424,7 @@ MODULE linewidth
   ! \/o\________\\\_________________________________________/^>
   ! Sum the self energy for the phonon modes
   FUNCTION sum_selfnrg_modes(S, sigma, freq, bose, V3sq, nu0)
+    USE input_fc,           ONLY : ph_system_info
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma
@@ -480,6 +490,7 @@ MODULE linewidth
   FUNCTION sum_linewidth_modes(S, sigma, freq, bose, V3sq, nu0)
     USE functions, ONLY : f_gauss => f_gauss
     USE constants, ONLY : pi, RY_TO_CMM1
+    USE input_fc,           ONLY : ph_system_info
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma
@@ -540,6 +551,7 @@ MODULE linewidth
   !       and the width of a Lorentzian
   ! \/o\________\\\_________________________________________/^>
   FUNCTION sum_linewidth_modes2(S, sigma, freq, bose, V3sq, nu0)
+    USE input_fc,           ONLY : ph_system_info
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma

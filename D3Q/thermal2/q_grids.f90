@@ -21,12 +21,35 @@ MODULE q_grids
     REAL(DP),ALLOCATABLE :: w(:,:)    ! phonon frequencies
     REAL(DP),ALLOCATABLE :: c(:,:,:)  ! phonon group velocity, \nabla_q w
     REAL(DP),ALLOCATABLE :: be(:,:,:) ! bose-einstein occupation (one per configuration)
-    !REAL(DP),ALLOCATABLE :: b(:,:,:)  ! b vector, as in PRB 88, 045430 (2013)
+    REAL(DP),ALLOCATABLE :: b(:,:,:,:)  ! b vector, as in PRB 88, 045430 (2013)
     TYPE(q_grid),POINTER :: grid
-    CONTAINS
-      procedure :: B  => B_right_hand_side
+!     CONTAINS
+!       procedure :: B  => B_right_hand_side
   END TYPE q_basis
-  !
+! !   !
+! !   ! A scalar in this special space (i.e. an array of size 3,nconf)
+! !   TYPE  q_grid_real_scalar
+! !     INTEGER :: nconf ! number of temperatures
+! !     REAL(DP),ALLOCATABLE :: r(:,:)
+! !     CONTAINS
+! !       procedure :: assign_q_grid_real_scalar
+! !   END TYPE q_grid_real_scalar
+! !   INTERFACE q_grid_real_scalar
+! !     MODULE PROCEDURE real_scalar_on_q_grid
+! !   END INTERFACE
+! !   !
+! !   ! A vector in this special space (i.e. an array of size 3,nconf,3*nat,nqpts)
+! !   TYPE  q_grid_real_vector
+! !     INTEGER :: nconf ! number of temperatures
+! !     REAL(DP),ALLOCATABLE :: r(:,:,:,:)
+! !     CONTAINS
+! !       procedure :: assign_q_grid_real_scalar
+! !   END TYPE q_grid_real_vector
+! !   INTERFACE q_grid_real_vector
+! !     MODULE PROCEDURE real_vector_on_q_grid
+! !   END INTERFACE
+  
+  
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
 !   !
@@ -155,7 +178,7 @@ MODULE q_grids
     INTEGER             :: nconf
     REAL(DP),INTENT(in) :: T(nconf)
     !
-    INTEGER :: iq, it
+    INTEGER :: ix, nu, iq, it
     COMPLEX(DP),ALLOCATABLE :: U(:,:)
     !
     IF(qgrid%nq<=0) CALL errore("prepare_q_basis", "grid must be set up first", 1)
@@ -164,23 +187,90 @@ MODULE q_grids
     qbasis%nconf = nconf
     qbasis%grid => qgrid
     !
-    ALLOCATE(qbasis%w(qbasis%nbnd, qgrid%nq))
-    ALLOCATE(qbasis%c(3, qbasis%nbnd, qgrid%nq))
-    ALLOCATE(qbasis%be(qbasis%nbnd, qbasis%nconf, qgrid%nq))
+    ALLOCATE(qbasis%w(S%nat3, qgrid%nq))
+    ALLOCATE(qbasis%c(3, S%nat3, qgrid%nq))
+    ALLOCATE(qbasis%be(S%nat3, qbasis%nconf, qgrid%nq))
     !
-    ALLOCATE(U(qbasis%nbnd,qbasis%nbnd))
+    ALLOCATE(U(S%nat3,S%nat3))
     
     DO iq = 1,qgrid%nq
       qbasis%c(:,:,iq) = velocity_proj(S, fc2, qgrid%xq(:,iq))
       CALL  freq_phq_safe(qgrid%xq(:,iq), S, fc2, qbasis%w(:,iq), U)
-      DO it = 1, qbasis%nconf
-        CALL  bose_phq(T(it), qbasis%nbnd, qbasis%w(:,iq), qbasis%be(:,it,iq))
+      DO it = 1, nconf
+        CALL  bose_phq(T(it), S%nat3, qbasis%w(:,iq), qbasis%be(:,it,iq))
       ENDDO
     ENDDO
+
+    ALLOCATE(qbasis%b(3,nconf,S%nat3,qgrid%nq))
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,qgrid%nq
+    DO nu = 1,S%nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        qbasis%b(ix,it,nu,iq) = - qbasis%c(ix,nu,iq) * qbasis%w(nu,iq) &
+                                 *qbasis%be(nu,it,iq)*(qbasis%be(nu,it,iq)+1)
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
     !
     DEALLOCATE(U)
     
   END SUBROUTINE prepare_q_basis
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE qbasis_x_times_y(z, x, y, nconf, nat3, nq)
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(out):: z(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: y(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        z(ix,it,nu,iq) = x(ix,it,nu,iq)*y(ix,it,nu,iq)
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END SUBROUTINE qbasis_x_times_y
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE qbasis_x_over_y(f, A, b, nconf, nat3, nq)
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(out):: f(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: A(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        IF(A(ix,it,nu,iq)/=0._dp)THEN
+          f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(ix,it,nu,iq)
+        ELSE
+          f(ix,it,nu,iq) = 0._dp
+        ENDIF
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END SUBROUTINE qbasis_x_over_y
   ! \/o\________\\\_________________________________________/^>
   REAL(DP) FUNCTION B_right_hand_side(self, ix, it, nu, iq) &
            RESULT (B)
@@ -188,7 +278,7 @@ MODULE q_grids
     CLASS(q_basis),INTENT(in) :: self
     INTEGER :: ix, nu, iq, it
     !
-    B = -self%c(ix,nu,iq) * self%w(nu,iq) * self%be(it,nu,iq) * (self%be(it,nu,iq)+1)
+    B = -self%c(ix,nu,iq) * self%w(nu,iq) * self%be(nu,it,iq) * (self%be(nu,it,iq)+1)
     !
   END FUNCTION B_right_hand_side
 

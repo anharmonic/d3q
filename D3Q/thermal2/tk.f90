@@ -239,12 +239,14 @@ MODULE thermalk_program
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q
     USE constants,          ONLY : RY_TO_CMM1
-    USE q_grids,            ONLY : q_grid, q_basis, setup_simple_grid, prepare_q_basis
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
+    USE q_grids,            ONLY : q_grid, q_basis, setup_simple_grid, &
+                                   prepare_q_basis, qbasis_x_times_y, qbasis_x_over_y
     USE variational_tk
     IMPLICIT NONE
     !
@@ -254,16 +256,65 @@ MODULE thermalk_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: qgrid
     !
-    INTEGER :: nu, iq, it
+    INTEGER :: ix, nu, iq, it, nu0
     !
     TYPE(q_basis) :: qbasis
     REAL(DP),ALLOCATABLE :: A_out(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: f(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
+    !
+    ! For code readability:
+    INTEGER :: nconf, nat3, nq
+    nconf = input%nconf
+    nat3  = S%nat3
+    nq    = qgrid%nq
     
     !CALL setup_simple_grid(S, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
-    CALL prepare_q_basis(qgrid, qbasis, input%nconf, input%T, S, fc2)
+    CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
     !
-    ALLOCATE(A_out(3,qbasis%nconf,qbasis%nbnd, qbasis%grid%nq))
-    CALL gen_a_out(A_out, input, qbasis, S, fc2, fc3)
+    ALLOCATE(A_out(3,nconf, nat3, nq))
+    CALL gen_A_out(A_out, input, qbasis, S, fc2, fc3)
+    !
+    ALLOCATE(f(3, nconf, nat3, nq))
+    CALL qbasis_x_over_y(f, A_out, qbasis%b, nconf, nat3, nq)
+   
+    CALL calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    !
+    ALLOCATE(Af(3, nconf, nat3, nq))
+    !CALL qbasis_x_times_y(Af, A_out, f, nconf, nat3, nq)
+    CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    
+    
+!     ALLOCATE(f_sma(3,qbasis%nconf,qbasis%nbnd, nq))
+!     DO iq = 1,qgrid%nq
+!     DO nu = 1,nat3
+!       DO it = 1,nconf
+!       DO ix = 1,3
+!         IF(A_out(ix,it,nu,iq)/=0._dp)&
+!         f_sma(ix,it,nu,iq) = qbasis%b(ix,it,nu,iq)/A_out(ix,it,nu,iq)
+!       ENDDO
+!       ENDDO
+!     ENDDO
+!     ENDDO
+!     !
+!     tk = 0._dp
+!     DO iq = 1,qgrid%nq
+!     DO nu = 1,nat3
+!       tk = tk +  f_sma(:,:,nu,iq)*qbasis%b(:,:,nu,iq)
+!     ENDDO
+!     ENDDO
+!     DO it = 1,nconf
+!       tk(:,it) = S%Omega*tk(:,it)/qgrid%nq/input%T(it)**2
+!     ENDDO
+!     !
+!     WRITE(*,*) "tk_sma"
+!     DO it = 1,nconf
+!       WRITE(*,'(i6,f12.6,3e20.8)') it, input%T(it),tk(:,it)*RY_TO_WATTMM1KM1
+!     ENDDO
+    
+    
+    
+
     !
     write(10000,*) A_out
   END SUBROUTINE TK_CG
