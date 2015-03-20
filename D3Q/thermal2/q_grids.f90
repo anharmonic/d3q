@@ -242,35 +242,84 @@ MODULE q_grids
 !$OMP END PARALLEL DO    
     !
   END SUBROUTINE qbasis_x_times_y
-  !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE qbasis_x_over_y(f, A, b, nconf, nat3, nq)
+  FUNCTION qbasis_dot(x, y, nconf, nat3, nq) RESULT(z)
     IMPLICIT NONE
     !
-    REAL(DP),INTENT(out):: f(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: A(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+    REAL(DP) :: z(3, nconf)
+    !
+    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: y(3, nconf, nat3, nq)
     INTEGER,INTENT(in)  :: nconf, nat3, nq
     !
     INTEGER  :: iq, it, ix, nu
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    z = 0._dp
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+!$OMP DO COLLAPSE(2)
+      DO it = 1,nconf
+      DO ix = 1,3
+        z(ix,it) = z(ix,it)+x(ix,it,nu,iq)*y(ix,it,nu,iq)
+      ENDDO
+      ENDDO
+!$OMP END DO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL
+    !
+  END FUNCTION qbasis_dot
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION qbasis_ax(a, x, nconf, nat3, nq) RESULT(y)
+    IMPLICIT NONE
+    !
+    REAL(DP) :: y(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: a(3, nconf)
+    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
+!$OMP DO COLLAPSE(4)
     DO iq = 1,nq
     DO nu = 1,nat3
       DO it = 1,nconf
       DO ix = 1,3
-        IF(A(ix,it,nu,iq)/=0._dp)THEN
-          f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(ix,it,nu,iq)
-        ELSE
-          f(ix,it,nu,iq) = 0._dp
-        ENDIF
+        y(ix,it,nu,iq) = a(ix,it)*x(ix,it,nu,iq)
       ENDDO
       ENDDO
     ENDDO
     ENDDO
-!$OMP END PARALLEL DO    
+!$OMP END DO
+!$OMP END PARALLEL
     !
-  END SUBROUTINE qbasis_x_over_y
+  END FUNCTION qbasis_ax
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION qbasis_a_over_b(a, b, nconf) RESULT(c)
+    IMPLICIT NONE
+    !
+    REAL(DP) :: c(3, nconf)
+    !
+    REAL(DP),INTENT(in) :: a(3, nconf)
+    REAL(DP),INTENT(in) :: b(3, nconf)
+    INTEGER,INTENT(in)  :: nconf
+    !
+    INTEGER  :: it, ix
+    !
+    c = 0._dp
+    DO it = 1,nconf
+    DO ix = 1,3
+      IF(b(ix,it)/=0._dp)THEN
+        c(ix,it) = a(ix,it)/b(ix,it)
+      ENDIF
+    ENDDO
+    ENDDO
+    !
+  END FUNCTION qbasis_a_over_b
+  !
   ! \/o\________\\\_________________________________________/^>
   REAL(DP) FUNCTION B_right_hand_side(self, ix, it, nu, iq) &
            RESULT (B)

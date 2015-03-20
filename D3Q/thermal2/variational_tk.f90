@@ -6,11 +6,10 @@
 MODULE variational_tk
   USE kinds, ONLY : DP
   ! 
+  ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
-  ! This subroutine computes the SMA thermal conducivity, it is mainly just a driver
-  ! that uses other subroutines to compute th intrinsic, isotopic and casimir linewidths,
-  ! than it sums everything up and takes care of input/output.
+  ! Compute the diagonal matrix A_out
   SUBROUTINE gen_A_out(A_out, input, qbasis, S, fc2, fc3)
     USE constants,          ONLY : RY_TO_CMM1
     USE linewidth,          ONLY : linewidth_q
@@ -28,7 +27,7 @@ MODULE variational_tk
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_basis),INTENT(in)     :: qbasis
-    REAL(DP),INTENT(out) :: A_out(3,input%nconf,S%nat3, qbasis%grid%nq)
+    REAL(DP),INTENT(out) :: A_out(input%nconf,S%nat3, qbasis%grid%nq)
     !
     REAL(DP) :: sigma_ry(input%nconf)
     REAL(DP) :: lw(S%nat3, input%nconf)
@@ -92,15 +91,16 @@ MODULE variational_tk
             ENDIF
           ENDIF
           !
-          DO ix = 1,3
-            A_out(ix,it,nu,iq) = bose(nu,it)*(1+bose(nu,it)) * lw(nu,it)
-          ENDDO
+          !DO ix = 1,3
+          A_out(it,nu,iq) = bose(nu,it)*(1+bose(nu,it)) * lw(nu,it)
+          !ENDDO
         ENDDO MODE_LOOP 
       ENDDO CONF_LOOP 
     ENDDO QPOINT_LOOP
     !
   END SUBROUTINE gen_A_out
   ! \/o\________\\\_________________________________________/^>
+  ! Apply the A_in matrix to a vector f
   SUBROUTINE A_times_f(f, Af, input, basis, S, fc2, fc3)
     USE constants,          ONLY : RY_TO_CMM1
     USE linewidth,          ONLY : linewidth_q
@@ -119,26 +119,30 @@ MODULE variational_tk
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_basis),INTENT(in)     :: basis
     REAL(DP),INTENT(in)  ::  f(input%nconf,S%nat3, basis%grid%nq)
-    REAL(DP),INTENT(out) :: Af(input%nconf,S%nat3, basis%grid%nq)
+    REAL(DP),INTENT(out) :: Af(3,input%nconf,S%nat3, basis%grid%nq)
     !
     REAL(DP) :: sigma_ry(input%nconf)
     REAL(DP) :: bose(S%nat3, input%nconf)
     !
-    REAL(DP) :: vel(3,S%nat3)
+    !REAL(DP) :: vel(3,S%nat3)
+    REAL(DP) :: aux(input%nconf,S%nat3)
     INTEGER  :: iq, it, ix, nu
     !
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
     !
     sigma_ry = input%sigma/RY_TO_CMM1
     !
-    lw_isotopic = 0._dp
-    lw_casimir  = 0._dp
-    
-    
-    QPOINT_OUTER_LOOP : & ! the innet loop in in A_times_f_q
+    QPOINT_OUTER_LOOP : & ! the inner loop in in A_times_f_q
     DO iq = 1,basis%grid%nq
       ! bang!
-       Af(:,:,iq) = A_times_f_q(f, iq, input%nconf, input%T, sigma_ry, S, basis, fc2, fc3)
+       aux = A_times_f_q(f, iq, input%nconf, input%T, sigma_ry, S, basis, fc2, fc3)
+       DO nu = 1,S%nat3
+       DO it = 1,input%nconf
+       DO ix = 1,3
+        Af(ix,it,nu,iq) = aux(it,nu)
+       ENDDO
+       ENDDO
+       ENDDO
       !
 !       ! Compute contribution of isotopic disorder
 !       IF(input%isotopic_disorder) &
@@ -157,39 +161,42 @@ MODULE variational_tk
       !
     ENDDO QPOINT_OUTER_LOOP
     !
-    DEALLOCATE(A_iq)
+    !DEALLOCATE(A_iq)
     !
   END SUBROUTINE A_times_f
   !
-! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION A_times_f_q(f, iq0, nconf, T, sigma, S, basis, fc2, fc3, f)
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute 3*nat lines of the matrix A (those corresponding to the
+  ! q-point iq0) and apply them to the vector f. In output in gives 
+  ! 3*nat elements of Af
+  FUNCTION A_times_f_q(f, iq0, nconf, T, sigma, S, basis, fc2, fc3)
     USE q_grids,          ONLY : q_basis
     USE fc2_interpolate,  ONLY : forceconst2_grid, bose_phq, set_nu0, &
                                  freq_phq_safe, bose_phq, ip_cart2pat
     USE fc3_interpolate,  ONLY : forceconst3
+    USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
-    !
-    REAL(DP),INTENT(in) :: f(nconf,S%nat3,basis%grid%nq)
-    INTEGER,INTENT(in)  :: iq0
-    !REAL(DP),INTENT(in) :: xq0(3)
-    INTEGER,INTENT(in)  :: nconf
-    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_basis),INTENT(in)      :: basis
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    REAL(DP),INTENT(in) :: f(nconf,S%nat3,basis%grid%nq)
+    INTEGER,INTENT(in)  :: iq0
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     !
     ! FUNCTION RESULT:
-    REAL(DP) :: A_times_f_q(nconf,S%nat3,basis%grid%nq)
-    REAL(DP) :: P3(S%nat3) !aux
+    REAL(DP) :: A_times_f_q(nconf,S%nat3)
+    REAL(DP) :: P3(S%nat3,S%nat3) !aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
     INTEGER :: iq, jq, mu, nu, it, nu0(4)
     !
     REAL(DP) :: freq(S%nat3,4), bose(S%nat3,4), xq(3,4), dq
+    REAL(DP),PARAMETER :: epsq = 1.e-6_dp
     !
 
     ALLOCATE(U(S%nat3, S%nat3,4))
@@ -199,7 +206,7 @@ MODULE variational_tk
     !
     A_times_f_q = 0._dp
     !
-    dq = 1/asis%grid%nq
+    dq = 1._dp/basis%grid%nq
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = basis%grid%xq(:,iq0)
@@ -214,9 +221,11 @@ MODULE variational_tk
       xq(:,2) = basis%grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
       xq(:,4) =  xq(:,2)-xq(:,1)
+      !write(*,'(4i3,4(3f8.3,3x))') nu0, xq
       DO jq = 2,4
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+        !write(*,'(99f12.4)') freq(:,jq)*RY_TO_CMM1
       ENDDO
       !
       ! Interpolate D3(q1,q2,-q1-q2)
@@ -227,10 +236,16 @@ MODULE variational_tk
       ! Interpolate D3(q1,-q2, q2-q1)
       ! For this process, we send q2 -> -q2,
       ! i.e. D2(-q2,q2) -> D2(q2,-q2) = D2(-q2,q2)*
-      U(:,:,2) = CONJG(U(:,:,2))
-      CALL fc3%interpolate(-xq(:,2), xq(:,4), S%nat3, D3)
-      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,4))
-      V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
+      IF( ALL(ABS(xq(:,2))<epsq) ) THEN
+        ! When q2 == 0, just copy over
+        V3Bsq = V3sq
+      ELSE
+        xq(:,2) = -xq(:,2)
+        U(:,:,2) = CONJG(U(:,:,2))
+        CALL fc3%interpolate(xq(:,2), xq(:,4), S%nat3, D3)
+        CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,4))
+        V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
+      ENDIF
       !
       DO it = 1,nconf
         bose(:,1) = basis%be(:,it,iq0)
@@ -246,7 +261,7 @@ MODULE variational_tk
         ! 3*nat lines of the A matrix are applied now to f to produce 3*nat elements of Af
         DO mu = 1,S%nat3
         DO nu = 1,S%nat3
-          A_times_f_q(it,nu) = A_times_f_q(it,nu)+p(nu,mu)*f(it,mu,iq)
+          A_times_f_q(it,nu) = A_times_f_q(it,nu)+ P3(nu,mu)*f(it,mu,iq)!*dq
         ENDDO
         ENDDO
         !
@@ -261,8 +276,12 @@ MODULE variational_tk
     !
   END FUNCTION A_times_f_q
   !  
-  ! Sum the Imaginary part of the self energy for the phonon modes, uses gaussian function for energy delta
   ! \/o\________\\\_________________________________________/^>
+  ! Compute the scattering probability required for the matrix A.
+  ! The form is a bit more complex than in  PRB 88, 045430 (2013)
+  ! because we have rearranged the indexes to only have cohalescence
+  ! processes instead of mixed scattering-cohalescence. This trick ensures
+  ! that everything is positive definite.
   FUNCTION sum_scattering_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
     USE functions, ONLY : f_gauss => f_gauss
     USE constants, ONLY : pi, RY_TO_CMM1
@@ -289,10 +308,15 @@ MODULE variational_tk
     INTEGER :: i,j,k
     REAL(DP) :: p(nat3,nat3)
     p(:,:) = 0._dp
+    
+!     DO j = 1,4
+! !     write(*,'("--",99f12.4)') freq(:,j)*RY_TO_CMM1
+!     ENDDO
+
     !
-! !$OMP PARALLEL DO DEFAULT(SHARED) &
-! !$OMP             PRIVATE(i,j,k,freqtot,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,freq23) &
-! !$OMP             REDUCTION(+: lw) COLLAPSE(2)
+!$OMP PARALLEL DO DEFAULT(SHARED) &
+!$OMP             PRIVATE(i,j,k,bose_a,bose_b,bose_c,dom_a,dom_b,dom_c,ctm_a,ctm_b,ctm_c,sum_a,sum_bc,norm_a,norm_bc) &
+!$OMP             REDUCTION(+: p) COLLAPSE(3)
     DO k = 1,nat3
       DO j = nu0(2),nat3
         DO i = nu0(1),nat3
@@ -310,33 +334,43 @@ MODULE variational_tk
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
           !
           IF(k>=nu0(3))THEN
-            norm_a  = norm/(freq(1,i)*freq(2,j)*freq(3,k))
+!             IF((freq(i,1)*freq(j,2)*freq(k,3))/=0._dp) THEN
+            norm_a  = norm/(freq(i,1)*freq(j,2)*freq(k,3))
+!             ELSE
+!               WRITE(*,"(a,6i3,3f12.4)") "problem A", i,j,k,nu0(1),nu0(2),nu0(3),freq(i,1)*RY_TO_CMM1,freq(j,2)*RY_TO_CMM1,freq(k,3)*RY_TO_CMM1
+!             ENDIF
           ELSE
             norm_a = 0._dp
           ENDIF
           !
           IF(k>=nu0(4))THEN
-            norm_bc = norm/(freq(1,i)*freq(2,j)*freq(4,k))
+!             IF((freq(i,1)*freq(j,2)*freq(k,4))/=0._dp) THEN
+            norm_bc = norm/(freq(i,1)*freq(j,2)*freq(k,4))
+!             ELSE
+!               WRITE(*,"(a,6i3,3f12.4)") "problem B", i,j,k,nu0(1),nu0(2),nu0(4),freq(i,1)*RY_TO_CMM1,freq(j,2)*RY_TO_CMM1,freq(k,4)*RY_TO_CMM1
+!             ENDIF
           ELSE
             norm_bc = 0._dp
           ENDIF
           !
           sum_a  = norm_a * ctm_a * V3sq(i,j,k)
+          !IF(ISNAN(sum_a)) STOP 1
           sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)
+          !IF(ISNAN(sum_bc)) STOP 2
           !
           p(i,j) = p(i,j) -sum_a + sum_bc
-!           lw(i) = lw(i) - norm/freqtot * (ctm_C + ctm_X) * V3sq(i,j,k)
           !
         ENDDO
       ENDDO
     ENDDO
-! !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
     !
     sum_scattering_modes = p
     !
   END FUNCTION sum_scattering_modes
   !
   ! \/o\________\\\_________________________________________/^>
+  ! Compute thermal conductivity as \lambda \over { N T^2 } f \dot b
   SUBROUTINE calc_tk_simple(f, b, T, Omega, nconf, nat3, nq)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
@@ -353,8 +387,10 @@ MODULE variational_tk
     !
     !
     tk = 0._dp
+!!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx)
     DO iq = 1,nq
     DO nu = 1,nat3
+!!$OMP DO COLLAPSE(3)    
       DO it = 1,nconf
         DO jx = 1,3
         DO ix = 1,3
@@ -362,8 +398,10 @@ MODULE variational_tk
         ENDDO
         ENDDO
       ENDDO
+!!$OMP ENDDO      
     ENDDO
     ENDDO
+!!$OMP END PARALLEL
     DO it = 1,nconf
       tk(:,:,it) = Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
@@ -382,6 +420,7 @@ MODULE variational_tk
   END SUBROUTINE calc_tk_simple
   !
   ! \/o\________\\\_________________________________________/^>
+  ! Compute thermal conductivity as -2\lambda \over { N T^2 } (1/2 f \dot Af - f \dot b)
   SUBROUTINE calc_tk_variational(f, Af, b, T, Omega, nconf, nat3, nq)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
@@ -399,8 +438,10 @@ MODULE variational_tk
     !
     !
     tk = 0._dp
+!!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx)
     DO iq = 1,nq
     DO nu = 1,nat3
+!!$OMP DO COLLAPSE(3)    
       DO it = 1,nconf
         DO jx = 1,3
         DO ix = 1,3
@@ -408,10 +449,12 @@ MODULE variational_tk
         ENDDO
         ENDDO
       ENDDO
+!!$OMP ENDDO      
     ENDDO
     ENDDO
+!!$OMP END PARALLEL
     DO it = 1,nconf
-      tk(:,:,it) = -Omega*tk(:,:,it)/nq/T(it)**2
+      tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
     WRITE(*,*) "tk_var"
@@ -426,5 +469,113 @@ MODULE variational_tk
     ENDDO
     !
   END SUBROUTINE calc_tk_variational
-
+  !
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute thermal conductivity as -2\lambda \over { N T^2 } (1/2 f \dot Af - f \dot b)
+  SUBROUTINE calc_tk_gf(g, f, b, T, Omega, nconf, nat3, nq)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE timers
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: g(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: T(nconf)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
+    !
+    REAL(DP) :: tk(3,3,nconf)
+    INTEGER  :: iq, it, ix, jx, nu
+    !
+    !
+    tk = 0._dp
+!!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+!!$OMP DO COLLAPSE(3)    
+      DO it = 1,nconf
+        DO jx = 1,3
+        DO ix = 1,3
+          tk(ix,jx,it) = tk(ix,jx,it) +  0.5_dp*( f(ix,it,nu,iq)*g(jx,it,nu,iq) &
+                                                 -f(ix,it,nu,iq)*b(jx,it,nu,iq) )
+        ENDDO
+        ENDDO
+      ENDDO
+!!$OMP ENDDO      
+    ENDDO
+    ENDDO
+!!$OMP END PARALLEL
+    DO it = 1,nconf
+      tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
+    ENDDO
+    !
+    WRITE(*,*) "tk_gf"
+    DO it = 1,nconf
+      WRITE(*,'(i6,f12.6,9e20.8)') it, T(it), &
+      tk(1,1,it)*RY_TO_WATTMM1KM1, &
+      tk(2,2,it)*RY_TO_WATTMM1KM1, &
+      tk(3,3,it)*RY_TO_WATTMM1KM1, &
+      tk(1,2,it)*RY_TO_WATTMM1KM1, &
+      tk(1,3,it)*RY_TO_WATTMM1KM1, &
+      tk(2,3,it)*RY_TO_WATTMM1KM1
+    ENDDO
+    !
+  END SUBROUTINE calc_tk_gf
+  !
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION b_over_A(b, A, nconf, nat3, nq) RESULT(f)
+    IMPLICIT NONE
+    !
+    REAL(DP):: f(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        IF(A(it,nu,iq)/=0._dp)THEN
+          f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(it,nu,iq)
+        ELSE
+          f(ix,it,nu,iq) = 0._dp
+        ENDIF
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END FUNCTION b_over_A
+  !
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION A_out_times_f(A_out, f, nconf, nat3, nq) RESULT(Af)
+    IMPLICIT NONE
+    !
+    REAL(DP):: Af(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A_out(nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        Af(ix,it,nu,iq) = A_out(it,nu,iq)*f(ix,it,nu,iq)
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END FUNCTION A_out_times_f
+  
 END MODULE variational_tk
