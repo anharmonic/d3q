@@ -90,8 +90,8 @@ MODULE isotopes_linewidth
     lw(:) = 0._dp
     !
     !
-! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
-! !$OMP REDUCTION(+:lw) COLLAPSE(2)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,nu,ia,it,ix,freq_f,sum_zz,sum_zz2) &
+!$OMP REDUCTION(+:lw) COLLAPSE(2)
     DO i = 1,nat3
       DO j = 1,nat3
         !
@@ -102,7 +102,6 @@ MODULE isotopes_linewidth
         nu = 0
         DO ia = 1,nat
           it = ityp(ia)
-          !
           sum_zz = 0._dp
           DO ix = 1,3
             nu = nu + 1
@@ -117,7 +116,7 @@ MODULE isotopes_linewidth
         lw(i) = lw(i) + freq_f*sum_zz2
       ENDDO
     ENDDO
-! !$OMP END PARALLEL DO 
+!$OMP END PARALLEL DO 
     !
     sum_isotope_linewidth_modes = 0.5_dp*pi*lw
     !
@@ -148,8 +147,8 @@ MODULE isotopes_linewidth
     P(:,:) = 0._dp
     !
     !
-! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
-! !$OMP REDUCTION(+:P) COLLAPSE(2)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,nu,ia,it,ix,nu,bose_f,freq_f,sum_zz,sum_zz2) &
+!$OMP REDUCTION(+:P) COLLAPSE(2)
     DO j = 1,nat3
       DO i = 1,nat3
         !

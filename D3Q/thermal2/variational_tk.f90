@@ -478,7 +478,7 @@ MODULE variational_tk
   ! g = Af-b
   ! f.g = f.Af - b.f
   ! 1/2 (f.g -b.f ) = 1/2 f.Af - b.f
-  SUBROUTINE calc_tk_gf(g, f, b, T, Omega, nconf, nat3, nq)
+  FUNCTION calc_tk_gf(g, f, b, T, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
     IMPLICIT NONE
@@ -515,9 +515,20 @@ MODULE variational_tk
       tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
-    WRITE(*,*) "tk_gf"
+  END FUNCTION calc_tk_gf
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_tk(tk, nconf, name)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: tk(3,3,nconf)
+    INTEGER,INTENT(in) :: nconf
+    CHARACTER(len=*),INTENT(in) :: name
+    !
+    INTEGER :: it
+    WRITE(*,*) name
     DO it = 1,nconf
-      WRITE(*,'(i6,f12.6,3(3e17.8,3x))') it, T(it), &
+      WRITE(*,'(i6,3(3e17.8,3x))') it, &
       tk(1,1,it)*RY_TO_WATTMM1KM1, &
       tk(2,2,it)*RY_TO_WATTMM1KM1, &
       tk(3,3,it)*RY_TO_WATTMM1KM1, &
@@ -530,7 +541,23 @@ MODULE variational_tk
 
     ENDDO
     !
-  END SUBROUTINE calc_tk_gf
+  END SUBROUTINE print_tk
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_grad_tk(g, nconf, name)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: g(3,nconf)
+    INTEGER,INTENT(in) :: nconf
+    CHARACTER(len=*),INTENT(in) :: name
+    !
+    INTEGER :: it
+    WRITE(*,*) name
+    DO it = 1,nconf
+      WRITE(*,'(i6,3(3e17.8,3x))') it, g(:,it)*RY_TO_WATTMM1KM1
+    ENDDO
+    !
+  END SUBROUTINE print_grad_tk
   !
   ! \/o\________\\\_________________________________________/^>
   FUNCTION b_over_A(b, A, nconf, nat3, nq) RESULT(f)

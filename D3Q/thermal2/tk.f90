@@ -266,6 +266,8 @@ MODULE thermalk_program
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
                             pref(:,:)
+    INTEGER,PARAMETER :: niter_max = 10000
+    REAL(DP) :: tk(3,3,input%nconf)
     !
     ! For code readability:
     INTEGER :: nconf, nat3, nq
@@ -307,7 +309,8 @@ MODULE thermalk_program
     !
     h = -g
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-    CALL calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    CALL print_tk(tk, nconf, "TK gf")
     !
     DO iter = 1,10000
       WRITE(*,*) "iter ", iter
@@ -322,52 +325,20 @@ MODULE thermalk_program
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
       !
-      CALL calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, nconf, "TK gf")
       !
       g_mod2_old = g_mod2
       g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
+      CALL print_grad_tk(g_mod2, nconf, "TK gradient")
+
       pref = g_mod2 / g_mod2_old
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
     ENDDO
-    
-!     print*,Af
-    !CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    
-    
-!     ALLOCATE(f_sma(3,qbasis%nconf,qbasis%nbnd, nq))
-!     DO iq = 1,qgrid%nq
-!     DO nu = 1,nat3
-!       DO it = 1,nconf
-!       DO ix = 1,3
-!         IF(A_out(ix,it,nu,iq)/=0._dp)&
-!         f_sma(ix,it,nu,iq) = qbasis%b(ix,it,nu,iq)/A_out(ix,it,nu,iq)
-!       ENDDO
-!       ENDDO
-!     ENDDO
-!     ENDDO
-!     !
-!     tk = 0._dp
-!     DO iq = 1,qgrid%nq
-!     DO nu = 1,nat3
-!       tk = tk +  f_sma(:,:,nu,iq)*qbasis%b(:,:,nu,iq)
-!     ENDDO
-!     ENDDO
-!     DO it = 1,nconf
-!       tk(:,it) = S%Omega*tk(:,it)/qgrid%nq/input%T(it)**2
-!     ENDDO
-!     !
-!     WRITE(*,*) "tk_sma"
-!     DO it = 1,nconf
-!       WRITE(*,'(i6,f12.6,3e20.8)') it, input%T(it),tk(:,it)*RY_TO_WATTMM1KM1
-!     ENDDO
-    
-    
-    
-
     !
     write(10000,*) A_out
   END SUBROUTINE TK_CG
-  !   
+  !
   END MODULE thermalk_program
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 !               !               !               !               !               !               !
