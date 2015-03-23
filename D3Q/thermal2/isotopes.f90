@@ -38,45 +38,26 @@ MODULE isotopes_linewidth
     REAL(DP) :: lw(S%nat3,nconf)
     !
     COMPLEX(DP) :: U(S%nat3, S%nat3,2)
-    INTEGER  :: iq, jq, nu, it, ia, alpha
+    INTEGER  :: iq, jq, it
     !
-    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,2)
-    REAL(DP) :: gs2(S%nat3) !, gm(S%nat3), auxm(S%ntyp), auxs(S%ntyp)
+    REAL(DP) :: freq(S%nat3,3), xq(3,2)
+    !REAL(DP) :: gs2(S%nat3) !, gm(S%nat3), auxm(S%ntyp), auxs(S%ntyp)
     !
     lw = 0._dp
-!     ! Compute isotope-phonon cross section for the various atomic species
-!     ! NOTE: move this code to input!
-!     DO it = 1, S%ntyp
-!       CALL compute_gs(auxm(it), auxs(it), S%atm(it), 0, 0)
-!     ENDDO
-    ! Rearrange the cross sections with the mode index, for simplicity
-    nu = 0
-    DO ia = 1, S%nat
-      it = S%ityp(ia)
-      DO alpha = 1,3
-        nu = nu+1
-        !gm(nu)  = auxm(it)
-        gs2(nu) = S%amass_variance(it)
-      ENDDO
-    ENDDO
-    !
-!     print*, "gm and gs: "
-!     print*, gm
-!     print*, gs2
-    
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
       !
-      ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+      ! Compute eigenvalues and eigenmodes at q2 and q3
       xq(:,2) = grid%xq(:,iq)
       CALL freq_phq_safe(xq(:,2), S, fc2, freq(:,2), U(:,:,2))
       !
       DO it = 1,nconf
         !
-        lw(:,it) = lw(:,it) + sum_isotope_modes( S%nat3, sigma(it), freq, gs2, U )
+        lw(:,it) = lw(:,it) + sum_isotope_linewidth_modes( S%nat3, S%nat, sigma(it), freq, &
+                                                           S%ntyp, S%ityp, S%amass_variance, U )
         !
       ENDDO
       !
@@ -86,52 +67,119 @@ MODULE isotopes_linewidth
     !
   END FUNCTION isotopic_linewidth_q
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_isotope_modes(nat3, sigma, freq, gs2, zz)
+  FUNCTION sum_isotope_linewidth_modes(nat3, nat, sigma, freq, ntyp, ityp, gs2, zz)
     USE functions, ONLY : f_gauss
     USE constants, ONLY : pi
     IMPLICIT NONE
-    INTEGER,INTENT(in)  :: nat3
+    INTEGER,INTENT(in)  :: nat3, nat
     REAL(DP),INTENT(in) :: sigma
-    REAL(DP),INTENT(in) :: gs2(nat3)
+    INTEGER,INTENT(in)  :: ntyp
+    INTEGER,INTENT(in)  :: ityp(nat)
+    REAL(DP),INTENT(in) :: gs2(ntyp)
     REAL(DP),INTENT(in) :: freq(nat3,2)
-!     REAL(DP),INTENT(in) :: bose(nat3,2)
     COMPLEX(DP),INTENT(in) :: zz(nat3,nat3,2)
     !
-    REAL(DP) :: sum_isotope_modes(nat3)
+    REAL(DP) :: sum_isotope_linewidth_modes(nat3)
     !
-    REAL(DP) :: bose_f, freq_f, sum_zz2, dfreq
+    REAL(DP) :: freq_f, sum_zz2
     COMPLEX(DP) :: sum_zz
     !
     !
-    INTEGER :: i,j
+    INTEGER :: i,j, ia, it, ix, nu
     REAL(DP) :: lw(nat3)
     lw(:) = 0._dp
     !
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
-!$OMP REDUCTION(+:lw) COLLAPSE(2)
+! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
+! !$OMP REDUCTION(+:lw) COLLAPSE(2)
+    DO i = 1,nat3
+      DO j = 1,nat3
+        !
+        !dfreq = f_gauss(freq(i,1)-freq(j,2), sigma)
+        freq_f = freq(i,1)*freq(j,2) * f_gauss(freq(i,1)-freq(j,2), sigma)
+        !
+        !IF(freq_f > 1.d-8)THEN
+        nu = 0
+        DO ia = 1,nat
+          it = ityp(ia)
+          !
+          sum_zz = 0._dp
+          DO ix = 1,3
+            nu = nu + 1
+            !
+            sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
+            !
+          ENDDO
+          sum_zz2 = gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
+        ENDDO
+        !ENDIF
+        !
+        lw(i) = lw(i) + freq_f*sum_zz2
+      ENDDO
+    ENDDO
+! !$OMP END PARALLEL DO 
+    !
+    sum_isotope_linewidth_modes = 0.5_dp*pi*lw
+    !
+  END FUNCTION sum_isotope_linewidth_modes
+  !
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION sum_isotope_scattering_modes(nat3, nat, sigma, freq, bose, ntyp, ityp, gs2, zz)
+    USE functions, ONLY : f_gauss
+    USE constants, ONLY : pi
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: nat3, nat
+    REAL(DP),INTENT(in) :: sigma
+    INTEGER,INTENT(in)  :: ntyp
+    INTEGER,INTENT(in)  :: ityp(nat)
+    REAL(DP),INTENT(in) :: gs2(ntyp)
+    REAL(DP),INTENT(in) :: freq(nat3,2)
+    REAL(DP),INTENT(in) :: bose(nat3,2)
+    COMPLEX(DP),INTENT(in) :: zz(nat3,nat3,2)
+    !
+    REAL(DP) :: sum_isotope_scattering_modes(nat3,nat3)
+    !
+    REAL(DP) :: freq_f, bose_f, sum_zz2
+    COMPLEX(DP) :: sum_zz
+    !
+    !
+    INTEGER :: i,j, ia, it, ix, nu
+    REAL(DP) :: P(nat3, nat3)
+    P(:,:) = 0._dp
+    !
+    !
+! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,dfreq,freq_f,sum_zz,sum_zz2) &
+! !$OMP REDUCTION(+:P) COLLAPSE(2)
     DO j = 1,nat3
       DO i = 1,nat3
         !
-        dfreq = f_gauss(freq(i,1)-freq(j,2), sigma)
+        freq_f = freq(i,1)*freq(j,2) * f_gauss(freq(i,1)-freq(j,2), sigma)
+        bose_f = bose(i,1)*bose(j,2) + 0.5_dp*(bose(i,1)+bose(j,2))
         !
-        !IF(dfreq>eps)THEN
-        !bose_f = bose(i,1)*bose(j,2)+0.5_dp*(bose(i,1)+bose(j,2))
-        freq_f = freq(i,1)*freq(j,2)
-        !
-        sum_zz = SUM( CONJG(zz(:,i,1)) * zz(:,j,2) )
-        sum_zz2 = REAL(CONJG(sum_zz)*sum_zz, kind=DP)
-        !
-        lw(i) = lw(i) + gs2(i)*freq_f*dfreq*sum_zz2
+        !IF(freq_f > 1.d-8)THEN
+        nu = 0
+        DO ia = 1,nat
+          it = ityp(ia)
+          !
+          sum_zz = 0._dp
+          DO ix = 1,3
+            nu = nu + 1
+            !
+            sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
+            !
+          ENDDO
+          sum_zz2 = gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
+        ENDDO
         !ENDIF
         !
+        P(i,j) = P(i,j) + bose_f*freq_f*sum_zz2
       ENDDO
     ENDDO
-!$OMP END PARALLEL DO 
+! !$OMP END PARALLEL DO 
     !
-    sum_isotope_modes = 0.5_dp*pi*lw
+    sum_isotope_scattering_modes = 0.5_dp*pi*P
     !
-  END FUNCTION sum_isotope_modes
+  END FUNCTION sum_isotope_scattering_modes
   !
 END MODULE isotopes_linewidth
 !

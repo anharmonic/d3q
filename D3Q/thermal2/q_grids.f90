@@ -314,6 +314,8 @@ MODULE q_grids
     DO ix = 1,3
       IF(b(ix,it)/=0._dp)THEN
         c(ix,it) = a(ix,it)/b(ix,it)
+      ELSE
+        IF(a(ix,it)/=0._dp) WRITE(*,'(3x,a,2i4)') "WARNING! Division by zero qbasis a/b", ix, it
       ENDIF
     ENDDO
     ENDDO

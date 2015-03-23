@@ -277,7 +277,7 @@ MODULE thermalk_program
     CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
     !
     ALLOCATE(A_out(nconf, nat3, nq))
-    CALL gen_A_out(A_out, input, qbasis, S, fc2, fc3)
+    CALL compute_A_out(A_out, input, qbasis, S, fc2, fc3)
     !
     ALLOCATE(f(3, nconf, nat3, nq))
     f = b_over_A(qbasis%b, A_out, nconf, nat3, nq)
@@ -287,6 +287,7 @@ MODULE thermalk_program
     ALLOCATE(Af(3, nconf, nat3, nq))
     Af = A_out_times_f(A_out, f, nconf, nat3, nq)
     CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    DEALLOCATE(Af)
 
     A_out = DSQRT(A_out)
     ALLOCATE(g(3, nconf, nat3, nq))
@@ -299,35 +300,26 @@ MODULE thermalk_program
     ALLOCATE(g_mod2_old(3, nconf) )
     ALLOCATE(      pref(3, nconf) )
     
+    WRITE(*,*) "iter ", 0
     f = b_over_A(qbasis%b, A_out, nconf, nat3, nq)
-    CALL A_times_f(f, Af, input, qbasis, S, fc2, fc3)
-    g = Af - f
-    DEALLOCATE(Af)
+    CALL A_in_times_f(f, t, input, qbasis, S, fc2, fc3)
+    g =  t + A_out_times_f(A_out, f, nconf, nat3, nq) - f
     !
     h = -g
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-    t = 0._dp
-    !CALL A_times_f(h, t, input, qbasis, S, fc2, fc3)
+    CALL calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     !
     DO iter = 1,10000
       WRITE(*,*) "iter ", iter
       !
-      CALL A_times_f(h, t, input, qbasis, S, fc2, fc3)
+      CALL A_in_times_f(h, t, input, qbasis, S, fc2, fc3)
       t = t + A_out_times_f(A_out, h, nconf, nat3, nq)
       !
       g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
-      !WRITE(*,*) "g_dot_h"
-      !WRITE(*,'(18e14.3)') g_dot_h
-      
       h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )
-      !WRITE(*,*) "h_dot_t"
-      !WRITE(*,'(18e14.3)') h_dot_t
-      
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
-      !WRITE(*,*) "pref"
-      !WRITE(*,'(183e14.6)') pref
       
-      f = f - qbasis_ax(pref, h,  nconf, nat3, nq)
+      f = f - qbasis_ax(pref, h, nconf, nat3, nq)
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
       !
       CALL calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
@@ -339,7 +331,7 @@ MODULE thermalk_program
     ENDDO
     
 !     print*,Af
-    CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    !CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     
     
 !     ALLOCATE(f_sma(3,qbasis%nconf,qbasis%nbnd, nq))
