@@ -260,7 +260,7 @@ MODULE thermalk_program
     INTEGER :: ix, nu, iq, it, nu0, iter
     !
     TYPE(q_basis) :: qbasis
-    REAL(DP),ALLOCATABLE :: A_out(:,:,:)
+    REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
     REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:)
     REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
@@ -277,66 +277,80 @@ MODULE thermalk_program
     
     !CALL setup_simple_grid(S, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
     CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
-    !
+    ! Compute A_out diagonal matrix
     ALLOCATE(A_out(nconf, nat3, nq))
     CALL compute_A_out(A_out, input, qbasis, S, fc2, fc3)
+    ! Compute 1/sqrt(A_out) from A_out
+    ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
+    CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
+    ! Compute 1/A_out from A_out
+    ALLOCATE(inv_A_out(nconf, nat3, nq))
+    CALL compute_inv_A_out(A_out, inv_A_out, nconf, nat3, nq)
     !
+    !
+    ! f0 = f_SMA = 1/(A_out) b
     ALLOCATE(f(3, nconf, nat3, nq))
-    f = b_over_A(qbasis%b, A_out, nconf, nat3, nq)
-   
+    f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
     CALL calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     !
     ALLOCATE(Af(3, nconf, nat3, nq))
-    Af = A_out_times_f(A_out, f, nconf, nat3, nq)
+    Af = A_diag_f(A_out, f, nconf, nat3, nq)
     CALL calc_tk_variational(f, Af, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     DEALLOCATE(Af)
 
-    A_out = DSQRT(A_out)
     ALLOCATE(g(3, nconf, nat3, nq))
     ALLOCATE(h(3, nconf, nat3, nq))
     ALLOCATE(t(3, nconf, nat3, nq))
-    !ALLOCATE(        tk(3, nconf) )
     ALLOCATE(   g_dot_h(3, nconf) )
     ALLOCATE(   h_dot_t(3, nconf) )
     ALLOCATE(    g_mod2(3, nconf) )
     ALLOCATE(g_mod2_old(3, nconf) )
     ALLOCATE(      pref(3, nconf) )
-    
-    WRITE(*,*) "iter ", 0
-    f = b_over_A(qbasis%b, A_out, nconf, nat3, nq)
-    CALL A_in_times_f(f, t, input, qbasis, S, fc2, fc3)
-    g =  t + A_out_times_f(A_out, f, nconf, nat3, nq) - f
+    !
+    !A_out = SQRT(A_out)
+    WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+    ! f0 = f_SMA = 1/(A_out) b
+    f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
+    !f(:,:,1:2,1:30) = f(:,:,1:2,1:30)*2
+    ! g0 = Af0 - f_sma
+    CALL A_times_f(f, g, A_out, input, qbasis, S, fc2, fc3)
+!     g = A_diag_f(A_out, f, nconf, nat3, nq)
+    g = g - qbasis%b
+    g = g/100._dp  
+    g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     h = -g
-    g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, nconf, "TK gf")
+    CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
+    CALL  print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
     !
     DO iter = 1,10000
-      WRITE(*,*) "iter ", iter
+      WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+      ! t = (A_in+A_out)h
+      CALL A_times_f(h, t, A_out, input, qbasis, S, fc2, fc3)
       !
-      CALL A_in_times_f(h, t, input, qbasis, S, fc2, fc3)
-      t = t + A_out_times_f(A_out, h, nconf, nat3, nq)
-      !
+      ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
+      ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
       g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
       h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )
+      ! qbasis_b_over_a check for zero/zero, preventing NaN
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
-      
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
       !
+      !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, nconf, "TK gf")
+      CALL print_tk(tk, nconf, "TK from 1/2(fg-fb)")
       !
+      ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
       g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-      CALL print_grad_tk(g_mod2, nconf, "TK gradient")
-
-      pref = g_mod2 / g_mod2_old
+      CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+      !pref = g_mod2 / g_mod2_old
+      pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
     ENDDO
     !
-    write(10000,*) A_out
   END SUBROUTINE TK_CG
   !
   END MODULE thermalk_program

@@ -39,7 +39,15 @@ MODULE fc2_interpolate
   ! but only the _flat one seems to work. Probably some bug with reduce operations on
   ! arrays, or something I do not understand about OMP.
   INTERFACE fftinterp_mat2
+#define __PRECOMPUTE_PHASES
+#ifdef __PRECOMPUTE_PHASES
+!dir$ message "----------------------------------------------------------------------------------------------" 
+!dir$ message "Using MKL vectorized Sin and Cos implementation, this can use more memory but should be faster" 
+!dir$ message "----------------------------------------------------------------------------------------------" 
+    MODULE PROCEDURE fftinterp_mat2_flat_mkl   ! use standard OMP but paralelize on the innermost cycle
+#else
     MODULE PROCEDURE fftinterp_mat2_flat   ! use standard OMP but paralelize on the innermost cycle
+#endif
 !    MODULE PROCEDURE fftinterp_mat2_reduce  ! use standard OMP reduce on dummy variables
 !    MODULE PROCEDURE fftinterp_mat2_safe    ! do not use dummy variable in OMP clauses
   END INTERFACE
@@ -69,7 +77,6 @@ MODULE fc2_interpolate
     DO i = 1, fc%n_R
       arg = tpi * SUM(xq(:)*fc%xR(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
-      !phase = EXP( -CMPLX(0._dp,arg,kind=DP) )
       D(:, :) = D(:, :) + phase * fc%fc(:, :, i)
     END DO
 !$OMP END PARALLEL DO
@@ -99,7 +106,6 @@ MODULE fc2_interpolate
     DO i = 1, fc%n_R
       arg = tpi * SUM(xq(:)*fc%xR(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
-      !phase = EXP( -CMPLX(0._dp,arg,kind=DP) )
 !$OMP DO COLLAPSE(2)
       DO mu= 1, nat3
       DO nu= 1, nat3
@@ -111,6 +117,52 @@ MODULE fc2_interpolate
 !$OMP END PARALLEL
 
   END SUBROUTINE fftinterp_mat2_flat
+  !
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute the Dynamical matrix D by Fourier-interpolation of the
+  ! force constants fc
+  SUBROUTINE fftinterp_mat2_flat_mkl(xq, nat3, fc, D)
+    USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    USE constants, ONLY : tpi
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
+    !
+    INTEGER :: i, mu,nu
+    REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
+    COMPLEX(DP) :: vphase(fc%n_R)
+    !
+    D = (0._dp, 0._dp)
+    !
+    ! Pre-compute phase to use the vectorized MKL subroutines
+    FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq(:)*fc%xR(:,i))
+#if defined(__INTEL)
+    CALL vdCos(fc%n_R, varg, vcos)
+    CALL vdSin(fc%n_R, varg, vsin)
+#else
+    vcos = DCOS(varg)
+    vsin = DSIN(varg)
+#endif
+    vphase =  CMPLX( vcos, -vsin, kind=DP  )
+    !
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(mu,nu)
+    DO i = 1, fc%n_R
+!       arg = tpi * SUM(xq(:)*fc%xR(:,i))
+!       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+!$OMP DO COLLAPSE(2)
+      DO mu= 1, nat3
+      DO nu= 1, nat3
+        D(nu,mu) = D(nu,mu) + vphase(i) * fc%fc(nu,mu, i)
+      ENDDO
+      ENDDO
+!$OMP END DO
+    END DO
+!$OMP END PARALLEL
+
+  END SUBROUTINE fftinterp_mat2_flat_mkl
   !
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc (safe version, for OpenMP)
@@ -134,7 +186,6 @@ MODULE fc2_interpolate
     !
     D = (0._dp, 0._dp)
 !$OMP PARALLEL DEFAULT(none) SHARED(D,nat3,fc,xq) PRIVATE(i,arg,phase,D_aux)
-    !nope REDUCTION(+: D_aux)
     ALLOCATE(D_aux(nat3,nat3))
     D_aux = (0._dp, 0._dp)
 !$OMP DO
@@ -403,7 +454,7 @@ MODULE fc2_interpolate
     COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
     !
     INTEGER :: a, b, c, i, j, k
-    COMPLEX(DP) :: AUX,AUX2
+    COMPLEX(DP) :: AUX
     REAL(DP),PARAMETER :: EPS = 1.e-8_dp
     !
     ALLOCATE(d3tmp(nat3, nat3, nat3))
@@ -419,7 +470,6 @@ MODULE fc2_interpolate
       IF(ABS(u2(b,j))>EPS)THEN
         !
         AUX = u2(b,j) * u3(c,k)
-        AUX2 = 0._dp
         DO i = 1,nat3
         DO a = 1,nat3
             d3tmp(i, j, k) = d3tmp(i, j, k) &

@@ -9,6 +9,34 @@ MODULE variational_tk
   ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
+  ! Multiply matrix in diagonal form, like A_out, A_out^-1, A_out^-1/2 
+  ! with a vector (f, b, etc)
+  FUNCTION A_diag_f(A, f, nconf, nat3, nq) RESULT(Af)
+    IMPLICIT NONE
+    !
+    REAL(DP):: Af(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      DO ix = 1,3
+        Af(ix,it,nu,iq) = f(ix,it,nu,iq)*A(it,nu,iq)
+      ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END FUNCTION A_diag_f
+  !
+  ! \/o\________\\\_________________________________________/^>
   ! Compute the diagonal matrix A_out
   SUBROUTINE compute_A_out(A_out, input, qbasis, S, fc2, fc3)
     USE constants,          ONLY : RY_TO_CMM1
@@ -100,6 +128,72 @@ MODULE variational_tk
     ENDDO QPOINT_LOOP
     !
   END SUBROUTINE compute_A_out
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE compute_inv_sqrt_A_out(A, inv_sqrt_A, nconf, nat3, nq)
+    IMPLICIT NONE
+    !
+    REAL(DP):: f(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: inv_sqrt_A(nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it) COLLAPSE(3)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+        IF(A(it,nu,iq)>0._dp)THEN
+          inv_sqrt_A(it,nu,iq) = 1/DSQRT(A(it,nu,iq))
+        ELSE IF (A(it,nu,iq)<0._dp) THEN
+          inv_sqrt_A(it,nu,iq) = -1/SQRT( -A(it,nu,iq) )
+          IF(iq/=1) WRITE(*,*) "Warning: negative A_out", iq, nu, it
+        ELSE
+          ! This hould be infinity, but it should only happen at Gamma for
+          ! acoustic bands, where we can ignore it because everything is zero
+          inv_sqrt_A(it,nu,iq) = 0._dp
+          IF(iq/=1) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+        ENDIF
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END SUBROUTINE compute_inv_sqrt_A_out
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE compute_inv_A_out(A, inv_A, nconf, nat3, nq)
+    IMPLICIT NONE
+    !
+    REAL(DP):: f(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: inv_A(nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it) COLLAPSE(3)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+        IF(A(it,nu,iq)/=0._dp)THEN
+          inv_A(it,nu,iq) = 1/(A(it,nu,iq))
+          ! This hould be infinity, but it should only happen at Gamma for
+          ! acoustic bands, where we can ignore it because everything is zero
+        ELSE
+          inv_A(it,nu,iq) = 0._dp
+          IF(iq/=1) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+        ENDIF
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END SUBROUTINE compute_inv_A_out
+  !
   ! \/o\________\\\_________________________________________/^>
   ! Apply the A_in matrix to a vector f
   ! this is left as a subroutine to underline that it is the most time consuming step.
@@ -120,12 +214,11 @@ MODULE variational_tk
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_basis),INTENT(in)     :: basis
-    REAL(DP),INTENT(in)  ::  f(input%nconf,S%nat3, basis%grid%nq)
+    REAL(DP),INTENT(in)  ::  f(3,input%nconf,S%nat3, basis%grid%nq)
     REAL(DP),INTENT(out) :: Af(3,input%nconf,S%nat3, basis%grid%nq)
     !
     REAL(DP) :: sigma_ry(input%nconf)
     !
-    REAL(DP) :: Aux(input%nconf,S%nat3)
     INTEGER  :: iq, it, ix, nu
     !
     sigma_ry = input%sigma/RY_TO_CMM1
@@ -133,23 +226,126 @@ MODULE variational_tk
     QPOINT_OUTER_LOOP : & ! the inner loop in in A_in_times_f_q
     DO iq = 1,basis%grid%nq
       ! bang!
-       Aux = A_in_times_f_q(f, iq, input%nconf, input%T, sigma_ry, S, basis, fc2, fc3,&
-                            input%isotopic_disorder)
-       DO nu = 1,S%nat3
-       DO it = 1,input%nconf
-       DO ix = 1,3
-        Af(ix,it,nu,iq) = Aux(it,nu)
-       ENDDO
-       ENDDO
-       ENDDO
+       Af(:,:,:,iq) = A_in_times_f_q(f, iq, input%nconf, input%T, sigma_ry, S, basis, &
+                                     fc2, fc3, input%isotopic_disorder)
       !
       !
     ENDDO QPOINT_OUTER_LOOP
     !
-    !DEALLOCATE(A_iq)
-    !
   END SUBROUTINE A_in_times_f
   !
+  ! \/o\________\\\_________________________________________/^>
+  ! Apply the A = (A_out+A_in) matrix to a vector f, A_out must be already computed
+  ! this is left as a subroutine to underline that it is the most time consuming step.
+  SUBROUTINE A_times_f(f, Af, A_out, input, basis, S, fc2, fc3)
+    USE constants,          ONLY : RY_TO_CMM1
+    USE linewidth,          ONLY : linewidth_q
+    USE q_grids,            ONLY : q_basis
+    USE fc3_interpolate,    ONLY : forceconst3
+    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
+    USE casimir_linewidth,  ONLY : casimir_linewidth_vel
+    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
+    USE code_input,         ONLY : code_input_type
+    USE timers
+    IMPLICIT NONE
+    !
+    TYPE(code_input_type),INTENT(in)  :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_basis),INTENT(in)     :: basis
+    REAL(DP),INTENT(in)  ::     f(3,input%nconf,S%nat3, basis%grid%nq)
+    REAL(DP),INTENT(in)  :: A_out(input%nconf,S%nat3, basis%grid%nq)
+    !
+    REAL(DP),INTENT(out) ::    Af(3,input%nconf,S%nat3, basis%grid%nq)
+    !
+    REAL(DP) :: sigma_ry(input%nconf)
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+    sigma_ry = input%sigma/RY_TO_CMM1
+    !
+    QPOINT_OUTER_LOOP : & ! the inner loop is in A_in_times_f_q
+    DO iq = 1,basis%grid%nq
+      ! bang!
+      Af(:,:,:,iq) = A_in_times_f_q(f, iq, input%nconf, input%T, sigma_ry, S, basis, &
+                                    fc2, fc3, input%isotopic_disorder)
+      DO nu = 1,S%nat3
+        DO it = 1,input%nconf
+        DO ix = 1,3
+          Af(ix,it,nu,iq) = Af(ix,it,nu,iq) + A_out(it,nu,iq)*f(ix,it,nu,iq)
+        ENDDO
+        ENDDO
+      ENDDO
+      !
+    ENDDO QPOINT_OUTER_LOOP
+    !
+  END SUBROUTINE A_times_f
+  !
+  ! \/o\________\\\_________________________________________/^>
+  ! Apply the \tilde{A} = (1+A_out^{-1/2} A_in A_out^{-1/2}) matrix to a vector f,
+  ! A_out^{-1/2} must be already computed and provided in input
+  ! this is left as a subroutine to underline that it is the most time consuming step.
+  SUBROUTINE tilde_A_times_f(f, Af, inv_sqrt_A_out, input, basis, S, fc2, fc3)
+    USE constants,          ONLY : RY_TO_CMM1
+    USE linewidth,          ONLY : linewidth_q
+    USE q_grids,            ONLY : q_basis
+    USE fc3_interpolate,    ONLY : forceconst3
+    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
+    USE casimir_linewidth,  ONLY : casimir_linewidth_vel
+    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
+    USE code_input,         ONLY : code_input_type
+    USE timers
+    IMPLICIT NONE
+    !
+    TYPE(code_input_type),INTENT(in)  :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_basis),INTENT(in)     :: basis
+    REAL(DP),INTENT(in)  ::     f(3,input%nconf,S%nat3,basis%grid%nq)
+    REAL(DP),INTENT(in)  :: inv_sqrt_A_out(input%nconf,S%nat3,basis%grid%nq)
+    !
+    REAL(DP),INTENT(out) ::    Af(3,input%nconf,S%nat3,basis%grid%nq)
+    !
+    REAL(DP) :: sigma_ry(input%nconf)
+    !
+    REAL(DP),ALLOCATABLE :: aux(:,:,:,:)
+    INTEGER  :: iq, it, ix, nu
+    !
+    ALLOCATE(aux(3,input%nconf,S%nat3,basis%grid%nq))
+    sigma_ry = input%sigma/RY_TO_CMM1
+    !
+    ! Apply the first 1/sqrt(A_out)
+    DO iq = 1,basis%grid%nq
+      ! bang!
+      DO nu = 1,S%nat3
+        DO it = 1,input%nconf
+        DO ix = 1,3
+          aux(ix,it,nu,iq) = inv_sqrt_A_out(it,nu,iq)*f(ix,it,nu,iq)
+        ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
+      
+    DO iq = 1,basis%grid%nq
+      ! apply A_in
+      Af(:,:,:,iq) = A_in_times_f_q(aux, iq, input%nconf, input%T, sigma_ry, S, basis, &
+                                    fc2, fc3, input%isotopic_disorder)
+      ! Apply 1+ and the second 1/sqrt(A)
+      DO nu = 1,S%nat3
+        DO it = 1,input%nconf
+        DO ix = 1,3
+          Af(ix,it,nu,iq) = f(ix,it,nu,iq) + inv_sqrt_A_out(it,nu,iq)*Af(ix,it,nu,iq)
+        ENDDO
+        ENDDO
+      ENDDO
+      !
+    ENDDO
+    !
+    DEALLOCATE(aux)
+    !
+  END SUBROUTINE tilde_A_times_f
   ! \/o\________\\\_________________________________________/^>
   ! Compute 3*nat lines of the matrix A (those corresponding to the
   ! q-point iq0) and apply them to the vector f. In output it returns
@@ -168,20 +364,20 @@ MODULE variational_tk
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_basis),INTENT(in)      :: basis
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
-    REAL(DP),INTENT(in) :: f(nconf,S%nat3,basis%grid%nq)
+    REAL(DP),INTENT(in) :: f(3,nconf,S%nat3,basis%grid%nq)
     INTEGER,INTENT(in)  :: iq0
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     LOGICAL,INTENT(in)  :: isotopic_disorder
     !
     ! FUNCTION RESULT:
-    REAL(DP) :: A_in_times_f_q(nconf,S%nat3)
+    REAL(DP) :: A_in_times_f_q(3,nconf,S%nat3)
     REAL(DP) :: P3(S%nat3,S%nat3) !aux
     REAL(DP) :: P3_isot(S%nat3,S%nat3) !aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
-    INTEGER :: iq, jq, mu, nu, it, nu0(4)
+    INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
     !
     REAL(DP) :: freq(S%nat3,4), bose(S%nat3,4), xq(3,5), dq
     REAL(DP),PARAMETER :: epsq = 1.e-6_dp
@@ -246,6 +442,7 @@ MODULE variational_tk
         V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
       ENDIF
       !
+      ! These loops are not in the optimal order, but it does not matter for performance
       DO it = 1,nconf
         bose(:,1) = basis%be(:,it,iq0)
         bose(:,2) = basis%be(:,it,iq)
@@ -267,7 +464,9 @@ MODULE variational_tk
         ! 3*nat lines of the A matrix are applied now to f to produce 3*nat elements of Af
         DO mu = 1,S%nat3
         DO nu = 1,S%nat3
-          A_in_times_f_q(it,nu) = A_in_times_f_q(it,nu) + P3(nu,mu)*f(it,mu,iq)!*dq
+          DO ix = 1,3
+            A_in_times_f_q(ix,it,nu) = A_in_times_f_q(ix,it,nu) + P3(nu,mu)*f(ix,it,mu,iq)!*dq
+          ENDDO
         ENDDO
         ENDDO
         !
@@ -314,11 +513,7 @@ MODULE variational_tk
     INTEGER :: i,j,k
     REAL(DP) :: p(nat3,nat3)
     p(:,:) = 0._dp
-    
-!     DO j = 1,4
-! !     write(*,'("--",99f12.4)') freq(:,j)*RY_TO_CMM1
-!     ENDDO
-
+   
     !
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_b, bose_c, dom_a, dom_b, dom_c) &
@@ -340,6 +535,7 @@ MODULE variational_tk
       ENDDO
     ENDDO
 !$OMP END DO
+!$OMP BARRIER
 !$OMP DO COLLAPSE(3)
     DO k = nu0(4),nat3
       DO j = nu0(2),nat3
@@ -402,19 +598,7 @@ MODULE variational_tk
       tk(:,:,it) = Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
-    WRITE(*,*) "tk_sma"
-    DO it = 1,nconf
-      WRITE(*,'(i6,f12.6,3(3e17.8,3x))') it, T(it), &
-      tk(1,1,it)*RY_TO_WATTMM1KM1, &
-      tk(2,2,it)*RY_TO_WATTMM1KM1, &
-      tk(3,3,it)*RY_TO_WATTMM1KM1, &
-      tk(1,2,it)*RY_TO_WATTMM1KM1, &
-      tk(1,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,2,it)*RY_TO_WATTMM1KM1
-    ENDDO
+    CALL print_tk(tk, nconf, "simple")
     !
   END SUBROUTINE calc_tk_simple
   !
@@ -456,20 +640,7 @@ MODULE variational_tk
       tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
-    WRITE(*,*) "tk_var"
-    DO it = 1,nconf
-      WRITE(*,'(i6,f12.6,3(3e17.8,3x))') it, T(it), &
-      tk(1,1,it)*RY_TO_WATTMM1KM1, &
-      tk(2,2,it)*RY_TO_WATTMM1KM1, &
-      tk(3,3,it)*RY_TO_WATTMM1KM1, &
-      tk(1,2,it)*RY_TO_WATTMM1KM1, &
-      tk(1,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,2,it)*RY_TO_WATTMM1KM1
-
-    ENDDO
+    CALL print_tk(tk, nconf, "variational")
     !
   END SUBROUTINE calc_tk_variational
   !
@@ -544,75 +715,52 @@ MODULE variational_tk
   END SUBROUTINE print_tk
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_grad_tk(g, nconf, name)
+  SUBROUTINE print_gradmod2_tk(g, name, T, Omega, nconf, nat3, nq)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: g(3,nconf)
-    INTEGER,INTENT(in) :: nconf
     CHARACTER(len=*),INTENT(in) :: name
+    REAL(DP),INTENT(in) :: T(nconf)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
     !
     INTEGER :: it
     WRITE(*,*) name
     DO it = 1,nconf
-      WRITE(*,'(i6,3(3e17.8,3x))') it, g(:,it)*RY_TO_WATTMM1KM1
+      WRITE(*,'(12x,i6,3(3e17.8,3x))') it, g(:,it)*RY_TO_WATTMM1KM1*Omega/nq/T(it)**2
     ENDDO
     !
-  END SUBROUTINE print_grad_tk
+  END SUBROUTINE print_gradmod2_tk
   !
-  ! \/o\________\\\_________________________________________/^>
-  FUNCTION b_over_A(b, A, nconf, nat3, nq) RESULT(f)
-    IMPLICIT NONE
-    !
-    REAL(DP):: f(3, nconf, nat3, nq)
-    !
-    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
-    INTEGER,INTENT(in)  :: nconf, nat3, nq
-    !
-    INTEGER  :: iq, it, ix, nu
-    !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
-    DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        IF(A(it,nu,iq)/=0._dp)THEN
-          f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(it,nu,iq)
-        ELSE
-          f(ix,it,nu,iq) = 0._dp
-        ENDIF
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO    
-    !
-  END FUNCTION b_over_A
+!   ! \/o\________\\\_________________________________________/^>
+!   FUNCTION b_over_A(b, A, nconf, nat3, nq) RESULT(f)
+!     IMPLICIT NONE
+!     !
+!     REAL(DP):: f(3, nconf, nat3, nq)
+!     !
+!     REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+!     REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+!     INTEGER,INTENT(in)  :: nconf, nat3, nq
+!     !
+!     INTEGER  :: iq, it, ix, nu
+!     !
+! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+!     DO iq = 1,nq
+!     DO nu = 1,nat3
+!       DO it = 1,nconf
+!       DO ix = 1,3
+!         IF(A(it,nu,iq)/=0._dp)THEN
+!           f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(it,nu,iq)
+!         ELSE
+!           f(ix,it,nu,iq) = 0._dp
+!         ENDIF
+!       ENDDO
+!       ENDDO
+!     ENDDO
+!     ENDDO
+! !$OMP END PARALLEL DO    
+!     !
+!   END FUNCTION b_over_A
   !
-  ! \/o\________\\\_________________________________________/^>
-  FUNCTION A_out_times_f(A_out, f, nconf, nat3, nq) RESULT(Af)
-    IMPLICIT NONE
-    !
-    REAL(DP):: Af(3, nconf, nat3, nq)
-    !
-    REAL(DP),INTENT(in) :: A_out(nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
-    INTEGER,INTENT(in)  :: nconf, nat3, nq
-    !
-    INTEGER  :: iq, it, ix, nu
-    !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
-    DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        Af(ix,it,nu,iq) = A_out(it,nu,iq)*f(ix,it,nu,iq)
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO    
-    !
-  END FUNCTION A_out_times_f
-  
+  !  
 END MODULE variational_tk

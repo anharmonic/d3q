@@ -11,6 +11,13 @@
 ! It is not written defensively, e.g. writing and interpolating FCs do not check 
 ! if the data has been read. May be improved in the future.
 !
+#define __PRECOMPUTE_PHASES
+#ifdef __PRECOMPUTE_PHASES
+!dir$ message "----------------------------------------------------------------------------------------------" 
+!dir$ message "Using MKL vectorized Sin and Cos implementation, this can use more memory but should be faster" 
+!dir$ message "----------------------------------------------------------------------------------------------" 
+#endif
+!
 MODULE fc3_interpolate
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
@@ -95,7 +102,11 @@ MODULE fc3_interpolate
       ! parallelism model via OMP, in principle they are both correct but only 
       ! _flat works, because of some unclear problem with the reduction of arrays
       !procedure :: interpolate  => fftinterp_mat3_grid_reduce
+#ifdef __PRECOMPUTE_PHASES
+      procedure :: interpolate  => fftinterp_mat3_grid_flat_mkl
+#else
       procedure :: interpolate  => fftinterp_mat3_grid_flat
+#endif
       procedure :: double_interpolate  => fft_doubleinterp_mat3_grid_flat
       !
       procedure :: destroy      => destroy_fc3_grid
@@ -118,7 +129,11 @@ MODULE fc3_interpolate
     TYPE(forceconst3_sparse_helper),ALLOCATABLE :: dat(:)
     !
     CONTAINS
+#ifdef __PRECOMPUTE_PHASES
+      procedure :: interpolate  => fftinterp_mat3_sparse_mkl
+#else
       procedure :: interpolate  => fftinterp_mat3_sparse
+#endif
       procedure :: double_interpolate  => fft_doubleinterp_mat3_sparse
       procedure :: destroy      => destroy_fc3_sparse
       procedure :: read         => read_fc3_sparse
@@ -306,6 +321,48 @@ MODULE fc3_interpolate
 !$OMP END PARALLEL
   END SUBROUTINE fftinterp_mat3_grid_flat
   !
+  SUBROUTINE fftinterp_mat3_grid_flat_mkl(fc, xq2,xq3, nat3, D)
+    USE constants, ONLY : tpi
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    CLASS(grid),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    !
+    INTEGER :: i, a,b,c
+    REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
+    COMPLEX(DP) :: vphase(fc%n_R)
+    !
+    D = (0._dp, 0._dp)
+    !
+    ! Pre-compute phase to use the vectorized MKL subroutines
+    FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+#if defined(__INTEL)
+    CALL vdCos(fc%n_R, varg, vcos)
+    CALL vdSin(fc%n_R, varg, vsin)
+#else
+    vcos = DCOS(varg)
+    vsin = DSIN(varg)
+#endif
+    vphase =  CMPLX( vcos, -vsin, kind=DP  )
+    !
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(a,b,c)
+    DO i = 1, fc%n_R
+      !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+!$OMP DO COLLAPSE(3)
+      DO c = 1,nat3
+      DO b = 1,nat3
+      DO a = 1,nat3
+        D(a,b,c) = D(a,b,c) + vphase(i) * fc%fc(a,b,c, i)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END DO      
+    END DO
+!$OMP END PARALLEL
+  END SUBROUTINE fftinterp_mat3_grid_flat_mkl
+  !
   SUBROUTINE fft_doubleinterp_mat3_grid_flat(fc, xq2,xq3,xq4, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -368,6 +425,46 @@ MODULE fc3_interpolate
     END DO
 !$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat3_sparse
+  !
+  !
+  SUBROUTINE fftinterp_mat3_sparse_mkl(fc, xq2,xq3, nat3, D)
+    USE constants, ONLY : tpi
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    CLASS(sparse),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    !
+    INTEGER :: i,j
+    REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
+    COMPLEX(DP) :: vphase(fc%n_R)
+    !
+    D = (0._dp, 0._dp)
+    !
+    ! Pre-compute phase to use the vectorized MKL subroutines
+    FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+#if defined(__INTEL)
+    CALL vdCos(fc%n_R, varg, vcos)
+    CALL vdSin(fc%n_R, varg, vsin)
+#else
+    vcos = DCOS(varg)
+    vsin = DSIN(varg)
+#endif
+    vphase =  CMPLX( vcos, -vsin, kind=DP  )
+    !    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
+    DO i = 1, fc%n_R
+      !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+      !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+      DO j = 1, fc%n_terms(i)
+        D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+          = D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+            + vphase(i) * fc%dat(i)%fc(j)
+      ENDDO
+    END DO
+!$OMP END PARALLEL DO
+  END SUBROUTINE fftinterp_mat3_sparse_mkl
   !
   SUBROUTINE fft_doubleinterp_mat3_sparse(fc, xq2,xq3,xq4, nat3, D)
     USE constants, ONLY : tpi
