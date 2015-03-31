@@ -261,7 +261,7 @@ MODULE thermalk_program
     !
     TYPE(q_basis) :: qbasis
     REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
-    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:), g2(:,:,:,:)
     REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
@@ -299,6 +299,7 @@ MODULE thermalk_program
     DEALLOCATE(Af)
 
     ALLOCATE(g(3, nconf, nat3, nq))
+    ALLOCATE(g2(3, nconf, nat3, nq))
     ALLOCATE(h(3, nconf, nat3, nq))
     ALLOCATE(t(3, nconf, nat3, nq))
     ALLOCATE(   g_dot_h(3, nconf) )
@@ -307,16 +308,14 @@ MODULE thermalk_program
     ALLOCATE(g_mod2_old(3, nconf) )
     ALLOCATE(      pref(3, nconf) )
     !
-    !A_out = SQRT(A_out)
-    WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+    WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     ! f0 = f_SMA = 1/(A_out) b
     f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
-    !f(:,:,1:2,1:30) = f(:,:,1:2,1:30)*2
     ! g0 = Af0 - f_sma
     CALL A_times_f(f, g, A_out, input, qbasis, S, fc2, fc3)
 !     g = A_diag_f(A_out, f, nconf, nat3, nq)
     g = g - qbasis%b
-    g = g/100._dp  
+    !g = g/100._dp
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     h = -g
@@ -337,6 +336,10 @@ MODULE thermalk_program
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
+      ! compute gradient explicitly:
+      CALL A_times_f(f, g2, A_out, input, qbasis, S, fc2, fc3)
+      g2 = g2 - qbasis%b
+      CALL print_shit()
       !
       !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
@@ -351,6 +354,22 @@ MODULE thermalk_program
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
     ENDDO
     !
+    CONTAINS
+    SUBROUTINE PRINT_SHIT
+    
+    INTEGER  :: iq, it, ix, nu
+    DO iq = 1,qbasis%grid%nq
+      ! bang!
+      DO nu = 1,S%nat3
+        DO it = 1,input%nconf
+        DO ix = 1,3
+          WRITE(*,'(2(3f12.6,3x))') g(:,it,nu,iq),g2(:,it,nu,iq)
+        ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
+
+    END SUBROUTINE
   END SUBROUTINE TK_CG
   !
   END MODULE thermalk_program
