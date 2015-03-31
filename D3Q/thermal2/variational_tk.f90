@@ -379,7 +379,7 @@ MODULE variational_tk
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
     INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
     !
-    REAL(DP) :: freq(S%nat3,4), bose(S%nat3,4), xq(3,5), dq
+    REAL(DP) :: freq(S%nat3,5), bose(S%nat3,5), xq(3,5), dq
     REAL(DP),PARAMETER :: epsq = 1.e-6_dp
     !
     ! xq(:,1) -> xq1
@@ -414,6 +414,7 @@ MODULE variational_tk
       xq(:,2) = basis%grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
       xq(:,4) =  xq(:,2)-xq(:,1)
+      xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
       !write(*,'(4i3,4(3f8.3,3x))') nu0, xq
       DO jq = 2,4
         nu0(jq) = set_nu0(xq(:,jq), S%at)
@@ -435,7 +436,8 @@ MODULE variational_tk
         ! xq(:,5) = 0._dp
         ! U(:,:,5) = U(:,:,2)
       ELSE
-        xq(:,5) = -xq(:,2)
+        !CALL freq_phq_safe(xq(:,5), S, fc2, freq(:,5), U(:,:,5))
+        !IF(ANY(ABS(U(:,:,2)-CONJG(U(:,:,5)))>1.d-10)  ) STOP 999
         U(:,:,5) = CONJG(U(:,:,2))
         CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
         CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
@@ -465,7 +467,7 @@ MODULE variational_tk
         DO mu = 1,S%nat3
         DO nu = 1,S%nat3
           DO ix = 1,3
-            A_in_times_f_q(ix,it,nu) = A_in_times_f_q(ix,it,nu) + P3(nu,mu)*f(ix,it,mu,iq)!*dq
+            A_in_times_f_q(ix,it,nu) = A_in_times_f_q(ix,it,nu) + P3(nu,mu)*f(ix,it,mu,iq)*dq
           ENDDO
         ENDDO
         ENDDO
@@ -687,6 +689,49 @@ MODULE variational_tk
     ENDDO
     !
   END FUNCTION calc_tk_gf
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute thermal conductivity as -2\lambda \over { N T^2 } 1/2 ( f \dot g - f \dot b) )
+  ! g = Af-b
+  ! f.g = f.Af - b.f
+  ! 1/2 (f.g -b.f ) = 1/2 f.Af - b.f
+  FUNCTION calc_tk_rxb(x, r, b, T, Omega, nconf, nat3, nq) RESULT(tk)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE timers
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: r(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: T(nconf)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
+    !
+    REAL(DP) :: tk(3,3,nconf)
+    INTEGER  :: iq, it, ix, jx, nu
+    !
+    !
+    tk = 0._dp
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+!$OMP DO COLLAPSE(3)    
+      DO it = 1,nconf
+        DO jx = 1,3
+        DO ix = 1,3
+          tk(ix,jx,it) = tk(ix,jx,it) -  0.5_dp*( x(ix,it,nu,iq)*r(jx,it,nu,iq) &
+                                                 -x(ix,it,nu,iq)*b(jx,it,nu,iq) )
+        ENDDO
+        ENDDO
+      ENDDO
+!$OMP ENDDO      
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL
+    DO it = 1,nconf
+      tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
+    ENDDO
+    !
+  END FUNCTION calc_tk_rxb
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_tk(tk, nconf, name)

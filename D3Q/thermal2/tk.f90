@@ -314,16 +314,16 @@ MODULE thermalk_program
     ! g0 = Af0 - f_sma
     CALL A_times_f(f, g, A_out, input, qbasis, S, fc2, fc3)
 !     g = A_diag_f(A_out, f, nconf, nat3, nq)
-    g = g - qbasis%b
+    g = qbasis%b-g
     !g = g/100._dp
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
-    h = -g
+    h = g
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
     CALL  print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
     !
-    DO iter = 1,10000
+    DO iter = 1,niter_max
       WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
       ! t = (A_in+A_out)h
       CALL A_times_f(h, t, A_out, input, qbasis, S, fc2, fc3)
@@ -339,7 +339,7 @@ MODULE thermalk_program
       ! compute gradient explicitly:
       CALL A_times_f(f, g2, A_out, input, qbasis, S, fc2, fc3)
       g2 = g2 - qbasis%b
-      CALL print_shit()
+      !CALL print_shit()
       !
       !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
@@ -354,23 +354,127 @@ MODULE thermalk_program
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
     ENDDO
     !
-    CONTAINS
-    SUBROUTINE PRINT_SHIT
-    
-    INTEGER  :: iq, it, ix, nu
-    DO iq = 1,qbasis%grid%nq
-      ! bang!
-      DO nu = 1,S%nat3
-        DO it = 1,input%nconf
-        DO ix = 1,3
-          WRITE(*,'(2(3f12.6,3x))') g(:,it,nu,iq),g2(:,it,nu,iq)
-        ENDDO
-        ENDDO
-      ENDDO
-    ENDDO
-
-    END SUBROUTINE
+!     CONTAINS
+!     SUBROUTINE PRINT_SHIT
+!     
+!     INTEGER  :: iq, it, ix, nu
+!     DO iq = 1,qbasis%grid%nq
+!       ! bang!
+!       DO nu = 1,S%nat3
+!         DO it = 1,input%nconf
+!         DO ix = 1,3
+!           WRITE(*,'(2(3f12.6,3x))') g(:,it,nu,iq),g2(:,it,nu,iq)
+!         ENDDO
+!         ENDDO
+!       ENDDO
+!     ENDDO
+! 
+!     END SUBROUTINE
   END SUBROUTINE TK_CG
+  !
+  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+  SUBROUTINE TK_CG2(input, qgrid, S, fc2, fc3)
+    USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
+    USE linewidth,          ONLY : linewidth_q
+    USE constants,          ONLY : RY_TO_CMM1
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE fc3_interpolate,    ONLY : forceconst3
+    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
+    USE casimir_linewidth,  ONLY : casimir_linewidth_q
+    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
+    USE code_input,         ONLY : code_input_type
+    USE q_grids,            ONLY : q_grid, q_basis, setup_simple_grid, &
+                                   prepare_q_basis, qbasis_dot, qbasis_ax, &
+                                   qbasis_a_over_b
+    USE variational_tk
+    IMPLICIT NONE
+    !
+    TYPE(code_input_type),INTENT(in)     :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: qgrid
+    !
+    INTEGER :: ix, nu, iq, it, nu0, iter
+    !
+    TYPE(q_basis) :: qbasis
+    REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
+    REAL(DP),ALLOCATABLE :: x(:,:,:,:), r(:,:,:,:), p(:,:,:,:), Ap(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: r_mod2(:,:), r_mod2_old(:,:), p_dot_Ap(:,:), alpha(:,:), beta(:,:)
+    INTEGER,PARAMETER :: niter_max = 10000
+    REAL(DP) :: tk(3,3,input%nconf)
+    !
+    ! For code readability:
+    INTEGER :: nconf, nat3, nq
+    nconf = input%nconf
+    nat3  = S%nat3
+    nq    = qgrid%nq
+    
+    !CALL setup_simple_grid(S, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
+    CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
+    ! Compute A_out diagonal matrix
+    ALLOCATE(A_out(nconf, nat3, nq))
+    CALL compute_A_out(A_out, input, qbasis, S, fc2, fc3)
+    ! Compute 1/sqrt(A_out) from A_out
+    ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
+    CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
+    ! Compute 1/A_out from A_out
+    ALLOCATE(inv_A_out(nconf, nat3, nq))
+    CALL compute_inv_A_out(A_out, inv_A_out, nconf, nat3, nq)
+    !
+    !
+    ! f0 = f_SMA = 1/(A_out) b
+    ALLOCATE( x(3, nconf, nat3, nq))
+    ALLOCATE( r(3, nconf, nat3, nq))
+    ALLOCATE( p(3, nconf, nat3, nq))
+    ALLOCATE(Ap(3, nconf, nat3, nq))
+    ALLOCATE(    r_mod2(3, nconf) )
+    ALLOCATE(r_mod2_old(3, nconf) )
+    ALLOCATE(  p_dot_Ap(3, nconf) )
+    ALLOCATE(     alpha(3, nconf) )
+    ALLOCATE(      beta(3, nconf) )
+    !
+    WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+    ! f0 = f_SMA = 1/(A_out) b
+    x = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
+    ! g0 = Af0 - f_sma
+    CALL A_times_f(x, Ap, A_out, input, qbasis, S, fc2, fc3)
+!     g = A_diag_f(A_out, f, nconf, nat3, nq)
+    r = qbasis%b - Ap
+    p = r
+    !
+    r_mod2 = qbasis_dot(r, r, nconf, nat3, nq )
+    !
+    tk = calc_tk_rxb(x, r, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
+    !
+    DO iter = 1,niter_max
+      WRITE(*,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+      ! t = (A_in+A_out)h
+      CALL A_times_f(p, Ap, A_out, input, qbasis, S, fc2, fc3)
+      !
+      ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
+      ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
+      p_dot_Ap = qbasis_dot(p, Ap,  nconf, nat3, nq )
+      ! qbasis_b_over_a check for zero/zero, preventing NaN
+      alpha = qbasis_a_over_b(r_mod2, p_dot_Ap, nconf)
+      !
+      x = x + qbasis_ax(alpha, p,  nconf, nat3, nq)
+      r = r - qbasis_ax(alpha, Ap, nconf, nat3, nq)
+      !
+      r_mod2_old = r_mod2
+      r_mod2 = qbasis_dot(r, r, nconf, nat3, nq )
+      CALL print_gradmod2_tk(r_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+      !
+      beta = qbasis_a_over_b(r_mod2_old, r_mod2, nconf)
+      p = r + qbasis_ax(beta, p,  nconf, nat3, nq)
+      !
+      !tk = -\lambda 1/2(f.g-f.b)
+      tk = calc_tk_rxb(x, r, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, nconf, "TK from 1/2(fg-fb)")
+    ENDDO
+    !
+  END SUBROUTINE TK_CG2
   !
   END MODULE thermalk_program
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
