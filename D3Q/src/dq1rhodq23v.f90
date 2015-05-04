@@ -14,7 +14,7 @@ MODULE dq1rhodq23v_module
   PUBLIC  :: dq1rhodq23v, dq1rhodqv
   PRIVATE :: dpsi_correction, dq23v_nonlocal, dq23v_local
   !
-  LOGICAL,PARAMETER :: prof_dq1rhod2v = .true.
+  LOGICAL,PARAMETER :: prof_dq1rhod2v = .false.
   !
   CONTAINS
 !----------------------------------------------------------------------
@@ -148,18 +148,20 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
     ENDDO
     !
     !CALL print_clock('dq1rhodq23v')
-    CALL print_clock('dq23v_loc')
-    CALL print_clock('dq23v_nlc')
-    CALL print_clock('dq23v_nlc:10')
-    CALL print_clock('dq23v_nlc:20')
-    CALL print_clock('dq23v_nlc:30')
-    CALL print_clock('dq23v_nlc:40')
-    CALL print_clock('dpsi_corr')
-    CALL print_clock('dpsi_corr:10')
-    CALL print_clock('dpsi_corr:20')
-    CALL print_clock('dpsi_corr:30')
-    CALL print_clock('dpsi_corr:40')
-    CALL print_clock('dpsi_corr:50')
+    IF(prof_dq1rhod2v) THEN
+      CALL print_clock('dq23v_loc')
+      CALL print_clock('dq23v_nlc')
+      CALL print_clock('dq23v_nlc:10')
+      CALL print_clock('dq23v_nlc:20')
+      CALL print_clock('dq23v_nlc:30')
+      CALL print_clock('dq23v_nlc:40')
+      CALL print_clock('dpsi_corr')
+      CALL print_clock('dpsi_corr:10')
+      CALL print_clock('dpsi_corr:20')
+      CALL print_clock('dpsi_corr:30')
+      CALL print_clock('dpsi_corr:40')
+      CALL print_clock('dpsi_corr:50')
+    ENDIF
     !
   ENDDO &
   RHO_PERTURBATION

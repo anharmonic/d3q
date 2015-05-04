@@ -102,9 +102,9 @@ SUBROUTINE d3_readin()
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      CALL get_env( 'ESPRESSO_FILDRHO_DIR', fildrho_dir )
      IF ( TRIM( fildrho_dir ) == ' ' ) fildrho_dir=outdir
-     outdir= trimcheck(outdir)
-     d3dir = trimcheck(d3dir)
-     fildrho_dir = trimcheck(fildrho_dir)
+     outdir= trimcheck(outdir)//"/"
+     d3dir = trimcheck(d3dir)//"/"
+     fildrho_dir = trimcheck(fildrho_dir)//"/"
 
      
      prefix = 'pwscf'
