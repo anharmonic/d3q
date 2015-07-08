@@ -182,7 +182,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE cell_base,  ONLY : tpiba2
   USE fft_base,   ONLY : dfftp
   USE io_global,  ONLY : stdout
-  USE gvect,      ONLY : g
+  USE gvect,      ONLY : g, gstart
   USE ener,       ONLY : ef
   USE klist,      ONLY : xk, degauss, ngauss
   USE wvfct,      ONLY : nbnd, npwx, et
@@ -314,7 +314,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   !
   DO ipert = 1, npe
      mode = imode0 + ipert
-     CALL dq_vscf(mode, dvloc(1,ipert), xq_prt, iq_prt, u_prt)
+     CALL dq_vscf(mode, dvloc(:,ipert), xq_prt, iq_prt, u_prt)
   ENDDO
 
   !
@@ -339,6 +339,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
     ! at k+q_wfc, then read the wavefunction itself
     READ (kplusq(iq_wfc)%iunigkq, iostat = ios) npw_wfc, igk_wfc
     CALL davcio (psi_wfc, lrwfc, iuwfc, ik_wfc, -1)
+    !call get_buffer (evc, lrwfc, iuwfc, ikk)
     !
     ! calculate the variation of the non-local part of the K-S potential
     CALL init_us_2 (npw_wfc, igk_wfc, xk(1, ik_wfc), vkb_wfc)
@@ -451,12 +452,14 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       dpsi = (0._dp, 0._dp)
       DO ibnd = 1, nbnd_occ(ik_prj)
           auxg (1:npw_prj) = g2kin_prj(1:npw_prj) * psi_prj (1:npw_prj, ibnd)
-          eprec1 = PRECONDITIONING_FACTOR * REAL(ZDOTC(npw_prj, psi_prj(1, ibnd), 1, auxg, 1),kind=DP)
+          eprec1 = PRECONDITIONING_FACTOR * REAL(ZDOTC(npw_prj, psi_prj(:, ibnd), 1, auxg, 1),kind=DP)
           !
           CALL mp_sum ( eprec1, intra_pool_comm )
           !
-          DO ig = 1, npw_prj
-              h_diag (ig, ibnd) = MIN(1._dp, eprec1/g2kin_prj(ig))
+          IF(gstart==2) h_diag (1, ibnd) = 1._dp
+          DO ig = gstart, npw_prj
+            !  h_diag (ig, ibnd) = MIN(1._dp, eprec1/g2kin_prj(ig))
+            h_diag(ig,ibnd)=1.d0/MAX(1.0d0,g2kin_prj(ig)/eprec1)
           ENDDO
       ENDDO
       !
@@ -514,7 +517,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       !
       IF (lmetq0) THEN
           CALL incdrhoscf2 (drhoscf(1, ipert), npw_wfc, igk_wfc, psi_wfc, &
-                            npw_prj, igk_prj, dpsi, kplusq(iq_wfc)%wk(ik), ik, 1)
+                            npw_prj, igk_prj, dpsi, kplusq(iq_wfc)%wk(ik), kplusq(iq_prj)%ikqs(ik), 1)
       ENDIF
       !
     ENDDO &
@@ -556,7 +559,10 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   aux_avg (2) = DBLE (lintercall)
   CALL mp_sum( aux_avg, inter_pool_comm )
   !
-  averlt = aux_avg (1) / aux_avg (2)
+  averlt = 0
+  IF(aux_avg(2)/=0._dp)THEN
+    averlt = aux_avg(1) / aux_avg(2)
+  ENDIF
   tcpu = get_clock ('D3_toten')
 
   IF (ldwfc) THEN
