@@ -9,7 +9,7 @@
 MODULE incdrhoscf2_module
 CONTAINS
 !-----------------------------------------------------------------------
-SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ik, mode)
+SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mode)
   !-----------------------------------------------------------------------
   !
   !     This routine computes the change of the charge density due to the
@@ -18,15 +18,16 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ik, mod
   !
   !
 !   USE ions_base,  ONLY : nat
-  USE kinds,      ONLY : DP
-  USE pwcom,      ONLY : npwx, omega, nbnd
-  USE gvecs,      ONLY : nls
-  USE fft_base,   ONLY : dffts
+  USE kinds,          ONLY : DP
+  USE pwcom,          ONLY : npwx, omega, nbnd
+  USE phcom,          ONLY : nbnd_occ
+  USE gvecs,          ONLY : nls
+  USE fft_base,       ONLY : dffts
   USE fft_interfaces, ONLY: invfft
-  USE uspp,       ONLY : okvan
+  USE uspp,           ONLY : okvan
 
   implicit none
-  integer,intent(in) :: ik
+  integer,intent(in) :: ikk
   ! input: the k point
   integer,intent(in) :: npw, npwd
   integer,intent(in) :: igkd(npwx), igk(npwx)
@@ -72,7 +73,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ik, mod
   ! evc  contains the unperturbed wavefunctions of this k point
   !
   !      do ibnd = 1,nbnd_occ(ikk)
-  do ibnd = 1, nbnd
+  do ibnd = 1, nbnd_occ(ikk)
      psic (:) = (0.d0, 0.d0)
      do ig = 1, npw
         psic (nls (igk (ig) ) ) = psi(ig, ibnd)

@@ -15,7 +15,7 @@ SUBROUTINE gen_dpsi1dv2psi
   !-----------------------------------------------------------------------
   USE KINDS,      ONLY : DP
   USE d3_iofiles, ONLY : iu_dpsi_dH_psi, iudpdvp
-  USE pwcom,      ONLY : degauss
+  USE pwcom,      ONLY : lgauss
   USE kplus3q,    ONLY : kplusq, q_names, q_names2
   USE io_global,  ONLY : stdout
   USE d3_restart, ONLY : done_dwfc
@@ -36,7 +36,7 @@ SUBROUTINE gen_dpsi1dv2psi
           -3, 1,  -3, 2 &
          /), (/2,ncases/) )
 
-  IF (degauss == 0._dp) RETURN
+  IF (.not. lgauss) RETURN
   !
   CALL start_clock('gen_dpsi1dv2psi')
   !

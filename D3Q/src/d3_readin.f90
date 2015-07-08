@@ -227,11 +227,12 @@ SUBROUTINE d3_readin()
   CALL bcast_d3_input()
   CALL bcast_d3_debug()
   !
-  !IF( degauss /= 0._dp .and. ( eqvect(xq1,Gamma,Gamma, 1.d-5) &
-  !                         .or.eqvect(xq2,Gamma,Gamma, 1.d-5) &
-  !                         .or.eqvect(xq3,Gamma,Gamma, 1.d-5) ) )&
-  !    CALL errore(sub, 'One q is equivalent to Gamma, but is not Gamma, and system is metallic:'//&
-  !                             ' Efermi shift not implemented!',1)
+!   IF( (.not. lgauss) .and. ( eqvect(xq1,Gamma,Gamma, 1.d-5) &
+!                          .or.eqvect(xq2,Gamma,Gamma, 1.d-5) &
+!                          .or.eqvect(xq3,Gamma,Gamma, 1.d-5) ) ) THEN
+!      CALL errore(sub, 'One q is equivalent to Gamma, but is not Gamma, and system is metallic:'//&
+!                               ' Efermi shift not implemented!',1)
+!   ENDIF
   !
   ! *** GLOBAL VARIABLES (is this still necessary??):
   ! ***  USE save_ph,     ONLY : tmp_dir_save  <--- prefix used inside pw.x

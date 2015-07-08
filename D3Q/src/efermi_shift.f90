@@ -27,7 +27,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE kinds,          ONLY : DP
   USE constants,      ONLY : eps8, rytoev
   USE io_global,      ONLY : stdout
-  USE pwcom,          ONLY : nbnd, degauss, ngauss, et, ef, omega
+  USE pwcom,          ONLY : nbnd, degauss, ngauss, et, ef, omega 
   USE fft_interfaces, ONLY : fwfft
   USE fft_base,       ONLY : dfftp
   USE gvect,          ONLY : gg, nl
@@ -197,7 +197,7 @@ SUBROUTINE read_efsh()
   !
   ! Reads the shift of the Fermi Energy
   !
-  USE pwcom,      ONLY : degauss
+  USE pwcom,      ONLY : lgauss
   USE d3_iofiles, ONLY : iuef
   USE io_global,  ONLY : ionode, ionode_id
   USE mp,         ONLY : mp_bcast
@@ -208,7 +208,7 @@ SUBROUTINE read_efsh()
   !
   INTEGER :: ios
   !
-  IF (degauss == 0._dp ) RETURN
+  IF (.not. lgauss) RETURN
   !
   ef_sh = 0._dp
   !
@@ -238,12 +238,12 @@ END SUBROUTINE read_efsh
 !----------------------------------------------------------------------
 SUBROUTINE write_efsh()
   !-----------------------------------------------------------------------
-  USE pwcom,     ONLY : degauss
+  USE pwcom,     ONLY : lgauss
   USE d3_iofiles, ONLY : iuef
   USE io_global, ONLY : ionode
   USE mp,        ONLY : mp_bcast
 
-  IF(degauss==0._dp .or. .not. ionode) RETURN
+  IF((.not.lgauss) .or. (.not.ionode)) RETURN
   !
   WRITE (iuef) ef_sh
   CALL flush_unit(iuef)

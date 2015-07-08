@@ -20,7 +20,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm
   USE io_global,  ONLY : stdout
   USE mp,         ONLY : mp_sum
-  USE pwcom,      ONLY : degauss, et, ef, ngauss, xk
+  USE pwcom,      ONLY : lgauss, degauss, et, ef, ngauss, xk
   USE wvfct,      ONLY : npwx, nbnd
   USE uspp,       ONLY : nkb
   USE d3_basis,   ONLY : patq
@@ -149,9 +149,9 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
       ! vkb_lft => vkb_rgt : vkb_lft is automatically a copy of vkb_rgt
     ENDIF
     !
-    IF (degauss /= 0._dp) THEN
+    wga=0._dp
+    IF (lgauss) THEN
       degaussm1 = 1._dp / degauss
-      wga=0._dp
       !
       DO ibnd = 1, nbnd_occ(ik_gam)
         wga(ibnd) = kplusq(0)%wk(ik) * wgauss( (ef - et(ibnd, ik_gam))*degaussm1, ngauss )

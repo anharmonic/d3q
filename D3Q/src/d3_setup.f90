@@ -20,6 +20,7 @@ SUBROUTINE d3_setup_q_independent()
   USE scf,              ONLY : rho, rho_core, v, vltot, vrs, kedtau
   USE funct,            ONLY : dmxc, dmxc_spin
   USE fft_base,         ONLY : dfftp
+  USE gc_d3,            ONLY : setup_d3gc
   !
   IMPLICIT NONE
   INTEGER :: ir
@@ -51,6 +52,8 @@ SUBROUTINE d3_setup_q_independent()
         IF (rhotot < - 1.d-30) dmuxc(ir, 1, 1) = -dmxc(-rhotot)
      ENDDO
   ENDIF
+  !
+  CALL setup_d3gc()
   !
   CALL stop_clock('d3_setup_noq')
   !

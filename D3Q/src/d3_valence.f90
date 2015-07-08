@@ -22,7 +22,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   !
   USE kinds,        ONLY : DP
   USE ions_base,    ONLY : nat
-  use pwcom,        ONLY : degauss, ngauss, nbnd, et, ef
+  use pwcom,        ONLY : degauss, ngauss, lgauss, nbnd, et, ef
   use phcom,        ONLY : nksq
   USE mp_global,    ONLY : inter_pool_comm
   USE io_global,    ONLY : stdout
@@ -56,7 +56,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   INTEGER,VOLATILE,POINTER :: nu_i, nu_j, nu_k
   LOGICAL :: order_internal
   !
-  IF(degauss == 0._dp) RETURN
+  IF(.not.lgauss) RETURN
   !
   CALL start_clock('d3_smr_ijk')
   WRITE(stdout,'(5x,a,3i3)') "Computing 3-terms valence contribution ",iq1,iq2,iq3
@@ -209,7 +209,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   !
   USE kinds,        ONLY : DP
   USE ions_base,    ONLY : nat
-  use pwcom,        ONLY : degauss, ngauss, nbnd, et, ef
+  use pwcom,        ONLY : degauss, ngauss, lgauss, nbnd, et, ef
   use phcom,        ONLY : nksq, nbnd_occ
   USE mp_global,    ONLY : inter_pool_comm
   USE io_global,    ONLY : stdout
@@ -240,9 +240,9 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   CHARACTER(len=14),PARAMETER :: sub="d3_valence_ij"
   !
   ! This term is only non-zero when ef_sh is non-zero at this point:
-  IF(.not.kplusq(iq_ef)%lgamma) RETURN
+  IF (.not.kplusq(iq_ef)%lgamma) RETURN
   !
-  IF (degauss==0._dp) RETURN
+  IF (.not. lgauss) RETURN
   !
   CALL start_clock('d3_smr_ij')
   !
@@ -350,17 +350,17 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   !-----------------------------------------------------------------------
   ! The last two terms are only non-zero if q1=q2=q3=Gamma
   !
-  USE kinds,        ONLY : DP
-  USE ions_base,    ONLY : nat
-  USE mp_global,    ONLY : inter_pool_comm
-  USE mp,           ONLY : mp_sum
-  USE kplus3q,      ONLY : kplusq
-  USE d3_efermi_shift, ONLY : read_efsh, ef_sh
-  USE io_global,    ONLY : stdout
-  USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
-  USE pwcom,        ONLY : degauss, ngauss, nbnd, et, ef
-  USE phcom,        ONLY : nksq
-  USE d3_debug,     ONLY : dbgwrite_d3dyn
+  USE kinds,            ONLY : DP
+  USE ions_base,        ONLY : nat
+  USE mp_global,        ONLY : inter_pool_comm
+  USE mp,               ONLY : mp_sum
+  USE kplus3q,          ONLY : kplusq
+  USE d3_efermi_shift,  ONLY : read_efsh, ef_sh
+  USE io_global,        ONLY : stdout
+  USE d3_iofiles,       ONLY : iu_psi_dH_psi, lrpdqvp
+  USE pwcom,            ONLY : degauss, ngauss, lgauss, nbnd, et, ef
+  USE phcom,            ONLY : nksq
+  USE d3_debug,         ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   !
@@ -378,7 +378,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
       .not.kplusq(3)%lgamma ) &
     RETURN
   !
-  IF (degauss==0._dp) RETURN
+  IF (.not. lgauss) RETURN
   !
   CALL start_clock('d3_smr_gamma')
   !

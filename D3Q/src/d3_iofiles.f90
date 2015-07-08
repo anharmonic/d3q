@@ -15,6 +15,7 @@ MODULE d3_iofiles
   ! Subroutines:
   PUBLIC :: openfild3, closefild3, openfile_drho
   PUBLIC :: d3_add_rho_core
+  PUBLIC :: addcore_d3
   PUBLIC :: read_drho
   PUBLIC :: fildrho_q, fildrho_q_names
   PUBLIC :: setup_d3_iofiles
@@ -595,7 +596,7 @@ SUBROUTINE d3_add_rho_core (scalef)
 
   IMPLICIT NONE
   REAL(DP),INTENT(in) :: scalef
-  INTEGER :: ipert, iq
+  INTEGER :: nu, iq
   COMPLEX (DP), ALLOCATABLE :: drhov(:)
 
 !   print*, "calling the drho_drc with", iud0rho, iud0rhoc, nlcc_any, lgamma
@@ -609,12 +610,12 @@ SUBROUTINE d3_add_rho_core (scalef)
       WRITE(stdout, "(7x,a,a)") "Adding variation of core charge for ", q_names(iq)
       cc_added_to_drho(iq) = .true.
       !
-      DO ipert = 1, 3 * nat
-	!
-	CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), ipert, -1)
-	CALL addcore_d3(kplusq(iq)%xq, patq(iq)%u, ipert, d3c(iq)%drc, drhov)
-	CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), ipert, +1)
-	!
+      DO nu = 1, 3 * nat
+      !
+      CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), nu, -1)
+      CALL addcore_d3(kplusq(iq)%xq, patq(iq)%u, nu, d3c(iq)%drc, drhov, +1)
+      CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), nu, +1)
+      !
       ENDDO      
     ENDIF
   ENDDO
@@ -628,7 +629,7 @@ END SUBROUTINE d3_add_rho_core
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-subroutine addcore_d3(xq, u, mode, drc, drhoc)
+subroutine addcore_d3(xq, u, mode, drc, drhoc, sign)
   !-----------------------------------------------------------------------
   !
   !    This routine computes the change of the core charge
@@ -654,6 +655,7 @@ subroutine addcore_d3(xq, u, mode, drc, drhoc)
                             drc(ngm, ntyp)      ! contain the rhocore (without structure factor)
   
   complex(DP), intent(INOUT) :: drhoc (dfftp%nnr)
+  INTEGER,INTENT(in) :: sign
   ! input: rho / output: rho+core
   !
   !   Local variables
@@ -694,7 +696,7 @@ subroutine addcore_d3(xq, u, mode, drc, drhoc)
                    * eigts3 (mill (3,ig), na)
               gu = gu0 + g (1, ig) * u1 + g (2, ig) * u2 + g (3, ig) * u3
               drhoc (nl (ig) ) = drhoc(nl(ig)) &
-                               + drc (ig, nt) * gu * fact * gtau
+                               + sign * drc (ig, nt) * gu * fact * gtau
            enddo
         endif
      endif
@@ -786,7 +788,7 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
   USE io_global, ONLY : ionode_id, ionode
   USE mp_global, ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
   USE mp,        ONLY : mp_bcast, mp_barrier
-  USE fft_base,  ONLY : dfftp, cgather_sym
+  USE fft_base,  ONLY : dfftp, gather_grid
   !
   IMPLICIT NONE
   !
@@ -810,7 +812,9 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
      !
      ! First task of the pool gathers and writes in the file
      !
-     CALL cgather_sym (drho, ddrho)
+     !CALL cgather_sym (drho, ddrho)
+     CALL gather_grid (dfftp, drho, ddrho)
+     !
      IF ( ionode ) CALL davcio (ddrho, lrec, iunit, nrec, + 1)
   ELSEIF (isw < 0) THEN
      !
@@ -826,7 +830,6 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
      CALL mp_bcast( ddrho, root_pool, intra_pool_comm )
      !
      ! Distributes ddrho between between the tasks of the pool
-     !
      itmp = 1
      DO proc = 1, me_pool
         itmp = itmp + dfftp%nnp * dfftp%npp (proc)

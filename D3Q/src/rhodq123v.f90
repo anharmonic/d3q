@@ -122,30 +122,30 @@ SUBROUTINE rhodq123v(d3dyn)
      DO kcart = 1, 3
         DO icart = 1, 3
            DO jcart = 1, 3
-              DO ibnd = 1, nbnd_occ (ikk)
+              DO ibnd = 1, nbnd_occ(ikk)
                  !
-                 FORALL(ig=1:npw) work3 (ig) = psi(ig, ibnd) * tpiba3 &
+                 FORALL(ig=1:npw) work3(ig) = psi(ig, ibnd) * tpiba3 &
                                    * (xk(icart,ikk)+g(icart, igk(ig))) &
                                    * (xk(jcart,ikk)+g(jcart, igk(ig))) &
                                    * (xk(kcart,ikk)+g(kcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 1) = psi (ig, ibnd) * tpiba2 &
+                 FORALL(ig=1:npw) work2(ig, 1) = psi(ig, ibnd) * tpiba2 &
                                    * (xk(icart,ikk)+g(icart, igk(ig))) &
                                    * (xk(jcart,ikk)+g(jcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 2) = psi (ig, ibnd) * tpiba2 &
+                 FORALL(ig=1:npw) work2(ig, 2) = psi(ig, ibnd) * tpiba2 &
                                    * (xk(jcart,ikk)+g(jcart, igk(ig))) &
                                    * (xk(kcart,ikk)+g(kcart, igk(ig)))
                  !
-                 FORALL(ig=1:npw) work2 (ig, 3) = psi (ig, ibnd) * tpiba2 &
+                 FORALL(ig=1:npw) work2(ig, 3) = psi(ig, ibnd) * tpiba2 &
                                    * (xk(kcart,ikk)+g(kcart, igk(ig))) &
                                    * (xk(icart,ikk)+g(icart, igk(ig))) 
                  !
-                 FORALL(ig=1:npw) work1 (ig, 1) = psi (ig, ibnd) * tpiba &
+                 FORALL(ig=1:npw) work1(ig, 1) = psi(ig, ibnd) * tpiba &
                                    * (xk(kcart,ikk)+g(kcart, igk(ig)))
-                 FORALL(ig=1:npw) work1 (ig, 2) = psi (ig, ibnd) * tpiba &
+                 FORALL(ig=1:npw) work1(ig, 2) = psi(ig, ibnd) * tpiba &
                                    * (xk(icart,ikk)+g(icart, igk(ig)))
-                 FORALL(ig=1:npw) work1 (ig, 3) = psi (ig, ibnd) * tpiba &
+                 FORALL(ig=1:npw) work1(ig, 3) = psi(ig, ibnd) * tpiba &
                                    * (xk(jcart,ikk)+g(jcart, igk(ig)))
                  !
                  ijkb0 = 0

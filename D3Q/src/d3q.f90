@@ -10,7 +10,7 @@
 program d3toten
   !-----------------------------------------------------------------------
   !
-  USE pwcom,         ONLY : degauss
+  USE pwcom,         ONLY : lgauss
   USE phcom,         ONLY : all_done
   USE d3com,         ONLY : code, ethr_ph, restart, fild3dyn
   USE ions_base,     ONLY : nat
@@ -64,7 +64,7 @@ program d3toten
   END TYPE
   TYPE(d3matrix_with_permutations) :: d3(nperms)
 
-  REAL(DP) :: t0, t1
+  REAL(DP) :: t0=0._dp, t1=0._dp
   REAL(DP),EXTERNAL :: get_clock
   REAL(DP) :: xq1(3), xq2(3), xq3(3)
 
@@ -455,7 +455,7 @@ program d3toten
     d3dyn_smear = (0._dp, 0._dp)
     !
     ADD_SMEARING_CONTRIBUTION : &
-    IF (degauss /= 0._dp .and. dbg_do_smearing) THEN
+    IF (lgauss .and. dbg_do_smearing) THEN
       d3dyn_smear = 0._dp
       !
       DBG_smr1 : IF(dbg_do_smr_ijk) THEN

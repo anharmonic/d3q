@@ -34,14 +34,14 @@ SUBROUTINE allocate_d3()
   ! Not much stuff left, as almost everything is now allocated on-place when used
   USE ions_base,    ONLY : nat
   USE uspp,         ONLY : nkb
-  USE pwcom,        ONLY : nbnd, degauss
+  USE pwcom,        ONLY : nbnd, degauss, lgauss
   USE d3_efermi_shift, ONLY : ef_sh
   USE becmod, ONLY : allocate_bec_type, becp
 
   IMPLICIT NONE
 
-  CALL allocate_bec_type ( nkb, nbnd, becp )
-  IF (degauss.ne.0.d0) ALLOCATE (ef_sh( 3 * nat))
+  CALL allocate_bec_type( nkb, nbnd, becp )
+  IF (lgauss) ALLOCATE (ef_sh( 3*nat))
 
   RETURN
 END SUBROUTINE allocate_d3

@@ -266,7 +266,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE ions_base,    ONLY : nat, ityp, ntyp => nsp
   USE kinds,        ONLY : DP
   USE constants,    ONLY : tpi
-  USE pwcom,        ONLY : npwx, g, degauss, tpiba, xk, nbnd
+  USE pwcom,        ONLY : npwx, g, lgauss, tpiba, xk, nbnd
   USE uspp,         ONLY : dvan, nkb
   USE uspp_param,   ONLY : nh
   USE phcom,        ONLY : lrdwf, nbnd_occ, lrwfc, iuwfc
@@ -324,7 +324,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   REWIND (unit = kplusq(iq_drho)%iunigkq)
   REWIND (unit = kplusq(iq_gamm)%iunigkq)
   !
-  IF(degauss/=0._dp) CALL read_efsh()
+  IF(lgauss) CALL read_efsh()
   !
   LOOP_ON_KPOINTS : &
   DO ik = 1, nksq
@@ -361,8 +361,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:10')
 
     IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:20')
-    IF (degauss /= 0._dp) &
-      CALL dpsi_correction(dpsi, ik, iq_drho, nu_drho, npw_gamm, npw_drho)
+    IF (lgauss) CALL dpsi_correction(dpsi, ik, iq_drho, nu_drho, npw_gamm, npw_drho)
     IF (prof_dq1rhod2v) CALL stop_clock('dq23v_nlc:20')
     !
     DO icart = 1, 3
