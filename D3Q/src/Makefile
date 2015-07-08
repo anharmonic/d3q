@@ -49,6 +49,7 @@ rhodq123v.o \
 rotate_d3.o \
 run_nscf_d3.o \
 set_kplus3q.o \
+setup_d3gc.o \
 solve_linter_d3q.o \
 stop_d3.o \
 w_1gauss.o \
