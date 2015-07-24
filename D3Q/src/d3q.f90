@@ -7,7 +7,7 @@
 !
 !
 !-----------------------------------------------------------------------
-program d3toten
+program d3q
   !-----------------------------------------------------------------------
   !
   USE pwcom,         ONLY : lgauss
@@ -30,6 +30,7 @@ program d3toten
   USE d3_iofiles,       ONLY : openfild3, openfile_drho, d3_add_rho_core,&
                                setup_d3_iofiles
   USE d3_exc_module
+  USE d3_exc_gc_module
   USE dpsi1dv2dpsi3_module
   USE dpsi1dpsi2dv3_module
   USE dq1rhodq23v_module
@@ -57,6 +58,7 @@ program d3toten
   USE d3_restart,         ONLY : d3_check_restart, d3_check_time, d3_from_scratch
   USE d3_debug
   USE mp_world,           ONLY : world_comm
+  USE funct,              ONLY : dft_is_gradient
 
   implicit none
   TYPE d3matrix_with_permutations
@@ -556,10 +558,15 @@ program d3toten
     !
     DBG_exc : IF(dbg_do_exc) THEN
     write( stdout, '(/,5x,"================ exc contrib start",i3," =============",/)') 
-    WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
     d3dyn_exc = (0._dp, 0._dp)
     !printed = .false.
-    CALL d3_exc(d3dyn_exc)
+    IF ( dft_is_gradient() .and. dbg_exc_do_gga) THEN
+      WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution with GGA")')
+      CALL d3_exc_gc(d3dyn_exc)
+    ELSE
+      WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
+      CALL d3_exc(d3dyn_exc)
+    ENDIF
     CALL dbgwrite_d3dyn (d3dyn_exc, 'exc',- 1)
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
@@ -694,5 +701,5 @@ program d3toten
         "(____/(___/  (____/(_____)(_)\_)(____)"
 #endif
   !
-END PROGRAM d3toten
+END PROGRAM d3q
 

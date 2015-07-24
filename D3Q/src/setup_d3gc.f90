@@ -27,21 +27,22 @@ MODULE gc_d3
     !
     !
     !
-    USE constants,        ONLY : e2
-    USE gvect,            ONLY : ngm, g, nl
-    USE lsda_mod,         ONLY : nspin
-    USE spin_orb,         ONLY : domag
-    USE scf,              ONLY : rho, rho_core, rhog_core
-    USE noncollin_module, ONLY : noncolin
-    USE kinds,            ONLY : DP
-    USE funct,            ONLY : dft_is_gradient, gcxc, dgcxc, d3gcxc
+    USE constants,            ONLY : e2
+    USE gvect,                ONLY : ngm, g, nl
+    USE lsda_mod,             ONLY : nspin
+    USE spin_orb,             ONLY : domag
+    USE scf,                  ONLY : rho, rho_core, rhog_core
+    USE noncollin_module,     ONLY : noncolin
+    USE kinds,                ONLY : DP
+    USE funct,                ONLY : dft_is_gradient, gcxc, dgcxc, d3gcxc
 !     USE gc_ph,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
   !   USE gc_d3,            ONLY : dvxc_rrr, dvxc_srr, &
   !                                dvxc_ssr, dvxc_sss
-    USE nlcc_ph,          ONLY : nlcc_any
-    USE fft_base,         ONLY : dfftp
-    USE fft_interfaces,         ONLY : fwfft
+    USE nlcc_ph,              ONLY : nlcc_any
+    USE fft_base,             ONLY : dfftp
+    USE fft_interfaces,       ONLY : fwfft
     USE wavefunctions_module, ONLY : psic
+    USE io_global,            ONLY : stdout
     !
     IMPLICIT NONE
     !
@@ -53,9 +54,11 @@ MODULE gc_d3
         vrrrx, vsrrx, vssrx, vsssx, &
         vrrrc, vsrrc, vssrc, vsssc
     REAL(DP), ALLOCATABLE :: rho_tot_r(:,:)
-    REAL(DP), ALLOCATABLE :: rho_tot_g(:,:)
+    COMPLEX(DP), ALLOCATABLE :: rho_tot_g(:,:)
     REAL (DP), PARAMETER :: epsr = 1.0d-6, epsg = 1.0d-10
 
+    !
+    WRITE(stdout, '(5x,a)') "Setting up GGA"
     grho2 = 0._dp
     !
     IF ( .NOT. dft_is_gradient() ) RETURN
@@ -121,10 +124,10 @@ MODULE gc_d3
       !
     END IF
     
-    WHERE(ABS(grho)>1.d+32) grho = 0._dp
+    !WHERE(ABS(grho)>1.d+32) grho = 0._dp
     
     DO ir = 1, dfftp%nnr
-      print*, rho%of_r(ir,1), grho (1,ir,1), grho(2,ir,1), grho(3,ir,1)
+      !print*, rho%of_r(ir,1), grho (1,ir,1), grho(2,ir,1), grho(3,ir,1)
       grho2(1) = grho (1,ir,1)**2 + grho(2,ir,1)**2 + grho(3,ir,1)**2
       IF (nspin0 == 1) THEN
           IF (ABS (rho_tot_r (ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
@@ -137,6 +140,7 @@ MODULE gc_d3
             dvxc_s  (ir, 1, 1) = e2 * (v2x + v2c)
             call d3gcxc (rho_tot_r (ir, 1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
                   vrrrc, vsrrc, vssrc, vsssc )
+            write(10001, '(i7,99f12.6)') ir, rho_tot_r(ir, 1),  rho%of_r(ir,is), rho_core(ir), grho2(1), vrrrx, vsrrx, vssrx, vsssx, vrrrc, vsrrc, vssrc, vsssc 
             !
             dvxc_rrr(ir, 1, 1) = e2 * (vrrrx + vrrrc)
             dvxc_srr(ir, 1, 1) = e2 * (vsrrx + vsrrc)
@@ -149,6 +153,11 @@ MODULE gc_d3
       ENDIF
       !
     ENDDO
+    
+    WRITE(10006, '(2f12.6)') dvxc_rrr
+    WRITE(10007, '(2f12.6)') dvxc_srr
+    WRITE(10008, '(2f12.6)') dvxc_ssr
+    WRITE(10009, '(2f12.6)') dvxc_sss
     
     IF (noncolin.AND.domag) &
       CALL errore('setup_d3gc',' domag not implemented',1)

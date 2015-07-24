@@ -21,6 +21,7 @@ MODULE d3_debug
       dbg_do_smr_ij = .true. ,   &
       dbg_do_smr_g = .true. ,    &
     dbg_do_exc = .true. ,        &
+      dbg_exc_do_gga = .true.,   &
     dbg_do_nlcc = .true. ,       &
       dbg_do_nlcc_0 = .true. ,   &
       dbg_do_nlcc_123 = .true.
@@ -37,11 +38,13 @@ SUBROUTINE read_d3_debug(u)
   IMPLICIT NONE
   INTEGER,INTENT(in) :: u
   INTEGER :: ios
+   CHARACTER(len=512) line
   namelist / d3_debug / &
    dbg_do_dwfc, dbg_do_dpdvp, dbg_do_dpdvdp, dbg_do_dpdpdv, dbg_do_dpdvdp, &
    dbg_do_drhod2v, dbg_do_rhod3v, dbg_do_ion, &
    dbg_do_smearing, dbg_do_smr_ijk, dbg_do_smr_ij, dbg_do_smr_g, &
-   dbg_do_exc, dbg_do_nlcc, dbg_do_nlcc_0, dbg_do_nlcc_123, &
+   dbg_do_exc, dbg_exc_do_gga, &
+   dbg_do_nlcc, dbg_do_nlcc_0, dbg_do_nlcc_123, &
    dbg_write_d3_parts, dbg_add_core 
 
     dbg_do_dwfc       = .true.
@@ -56,6 +59,7 @@ SUBROUTINE read_d3_debug(u)
       dbg_do_smr_ij   = .true.
       dbg_do_smr_g    = .true.
     dbg_do_exc        = .true.
+      dbg_exc_do_gga   = .true.
     dbg_do_nlcc       = .true.
       dbg_do_nlcc_0   = .true.
       dbg_do_nlcc_123 = .true.
@@ -63,6 +67,7 @@ SUBROUTINE read_d3_debug(u)
    dbg_write_d3_parts = .false.
    dbg_add_core      = .true.
    !
+   WRITE(stdout,'(5x,a)') "Checking for debug instructions."
    READ (u, d3_debug, iostat = ios)
    !
    IF(ios == 0) THEN
@@ -100,6 +105,7 @@ SUBROUTINE bcast_d3_debug
       CALL mp_bcast( dbg_do_smr_ij, ionode_id, world_comm)
       CALL mp_bcast( dbg_do_smr_g, ionode_id, world_comm)
     CALL mp_bcast( dbg_do_exc, ionode_id, world_comm)
+      CALL mp_bcast( dbg_exc_do_gga, ionode_id, world_comm)
     CALL mp_bcast( dbg_do_nlcc, ionode_id, world_comm)
       CALL mp_bcast( dbg_do_nlcc_0, ionode_id, world_comm)
       CALL mp_bcast( dbg_do_nlcc_123, ionode_id, world_comm)

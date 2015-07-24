@@ -64,6 +64,7 @@ SUBROUTINE print_clock_d3
   CALL print_clock('d3_smr_ij')
   CALL print_clock('d3_smr_gamma')
   CALL print_clock('d3_exc')
+  CALL print_clock('d3_exc_gc')
   CALL print_clock('d3matrix')
 
 
