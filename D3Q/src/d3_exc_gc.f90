@@ -8,7 +8,7 @@
 MODULE d3_exc_gc_module
   CONTAINS
 !-----------------------------------------------------------------------
-SUBROUTINE d3_exc_gc(d3dyn)
+SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   !-----------------------------------------------------------------------
   !
   !    wat20100930:
@@ -41,6 +41,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
   !
   IMPLICIT NONE
   !
+  INTEGER,INTENT(in) :: iq_i, iq_j, iq_k
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
   !
   INTEGER :: ir, is, ipert, jpert, kpert, crd, nspin0
@@ -103,7 +104,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
     gr_gdrdi(:) =(0.d0, 0.d0)
     !
     !LP CALL davcio_drho(drho_dipert, lrdrho, iud0rho, ipert, - 1)
-    CALL read_drho(drho_dipert, 1, ipert, with_core=.true.)
+    CALL read_drho(drho_dipert, iq_i, ipert, with_core=.true.)
     !
     !  CASE : xq = 0
     !
@@ -113,7 +114,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
         !
 !         CALL qgradient(kplusq(1)%xq, nrx1, nrx2, nrx3, nr1, nr2, nr3, dfftp%nnr, &
 !             drho_dipert(:, is), ngm, g, nl, alat, gdrdi(:, :, is) )
-        CALL qgradient (kplusq(1)%xq, dfftp%nnr, drho_dipert(:, is), ngm, g, nl, &
+        CALL qgradient (kplusq(iq_i)%xq, dfftp%nnr, drho_dipert(:, is), ngm, g, nl, &
                         alat, gdrdi(:,:,is) )
         !
         FORALL(ir = 1:dfftp%nnr) 
@@ -133,7 +134,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
         !
         !LP CALL davcio_drho(drho_djpert, lrdrho, iudrho, jpert, - 1)
         !LP drho_djpert(:,:) = CONJG( drho_djpert(:,:) )
-        CALL read_drho(drho_djpert, 2, jpert, with_core=.true.)
+        CALL read_drho(drho_djpert, iq_j, jpert, with_core=.true.)
         !
         !
         !  CASE : xq = -q
@@ -144,7 +145,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
             !
 !             CALL qgradient(kplusq(2)%xq, nrx1, nrx2, nrx3, nr1, nr2, nr3, dfftp%nnr, &
 !                 drho_djpert(1, is), ngm, g, nl, alat, gdrdj(1, 1, is) )
-            CALL qgradient (kplusq(2)%xq, dfftp%nnr, drho_djpert(:, is), ngm, g, nl, &
+            CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert(:, is), ngm, g, nl, &
                             alat, gdrdj(:,:,is) )
             !
             FORALL(ir = 1:dfftp%nnr) 
@@ -193,7 +194,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
             !
             !user_qpoint(:) = -xq(:)
             !    
-            CALL qgrad_dot (kplusq(2)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)
+            CALL qgrad_dot (kplusq(iq_j)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)
             !LP call qgrad_dot(kplusq(2)%xq, nrx1, nrx2, nrx3, nr1, nr2, nr3, dfftp%nnr, &
             !LP    aux2(1, 1, is), ngm, g, nl, alat, aux1)
             !
@@ -226,7 +227,7 @@ SUBROUTINE d3_exc_gc(d3dyn)
             !user_qpoint(:) = xq(:)
             !
             !CALL davcio_drho(drho_dkpert, lrdrho, iudrho, kpert, - 1)
-            CALL read_drho(drho_dkpert, 3, kpert, with_core=.true.)
+            CALL read_drho(drho_dkpert, iq_k, kpert, with_core=.true.)
             !
             IF(nspin0 == 1) THEN
                 !

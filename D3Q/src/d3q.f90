@@ -562,7 +562,23 @@ program d3q
     !printed = .false.
     IF ( dft_is_gradient() .and. dbg_exc_do_gga) THEN
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution with GGA")')
-      CALL d3_exc_gc(d3dyn_exc)
+      d3tmp = (0._dp, 0._dp)
+      DO iperm = 1,nperms
+        !printed = .false.
+        d3(iperm)%dyn = (0._dp, 0._dp)
+        IF (d3perms(iperm)%todo) THEN
+          CALL d3_exc_gc(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+        ELSE
+          jperm = d3perms(iperm)%shuffle_from
+          CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
+                                d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
+                                d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+        ENDIF
+        d3tmp = d3tmp + d3(iperm)%dyn
+        CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'exc_gc.'//d3perms(iperm)%name, 1)
+      ENDDO
+      d3dyn_exc = d3tmp/6._dp
+!       CALL d3_exc_gc(d3dyn_exc)
     ELSE
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
       CALL d3_exc(d3dyn_exc)
