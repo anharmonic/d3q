@@ -35,7 +35,35 @@ MODULE variational_tk
 !$OMP END PARALLEL DO    
     !
   END FUNCTION A_diag_f
-  !
+  ! \/o\________\\\_________________________________________/^>
+  ! Multiply an inverse matrix in diagonal form, like A_out^-1
+  ! with a vector (f, b, etc)
+  FUNCTION A_diagm1_f(A, f, nconf, nat3, nq) RESULT(Af)
+    IMPLICIT NONE
+    !
+    REAL(DP):: Af(3, nconf, nat3, nq)
+    !
+    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)  :: nconf, nat3, nq
+    !
+    INTEGER  :: iq, it, ix, nu
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(3)
+    DO iq = 1,nq
+    DO nu = 1,nat3
+      DO it = 1,nconf
+      IF (A(it,nu,iq)/=0._dp) THEN
+        Af(:,it,nu,iq) = f(:,it,nu,iq)/A(it,nu,iq)
+      ELSE
+        Af(:,it,nu,iq) = 0._dp
+      ENDIF
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO    
+    !
+  END FUNCTION A_diagm1_f  !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the diagonal matrix A_out
   SUBROUTINE compute_A_out(A_out, input, qbasis, S, fc2, fc3)
@@ -77,7 +105,7 @@ MODULE variational_tk
     QPOINT_LOOP : &
     DO iq = 1,qbasis%grid%nq
       ! bang!
-      lw_phph = linewidth_q(qbasis%grid%xq(:,iq), input%nconf, input%T,sigma_ry, S, qbasis%grid, fc2, fc3)
+      lw_phph = linewidth_q(qbasis%grid%xq(:,iq), input%nconf, input%T, sigma_ry, S, qbasis%grid, fc2, fc3)
       !
       ! Compute contribution of isotopic disorder
       IF(input%isotopic_disorder) THEN
@@ -105,7 +133,7 @@ MODULE variational_tk
         MODE_LOOP : &
         DO nu = 1, S%nat3
           ! Check if we have zero linewidth and non-zero velocity it is a problem
-          ! lw can be NaN when T=0 and xq=0, check for lw>0 insteand, because NaN/=0 is true
+          ! lw can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
             WRITE(*,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it 
             lw(nu,it) = - lw(nu,it)
@@ -113,7 +141,7 @@ MODULE variational_tk
           IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
             IF(ANY(ABS(qbasis%c(:,nu,iq))>eps_vel ))THEN
               WRITE(*,'(3i6,1e20.10,5x,3e20.10)') iq, nu, it, lw(nu,it), qbasis%c(:,nu,iq)
-              CALL errore("TK_SMA", "cannot threat this case", 1)
+              CALL errore("compute_A_out", "diverging A_out", 1)
             ELSE
               WRITE(*,"(3x,a,3i6)") "skip (iq,nu,it):", iq, nu, it
               CYCLE MODE_LOOP 
@@ -148,13 +176,13 @@ MODULE variational_tk
         IF(A(it,nu,iq)>0._dp)THEN
           inv_sqrt_A(it,nu,iq) = 1/DSQRT(A(it,nu,iq))
         ELSE IF (A(it,nu,iq)<0._dp) THEN
-          inv_sqrt_A(it,nu,iq) = -1/SQRT( -A(it,nu,iq) )
+          inv_sqrt_A(it,nu,iq) = -1/DSQRT( -A(it,nu,iq) )
           IF(iq/=1) WRITE(*,*) "Warning: negative A_out", iq, nu, it
         ELSE
           ! This hould be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
           inv_sqrt_A(it,nu,iq) = 0._dp
-          IF(iq/=1) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+          IF(iq/=1.or.(iq==0.and.nu>3)) WRITE(*,*) "Suspicious null A_out", iq, nu, it
         ENDIF
       ENDDO
     ENDDO
@@ -180,12 +208,12 @@ MODULE variational_tk
     DO nu = 1,nat3
       DO it = 1,nconf
         IF(A(it,nu,iq)/=0._dp)THEN
-          inv_A(it,nu,iq) = 1/(A(it,nu,iq))
+          inv_A(it,nu,iq) = 1/A(it,nu,iq)
           ! This hould be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
         ELSE
           inv_A(it,nu,iq) = 0._dp
-          IF(iq/=1) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+          IF(iq/=1.or.(iq==0.and.nu>3)) WRITE(*,*) "Suspicious null A_out", iq, nu, it
         ENDIF
       ENDDO
     ENDDO
@@ -403,7 +431,7 @@ MODULE variational_tk
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = basis%grid%xq(:,iq0)
-    nu0(1) = set_nu0(xq(:,1), S%at)
+    nu0(1)  = set_nu0(xq(:,1), S%at)
     !freq(:,1) = basis%w(:,iq0)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
@@ -446,9 +474,9 @@ MODULE variational_tk
       !
       ! These loops are not in the optimal order, but it does not matter for performance
       DO it = 1,nconf
-        bose(:,1) = basis%be(:,it,iq0)
-        bose(:,2) = basis%be(:,it,iq)
-        DO jq = 3,4
+!         bose(:,1) = basis%be(:,it,iq0)
+!         bose(:,2) = basis%be(:,it,iq)
+        DO jq = 1,4
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
         !
@@ -509,48 +537,46 @@ MODULE variational_tk
     REAL(DP) :: ctm_a, ctm_b, ctm_c   !
     REAL(DP) :: norm_a, norm_bc
     REAL(DP) :: sum_a, sum_bc
-    !
-    REAL(DP),PARAMETER :: norm = pi/8
+    REAL(DP) :: freqm1(nat3,4)
     !
     INTEGER :: i,j,k
     REAL(DP) :: p(nat3,nat3)
     p(:,:) = 0._dp
-   
+
+    WHERE(freq/=0._dp)
+      freqm1 = 0.5_dp/freq
+    ELSEWHERE
+      freqm1 = 0._dp
+    ENDWHERE
     !
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_b, bose_c, dom_a, dom_b, dom_c) &
 !$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_bc, norm_a, norm_bc) &
 !$OMP          REDUCTION(+: p)
 !$OMP DO  COLLAPSE(3)
-    DO k = nu0(3),nat3
-      DO j = nu0(2),nat3
-        DO i = nu0(1),nat3
+    DO k = 1,nat3
+      DO j = 1,nat3
+        DO i = 1,nat3
           !
           bose_a = bose(i,1) * bose(j,2) * (bose(k,3)+1)
-          dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
-          ctm_a = bose_a *  f_gauss(dom_a, sigma)
-          norm_a  = norm/(freq(i,1)*freq(j,2)*freq(k,3))
-          sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
-          p(i,j) = p(i,j) - sum_a
-          !
-        ENDDO
-      ENDDO
-    ENDDO
-!$OMP END DO
-!$OMP BARRIER
-!$OMP DO COLLAPSE(3)
-    DO k = nu0(4),nat3
-      DO j = nu0(2),nat3
-        DO i = nu0(1),nat3
-          !
           bose_b = bose(i,1) * (bose(j,2)+1) * bose(k,4)
           bose_c = (bose(i,1)+1) * bose(j,2) * bose(k,4)
+          !
+          dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
           dom_b =  freq(i,1) - freq(j,2) + freq(k,4)
           dom_c = -freq(i,1) + freq(j,2) + freq(k,4)
+          !
+          ctm_a = bose_a *  f_gauss(dom_a, sigma)
           ctm_b = bose_b *  f_gauss(dom_b, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
-          norm_bc = norm/(freq(i,1)*freq(j,2)*freq(k,4))
+          !
+          norm_a  = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
+          norm_bc = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          !
+          sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
           sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)
+          !
+          p(i,j) = p(i,j) - sum_a
           p(i,j) = p(i,j) + sum_bc
           !
         ENDDO
@@ -565,7 +591,7 @@ MODULE variational_tk
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute thermal conductivity as \lambda \over { N T^2 } f \dot b
-  SUBROUTINE calc_tk_simple(f, b, T, Omega, nconf, nat3, nq)
+  FUNCTION calc_tk_simple(f, b, T, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
     IMPLICIT NONE
@@ -600,9 +626,9 @@ MODULE variational_tk
       tk(:,:,it) = Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
-    CALL print_tk(tk, nconf, "simple")
+    !CALL print_tk(tk, nconf, "simple")
     !
-  END SUBROUTINE calc_tk_simple
+  END FUNCTION calc_tk_simple
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute thermal conductivity as -2\lambda \over { N T^2 } (1/2 f \dot Af - f \dot b)
@@ -664,6 +690,7 @@ MODULE variational_tk
     REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
     !
     REAL(DP) :: tk(3,3,nconf)
+    REAL(DP) :: pref
     INTEGER  :: iq, it, ix, jx, nu
     !
     !
@@ -685,53 +712,11 @@ MODULE variational_tk
     ENDDO
 !$OMP END PARALLEL
     DO it = 1,nconf
-      tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
+      pref = -2*Omega/DBLE(nq)/T(it)**2
+      tk(:,:,it) = pref * tk(:,:,it)
     ENDDO
     !
   END FUNCTION calc_tk_gf
-  ! \/o\________\\\_________________________________________/^>
-  ! Compute thermal conductivity as -2\lambda \over { N T^2 } 1/2 ( f \dot g - f \dot b) )
-  ! g = Af-b
-  ! f.g = f.Af - b.f
-  ! 1/2 (f.g -b.f ) = 1/2 f.Af - b.f
-  FUNCTION calc_tk_rxb(x, r, b, T, Omega, nconf, nat3, nq) RESULT(tk)
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
-    USE timers
-    IMPLICIT NONE
-    !
-    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: r(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: T(nconf)
-    INTEGER,INTENT(in)  :: nconf, nat3, nq
-    REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
-    !
-    REAL(DP) :: tk(3,3,nconf)
-    INTEGER  :: iq, it, ix, jx, nu
-    !
-    !
-    tk = 0._dp
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx)
-    DO iq = 1,nq
-    DO nu = 1,nat3
-!$OMP DO COLLAPSE(3)    
-      DO it = 1,nconf
-        DO jx = 1,3
-        DO ix = 1,3
-          tk(ix,jx,it) = tk(ix,jx,it) -  0.5_dp*( x(ix,it,nu,iq)*r(jx,it,nu,iq) &
-                                                 -x(ix,it,nu,iq)*b(jx,it,nu,iq) )
-        ENDDO
-        ENDDO
-      ENDDO
-!$OMP ENDDO      
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL
-    DO it = 1,nconf
-      tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
-    ENDDO
-    !
-  END FUNCTION calc_tk_rxb
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_tk(tk, nconf, name)
@@ -776,36 +761,6 @@ MODULE variational_tk
     ENDDO
     !
   END SUBROUTINE print_gradmod2_tk
-  !
-!   ! \/o\________\\\_________________________________________/^>
-!   FUNCTION b_over_A(b, A, nconf, nat3, nq) RESULT(f)
-!     IMPLICIT NONE
-!     !
-!     REAL(DP):: f(3, nconf, nat3, nq)
-!     !
-!     REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
-!     REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
-!     INTEGER,INTENT(in)  :: nconf, nat3, nq
-!     !
-!     INTEGER  :: iq, it, ix, nu
-!     !
-! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
-!     DO iq = 1,nq
-!     DO nu = 1,nat3
-!       DO it = 1,nconf
-!       DO ix = 1,3
-!         IF(A(it,nu,iq)/=0._dp)THEN
-!           f(ix,it,nu,iq) = b(ix,it,nu,iq)/A(it,nu,iq)
-!         ELSE
-!           f(ix,it,nu,iq) = 0._dp
-!         ENDIF
-!       ENDDO
-!       ENDDO
-!     ENDDO
-!     ENDDO
-! !$OMP END PARALLEL DO    
-!     !
-!   END FUNCTION b_over_A
   !
   !  
 END MODULE variational_tk

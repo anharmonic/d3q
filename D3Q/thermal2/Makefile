@@ -24,9 +24,9 @@ LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../i
 #lw.o \
 
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp #-g -axAVX -vec-report=1 -fp-model fast
+F90FLAGS += -openmp #-pg -g #-axAVX -vec-report=1 -fp-model fast
 #-xAVX
-LDFLAGS  += -openmp #-g
+LDFLAGS  += -openmp #-pg -g
 #F90FLAGS +=  -g -profile-loops=all
 #LDFLAGS  +=  -g
 
@@ -34,6 +34,7 @@ D3QTOOLSLIBS = \
 asr2.o \
 casimir.o \
 code_input.o \
+dynbubble.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -52,49 +53,55 @@ timers.o \
 variational_tk.o
 #vector.o
 
-EXECUTABLES = lw.x tk.x asr3.x sqom.x gen_sparse.x q2r.x r2q.x
+EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x
 
 all : tldeps $(EXECUTABLES)
 
-tk.x : tk.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ tk.o $(D3QTOOLSLIBS) \
+tk.x : PROGRAM_tk.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
-lw.x : lw.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ lw.o $(D3QTOOLSLIBS) \
+lw.x : PROGRAM_lw.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
-r2q.x : r2q.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ r2q.o $(D3QTOOLSLIBS) \
+db.x : PROGRAM_db.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
-gen_sparse.x : gen_sparse.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ gen_sparse.o $(D3QTOOLSLIBS) \
+r2q.x : PROGRAM_r2q.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+
+sparse.x : PROGRAM_sparse.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
 
-sqom.x : sqom.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ sqom.o $(D3QTOOLSLIBS) \
+sqom.x : PROGRAM_sqom.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
-q2r.x : q2r.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ q2r.o $(D3QTOOLSLIBS) \
+q2r.x : PROGRAM_q2r.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
-asr3.x : asr3.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ asr3.o $(D3QTOOLSLIBS) \
+asr3.x : PROGRAM_asr3.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )

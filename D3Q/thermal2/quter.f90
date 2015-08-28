@@ -39,7 +39,7 @@ MODULE quter_module
     INTEGER :: iout, nRout
     !
     ! Stuff used to compute Wigner-Seitz weights:
-    INTEGER, PARAMETER:: nrwsx=200
+    INTEGER, PARAMETER:: nrwsx=2000
     INTEGER :: nrws
     REAL(DP) :: atws(3,3) ! supercell of size nq1 x nq2 x nq3
     REAL(DP) :: wg, rws(0:3,nrwsx)

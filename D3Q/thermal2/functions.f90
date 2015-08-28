@@ -84,6 +84,18 @@ MODULE functions
     f_bosei = 1 / (EXP(x*Tm1) - 1)
   END FUNCTION
   !
+  !  3b. Derivative of BOSE-EINSTEIN DISTRIBUTIONS
+  REAL(DP) ELEMENTAL & ! <`\.......''..','
+  FUNCTION df_bose(x,T)
+    USE constants, ONLY : K_BOLTZMANN_RY
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: x,T
+    REAL(DP) :: Tm1, expf
+    Tm1  = 1/(T*K_BOLTZMANN_RY)
+    expf = EXP(x*Tm1)
+    df_bose = -Tm1 * expf / (expf-1)**2
+  END FUNCTION
+  !
   ! Find the periodic copy of xq that's inside the Brillouin zone of lattice bg
   ! Does not keep in account possible degeneracies (i.e. xq on the BZ border)
   FUNCTION refold_bz(xq, bg)

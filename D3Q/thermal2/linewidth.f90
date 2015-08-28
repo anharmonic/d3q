@@ -364,10 +364,12 @@ MODULE linewidth
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtot, freqtotm1
+    REAL(DP) :: factor !freqtotm1
     REAL(DP) :: omega_P,  omega_M   ! \delta\omega
     REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
-    COMPLEX(DP) :: ctm_P, ctm_M, reg, num
+    COMPLEX(DP) :: ctm_P,ctm_M, reg, num
+    COMPLEX(DP) :: ctm(ne)
+    REAL(DP)    :: freqm1(S%nat3,3)  ! phonon energies (Ry)
     !
     INTEGER :: i,j,k, ie
     !
@@ -378,11 +380,18 @@ MODULE linewidth
     ALLOCATE(spf(ne,S%nat3))
     spf = (0._dp, 0._dp)
     !
+    DO i = 1,S%nat3
+      IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)    
+    ENDDO
+    !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(ie,i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot,freqtotm1) &
+!$OMP             PRIVATE(ie,i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2, &
+!$OMP                     ctm_P,ctm_M,ctm,reg,factor) &
 !$OMP             REDUCTION(+: spf) COLLAPSE(2)
-    DO k = nu0(3),S%nat3
-      DO j = nu0(2),S%nat3
+    DO k = 1,S%nat3
+      DO j = 1,S%nat3
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
@@ -392,23 +401,34 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        DO i = nu0(1),S%nat3
+        ! A little optimization: precompute the parts that depends only on the energy
+        DO ie = 1,ne
+          ! regularization:
+          reg = CMPLX(ener(ie), sigma, kind=DP)**2
+          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+          ctm(ie) = ctm_P + ctm_M
+        ENDDO
+        !
+        DO i = 1,S%nat3
           !
           ! This comes from the definition of u_qj, Ref. 1.
-          freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
+          !freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
           !
 !           IF (freqtot/=0._dp) THEN
-          freqtotm1 = 1 / freqtot
+          !freqtotm1 = 1 / freqtot
+          factor = V3sq(i,j,k) *freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
-          DO ie = 1, ne
+          !DO ie = 1, ne
             ! regularization:
-            reg = CMPLX(ener(ie), sigma, kind=DP)**2
+            !reg = CMPLX(ener(ie), sigma, kind=DP)**2
             !
-            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
-            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+            !ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+            !ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+            !ctm = ctm_P + ctm_M
             !
-            spf(ie,i) = spf(ie,i) + (ctm_P + ctm_M) * V3sq(i,j,k) * freqtotm1
-          ENDDO
+            spf(:,i) = spf(:,i) + ctm(:) * factor !V3sq(i,j,k) * freqtotm1
+          !ENDDO
 !           ENDIF
           !
         ENDDO
@@ -435,10 +455,11 @@ MODULE linewidth
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtot
+    REAL(DP) :: freqtotm1
     REAL(DP) :: omega_P,  omega_M   ! \sigma\omega
     REAL(DP) :: omega_P2, omega_M2  ! \sigma\omega
     COMPLEX(DP) :: ctm_P, ctm_M, reg
+    REAL(DP) :: freqm1(S%nat3,3)
     !
     INTEGER :: i,j,k
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
@@ -447,11 +468,24 @@ MODULE linewidth
     !
     se(:) = (0._dp, 0._dp)
     !
+!     WHERE(freq/=0._dp)
+!       freqm1 = 0.5_dp/freq
+!     ELSEWHERE
+!       freqm1 = 0._dp
+!     ENDWHERE
+    freqm1 = 0._dp
+    DO i = 1,S%nat3
+      IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+    ENDDO
+    !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtot) &
+!$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,&
+!$OMP                     omega_P2,omega_M2,ctm_P,ctm_M,reg,freqtotm1) &
 !$OMP             REDUCTION(+: se) COLLAPSE(2)
-    DO k = nu0(3),S%nat3
-      DO j = nu0(2),S%nat3
+    DO k = 1,S%nat3
+      DO j = 1,S%nat3
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
@@ -461,20 +495,19 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
-        DO i = nu0(1),S%nat3
+        DO i = 1,S%nat3
           !
-          ! This comes from the definition of u_qj, Ref. 1.
-          freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
+          ! This comes from the definition of u_qj, Ref. 1. (there is an hidden factor 8)
+          freqtotm1 = freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
-!         IF(freqtot/=0._dp)THEN
           ! regularization:
           reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+          !reg = -sigma**2
           !
           ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
           ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
           !
-          se(i) = se(i) + (ctm_P + ctm_M)/freqtot * V3sq(i,j,k)
-!         ENDIF
+          se(i) = se(i) + (ctm_P + ctm_M)*freqtotm1 * V3sq(i,j,k)
           !
         ENDDO
       ENDDO
@@ -505,27 +538,32 @@ MODULE linewidth
     REAL(DP) :: bose_C, bose_X ! final/initial state populations 
     REAL(DP) :: dom_C, dom_X   ! \delta\omega
     REAL(DP) :: ctm_C, ctm_X   !
-    REAL(DP) :: freqtot, freq23
-    !
-    REAL(DP),PARAMETER :: norm = pi/8
+    REAL(DP) :: freqtotm1, freqtotm1_23
+    REAL(DP) :: freqm1(S%nat3,3)
     !
     INTEGER :: i,j,k
     REAL(DP) :: lw(S%nat3)
     lw(:) = 0._dp
     !
+    WHERE(freq/=0._dp)
+      freqm1 = 0.5_dp/freq
+    ELSEWHERE
+      freqm1 = 0._dp
+    ENDWHERE
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,freqtot,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,freq23) &
+!$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,&
+!$OMP                     freqtotm1_23,freqtotm1) &
 !$OMP             REDUCTION(+: lw) COLLAPSE(2)
-    DO k = nu0(3),S%nat3
-      DO j = nu0(2),S%nat3
+    DO k = 1,S%nat3
+      DO j = 1,S%nat3
         !
         bose_C = 2* (bose(j,2) - bose(k,3))
         bose_X = bose(j,2) + bose(k,3) + 1
-        freq23 = freq(j,2) * freq(k,3)
+        freqtotm1_23= freqm1(j,2) * freqm1(k,3)
         !
-        DO i = nu0(1),S%nat3
+        DO i = 1,S%nat3
           !
-          freqtot = freq(i,1) * freq23
+          freqtotm1 = freqm1(i,1) * freqtotm1_23
           !IF(freqtot/=0._dp)THEN
           !
           dom_C =(freq(i,1)+freq(j,2)-freq(k,3))
@@ -534,7 +572,7 @@ MODULE linewidth
           dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
           ctm_X = bose_X * f_gauss(dom_X, sigma)
           !
-          lw(i) = lw(i) - norm/freqtot * (ctm_C + ctm_X) * V3sq(i,j,k)
+          lw(i) = lw(i) - pi*freqtotm1 * (ctm_C + ctm_X) * V3sq(i,j,k)
           !ENDIF
           !
         ENDDO

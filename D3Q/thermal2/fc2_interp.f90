@@ -126,9 +126,9 @@ MODULE fc2_interpolate
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
+    REAL(DP),INTENT(in) :: xq(3)
     INTEGER,INTENT(in)   :: nat3
     TYPE(forceconst2_grid),INTENT(in) :: fc
-    REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
     !
     INTEGER :: i, mu,nu
@@ -439,6 +439,69 @@ MODULE fc2_interpolate
   END SUBROUTINE bose_phq
   !
   ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE dyn_cart2pat(d2in, nat3, u, dir, d2out)
+    !   Rotates third derivative of the dynamical basis from cartesian axis
+    !   to the basis of the modes. Rotation is not really in place
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    ! d2 matrix, input: in cartesian basis, output: on the patterns basis
+    COMPLEX(DP),INTENT(inout) :: d2in(nat3, nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(out) :: d2out(nat3, nat3)
+    INTEGER,INTENT(in)        :: nat3
+    ! patterns (transposed, with respect to what we use in the d3q.x code)
+    INTEGER,INTENT(IN)        :: dir  ! +1 -> cart2pat, -1 -> pat2car
+    COMPLEX(DP),INTENT(in)    :: u(nat3, nat3)
+    !
+    COMPLEX(DP),ALLOCATABLE  :: d2tmp(:,:)
+    COMPLEX(DP),ALLOCATABLE  :: u_fw(:,:), u_bw(:,:)
+    !
+    INTEGER :: a, b, i, j
+    COMPLEX(DP) :: AUX
+    REAL(DP),PARAMETER :: EPS = 1.e-8_dp
+    !
+    ALLOCATE(d2tmp(nat3, nat3))
+    ALLOCATE(u_fw(nat3, nat3))
+    ALLOCATE(u_bw(nat3, nat3))
+    d2tmp = (0._dp, 0._dp)
+    !
+    !STOP "untested"
+    !
+    IF(dir==+1)THEN
+      u_bw = u
+      u_fw = CONJG(u)
+    ELSEIF(dir==-1)THEN
+      u_bw = TRANSPOSE(CONJG(u))
+      u_fw = TRANSPOSE(u)
+!       u_fw = CONJG(u)
+!       u_bw = u
+    ELSE
+      CALL errore("dyn_cart2pat", "wrong action",1)
+    ENDIF
+
+    DO j = 1,nat3
+    DO b = 1,nat3
+      !
+      DO i = 1,nat3
+      DO a = 1,nat3
+          d2tmp(i, j) = d2tmp(i, j) &
+                          + u_fw(a,i) * d2in(a, b) * u_bw(b,j)
+      ENDDO
+      ENDDO
+      !
+    ENDDO
+    ENDDO    
+    !
+    IF(present(d2out)) THEN
+      d2out = d2tmp
+    ELSE
+      d2in  = d2tmp
+    ENDIF
+    DEALLOCATE(d2tmp, u_fw, u_bw)
+    RETURN
+  END SUBROUTINE dyn_cart2pat
+  
+  !
+  ! \/o\________\\\_________________________________________/^>
   SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3, d3out)
     !   Rotates third derivative of the dynamical basis from cartesian axis
     !   to the basis of the modes. Rotation is not really in place
@@ -460,7 +523,7 @@ MODULE fc2_interpolate
     ALLOCATE(d3tmp(nat3, nat3, nat3))
     d3tmp = (0._dp, 0._dp)
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp) COLLAPSE(2)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
     DO k = 1,nat3
     DO c = 1,nat3
     IF(ABS(u3(c,k))>EPS)THEN
@@ -485,6 +548,31 @@ MODULE fc2_interpolate
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+! !!!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp) COLLAPSE(2)
+!     DO k = 1,nat3
+!     DO j = 1,nat3
+!     DO i = 1,nat3
+!       !
+!       DO c = 1,nat3
+!         IF(ABS(u3(c,k))>EPS)THEN
+!         DO b = 1,nat3
+!           IF(ABS(u2(b,j))>EPS)THEN
+!           AUX = u2(b,j) * u3(c,k)
+!           DO a = 1,nat3
+!             !
+!             d3tmp(i, j, k) = d3tmp(i, j, k) &
+!                             + u1(a,i) * AUX * d3in(a, b, c) 
+!           ENDDO
+!           ENDIF
+!         ENDDO
+!         ENDIF
+!       ENDDO
+!         !
+!     ENDDO
+!     ENDDO
+!     ENDDO
+! !!!$OMP END PARALLEL DO
+
     !
     IF(present(d3out)) THEN
       d3out = d3tmp

@@ -68,7 +68,7 @@ MODULE code_input
     TYPE(ph_system_info),INTENT(out)   :: S
     !
     ! Input variable, and defaul values:
-    CHARACTER(len=16)  :: calculation = "lw" ! "spf"
+    CHARACTER(len=16)  :: calculation = "" ! "spf"
     CHARACTER(len=256) :: file_mat3  = INVALID ! no default
     CHARACTER(len=256) :: file_mat2  = INVALID ! no default
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
@@ -121,15 +121,27 @@ MODULE code_input
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir
 
-
+    NAMELIST  / dbinput / &
+      calculation, outdir, prefix, &
+      file_mat2, file_mat3, asr2, &
+      nconf, nk, nq
+      
+      
+      
     WRITE(*,*) "Waiting for input"
     !
     IF(code=="LW")THEN
+      calculation="lw"
       READ(*, lwinput)
       WRITE(*, lwinput)
     ELSE IF (code=="TK")THEN
+      calculation="sma"
       READ(*, tkinput)
       WRITE(*, tkinput)
+    ELSE IF (code=="DB")THEN
+      calculation="db"
+      READ(*, dbinput)
+      WRITE(*, dbinput)
     ENDIF
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
@@ -161,7 +173,8 @@ MODULE code_input
     ENDIF
     WRITE(*,*) "calculation: ", input%calculation, input%mode
     !
-    IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") CALL errore('READ_INPUT', 'Missing nq', 1)    
+    IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
+        CALL errore('READ_INPUT', 'Missing nq', 1)    
     !
     IF(TRIM(prefix)==INVALID)THEN
       input%prefix = TRIM(input%calculation)//"."//TRIM(input%mode)
@@ -410,12 +423,12 @@ MODULE code_input
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, s, fc2, fc3)
-    USE iso_c_binding,  ONLY : c_int
-    USE input_fc,       ONLY : same_system, read_fc2, aux_system, &
-                               forceconst2_grid, ph_system_info
-    USE asr2_module,    ONLY : impose_asr2
-    USE io_global,      ONLY : stdout
-    USE fc3_interpolate,      ONLY : read_fc3, forceconst3
+    USE iso_c_binding,      ONLY : c_int
+    USE input_fc,           ONLY : same_system, read_fc2, aux_system, &
+                                   forceconst2_grid, ph_system_info
+    USE asr2_module,        ONLY : impose_asr2
+    USE io_global,          ONLY : stdout
+    USE fc3_interpolate,    ONLY : read_fc3, forceconst3
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)        :: input

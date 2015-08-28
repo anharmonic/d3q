@@ -586,23 +586,29 @@ MODULE fc3_interpolate
     WRITE(unit, '(3i9)') fc%nq
     WRITE(unit, '(3i9)') fc%n_R
     !
-    n_digits(1) = CEILING(LOG10(DBLE(MAXVAL(fc%n_terms)))) ! no need to leave space in front
+    ! Writing with the minimum number of white spaces saves loads of disk space (unless you zip)
+    ! still keeping everything aligned for readability
+    IF(MAXVAL(fc%n_terms)>0)THEN
+      n_digits(1) = CEILING(LOG10(DBLE(MAXVAL(fc%n_terms)))) ! no need to leave space in front
+    ELSE
+      n_digits(1) = 1
+    ENDIF
     n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(fc%yR2))))+2 ! +2 to account minus signs
     n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(fc%yR3))))+2
     cformat = '(i'//int_to_char(n_digits(1))// &
               ',3i'//int_to_char(n_digits(2))// &
               ',3i'//int_to_char(n_digits(3))//')'
+    !cformat = '(i9,3i6,3i6)' ! this also works
     DO i = 1,fc%n_R
       WRITE(unit, cformat) fc%n_terms(i),  fc%yR2(:,i), fc%yR3(:,i)
     ENDDO
     !
-    ! Writing with the minimum number of white spaces saves loads of disk space (unless you zip)
-    ! keeping everything aligned for readability
-    n_digits(2) = CEILING(LOG10(DBLE(3*S%nat)))+1
-    n_digits(1) = n_digits(2)-1
+    n_digits(1) = CEILING(LOG10(DBLE(3*S%nat)))
+    n_digits(2) = n_digits(1)+1
     !
     cformat = '(i'//int_to_char(n_digits(1))// &
               ',2i'//int_to_char(n_digits(2))//',1pe25.15)'
+    !cformat = '(i9,2i6,1pe25.14)' ! this also works
     !
     DO i = 1, fc%n_R
       DO j = 1, fc%n_terms(i)
