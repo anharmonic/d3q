@@ -58,7 +58,7 @@ MODULE gc_d3
     REAL (DP), PARAMETER :: epsr = 1.0d-6, epsg = 1.0d-10
 
     !
-    WRITE(stdout, '(5x,a)') "Setting up GGA"
+    WRITE(stdout, '(5x,a)') "Setting up GGA 2nd derivative"
     grho2 = 0._dp
     !
     IF ( .NOT. dft_is_gradient() ) RETURN
@@ -140,7 +140,7 @@ MODULE gc_d3
             dvxc_s  (ir, 1, 1) = e2 * (v2x + v2c)
             call d3gcxc (rho_tot_r (ir, 1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
                   vrrrc, vsrrc, vssrc, vsssc )
-            write(10001, '(i7,99f12.6)') ir, rho_tot_r(ir, 1),  rho%of_r(ir,is), rho_core(ir), grho2(1), vrrrx, vsrrx, vssrx, vsssx, vrrrc, vsrrc, vssrc, vsssc 
+!             write(10001, '(i7,99f12.6)') ir, rho_tot_r(ir, 1),  rho%of_r(ir,is), rho_core(ir), grho2(1), vrrrx, vsrrx, vssrx, vsssx, vrrrc, vsrrc, vssrc, vsssc 
             !
             dvxc_rrr(ir, 1, 1) = e2 * (vrrrx + vrrrc)
             dvxc_srr(ir, 1, 1) = e2 * (vsrrx + vsrrc)
@@ -154,10 +154,10 @@ MODULE gc_d3
       !
     ENDDO
     
-    WRITE(10006, '(2f12.6)') dvxc_rrr
-    WRITE(10007, '(2f12.6)') dvxc_srr
-    WRITE(10008, '(2f12.6)') dvxc_ssr
-    WRITE(10009, '(2f12.6)') dvxc_sss
+!     WRITE(10006, '(2f12.6)') dvxc_rrr
+!     WRITE(10007, '(2f12.6)') dvxc_srr
+!     WRITE(10008, '(2f12.6)') dvxc_ssr
+!     WRITE(10009, '(2f12.6)') dvxc_sss
     
     IF (noncolin.AND.domag) &
       CALL errore('setup_d3gc',' domag not implemented',1)
