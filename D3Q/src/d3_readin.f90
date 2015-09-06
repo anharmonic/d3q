@@ -98,12 +98,14 @@ SUBROUTINE d3_readin()
      iverbosity = 0
      CALL get_env( 'ESPRESSO_TMPDIR', outdir )
      IF ( TRIM( outdir ) == ' ' ) outdir = './'
+     outdir= trimcheck(outdir)//"/"
+
      CALL get_env( 'ESPRESSO_D3DIR', d3dir )
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
+     d3dir = trimcheck(d3dir)//"/"
+
      CALL get_env( 'ESPRESSO_FILDRHO_DIR', fildrho_dir )
      IF ( TRIM( fildrho_dir ) == ' ' ) fildrho_dir=outdir
-     outdir= trimcheck(outdir)//"/"
-     d3dir = trimcheck(d3dir)//"/"
      fildrho_dir = trimcheck(fildrho_dir)//"/"
 
      
@@ -190,7 +192,7 @@ SUBROUTINE d3_readin()
      CALL read_d3_debug(5)
      !
      ! This is the temporary directory used by pw.x, it MUST be left unchanged for read_file to work:
-     tmp_dir = trimcheck(outdir)
+     tmp_dir = outdir
      !
      !     Check all namelist variables
      !

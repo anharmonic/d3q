@@ -38,7 +38,6 @@ SUBROUTINE print_clock_d3
   CALL print_clock ('last')
 
   WRITE( stdout, * )
-  CALL print_clock ('h_psiq')
   CALL print_clock ('firstfft')
   CALL print_clock ('product')
   CALL print_clock ('secondfft')
