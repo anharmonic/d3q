@@ -99,7 +99,7 @@ SUBROUTINE d3_readin()
      CALL get_env( 'ESPRESSO_TMPDIR', outdir )
      IF ( TRIM( outdir ) == ' ' ) outdir = './'
      outdir= trimcheck(outdir)//"/"
-
+    
      CALL get_env( 'ESPRESSO_D3DIR', d3dir )
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      d3dir = trimcheck(d3dir)//"/"
@@ -148,6 +148,9 @@ SUBROUTINE d3_readin()
      READ (5, inputph, iostat = ios)
      IF(ios/=0) CALL errore (sub, 'reading inputph namelist', ABS (ios) )
      !
+     outdir= trimcheck(outdir)//"/"
+     d3dir = trimcheck(d3dir)//"/"
+     fildrho_dir = trimcheck(fildrho_dir)//"/"
      !    reads the q-point
      !
      d3_mode = TRIM(mode)
@@ -192,7 +195,7 @@ SUBROUTINE d3_readin()
      CALL read_d3_debug(5)
      !
      ! This is the temporary directory used by pw.x, it MUST be left unchanged for read_file to work:
-     tmp_dir = outdir
+     tmp_dir = outdir//"/"
      !
      !     Check all namelist variables
      !
