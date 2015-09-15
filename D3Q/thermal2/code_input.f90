@@ -7,6 +7,8 @@
 ! This module is a big mess that read input and check if there are no conflicts
 MODULE code_input
   USE kinds,    ONLY : DP
+#include "para_io.h"
+  !
   REAL(DP) :: default_sigma = 10._dp
   
   ! NOTE: energies in the LWINPUT_TYPE structure are assumed to be in CM^-1
@@ -49,7 +51,7 @@ MODULE code_input
   !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
-    USE io_global,      ONLY : stdout
+    !USE io_global,      ONLY : stdout
     USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
     USE more_constants, ONLY : INVALID, MASS_DALTON_TO_RY
@@ -125,23 +127,22 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, nk, nq
-      
-      
-      
-    WRITE(*,*) "Waiting for input"
+    ioWRITE(*,*) "Waiting for input"
+    !
+    OPEN(unit=5, file="input.lw", status="OLD", action="READ")
     !
     IF(code=="LW")THEN
       calculation="lw"
-      READ(*, lwinput)
-      WRITE(*, lwinput)
+      READ(stdin, lwinput)
+      ioWRITE(*, lwinput)
     ELSE IF (code=="TK")THEN
       calculation="sma"
-      READ(*, tkinput)
-      WRITE(*, tkinput)
+      READ(stdin, tkinput)
+      ioWRITE(*, tkinput)
     ELSE IF (code=="DB")THEN
       calculation="db"
-      READ(*, dbinput)
-      WRITE(*, dbinput)
+      READ(stdin, dbinput)
+      ioWRITE(*, dbinput)
     ENDIF
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
@@ -171,7 +172,7 @@ MODULE code_input
       input%calculation = calculation
       input%mode = "full"
     ENDIF
-    WRITE(*,*) "calculation: ", input%calculation, input%mode
+    ioWRITE(*,*) "calculation: ", input%calculation, input%mode
     !
     IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
         CALL errore('READ_INPUT', 'Missing nq', 1)    
@@ -204,20 +205,20 @@ MODULE code_input
       IF(casimir_length_au>0._dp) input%casimir_length = casimir_length_au
       IF(casimir_length_mu>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+6)
       IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+3)
-      WRITE(*,'(5x,a,1f12.0)') "Casimir length (bohr)", input%casimir_length
+      ioWRITE(*,'(5x,a,1f12.0)') "Casimir length (bohr)", input%casimir_length
     ENDIF
     !
     ! Read the configurations:
     !
     ALLOCATE(input%T(nconf), input%sigma(nconf))
     !
-    READ(*,'(a1024)', iostat=ios) line
+    READ(stdin,'(a1024)', iostat=ios) line
     READ_CARDS : &
     DO WHILE (ios==0)
       !
       READ(line,*,iostat=ios2) word
       IF(ios2/=0) THEN
-        READ(*,'(a1024)', iostat=ios) line
+        READ(stdin,'(a1024)', iostat=ios) line
         CYCLE READ_CARDS 
       ENDIF
       !
@@ -228,18 +229,18 @@ MODULE code_input
         qpoints_ok = .true.
         !
         IF(code=="TK") THEN
-          WRITE(*,*) "Ignoring QPOINTS (code TK)"
+          ioWRITE(*,*) "Ignoring QPOINTS (code TK)"
           CYCLE READ_CARDS
         ENDIF
         !
-        WRITE(*,*) "Reading QPOINTS"
+        ioWRITE(*,*) "Reading QPOINTS"
         !
         IF(TRIM(input%calculation) == "grid")THEN
-          READ(*,*,iostat=ios) nq1, nq2, nq3
+          READ(stdin,*,iostat=ios) nq1, nq2, nq3
           IF(ios/=0) CALL errore("READ_INPUT", "reading nq1, nq2, nq3 for q-grid calculation", 1)
           line=''
-          WRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
-          !CALL setup_simple_grid(S, nq1,nq2,nq3, qpts) this is done later
+          ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
+          !CALL setup_simple_grid(S%bg, nq1,nq2,nq3, qpts) this is done later
           CYCLE READ_CARDS
         ENDIF
         !
@@ -249,7 +250,7 @@ MODULE code_input
         !
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
-          READ(*,'(a1024)', iostat=ios) line
+          READ(stdin,'(a1024)', iostat=ios) line
           IF(ios/=0) CALL errore("READ_INPUT","Expecting q point: input error.", 1)
           !
           ! Try to read point and number of points
@@ -278,23 +279,23 @@ MODULE code_input
         ENDDO &
         QPOINT_LOOP ! .................................................................
         
-        WRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
+        ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
         !
         IF(TRIM(qpts%basis) == "crystal")  THEN
           CALL cryst_to_cart(qpts%nq,qpts%xq,S%bg, +1)
           qpts%basis = "cartesian"
-          WRITE(*,"(4x,a)") "q-points converted to cartesian basis"
+          ioWRITE(*,"(4x,a)") "q-points converted to cartesian basis"
         ENDIF
-        WRITE(*,"(2x,3f12.6)") qpts%xq ! this prints all points, one per line
-        WRITE(*,*)
+        ioWRITE(*,"(2x,3f12.6)") qpts%xq ! this prints all points, one per line
+        ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("CONFIGS")
         IF(configs_ok) CALL errore("READ_INPUT", "Won't reads configs twice", 1)
         configs_ok = .true.
         !
-        WRITE(*,*) "Reading CONFIGS", nconf
+        ioWRITE(*,*) "Reading CONFIGS", nconf
         DO i = 1,nconf
-          READ(*,'(a1024)', iostat=ios2) line
+          READ(stdin,'(a1024)', iostat=ios2) line
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
           !
           ! try to read sigma and temperature
@@ -312,21 +313,23 @@ MODULE code_input
             ENDIF
           ENDIF
         ENDDO
-        WRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
-        WRITE(*,'(2x,a,/,100(8f9.1,/))') "Smearings:   ", input%sigma
-        WRITE(*,*)
+        ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
+        ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Smearings:   ", input%sigma
+        ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("ISOTOPES")
         IF(isotopes_ok) CALL errore("READ_INPUT", "Won't reads isotopes twice", 1)
         isotopes_ok = .true.
         !
-        WRITE(*,*) "Reading ISOTOPES", S%ntyp
-        IF(.not.isotopic_disorder) WRITE(*,*) "WARNING! you did not set isotopic_disorder to true!"
+        ioWRITE(*,*) "Reading ISOTOPES", S%ntyp
+        IF(.not.isotopic_disorder) THEN
+          ioWRITE(*,*) "WARNING! you did not set isotopic_disorder to true!"
+        ENDIF
         ALLOCATE(auxs(S%ntyp), auxm(S%ntyp))
         !
         ISOTOPE_TYPE_LOOP : &
         DO i = 1,S%ntyp
-          READ(*,'(a1024)', iostat=ios2) line
+          READ(stdin,'(a1024)', iostat=ios2) line
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope: input error.", 1)
           !
           ! Try to read isotope name and method
@@ -334,8 +337,9 @@ MODULE code_input
           !
           ! If this fails, complain
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope, got: '"//TRIM(line)//"'.", 1)
-          IF(word2 /= S%atm(i)) &
-            WRITE(*,"(a,i3,2a)") "WARNING: isotope name from input does not match FC file", i, word2, S%atm(i)
+          IF(word2 /= S%atm(i)) THEN
+            ioWRITE(*,"(a,i3,2a)") "WARNING: isotope name from input does not match FC file", i, word2, S%atm(i)
+          ENDIF
           !
           !
           IF (word3=="natural") THEN
@@ -359,7 +363,7 @@ MODULE code_input
             READ(line,*,iostat=ios2) word2, word3, n_isotopes
             ALLOCATE(isotopes_mass(n_isotopes), isotopes_conc(n_isotopes))
             DO j = 1,n_isotopes
-              READ(*,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
+              READ(stdin,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
               IF(ios2/=0) CALL errore("READ_INPUT","Reading isotope line: input error.", 4)
             ENDDO
             CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
@@ -377,10 +381,12 @@ MODULE code_input
         DEALLOCATE(auxs, auxm)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE DEFAULT
-        IF(TRIM(line) /= '') WRITE(*,*) "Skip:", TRIM(line)
+        IF(TRIM(line) /= '') THEN
+          ioWRITE(*,*) "Skip:", TRIM(line)
+        ENDIF
       END SELECT
       !
-      READ(*,'(a1024)', iostat=ios) line
+      READ(stdin,'(a1024)', iostat=ios) line
       word = ''
       !
     ENDDO &
@@ -395,7 +401,7 @@ MODULE code_input
         nq1=nk(1); nq2=nk(2); nq3=nk(3)
         qpoints_ok = .true.
       ENDIF
-      CALL setup_simple_grid(S, nq1, nq2, nq3, qpts)
+      CALL setup_simple_grid(S%bg, nq1, nq2, nq3, qpts)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &
@@ -405,7 +411,7 @@ MODULE code_input
     ! Set natural isotope concentration for every species, if not read from input
     ! note that, if we're not doing isotope scattering, the values from input are taken.
     IF(input%isotopic_disorder.and..not.isotopes_ok)THEN
-      WRITE(*,*) "Setting default isotopes"
+      ioWRITE(*,*) "Setting default isotopes"
       DO j = 1,S%ntyp
         CALL compute_gs(S%amass(j), S%amass_variance(j), S%atm(j), 0, 0)
       ENDDO
@@ -427,7 +433,7 @@ MODULE code_input
     USE input_fc,           ONLY : same_system, read_fc2, aux_system, &
                                    forceconst2_grid, ph_system_info
     USE asr2_module,        ONLY : impose_asr2
-    USE io_global,          ONLY : stdout
+    !USE io_global,          ONLY : stdout
     USE fc3_interpolate,    ONLY : read_fc3, forceconst3
     IMPLICIT NONE
     !
@@ -443,14 +449,14 @@ MODULE code_input
     fc3 => read_fc3(input%file_mat3, S3)
     !
     IF(.not.same_system(S, S3)) THEN
-      PRINT*, "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
+      ioWRITE(stdout,*) "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
     ENDIF
     !
     CALL aux_system(S)
     !
     CALL memstat(kb)
-    WRITE(stdout,*) "Reading : done."
-    WRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
+    ioWRITE(stdout,*) "Reading : done."
+    ioWRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
     !
     IF(input%asr2) CALL impose_asr2(S%nat, fc2)
     ! NOTE: we now divide by the mass in READ_INPUT, as the masses

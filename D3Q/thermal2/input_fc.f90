@@ -8,7 +8,7 @@ MODULE input_fc
   !
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
-  USE io_global,        ONLY : stdout
+#include "para_io.h"
   !
   ! \/o\________\\\_________________________________________/^>
   TYPE ph_system_info
@@ -52,40 +52,44 @@ MODULE input_fc
     TYPE(ph_system_info),INTENT(in) :: S,Z
     LOGICAL :: same
     REAL(DP),PARAMETER :: eps = 1.d-6
+    LOGICAL :: verbose
+    !
+    verbose = ionode.and..FALSE. !just shut up
+    
     !
     ! NOT checking : atm, amass, symm_type
     !
     same = .true.
     same = same .and. (S%ntyp == Z%ntyp)
-    IF(.not.same) WRITE(*,*) "ntyp", S%ntyp, Z%ntyp
+    IF(.not.same.and.verbose) WRITE(stdout,*) "ntyp", S%ntyp, Z%ntyp
     same = same .and. (S%nat == Z%nat)
-    IF(.not.same) WRITE(*,*) "nat", S%nat, Z%nat
+    IF(.not.same.and.verbose) WRITE(stdout,*) "nat", S%nat, Z%nat
     same = same .and. (S%ibrav == Z%ibrav)
-    IF(.not.same) WRITE(*,*) "ibrav", S%ibrav, Z%ibrav
+    IF(.not.same.and.verbose) WRITE(stdout,*) "ibrav", S%ibrav, Z%ibrav
     same = same .and. ALL( S%ityp(1:S%ntyp) == Z%ityp(1:Z%ntyp))
-    IF(.not.same) WRITE(*,*) "ityp", S%ityp, Z%ityp
+    IF(.not.same.and.verbose) WRITE(stdout,*) "ityp", S%ityp, Z%ityp
     
     IF(allocated(S%tau).and.allocated(Z%tau)) THEN
       same = same .and. ALL( ABS(S%tau -Z%tau) < eps)
-      IF(.not.same) WRITE(*,*) "tau", S%tau, Z%tau
+      IF(.not.same.and.verbose) WRITE(stdout,*) "tau", S%tau, Z%tau
     ENDIF
     IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
       same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
-      IF(.not.same) WRITE(*,*) "zeu", S%zeu, Z%zeu
+      IF(.not.same.and.verbose) WRITE(stdout,*) "zeu", S%zeu, Z%zeu
     ENDIF
 
     same = same .and. ALL( ABS(S%celldm -Z%celldm) < eps)
-    IF(.not.same) WRITE(*,*) "celldm", S%celldm, Z%celldm
+    IF(.not.same.and.verbose) WRITE(stdout,*) "celldm", S%celldm, Z%celldm
     same = same .and. ALL( ABS(S%at -Z%at) < eps)
-    IF(.not.same) WRITE(*,*) "at", S%at, Z%at
+    IF(.not.same.and.verbose) WRITE(stdout,*) "at", S%at, Z%at
     same = same .and. ALL( ABS(S%bg -Z%bg) < eps)
-    IF(.not.same) WRITE(*,*) "bg", S%bg, Z%bg
+    IF(.not.same.and.verbose) WRITE(stdout,*) "bg", S%bg, Z%bg
     same = same .and. ( ABS(S%omega -Z%omega) < eps)
-    IF(.not.same) WRITE(*,*) "omega", S%omega, Z%omega
+    IF(.not.same.and.verbose) WRITE(stdout,*) "omega", S%omega, Z%omega
 
 !     same = same .and. (S%lrigid .or. Z%lrigid)
 !     same = same .and. ALL( ABS(S%epsil -Z%epsil) < eps)
-!     IF(.not.same) WRITE(*,*) "epsil", S%epsil, Z%epsil
+!     IF(.not.same) ioWRITE(stdout,*) "epsil", S%epsil, Z%epsil
     
   END FUNCTION same_system
   ! \/o\________\\\_________________________________________/^>
@@ -123,10 +127,10 @@ MODULE input_fc
     ENDDO
     !
     IF(any(S%amass(1:S%ntyp)<500._dp)) THEN
-        WRITE(*,*) "WARNING: Masses seem to be in Dalton units: rescaling"
-        WRITE(*,*) "old:", S%amass(1:S%ntyp)
+        ioWRITE(stdout,*) "WARNING: Masses seem to be in Dalton units: rescaling"
+        ioWRITE(stdout,*) "old:", S%amass(1:S%ntyp)
         S%amass(1:S%ntyp) = S%amass(1:S%ntyp)* MASS_DALTON_TO_RY
-        WRITE(*,*) "new:", S%amass(1:S%ntyp)
+        ioWRITE(stdout,*) "new:", S%amass(1:S%ntyp)
     ENDIF
     S%amass_variance = 0._dp
     !
@@ -228,7 +232,7 @@ MODULE input_fc
     CALL read_system(unit, S)
     !
     READ(unit, *) jn1, jn2, jn3
-    WRITE(stdout,*) "Original FC2 grid:", jn1, jn2, jn3
+    ioWRITE(stdout,*) "Original FC2 grid:", jn1, jn2, jn3
     fc%nq(1) = jn1; fc%nq(2) = jn2; fc%nq(3) = jn3
     !
     DO na1=1,S%nat

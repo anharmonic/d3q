@@ -16,6 +16,7 @@ MODULE nanoclock
   !
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
+#include "para_io.h"  
   IMPLICIT NONE
   !
 !   TYPE(nanoclock) :: timer
@@ -100,23 +101,44 @@ MODULE nanoclock
   ! \/o\________\\\_________________________________________/^>
   !
   SUBROUTINE print_nanoclock(timer)
+    USE mpi_thermal, ONLY : sumi_scl, sumi_int, num_procs
     IMPLICIT NONE
     CLASS(nanotimer),INTENT(in) :: timer
+    REAL(DP) :: tot
+    INTEGER  :: calls
     !
     IF(timer%calls<=0) RETURN
     !
+    calls = timer%calls
+    CALL sumi_int(calls)
+    tot = REAL(timer%tot,kind=DP)
+    CALL sumi_scl(tot)
+    !
     IF(timer%t0>0) THEN
-      ! print a running clock
-      WRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
-      TRIM(timer%name), timer%tot+ (c_nanosec()-timer%t0), (1000*timer%tot)/timer%calls, &
-      100*(timer%tot+ (c_nanosec()-timer%t0))/c_nanosec(), timer%calls
+      ! print a running clock, this is not going to be accurate in parallel, but I do not care to do it properly
+      ioWRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
+      TRIM(timer%name), tot+ (c_nanosec()-timer%t0), (1000*tot)/calls, &
+      100*(tot+ (c_nanosec()-timer%t0))/c_nanosec(), calls
     ELSE
-      WRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls *")') &
-      TRIM(timer%name), timer%tot, (1000*timer%tot)/timer%calls, &
-      100*timer%tot/c_nanosec(), timer%calls
+      !ioWRITE(*,'(2x," * ",a24," * ",f15.6," ms * ",f15.6," ms/call * ",f15.6," ms*cpu * ",f15.6," ms*cpu/call * ", f8.3, " % wtime * ", i12," calls *")') &
+      ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.6," * ",f15.6," * ", f8.3, " * ", i12," *")') &
+      TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &
+      100*tot/c_nanosec()/num_procs, calls
     ENDIF
     
   END SUBROUTINE print_nanoclock
+  
+  FUNCTION get_wall()
+    REAL(kind=DP) :: get_wall
+    get_wall= REAL(c_nanosec(), kind=DP)
+  END FUNCTION
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_head()
+    IMPLICIT NONE
+    !
+    ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * ",3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
+    !
+  END SUBROUTINE print_head
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_memory()
     USE iso_c_binding,  ONLY : c_int

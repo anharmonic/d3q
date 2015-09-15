@@ -56,7 +56,7 @@ PROGRAM add_bubble
 
   ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
   CALL READ_INPUT("DB", dbinput, qpts, S, fc2, fc3)
-  CALL setup_simple_grid(S, dbinput%nk(1), dbinput%nk(2), dbinput%nk(3), grid)
+  CALL setup_simple_grid(S%bg, dbinput%nk(1), dbinput%nk(2), dbinput%nk(3), grid)
   !
   ALLOCATE(dyn(S%nat3,S%nat3,dbinput%nconf))
   ALLOCATE(dyn0(S%nat3,S%nat3))

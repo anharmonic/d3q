@@ -14,6 +14,8 @@ MODULE q_grids
     INTEGER :: nq = 0
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
+    CONTAINS
+      procedure :: scatter => q_grid_scatter
   END TYPE q_grid
   !
   TYPE  q_basis
@@ -53,6 +55,18 @@ MODULE q_grids
   
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
+
+  SUBROUTINE q_grid_scatter(grid)
+    USE mpi_thermal, ONLY : scatteri_vec, scatteri_mat
+    IMPLICIT NONE
+    CLASS(q_grid),INTENT(inout) :: grid
+    INTEGER :: nq
+    nq = grid%nq
+    CALL scatteri_mat(3,nq, grid%xq)
+    nq = grid%nq
+    CALL scatteri_vec(nq, grid%w)
+    grid%nq = nq
+  END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.
 !
@@ -76,10 +90,10 @@ MODULE q_grids
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !   END SUBROUTINE setup_symmetry
 !   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE setup_simple_grid(S, n1,n2,n3, grid, xq0)
+  SUBROUTINE setup_simple_grid(bg, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
-    TYPE(ph_system_info),INTENT(in)   :: S ! = System
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
@@ -93,7 +107,7 @@ MODULE q_grids
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
-    grid%w = 1._dp
+    grid%w = 1._dp/grid%nq
     !
     idx = 0
     DO i = 0, n1-1
@@ -109,7 +123,7 @@ MODULE q_grids
     ENDDO
     ENDDO
     !
-    CALL cryst_to_cart(grid%nq,grid%xq,S%bg, +1)
+    CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
     grid%basis = 'cartesian'
     !
     IF(present(xq0)) THEN

@@ -5,7 +5,7 @@
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE timers
-  USE nanoclock, ONLY : nanotimer
+  USE nanoclock, ONLY : nanotimer, get_wall, print_head
   IMPLICIT NONE
   
   TYPE(nanotimer) :: t_freq =   nanotimer("ph interp & diag"), &

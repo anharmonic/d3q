@@ -21,7 +21,7 @@
 MODULE fc3_interpolate
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
-  USE io_global,        ONLY : stdout
+#include "para_io.h"
   !USE input_fc,              ONLY : ph_system_info
   ! Base implementation: all methods stop with error
   TYPE,ABSTRACT :: forceconst3
@@ -523,13 +523,13 @@ MODULE fc3_interpolate
     READ(unit, '(a32)') buf
     IF(buf/="sparse representation") CALL errore(sub, "cannot read this format", 1)
     !
-    WRITE(stdout,*) "** Reading sparse FC3 file"
+    ioWRITE(stdout,*) "** Reading sparse FC3 file"
     CALL read_system(unit, S)
     !
     READ(unit, *) fc%nq
     READ(unit, *) fc%n_R
-    WRITE(stdout,*) "   Original FC3 grid:", fc%nq
-    WRITE(stdout,*) "   Number of R:      ", fc%n_R
+    ioWRITE(stdout,*) "   Original FC3 grid:", fc%nq
+    ioWRITE(stdout,*) "   Number of R:      ", fc%n_R
     !
     ALLOCATE(fc%n_terms(fc%n_R))
     ALLOCATE(fc%yR2(3,fc%n_R), fc%yR3(3,fc%n_R))
@@ -688,13 +688,13 @@ MODULE fc3_interpolate
     OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
     !
-    WRITE(stdout,*) "** Reading full grid FC3 file"
+    ioWRITE(stdout,*) "** Reading full grid FC3 file"
     !
     CALL read_system(unit, S)
     !
     READ(unit, *) fc%nq
-    WRITE(stdout,*) "   Original FC3 grid:", fc%nq
-    WRITE(stdout,*) "   Number of R:      ", fc%n_R
+    ioWRITE(stdout,*) "   Original FC3 grid:", fc%nq
+    ioWRITE(stdout,*) "   Number of R:      ", fc%n_R
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 

@@ -4,18 +4,24 @@ MODULE mpi_thermal
   include "mpif.h"
 
   INTEGER :: my_id, num_procs, ierr
-  LOGICAL :: ionode
+  LOGICAL :: ionode = .TRUE. ! everyone is ionode before I start MPI
   LOGICAL :: mpi_started = .FALSE.
+  INTEGER :: omp_num_thr
 
   CONTAINS
 
   SUBROUTINE start_mpi()
     IMPLICIT NONE
+    INTEGER,EXTERNAL ::  omp_get_max_threads
     call MPI_INIT ( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, my_id, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
     ionode = (my_id == 0)
-    IF(ionode) WRITE(*,*) "Running on ", num_procs, "cpus"
+    IF(ionode) THEN
+      IF(num_procs>1) WRITE(*,*) "Using ", num_procs, " MPI processes"
+      omp_num_thr =  omp_get_max_threads()
+      IF(omp_num_thr>1) WRITE(*,*) "Using",  omp_get_max_threads(), "threads per MPI process"
+    ENDIF
     mpi_started = .true.
   END SUBROUTINE
 
@@ -23,7 +29,14 @@ MODULE mpi_thermal
      call MPI_FINALIZE ( ierr )
   END SUBROUTINE
 
-  ! In-place MPI sum of scalar, vector and matrix
+  ! In-place MPI sum of integer, scalar, vector and matrix
+  SUBROUTINE sumi_int(scl)
+    IMPLICIT NONE
+    INTEGER,INTENT(inout) :: scl
+ 
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_INTEGER, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+  END SUBROUTINE
   SUBROUTINE sumi_scl(scl)
     IMPLICIT NONE
     REAL(DP),INTENT(inout) :: scl

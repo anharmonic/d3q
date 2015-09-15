@@ -15,6 +15,7 @@ MODULE linewidth
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
+  USE mpi_thermal, ONLY : my_id, sumi_mat, sumi_int
   USE timers
 
   CONTAINS
@@ -61,6 +62,7 @@ MODULE linewidth
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
       timer_CALL t_freq%stop()
     !
+    !WRITE(*,*) "Summing over a grid of", grid%nq, " points"
     DO iq = 1, grid%nq
       !
         timer_CALL t_freq%start()
@@ -95,13 +97,16 @@ MODULE linewidth
 !/nope/!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
-        lw(:,it) = lw(:,it) + sum_linewidth_modes( S, sigma(it), freq, bose, V3sq, nu0 )
+        lw(:,it) = lw(:,it) + grid%w(iq)*sum_linewidth_modes( S, sigma(it), freq, bose, V3sq, nu0 )
           timer_CALL t_sum%stop()
       ENDDO
       !
     ENDDO
     !
-    linewidth_q = -0.5_dp * lw/grid%nq
+    CALL sumi_mat(S%nat3,nconf,lw)
+!     nqtot = grid%nq
+!     CALL sumi_int(nqtot)
+    linewidth_q = -0.5_dp * lw
     !
     DEALLOCATE(U, V3sq, D3)
     !

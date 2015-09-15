@@ -56,7 +56,7 @@ MODULE thermalk_program
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
     !
     sigma_ry = input%sigma/RY_TO_CMM1
-!    CALL setup_simple_grid(S, input%nk(1), input%nk(2), input%nk(3), kgrid)
+!    CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), kgrid)
     !
     WRITE(*,'(1x,a,i10,a)') "Integrating over a grid of", qgrid%nq, " points"
     !
@@ -277,7 +277,7 @@ MODULE thermalk_program
     nat3  = S%nat3
     nq    = qgrid%nq
     
-    !CALL setup_simple_grid(S, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
+    !CALL setup_simple_grid(S%bg, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
     CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
     ! Compute A_out diagonal matrix
     ALLOCATE(A_out(nconf, nat3, nq))
@@ -389,7 +389,7 @@ MODULE thermalk_program
     nat3  = S%nat3
     nq    = qgrid%nq
     
-    !CALL setup_simple_grid(S, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
+    !CALL setup_simple_grid(S%bg, qgrid%n(1),qgrid%n(2),qgrid%n(3), qbasis)
     CALL prepare_q_basis(qgrid, qbasis, nconf, input%T, S, fc2)
     ! Compute A_out diagonal matrix
     ALLOCATE(A_out(nconf, nat3, nq))
