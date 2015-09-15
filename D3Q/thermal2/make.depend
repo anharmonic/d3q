@@ -26,6 +26,8 @@ PROGRAM_lw.o : ./linewidth.o
 PROGRAM_lw.o : ./more_constants.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
+PROGRAM_mpitest.o : ../../Modules/kind.o
+PROGRAM_mpitest.o : ./mpi_thermal.o
 PROGRAM_q2r.o : ../../Modules/environment.o
 PROGRAM_q2r.o : ../../Modules/fft_scalar.o
 PROGRAM_q2r.o : ../../Modules/io_global.o
@@ -141,9 +143,11 @@ linewidth.o : ./fc2_interp.o
 linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
 linewidth.o : ./input_fc.o
+linewidth.o : ./more_constants.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 more_constants.o : ../../Modules/kind.o
+mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
 nist_isotopes_db.o : ../../Modules/kind.o
 ph_velocity.o : ../../Modules/kind.o

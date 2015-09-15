@@ -25,7 +25,7 @@ LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src
 #D3QTOOLSOBJS = \
 #lw.o \
 
-#F90FLAGS += -check all -traceback -g
+F90FLAGS += -check all -traceback -g
 F90FLAGS += -openmp #-pg -g #-axAVX -vec-report=1 -fp-model fast
 #-xAVX
 LDFLAGS  += -openmp #-pg -g
@@ -59,6 +59,13 @@ variational_tk.o
 EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x
 
 all : tldeps $(EXECUTABLES)
+
+mpitest.x : PROGRAM_mpitest.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_mpitest.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+
 
 tk.x : PROGRAM_tk.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(D3QTOOLSLIBS) \
