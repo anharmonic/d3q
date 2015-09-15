@@ -4,7 +4,8 @@
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 MODULE variational_tk
-  USE kinds, ONLY : DP
+  USE kinds,           ONLY : DP
+  USE more_constants,  ONLY : eps_vel, eps_freq
   ! 
   ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS
@@ -95,7 +96,6 @@ MODULE variational_tk
     REAL(DP) :: vel(3,S%nat3)
     INTEGER  :: iq, it, ix, nu
     !
-    REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
     !
     sigma_ry = input%sigma/RY_TO_CMM1
     !
@@ -543,7 +543,7 @@ MODULE variational_tk
     REAL(DP) :: p(nat3,nat3)
     p(:,:) = 0._dp
 
-    WHERE(freq/=0._dp)
+    WHERE(ABS(freq)>eps_freq)
       freqm1 = 0.5_dp/freq
     ELSEWHERE
       freqm1 = 0._dp

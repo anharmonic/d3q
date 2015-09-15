@@ -1,4 +1,4 @@
-# Makefile for tools
+# Makefile for thermal2
 
 include ../../make.sys
 
@@ -12,13 +12,15 @@ IFLAGS=-I../../include -I../../PHonon/PH -I/opt/intel/composer_xe_2013_sp1.4.211
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
+../../PHonon/PH/libphaux.a \
 ../../PW/src/libpw.a
 
 QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw
 
-LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
+#IBOBJS        = ../../flib/pthermal2.a 
+LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a
 
 #D3QTOOLSOBJS = \
 #lw.o \
@@ -43,6 +45,7 @@ input_fc.o \
 isotopes.o \
 linewidth.o \
 more_constants.o \
+mpi_thermal.o \
 nanoclock.o \
 nanosec.o \
 nist_isotopes_db.o \
@@ -61,50 +64,49 @@ tk.x : PROGRAM_tk.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 lw.x : PROGRAM_lw.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 db.x : PROGRAM_db.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 r2q.x : PROGRAM_r2q.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 sparse.x : PROGRAM_sparse.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
-
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 sqom.x : PROGRAM_sqom.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 q2r.x : PROGRAM_q2r.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 asr3.x : PROGRAM_asr3.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 
 d3q :

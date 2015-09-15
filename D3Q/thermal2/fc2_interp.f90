@@ -308,39 +308,6 @@ MODULE fc2_interpolate
   END SUBROUTINE mat2_diag_pure_dac  !
   !
   ! Auxiliary subroutines follow:
-  ! \/o\________\\\_________________________________________/^>
-  ! Interpolate dynamical matrice at q, diagonalize it and compute Bose-Einstein distribution
-  SUBROUTINE prepare_phq(xq, T, S, fc2, freq, bose, U)
-    USE input_fc, ONLY : ph_system_info, forceconst2_grid
-    USE functions,      ONLY : f_bose
-    IMPLICIT NONE
-      REAL(DP),INTENT(in)  :: xq(3), T
-      TYPE(ph_system_info),INTENT(in)   :: S
-      TYPE(forceconst2_grid),INTENT(in) :: fc2
-      REAL(DP),INTENT(out) :: freq(S%nat3), bose(S%nat3)
-      COMPLEX(DP),INTENT(out),OPTIONAL :: U(S%nat3,S%nat3)
-      !
-      COMPLEX(DP) :: U_(S%nat3,S%nat3)
-      REAL(DP),PARAMETER :: eps = 1.e-12_dp
-      !
-      CALL fftinterp_mat2(xq, S%nat3, fc2, U_)
-      CALL mat2_diag(S%nat3, U_, freq)
-      ! Is the following mess really necessary? (3 days later: it is)
-      WHERE    (freq >  eps)
-        freq = SQRT(freq)
-        bose = f_bose(freq, T)
-      ELSEWHERE(freq < -eps)
-        freq = -SQRT(-freq)
-        bose = f_bose(freq, T)
-      ELSEWHERE ! i.e. freq=0
-        ! this should only happen at Gamma for the 3 acoustic bands
-        ! and they normally do not matter for symmetry or velocity = 0
-        freq = 0._dp
-        bose = 0._dp
-      ENDWHERE
-      IF(present(U)) U = CONJG(U_)
-      !
-  END SUBROUTINE prepare_phq
   !
   ! Interpolate dynamical matrice at q and diagonalize it
   SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
@@ -366,12 +333,10 @@ MODULE fc2_interpolate
 !         U(:,1:3) = (0._dp, 0._dp)
     ENDIF
     
-    WHERE    (freq >  0._dp)
+    WHERE    (freq >=  0._dp)
       freq = SQRT(freq)
     ELSEWHERE(freq < 0._dp)
       freq = -SQRT(-freq)
-    ELSEWHERE
-      freq = 0._dp
     ENDWHERE
     !
   END SUBROUTINE freq_phq_safe

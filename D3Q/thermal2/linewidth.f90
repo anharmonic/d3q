@@ -10,7 +10,8 @@
 
 MODULE linewidth
 
-  USE kinds,     ONLY : DP
+  USE kinds,          ONLY : DP
+  USE more_constants, ONLY : eps_freq
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
@@ -468,17 +469,17 @@ MODULE linewidth
     !
     se(:) = (0._dp, 0._dp)
     !
-!     WHERE(freq/=0._dp)
-!       freqm1 = 0.5_dp/freq
-!     ELSEWHERE
-!       freqm1 = 0._dp
-!     ENDWHERE
-    freqm1 = 0._dp
-    DO i = 1,S%nat3
-      IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
-      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
-      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-    ENDDO
+    WHERE(ABS(freq)>eps_freq)
+      freqm1 = 0.5_dp/freq
+    ELSEWHERE
+      freqm1 = 0._dp
+    ENDWHERE
+!     freqm1 = 0._dp
+!     DO i = 1,S%nat3
+!       IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+!       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+!       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+!     ENDDO
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,&
@@ -545,7 +546,7 @@ MODULE linewidth
     REAL(DP) :: lw(S%nat3)
     lw(:) = 0._dp
     !
-    WHERE(freq/=0._dp)
+    WHERE(ABS(freq)>eps_freq)
       freqm1 = 0.5_dp/freq
     ELSEWHERE
       freqm1 = 0._dp

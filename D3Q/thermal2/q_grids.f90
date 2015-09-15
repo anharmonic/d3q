@@ -12,7 +12,8 @@ MODULE q_grids
     CHARACTER(len=9) :: basis = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
-    REAL(DP),ALLOCATABLE :: xq(:,:)
+    REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
+    REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
   END TYPE q_grid
   !
   TYPE  q_basis
@@ -91,6 +92,8 @@ MODULE q_grids
     !
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    grid%w = 1._dp
     !
     idx = 0
     DO i = 0, n1-1
@@ -117,6 +120,8 @@ MODULE q_grids
     !
   END SUBROUTINE setup_simple_grid
   ! \/o\________\\\_________________________________________/^>
+  ! Create a line of nq q-point from xqi to xqf, the list is appended
+  ! to the grid 
   SUBROUTINE setup_path(xqi, xqf, nq, path)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
@@ -135,7 +140,8 @@ MODULE q_grids
       ALLOCATE(auxq(3,path%nq))
       auxq = path%xq
       DEALLOCATE(path%xq)
-      ! Correctly chain up series of points
+      ! If xqi is the same as the last point in the list, do not
+      ! add it again. FIXME: check for q = q'+G, use optional input S info
       IF(SUM(ABS(auxq(:,path%nq)-xqi))<eps) THEN
         n0 = path%nq 
         path%nq = path%nq + nq -1
@@ -163,6 +169,11 @@ MODULE q_grids
         ! note that repeated points are dropped
         path%xq(:,path%nq) = xqf
     ENDIF
+    !
+    ! paths are not suitable for integrals, set al weights to zero just in case
+    IF(allocated(path%w)) DEALLOCATE(path%w)
+    ALLOCATE(path%w(path%nq))
+    path%w = 0._dp 
     !
   END SUBROUTINE setup_path
   ! \/o\________\\\_________________________________________/^>
@@ -202,7 +213,8 @@ MODULE q_grids
     ENDDO
 
     ALLOCATE(qbasis%b(3,nconf,S%nat3,qgrid%nq))
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
+!$OMP DO COLLAPSE(4)
     DO iq = 1,qgrid%nq
     DO nu = 1,S%nat3
       DO it = 1,nconf
@@ -213,7 +225,8 @@ MODULE q_grids
       ENDDO
     ENDDO
     ENDDO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP END PARALLEL
     !
     DEALLOCATE(U)
     
@@ -229,7 +242,8 @@ MODULE q_grids
     !
     INTEGER  :: iq, it, ix, nu
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iq,nu,it,ix) COLLAPSE(4)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
+!$OMP DO COLLAPSE(4)
     DO iq = 1,nq
     DO nu = 1,nat3
       DO it = 1,nconf
@@ -239,7 +253,8 @@ MODULE q_grids
       ENDDO
     ENDDO
     ENDDO
-!$OMP END PARALLEL DO    
+!$OMP END DO
+!$OMP END PARALLEL
     !
   END SUBROUTINE qbasis_x_times_y
   ! \/o\________\\\_________________________________________/^>
@@ -256,17 +271,17 @@ MODULE q_grids
     !
     z = 0._dp
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
+!$OMP DO COLLAPSE(4)
     DO iq = 1,nq
     DO nu = 1,nat3
-!$OMP DO COLLAPSE(2)
       DO it = 1,nconf
       DO ix = 1,3
         z(ix,it) = z(ix,it)+x(ix,it,nu,iq)*y(ix,it,nu,iq)
       ENDDO
       ENDDO
+    ENDDO
+    ENDDO
 !$OMP END DO
-    ENDDO
-    ENDDO
 !$OMP END PARALLEL
     !
   END FUNCTION qbasis_dot

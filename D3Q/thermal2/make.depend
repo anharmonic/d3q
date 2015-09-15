@@ -94,6 +94,7 @@ code_input.o : ./input_fc.o
 code_input.o : ./more_constants.o
 code_input.o : ./nist_isotopes_db.o
 code_input.o : ./q_grids.o
+dynbubble.o : ../../Modules/constants.o
 dynbubble.o : ../../Modules/kind.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o

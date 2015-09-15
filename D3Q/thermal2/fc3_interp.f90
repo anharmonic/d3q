@@ -159,7 +159,7 @@ MODULE fc3_interpolate
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)          :: filename
     TYPE(ph_system_info),INTENT(out)   :: S ! = System
-    CLASS(forceconst3),POINTER :: fc    
+    CLASS(forceconst3),POINTER :: fc
     !
     INTEGER, EXTERNAL :: find_free_unit
     INTEGER :: unit, ios
@@ -616,6 +616,7 @@ MODULE fc3_interpolate
         WRITE(unit,cformat) fc%dat(i)%idx(:,j), fc%dat(i)%fc(j)
         !
       ENDDO
+      !WRITE(unit,*)
     ENDDO
     !
     CLOSE(unit)
