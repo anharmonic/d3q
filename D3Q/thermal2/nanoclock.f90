@@ -101,7 +101,7 @@ MODULE nanoclock
   ! \/o\________\\\_________________________________________/^>
   !
   SUBROUTINE print_nanoclock(timer)
-    USE mpi_thermal, ONLY : sumi_scl, sumi_int, num_procs
+    USE mpi_thermal, ONLY : num_procs, mpi_ipl_sum
     IMPLICIT NONE
     CLASS(nanotimer),INTENT(in) :: timer
     REAL(DP) :: tot
@@ -110,9 +110,9 @@ MODULE nanoclock
     IF(timer%calls<=0) RETURN
     !
     calls = timer%calls
-    CALL sumi_int(calls)
+    CALL mpi_ipl_sum(calls)
     tot = REAL(timer%tot,kind=DP)
-    CALL sumi_scl(tot)
+    CALL mpi_ipl_sum(tot)
     !
     IF(timer%t0>0) THEN
       ! print a running clock, this is not going to be accurate in parallel, but I do not care to do it properly

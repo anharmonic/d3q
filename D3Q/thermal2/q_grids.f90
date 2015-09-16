@@ -12,6 +12,7 @@ MODULE q_grids
     CHARACTER(len=9) :: basis = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
+    LOGICAL :: scattered = .false.
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
     CONTAINS
@@ -66,6 +67,7 @@ MODULE q_grids
     nq = grid%nq
     CALL scatteri_vec(nq, grid%w)
     grid%nq = nq
+    grid%scattered = .true.
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.

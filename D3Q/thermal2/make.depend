@@ -24,10 +24,12 @@ PROGRAM_lw.o : ./input_fc.o
 PROGRAM_lw.o : ./isotopes.o
 PROGRAM_lw.o : ./linewidth.o
 PROGRAM_lw.o : ./more_constants.o
+PROGRAM_lw.o : ./mpi_thermal.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
 PROGRAM_mpitest.o : ../../Modules/kind.o
 PROGRAM_mpitest.o : ./mpi_thermal.o
+PROGRAM_mpitest.o : ./q_grids.o
 PROGRAM_q2r.o : ../../Modules/environment.o
 PROGRAM_q2r.o : ../../Modules/fft_scalar.o
 PROGRAM_q2r.o : ../../Modules/io_global.o
@@ -87,7 +89,6 @@ casimir.o : ../../Modules/kind.o
 casimir.o : ./input_fc.o
 casimir.o : ./ph_velocity.o
 code_input.o : ../../Modules/constants.o
-code_input.o : ../../Modules/io_global.o
 code_input.o : ../../Modules/kind.o
 code_input.o : ../../Modules/wrappers.o
 code_input.o : ./asr2.o
@@ -110,7 +111,6 @@ fc2_interp.o : ./functions.o
 fc2_interp.o : ./input_fc.o
 fc2_interp.o : ./nanoclock.o
 fc3_interp.o : ../../Modules/constants.o
-fc3_interp.o : ../../Modules/io_global.o
 fc3_interp.o : ../../Modules/kind.o
 fc3_interp.o : ../../Modules/parameters.o
 fc3_interp.o : ./input_fc.o
@@ -125,7 +125,6 @@ final_state.o : ./more_constants.o
 final_state.o : ./q_grids.o
 functions.o : ../../Modules/constants.o
 functions.o : ../../Modules/kind.o
-input_fc.o : ../../Modules/io_global.o
 input_fc.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/parameters.o
 input_fc.o : ./more_constants.o
@@ -144,11 +143,13 @@ linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
 linewidth.o : ./input_fc.o
 linewidth.o : ./more_constants.o
+linewidth.o : ./mpi_thermal.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 more_constants.o : ../../Modules/kind.o
 mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
+nanoclock.o : ./mpi_thermal.o
 nist_isotopes_db.o : ../../Modules/kind.o
 ph_velocity.o : ../../Modules/kind.o
 ph_velocity.o : ./fc2_interp.o
@@ -156,6 +157,7 @@ ph_velocity.o : ./input_fc.o
 q_grids.o : ../../Modules/kind.o
 q_grids.o : ./fc2_interp.o
 q_grids.o : ./input_fc.o
+q_grids.o : ./mpi_thermal.o
 q_grids.o : ./ph_velocity.o
 quter.o : ../../Modules/constants.o
 quter.o : ../../Modules/kind.o
@@ -177,3 +179,8 @@ variational_tk.o : ./more_constants.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
+PROGRAM_lw.o : 
+code_input.o : 
+fc3_interp.o : 
+input_fc.o : 
+nanoclock.o : 

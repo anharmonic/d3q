@@ -25,7 +25,7 @@ LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src
 #D3QTOOLSOBJS = \
 #lw.o \
 
-F90FLAGS += -check all -traceback -g
+#F90FLAGS += -check all -traceback -g
 F90FLAGS += -openmp #-pg -g #-axAVX -vec-report=1 -fp-model fast
 #-xAVX
 LDFLAGS  += -openmp #-pg -g

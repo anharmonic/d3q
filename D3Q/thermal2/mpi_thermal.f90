@@ -8,6 +8,17 @@ MODULE mpi_thermal
   LOGICAL :: mpi_started = .FALSE.
   INTEGER :: omp_num_thr
 
+  INTERFACE mpi_ipl_sum
+     MODULE PROCEDURE mpi_ipl_sum_int
+     MODULE PROCEDURE mpi_ipl_sum_scl
+     MODULE PROCEDURE mpi_ipl_sum_vec
+     MODULE PROCEDURE mpi_ipl_sum_mat
+     MODULE PROCEDURE mpi_ipl_sum_zscl
+     MODULE PROCEDURE mpi_ipl_sum_zvec
+     MODULE PROCEDURE mpi_ipl_sum_zmat
+  END INTERFACE
+
+
   CONTAINS
 
   SUBROUTINE start_mpi()
@@ -30,21 +41,21 @@ MODULE mpi_thermal
   END SUBROUTINE
 
   ! In-place MPI sum of integer, scalar, vector and matrix
-  SUBROUTINE sumi_int(scl)
+  SUBROUTINE mpi_ipl_sum_int(scl)
     IMPLICIT NONE
     INTEGER,INTENT(inout) :: scl
  
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_INTEGER, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
   END SUBROUTINE
-  SUBROUTINE sumi_scl(scl)
+  SUBROUTINE mpi_ipl_sum_scl(scl)
     IMPLICIT NONE
     REAL(DP),INTENT(inout) :: scl
  
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
   END SUBROUTINE
-  SUBROUTINE sumi_vec(nn, vec)
+  SUBROUTINE mpi_ipl_sum_vec(nn, vec)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nn
     REAL(DP),INTENT(inout) :: vec(nn)
@@ -52,7 +63,7 @@ MODULE mpi_thermal
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
   END SUBROUTINE
-  SUBROUTINE sumi_mat(mm, nn, mat)
+  SUBROUTINE mpi_ipl_sum_mat(mm, nn, mat)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: mm, nn
     REAL(DP),INTENT(inout) :: mat(mm,nn)
@@ -60,6 +71,30 @@ MODULE mpi_thermal
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
   END SUBROUTINE
+  SUBROUTINE mpi_ipl_sum_zscl(scl)
+    IMPLICIT NONE
+    COMPLEX(DP),INTENT(inout) :: scl
+ 
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_PRECISION, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+  END SUBROUTINE
+  SUBROUTINE mpi_ipl_sum_zvec(nn, vec)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: nn
+    COMPLEX(DP),INTENT(inout) :: vec(nn)
+ 
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+  END SUBROUTINE
+  SUBROUTINE mpi_ipl_sum_zmat(mm, nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: mm, nn
+    COMPLEX(DP),INTENT(inout) :: mat(mm,nn)
+ 
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+  END SUBROUTINE
+
 
 
   ! Scatter in-place a vector
