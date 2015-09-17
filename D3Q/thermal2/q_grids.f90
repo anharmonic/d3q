@@ -7,6 +7,8 @@
 MODULE q_grids
 
   USE kinds,     ONLY : DP
+  USE mpi_thermal,      ONLY : ionode
+#include "para_io.h"
   
   TYPE q_grid
     CHARACTER(len=9) :: basis = ''
@@ -68,6 +70,7 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w)
     grid%nq = nq
     grid%scattered = .true.
+    ioWRITE(stdout,*) "q-grid scattered with MPI"
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.

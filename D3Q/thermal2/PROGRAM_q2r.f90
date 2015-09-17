@@ -247,7 +247,7 @@ PROGRAM q2r
               nqtot = nqtot+1
               matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
               gridq(:,nqtot)      = q(:,nq)
-              WRITE(stdout,"(5x,3f12.6)"), gridq(:,nqtot)
+              WRITE(stdout,"(5x,3f12.6)") gridq(:,nqtot)
         END DO
         IF (xmldyn) DEALLOCATE(phiq)
      END DO &

@@ -95,6 +95,7 @@ code_input.o : ./asr2.o
 code_input.o : ./fc3_interp.o
 code_input.o : ./input_fc.o
 code_input.o : ./more_constants.o
+code_input.o : ./mpi_thermal.o
 code_input.o : ./nist_isotopes_db.o
 code_input.o : ./q_grids.o
 dynbubble.o : ../../Modules/constants.o
@@ -114,6 +115,7 @@ fc3_interp.o : ../../Modules/constants.o
 fc3_interp.o : ../../Modules/kind.o
 fc3_interp.o : ../../Modules/parameters.o
 fc3_interp.o : ./input_fc.o
+fc3_interp.o : ./mpi_thermal.o
 final_state.o : ../../Modules/constants.o
 final_state.o : ../../Modules/kind.o
 final_state.o : ./fc2_interp.o
@@ -122,12 +124,14 @@ final_state.o : ./functions.o
 final_state.o : ./input_fc.o
 final_state.o : ./linewidth.o
 final_state.o : ./more_constants.o
+final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 functions.o : ../../Modules/constants.o
 functions.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/parameters.o
 input_fc.o : ./more_constants.o
+input_fc.o : ./mpi_thermal.o
 isotopes.o : ../../Modules/constants.o
 isotopes.o : ../../Modules/kind.o
 isotopes.o : ./fc2_interp.o
@@ -182,5 +186,7 @@ vector.o : ../../Modules/kind.o
 PROGRAM_lw.o : 
 code_input.o : 
 fc3_interp.o : 
+final_state.o : 
 input_fc.o : 
 nanoclock.o : 
+q_grids.o : 

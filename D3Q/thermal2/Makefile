@@ -21,16 +21,17 @@ TLDEPS= bindir mods libs pw
 
 #IBOBJS        = ../../flib/pthermal2.a 
 LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a
+# line for xlf90 on bluegene:
+#LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../lapack-3.2/lapack.a
 
-#D3QTOOLSOBJS = \
-#lw.o \
 
+# lines for xlf90 on bluegene
+#F90FLAGS += -qxlf2003=polymorphic -qsmp=omp
+#F90FLAGS += -qsmp=omp
+# intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp #-pg -g #-axAVX -vec-report=1 -fp-model fast
-#-xAVX
+F90FLAGS += -openmp 
 LDFLAGS  += -openmp #-pg -g
-#F90FLAGS +=  -g -profile-loops=all
-#LDFLAGS  +=  -g
 
 D3QTOOLSLIBS = \
 asr2.o \

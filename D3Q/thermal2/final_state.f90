@@ -4,10 +4,12 @@
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
 MODULE final_state
-  USE kinds,     ONLY : DP
-  USE input_fc,  ONLY : ph_system_info, forceconst2_grid
+  USE kinds,           ONLY : DP
+  USE input_fc,        ONLY : ph_system_info, forceconst2_grid
   USE fc2_interpolate, ONLY : ip_cart2pat
   USE fc3_interpolate, ONLY : forceconst3
+  USE mpi_thermal,     ONLY : mpi_ipl_sum, ionode
+#include "para_io.h"
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
@@ -101,7 +103,7 @@ MODULE final_state
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
-        sumaux = sum_final_state_e( S, sigma(it), freq, bose, V3sq, ei, ne, ener )
+        sumaux = grid%w(iq)*sum_final_state_e( S, sigma(it), freq, bose, V3sq, ei, ne, ener )
 !         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
         !
@@ -120,6 +122,12 @@ MODULE final_state
     ENDDO
     !
     IF(qresolved)THEN
+      IF(grid%scattered)THEN
+      CALL errore("final_state_q","grid resolved not implemented in parallel",1)
+      !DO it = 1,nconf
+      !  CALL mpi_ipl_sum(ne,S%nat3,qpath%nq, xqbar(:,:,:,it))
+      !ENDDO
+      ENDIF
       !
       unit = find_free_unit()
       DO it = 1,nconf
@@ -131,7 +139,7 @@ MODULE final_state
           IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))
           pl = pl + dpl
           DO ie = 1,ne
-            WRITE(unit,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
+            ioWRITE(unit,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
                             pl, xqbar(ie,:,iqpath,it)
           ENDDO
           WRITE(unit,*) 
@@ -141,7 +149,8 @@ MODULE final_state
       DEALLOCATE(xqbar)
     ENDIF
     !
-    final_state_q = -0.5_dp * fstate_q/grid%nq
+    IF(grid%scattered) CALL mpi_ipl_sum(ne,S%nat3,nconf, fstate_q)
+    final_state_q = -0.5_dp * fstate_q
     !
     DEALLOCATE(U, V3sq, D3, fstate_q)
     !

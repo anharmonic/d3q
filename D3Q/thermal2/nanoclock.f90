@@ -16,6 +16,7 @@ MODULE nanoclock
   !
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
+  USE mpi_thermal,      ONLY : ionode
 #include "para_io.h"  
   IMPLICIT NONE
   !
@@ -59,6 +60,15 @@ MODULE nanoclock
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   !
+  ! Init function is optional, it is only needed if you want to start the WALL
+  ! count before any specific clock
+  SUBROUTINE init_nanoclock()
+    IMPLICIT NONE
+    REAL(DP) :: dummy
+    dummy = REAL(c_nanosec(), kind=DP)
+    RETURN
+  END SUBROUTINE init_nanoclock
+  ! Returns the number of nanoseconds passed since the first call to c_nanosec
   FUNCTION f_nanosec()
     IMPLICIT NONE
     REAL(DP) :: f_nanosec

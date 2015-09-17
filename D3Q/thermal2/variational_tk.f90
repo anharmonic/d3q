@@ -384,6 +384,7 @@ MODULE variational_tk
                                  freq_phq_safe, bose_phq, ip_cart2pat
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
+    USE input_fc,           ONLY : ph_system_info
     !USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
     !

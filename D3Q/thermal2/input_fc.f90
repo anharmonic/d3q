@@ -8,6 +8,7 @@ MODULE input_fc
   !
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
+  USE mpi_thermal,      ONLY : ionode
 #include "para_io.h"
   !
   ! \/o\________\\\_________________________________________/^>

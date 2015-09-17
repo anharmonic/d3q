@@ -780,7 +780,7 @@ PROGRAM asr3
       WRITE(*,*) "        FILE_IN  : input 3rd order force constants in grid form (no sparse)"
       WRITE(*,*) "        FILE_OUT : output force constants (default: 'FILE_IN_asr')"
       WRITE(*,*)
-      CALL errore("asr3", "missing arguments")
+      CALL errore("asr3", "missing arguments",1)
     ENDIF
     !
     WRITE(*,*) "Note: create a file called 'STOP' to stop the code at next iteration and write out the result."

@@ -103,7 +103,9 @@ MODULE linewidth
       !
     ENDDO
     !
+      timer_CALL t_mpicom%start()
     IF(grid%scattered) CALL mpi_ipl_sum(S%nat3,nconf,lw)
+      timer_CALL t_mpicom%stop()
     linewidth_q = -0.5_dp * lw
     !
     DEALLOCATE(U, V3sq, D3)
@@ -147,13 +149,16 @@ MODULE linewidth
     !
     se = (0._dp, 0._dp)
     !
+      timer_CALL t_freq%start()
     ! Compute eigenvalues, eigenmodes at q1
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      timer_CALL t_freq%stop()
     !
     DO iq = 1, grid%nq
       !
+      timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
 !/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
@@ -161,27 +166,41 @@ MODULE linewidth
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
+      timer_CALL t_freq%stop()
 !/nope/!$OMP END PARALLEL DO
       !
+        timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+        timer_CALL t_fc3int%stop()
+        timer_CALL t_fc3rot%start()
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+        timer_CALL t_fc3rot%stop()
+        timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+        timer_CALL t_fc3m2%stop()
       !
       DO it = 1,nconf
         ! Compute bose-einstein occupation at q2 and q3
+          timer_CALL t_bose%start()
 !/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
+          timer_CALL t_bose%stop()
 !/nope/!$OMP END PARALLEL DO
         !
-        se(:,it) = se(:,it) + sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq, nu0 )
+          timer_CALL t_sum%start()
+        se(:,it) = se(:,it) + grid%w(iq)*sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq, nu0 )
+          timer_CALL t_sum%stop()
         !
       ENDDO
       !
     ENDDO
     !
-    selfnrg_q = -0.5_dp * se/grid%nq
+      timer_CALL t_mpicom%start()
+    IF(grid%scattered) CALL mpi_ipl_sum(S%nat3,nconf,se)
+      timer_CALL t_mpicom%stop()
+    selfnrg_q = -0.5_dp * se
     !
     DEALLOCATE(U, V3sq)
     !
@@ -322,13 +341,14 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
         !
       ENDDO
       !
     ENDDO
     !
-    selfnrg = -0.5_dp * selfnrg/grid%nq
+    IF(grid%scattered) CALL mpi_ipl_sum(ne,S%nat3,nconf,selfnrg)
+    selfnrg = -0.5_dp * selfnrg
     !
     DO it = 1,nconf
       DO i = 1,S%nat3

@@ -7,6 +7,7 @@
 ! This module is a big mess that read input and check if there are no conflicts
 MODULE code_input
   USE kinds,    ONLY : DP
+  USE mpi_thermal, ONLY : ionode
 #include "para_io.h"
   !
   REAL(DP) :: default_sigma = 10._dp

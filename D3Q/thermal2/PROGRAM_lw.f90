@@ -10,14 +10,16 @@
 #define timer_CALL CALL
 !
 MODULE linewidth_program
+  USE timers
   !
   USE kinds,       ONLY : DP
+  USE mpi_thermal,      ONLY : ionode
 #include "para_io.h"
   !
   CONTAINS
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(input, qpath, S, fc2, fc3)
-    USE fc2_interpolate,         ONLY : fftinterp_mat2, mat2_diag, freq_phq
+    USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
     USE q_grids,            ONLY : q_grid, setup_simple_grid
@@ -27,7 +29,6 @@ MODULE linewidth_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE timers
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -148,6 +149,7 @@ MODULE linewidth_program
       timer_CALL t_fc3int%print() 
       timer_CALL t_fc3m2%print() 
       timer_CALL t_fc3rot%print() 
+      timer_CALL t_mpicom%print() 
 #endif
     !
   END SUBROUTINE LW_QBZ_LINE
@@ -183,6 +185,7 @@ MODULE linewidth_program
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
     CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
+    CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
@@ -278,6 +281,7 @@ MODULE linewidth_program
     ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
     !
     CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
+    CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
@@ -362,6 +366,8 @@ PROGRAM linewidth
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('LW')
   CALL start_mpi()
+  CALL init_nanoclock()
+  !
   IF(ionode) CALL print_citations_linewidth()
 
   ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA

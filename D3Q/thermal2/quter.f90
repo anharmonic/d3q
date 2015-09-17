@@ -190,7 +190,7 @@ MODULE quter_module
     ENDIF
     !
     DO i = 1,NR
-      IF( NORM2(R-listR(1:3,i))<eps )THEN
+      IF( SUM((R-listR(1:3,i))**2)<eps )THEN
         idx = i
         RETURN
       ENDIF
