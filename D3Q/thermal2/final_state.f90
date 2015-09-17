@@ -132,8 +132,8 @@ MODULE final_state
       unit = find_free_unit()
       DO it = 1,nconf
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
-                        ".q_resolved.T"//TRIM(write_conf(it,nconf,T))//&
-                        "s"//TRIM(write_conf(it,nconf,sigma))//"out")
+                        "_qresolved_T"//TRIM(write_conf(it,nconf,T))//&
+                        "_s"//TRIM(write_conf(it,nconf,sigma))//".out")
         pl = 0._dp; dpl = 0._dp
         DO iqpath = 1,qpath%nq
           IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))

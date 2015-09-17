@@ -179,7 +179,7 @@ MODULE code_input
         CALL errore('READ_INPUT', 'Missing nq', 1)    
     !
     IF(TRIM(prefix)==INVALID)THEN
-      input%prefix = TRIM(input%calculation)//"."//TRIM(input%mode)
+      input%prefix = TRIM(input%calculation)//"_"//TRIM(input%mode)
     ELSE
       input%prefix = prefix
     ENDIF

@@ -44,7 +44,7 @@ MODULE more_constants
     INTEGER,INTENT(in)  :: it, nt
     REAL(DP),INTENT(in) :: T(nt)
     
-    INTEGER :: max_digit_left, max_digit_right, jt
+    INTEGER :: max_digit_left, max_digit_right, jt, ls
     REAL(DP) :: Tx, Tfrac
     CHARACTER(len=64):: fmt1='', fmt2=''
     
@@ -67,9 +67,13 @@ MODULE more_constants
     WRITE(fmt1,'(i6)') max_digit_right
     fmt2 = "(1f6."//TRIM(ADJUSTL(fmt1))//")"
     !print*, fmt1, fmt2, max_digit_left, max_digit_right
-    
-    WRITE(str,fmt2) T(it)
-    str=ADJUSTL(str)
+   
+    IF(max_digit_right>0)THEN 
+      WRITE(str,fmt2) T(it)
+    ELSE
+      WRITE(str,'(i6)') INT(T(it))
+    ENDIF
+    str=TRIM(ADJUSTL(str))
     
   END FUNCTION write_conf
   !

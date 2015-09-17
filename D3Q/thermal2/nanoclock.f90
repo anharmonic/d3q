@@ -126,12 +126,12 @@ MODULE nanoclock
     !
     IF(timer%t0>0) THEN
       ! print a running clock, this is not going to be accurate in parallel, but I do not care to do it properly
-      ioWRITE(*,'(2x," * ",a24," * ",f15.6," s     * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
+      ioWRITE(*,'(2x," * ",a24," * ",f15.6," ms    * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
       TRIM(timer%name), tot+ (c_nanosec()-timer%t0), (1000*tot)/calls, &
       100*(tot+ (c_nanosec()-timer%t0))/c_nanosec(), calls
     ELSE
-      !ioWRITE(*,'(2x," * ",a24," * ",f15.6," ms * ",f15.6," ms/call * ",f15.6," ms*cpu * ",f15.6," ms*cpu/call * ", f8.3, " % wtime * ", i12," calls *")') &
-      ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.6," * ",f15.6," * ", f8.3, " * ", i12," *")') &
+     !ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * ",3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
+      ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", i12," *")') &
       TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &
       100*tot/c_nanosec()/num_procs, calls
     ENDIF

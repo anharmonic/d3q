@@ -63,8 +63,8 @@ MODULE thermalk_program
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                               "lw."//TRIM(input%prefix)//&
-                               ".T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                                "s"//TRIM(write_conf(it,input%nconf,input%sigma))//"out")
+                               "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
       WRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
       WRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
       CALL flush_unit(1000+it)
@@ -72,8 +72,8 @@ MODULE thermalk_program
       IF(input%isotopic_disorder) THEN
         OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
                                 "lwiso."//TRIM(input%prefix)//&
-                                    ".T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                                     "s"//TRIM(write_conf(it,input%nconf,input%sigma))//"out")
+                                    "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                    "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
         WRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
         WRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
         CALL flush_unit(2000+it)

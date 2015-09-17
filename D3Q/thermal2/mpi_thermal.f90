@@ -34,10 +34,10 @@ MODULE mpi_thermal
     call MPI_COMM_RANK (MPI_COMM_WORLD, my_id, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
     ionode = (my_id == 0)
-    IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i4,a)") "Using ", num_procs, " MPI processes"
+    IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
     omp_tot_thr =  omp_get_max_threads()
     CALL mpi_ipl_sum(omp_tot_thr)
-    IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i3,a)") "Using",  omp_tot_thr, " total MPI+OpenMP threads"
+    IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i6,a)") "Using",  omp_tot_thr, " total MPI+OpenMP threads"
     mpi_started = .true.
   END SUBROUTINE
 
