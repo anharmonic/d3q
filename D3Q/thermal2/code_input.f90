@@ -200,9 +200,9 @@ MODULE code_input
     !
     IF(input%casimir_scattering)THEN
       IF(casimir_length_au>0._dp .and. casimir_length_mu>0._dp .and. casimir_length_mm>0._dp) &
-        CALL errore('READ_INPUT', "You cannot specify more than one: casimir_length_{au,mu,mm}")
+        CALL errore('READ_INPUT', "You cannot specify more than one: casimir_length_{au,mu,mm}",1)
       IF(casimir_length_au<0._dp .and. casimir_length_mu<0._dp .and. casimir_length_mm<0._dp) &
-        CALL errore('READ_INPUT', "You must specify one of: casimir_length_{au,mu,mm}")
+        CALL errore('READ_INPUT', "You must specify one of: casimir_length_{au,mu,mm}",2)
       IF(casimir_length_au>0._dp) input%casimir_length = casimir_length_au
       IF(casimir_length_mu>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+6)
       IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+3)

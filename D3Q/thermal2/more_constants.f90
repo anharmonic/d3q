@@ -44,22 +44,29 @@ MODULE more_constants
     INTEGER,INTENT(in)  :: it, nt
     REAL(DP),INTENT(in) :: T(nt)
     
-    INTEGER :: max_digit_left=0, max_digit_right=0, jt
-    REAL(DP) :: Tx
+    INTEGER :: max_digit_left, max_digit_right, jt
+    REAL(DP) :: Tx, Tfrac
     CHARACTER(len=64):: fmt1='', fmt2=''
     
+    max_digit_right=0 
+    max_digit_left=0 
+   
     DO jt = 1,nt      
       max_digit_left = MAX( max_digit_left , CEILING(LOG10(T(jt))) )
       IF(T(jt)>0) THEN
-        Tx = 1._dp/(T(jt)-INT(T(jt)))
-        max_digit_right = MAX( max_digit_right , CEILING(LOG10(Tx)) )
+        Tfrac = T(jt)-INT(T(jt))
+        IF(Tfrac>0._dp) THEN
+          Tx = 1._dp/Tfrac
+          max_digit_right = MAX( max_digit_right , CEILING(LOG10(Tx)) )
+        !rint*, ">>", jt, T(jt), Tx,  CEILING(LOG10(Tx))
+        ENDIF
       ENDIF
     ENDDO
     
     str=""
     WRITE(fmt1,'(i6)') max_digit_right
     fmt2 = "(1f6."//TRIM(ADJUSTL(fmt1))//")"
-  !     print*, fmt2, max_digit_left, max_digit_right
+    !print*, fmt1, fmt2, max_digit_left, max_digit_right
     
     WRITE(str,fmt2) T(it)
     str=ADJUSTL(str)

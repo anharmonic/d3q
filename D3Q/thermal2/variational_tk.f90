@@ -381,7 +381,7 @@ MODULE variational_tk
   FUNCTION A_in_times_f_q(f, iq0, nconf, T, sigma, S, basis, fc2, fc3, isotopic_disorder)
     USE q_grids,            ONLY : q_basis
     USE fc2_interpolate,    ONLY : forceconst2_grid, bose_phq, set_nu0, &
-                                 freq_phq_safe, bose_phq, ip_cart2pat
+                                   freq_phq_safe, bose_phq, ip_cart2pat
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
@@ -537,7 +537,7 @@ MODULE variational_tk
     REAL(DP) :: dom_a, dom_b, dom_c   ! \delta\omega
     REAL(DP) :: ctm_a, ctm_b, ctm_c   !
     REAL(DP) :: norm_a, norm_bc
-    REAL(DP) :: sum_a, sum_bc
+    REAL(DP) :: sum_a, sum_bc, sum_abc
     REAL(DP) :: freqm1(nat3,4)
     !
     INTEGER :: i,j,k
@@ -577,8 +577,8 @@ MODULE variational_tk
           sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
           sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)
           !
-          p(i,j) = p(i,j) - sum_a
-          p(i,j) = p(i,j) + sum_bc
+          sum_abc = - sum_a + sum_bc
+          p(i,j) = p(i,j) + sum_abc
           !
         ENDDO
       ENDDO
