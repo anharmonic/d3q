@@ -366,19 +366,19 @@ MODULE input_fc
   END SUBROUTINE div_mass_fc2
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_citations_linewidth
-    WRITE(stdout,*)
-    WRITE(stdout,'(5x,a)') &
+    ioWRITE(stdout,*)
+    ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For any third order calculation please cite:",&
         "  Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri",&
         "  Phys. Rev. B 87, 214303 – Published 7 June 2013"
-    WRITE(stdout,*)
-    WRITE(stdout,'(5x,a)') &
+    ioWRITE(stdout,*)
+    ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For thermal transport calculations please cite:",&
         "  Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri",&
         "  Phys. Rev. B 88, 045430 – Published 17 July 2013"
-    WRITE(stdout,*)
+    ioWRITE(stdout,*)
 
   END SUBROUTINE print_citations_linewidth
   ! \/o\________\\\_________________________________________/^>

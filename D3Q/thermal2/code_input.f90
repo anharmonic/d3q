@@ -8,6 +8,7 @@
 MODULE code_input
   USE kinds,    ONLY : DP
   USE mpi_thermal, ONLY : ionode
+  USE timers
 #include "para_io.h"
   !
   REAL(DP) :: default_sigma = 10._dp
@@ -45,7 +46,7 @@ MODULE code_input
     REAL(DP) :: casimir_length
     REAL(DP) :: casimir_dir(3)
     !
-    INTEGER :: nk(3)
+    INTEGER :: nk(3), nk_in(3)
   END TYPE code_input_type
   !
   CONTAINS
@@ -76,32 +77,38 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat2  = INVALID ! no default
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
     !
-    CHARACTER(len=256) :: outdir = './'
-    LOGICAL            :: asr2 = .false.
-    INTEGER            :: nconf = 1
-    INTEGER            :: nq = -1
-    INTEGER            :: nk(3) = (/-1, -1, -1/)
-    LOGICAL            :: exp_t_factor = .false.
+    CHARACTER(len=256) :: outdir = './'              ! where to write output files
+    LOGICAL            :: asr2 = .false.             ! apply sum rule to phonon force constants
+    INTEGER            :: nconf = 1                  ! numebr of smearing/temperature couples
+    INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
+    INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
+    INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
+    LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
     !
-    INTEGER  :: ne = -1
-    REAL(DP) :: de = 1._dp, e0 = 0._dp
-    REAL(DP) :: e_initial = -1._dp
-    REAL(DP) :: q_initial(3) = 0._dp
-    LOGICAL  :: q_resolved = .false.
-    REAL(DP) :: sigmaq = 0.1_dp
+    ! The following variables are used for spectre and final state calculations
+    INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
+    REAL(DP) :: de = 1._dp, e0 = 0._dp  ! energie step and minimum
+    REAL(DP) :: e_initial = -1._dp      ! initial energy for final state decomposition
+    REAL(DP) :: q_initial(3) = 0._dp    ! initial q for final state decomp
+    LOGICAL  :: q_resolved = .false.    ! save the final q as well in different files
+    REAL(DP) :: sigmaq = 0.1_dp         ! reciprocal space smearing for final q decomposition
     !
+    ! Use isotopic disorder (only for tk calculations)
     LOGICAL  :: isotopic_disorder = .false.
     REAL(DP),ALLOCATABLE :: isotopes_mass(:), isotopes_conc(:), auxm(:), auxs(:)
     INTEGER :: n_isotopes, atomic_N
     !
+    ! User border scattering via Casimir model (only tk calculations)
     LOGICAL  :: casimir_scattering = .false.
     REAL(DP) :: casimir_length_au = -1._dp ! length in bohr
     REAL(DP) :: casimir_length_mu = -1._dp ! length in micrometres
     REAL(DP) :: casimir_length_mm = -1._dp ! length in millimitres
     REAL(DP) :: casimir_dir(3) = 0._dp
     !
+    ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, j, naux, nq1, nq2, nq3
+    !
     CHARACTER(len=1024) :: line, word
     CHARACTER(len=16)   :: word2, word3
     CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
@@ -120,7 +127,7 @@ MODULE code_input
     NAMELIST  / tkinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nk, &
+      nconf, nk, nk_in, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir
 
@@ -162,6 +169,9 @@ MODULE code_input
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
     input%casimir_dir        = input%casimir_dir
+    !
+    IF(ANY(nk_in<0)) nk_in = nk
+    input%nk_in            = nk_in
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
@@ -446,6 +456,7 @@ MODULE code_input
     !
     INTEGER(kind=c_int) :: kb
     !
+      timer_CALL t_readdt%start()
     CALL read_fc2(input%file_mat2, S,  fc2)
     fc3 => read_fc3(input%file_mat3, S3)
     !
@@ -464,6 +475,7 @@ MODULE code_input
     !       read from input may be different (i.e. when including isotope scattering)
 !    CALL div_mass_fc2(S, fc2)
 !     CALL fc3%div_mass(S)
+      timer_CALL t_readdt%stop()
     !
   END SUBROUTINE READ_DATA
   !

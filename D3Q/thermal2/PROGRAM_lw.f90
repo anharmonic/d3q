@@ -7,14 +7,14 @@
 ! xR, xq --> cartesian coordinates
 ! yR, yq --> crystalline coordinates
 !
-#define timer_CALL CALL
+!
+#include "para_io.h"
 !
 MODULE linewidth_program
   USE timers
   !
   USE kinds,       ONLY : DP
   USE mpi_thermal,      ONLY : ionode
-#include "para_io.h"
   !
   CONTAINS
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  

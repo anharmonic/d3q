@@ -18,7 +18,8 @@ MODULE timers
                      t_lwisot = nanotimer("lw isotopes"), &
                      t_lwcasi = nanotimer("lw casimir"), &
                      t_velcty = nanotimer("ph group velocity"), &
-                     t_mpicom = nanotimer("mpi communication")
+                     t_mpicom = nanotimer("mpi communication"), &
+                     t_readdt = nanotimer("read fc data")
 !    *      lw isotopes *       48.455432 s     *   272.221529 ms/call *    7.365 % wtime *          178 calls *
 !    *       lw casimir *        0.092465 s     *     0.519465 ms/call *    0.014 % wtime *          178 calls *
 !    *         lw ph-ph *      608.567777 s     *  3418.920093 ms/call *   92.498 % wtime *          178 calls *

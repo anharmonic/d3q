@@ -15,6 +15,7 @@ MODULE q_grids
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
     LOGICAL :: scattered = .false.
+    INTEGER :: iq0 = 0
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
     CONTAINS
@@ -24,11 +25,12 @@ MODULE q_grids
   TYPE  q_basis
     INTEGER :: nbnd  ! number of phonon bands
     INTEGER :: nconf ! number of temperatures
+    INTEGER :: nq    ! number of points 
     REAL(DP),ALLOCATABLE :: w(:,:)    ! phonon frequencies
     REAL(DP),ALLOCATABLE :: c(:,:,:)  ! phonon group velocity, \nabla_q w
     REAL(DP),ALLOCATABLE :: be(:,:,:) ! bose-einstein occupation (one per configuration)
     REAL(DP),ALLOCATABLE :: b(:,:,:,:)  ! b vector, as in PRB 88, 045430 (2013)
-    TYPE(q_grid),POINTER :: grid
+!     TYPE(q_grid),POINTER :: grid
 !     CONTAINS
 !       procedure :: B  => B_right_hand_side
   END TYPE q_basis
@@ -67,10 +69,10 @@ MODULE q_grids
     nq = grid%nq
     CALL scatteri_mat(3,nq, grid%xq)
     nq = grid%nq
-    CALL scatteri_vec(nq, grid%w)
+    CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    ioWRITE(stdout,*) "q-grid scattered with MPI"
+    WRITE(stdout,*) "q-grid scattered with MPI",grid%iq0
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.
@@ -201,7 +203,7 @@ MODULE q_grids
     USE ph_velocity,        ONLY : velocity_proj
     USE input_fc,           ONLY : ph_system_info, forceconst2_grid
     IMPLICIT NONE
-    TYPE(q_grid),INTENT(in),TARGET  :: qgrid
+    TYPE(q_grid),INTENT(in)   :: qgrid
     TYPE(q_basis),INTENT(out) :: qbasis
     TYPE(ph_system_info)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc2
@@ -215,15 +217,16 @@ MODULE q_grids
     !
     qbasis%nbnd = S%nat3
     qbasis%nconf = nconf
-    qbasis%grid => qgrid
+    qbasis%nq    = qgrid%nq
+    !qbasis%grid => qgrid
     !
-    ALLOCATE(qbasis%w(S%nat3, qgrid%nq))
-    ALLOCATE(qbasis%c(3, S%nat3, qgrid%nq))
-    ALLOCATE(qbasis%be(S%nat3, qbasis%nconf, qgrid%nq))
+    ALLOCATE(qbasis%w(S%nat3, qbasis%nq))
+    ALLOCATE(qbasis%c(3, S%nat3, qbasis%nq))
+    ALLOCATE(qbasis%be(S%nat3, qbasis%nconf, qbasis%nq))
     !
     ALLOCATE(U(S%nat3,S%nat3))
     
-    DO iq = 1,qgrid%nq
+    DO iq = 1,qbasis%nq
       qbasis%c(:,:,iq) = velocity_proj(S, fc2, qgrid%xq(:,iq))
       CALL  freq_phq_safe(qgrid%xq(:,iq), S, fc2, qbasis%w(:,iq), U)
       DO it = 1, nconf
@@ -231,10 +234,10 @@ MODULE q_grids
       ENDDO
     ENDDO
 
-    ALLOCATE(qbasis%b(3,nconf,S%nat3,qgrid%nq))
+    ALLOCATE(qbasis%b(3,nconf,S%nat3,qbasis%nq))
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
 !$OMP DO COLLAPSE(4)
-    DO iq = 1,qgrid%nq
+    DO iq = 1,qbasis%nq
     DO nu = 1,S%nat3
       DO it = 1,nconf
       DO ix = 1,3

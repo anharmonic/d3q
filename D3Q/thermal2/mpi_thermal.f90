@@ -3,8 +3,8 @@ MODULE mpi_thermal
   USE kinds,  ONLY : DP
   !USE timers, ONLY : t_mpicom
   include "mpif.h"
-#define timer_CALL CALL
-
+#include "para_io.h"
+  
   INTEGER :: my_id, num_procs, ierr
   LOGICAL :: ionode = .TRUE. ! everyone is ionode before I start MPI
   LOGICAL :: mpi_started = .FALSE.
@@ -137,10 +137,11 @@ MODULE mpi_thermal
 
 
   ! Scatter in-place a vector
-  SUBROUTINE scatteri_vec(nn, vec)
+  SUBROUTINE scatteri_vec(nn, vec, ii)
     IMPLICIT NONE
     INTEGER,INTENT(inout)  :: nn
     REAL(DP),INTENT(inout),ALLOCATABLE :: vec(:)
+    INTEGER,OPTIONAL,INTENT(out)  :: ii
     !
     INTEGER  :: nn_send, nn_recv
     REAL(DP),ALLOCATABLE :: vec_send(:), vec_recv(:)
@@ -151,7 +152,7 @@ MODULE mpi_thermal
     nn_send = nn
     ALLOCATE(vec_send(nn_send))
     vec_send(1:nn_send) = vec(1:nn_Send)
-    CALL scatter_vec(nn_send, vec_send, nn_recv, vec_recv)
+    CALL scatter_vec(nn_send, vec_send, nn_recv, vec_recv, ii)
     DEALLOCATE(vec)
     ALLOCATE(vec(nn_recv))
     vec(1:nn_recv) = vec_recv(1:nn_recv)
@@ -182,13 +183,14 @@ MODULE mpi_thermal
     nn = nn_recv
   END SUBROUTINE
  
-  ! Divide a mattor among all the CPUs
-  SUBROUTINE scatter_vec(nn_send, vec_send, nn_recv, vec_recv)
+  ! Divide a vector among all the CPUs
+  SUBROUTINE scatter_vec(nn_send, vec_send, nn_recv, vec_recv, ii_recv)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nn_send
     REAL(DP),INTENT(in) :: vec_send(nn_send)
     INTEGER,INTENT(out)  :: nn_recv
     REAL(DP),ALLOCATABLE,INTENT(out) :: vec_recv(:) 
+    INTEGER,OPTIONAL,INTENT(out)  :: ii_recv
     !
     INTEGER :: nn_residual, i
     INTEGER,ALLOCATABLE  :: nn_scatt(:), ii_scatt(:)
@@ -212,6 +214,7 @@ MODULE mpi_thermal
     DO i = 2,num_procs
      ii_scatt(i) = ii_scatt(i-1)+nn_scatt(i-1)
     ENDDO
+    IF(present(ii_recv)) ii_recv = ii_scatt(my_id+1)
 
     CALL MPI_scatterv(vec_send, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
                       vec_recv, nn_recv, MPI_DOUBLE_PRECISION, &

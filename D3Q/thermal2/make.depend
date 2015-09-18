@@ -79,12 +79,18 @@ PROGRAM_tk.o : ./input_fc.o
 PROGRAM_tk.o : ./isotopes.o
 PROGRAM_tk.o : ./linewidth.o
 PROGRAM_tk.o : ./more_constants.o
+PROGRAM_tk.o : ./mpi_thermal.o
+PROGRAM_tk.o : ./nanoclock.o
 PROGRAM_tk.o : ./ph_velocity.o
 PROGRAM_tk.o : ./q_grids.o
 PROGRAM_tk.o : ./timers.o
 PROGRAM_tk.o : ./variational_tk.o
 asr2.o : ../../Modules/kind.o
 asr2.o : ./input_fc.o
+asr3.o : ../../Modules/io_global.o
+asr3.o : ../../Modules/kind.o
+asr3.o : ./PROGRAM_asr3.o
+asr3.o : ./input_fc.o
 casimir.o : ../../Modules/kind.o
 casimir.o : ./input_fc.o
 casimir.o : ./ph_velocity.o
@@ -98,6 +104,7 @@ code_input.o : ./more_constants.o
 code_input.o : ./mpi_thermal.o
 code_input.o : ./nist_isotopes_db.o
 code_input.o : ./q_grids.o
+code_input.o : ./timers.o
 dynbubble.o : ../../Modules/constants.o
 dynbubble.o : ../../Modules/kind.o
 dynbubble.o : ./fc2_interp.o
@@ -132,6 +139,11 @@ input_fc.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/parameters.o
 input_fc.o : ./more_constants.o
 input_fc.o : ./mpi_thermal.o
+interp_fc.o : ../../D3Q/src/d3_basis.o
+interp_fc.o : ../../Modules/constants.o
+interp_fc.o : ../../Modules/kind.o
+interp_fc.o : ./input_fc.o
+interp_fc.o : ./nanoclock.o
 isotopes.o : ../../Modules/constants.o
 isotopes.o : ../../Modules/kind.o
 isotopes.o : ./fc2_interp.o
@@ -180,13 +192,18 @@ variational_tk.o : ./input_fc.o
 variational_tk.o : ./isotopes.o
 variational_tk.o : ./linewidth.o
 variational_tk.o : ./more_constants.o
+variational_tk.o : ./mpi_thermal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
 PROGRAM_lw.o : 
+PROGRAM_tk.o : 
 code_input.o : 
+dynbubble.o : 
 fc3_interp.o : 
 final_state.o : 
 input_fc.o : 
+mpi_thermal.o : 
 nanoclock.o : 
 q_grids.o : 
+variational_tk.o : 

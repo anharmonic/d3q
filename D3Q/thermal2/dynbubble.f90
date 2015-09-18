@@ -7,7 +7,7 @@
 ! [1] Calandra, Lazzeri, Mauri : Physica C 456 (2007) 38-44
 ! [2] arXiv: 1312.7467v1
 ! [3] R.Biaco et.al. in prep.
-#define timer_CALL CALL
+#include "para_io.h"
 
 MODULE dynbubble
 
