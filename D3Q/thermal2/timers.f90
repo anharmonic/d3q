@@ -5,7 +5,7 @@
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE timers
-  USE nanoclock, ONLY : nanotimer, get_wall, print_head, init_nanoclock
+  USE nanoclock, ONLY : nanotimer, get_wall, print_timers_header, init_nanoclock
   IMPLICIT NONE
   
   TYPE(nanotimer) :: t_freq =   nanotimer("ph interp & diag"), &
@@ -30,7 +30,38 @@ MODULE timers
 !    *   fc3 modulus sq *        0.967292 s     *     0.001327 ms/call *    0.147 % wtime *       729088 calls *
 !    *       fc3 rotate *       17.824916 s     *     0.024448 ms/call *    2.709 % wtime *       729088 calls *
 
-  TYPE(nanotimer) :: t_tksma = nanotimer("sma thermalk"), &
-                     t_tksum = nanotimer("sum of tk terms"), &
+  TYPE(nanotimer) :: t_tksma   = nanotimer("sma thermalk"), &
+                     t_tksum   = nanotimer("sum of tk terms"), &
+                     t_tkaout  = nanotimer("prepare A_out and prec"), &
+                     t_tkain   = nanotimer("prepare and apply A_in"), &
+                     t_tkcg    = nanotimer("computer CG step"), &
+                     t_xain    = nanotimer("A_in * f (A_in given)"), &
                      t_lwinout = nanotimer("lw input/output")
+
+  CONTAINS
+  SUBROUTINE print_all_timers()
+    IMPLICIT NONE
+
+    CALL print_timers_header()
+    CALL t_tksma%print()
+    CALL t_tksum%print()
+    CALL t_tkaout%print()
+    CALL t_tkain%print()
+    CALL t_tkcg%print()
+    CALL t_freq%print()
+    CALL t_bose%print()
+    CALL t_sum%print()
+    CALL t_fc3int%print()
+    CALL t_fc3m2 %print()
+    CALL t_fc3rot%print()
+    CALL t_lwphph%print()
+    CALL t_lwisot%print()
+    CALL t_lwcasi%print()
+    CALL t_velcty%print()
+    CALL t_mpicom%print()
+    CALL t_readdt%print()
+    CALL t_lwinout%print()
+    CALL t_xain%print()
+  END SUBROUTINE
+  !
 END MODULE

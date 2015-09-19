@@ -138,7 +138,7 @@ MODULE linewidth_program
     !
 #ifdef timer_CALL
       ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
-      CALL print_head()
+      CALL print_timers_header()
       timer_CALL t_lwisot%print()
       timer_CALL t_lwcasi%print()
       timer_CALL t_lwphph%print()

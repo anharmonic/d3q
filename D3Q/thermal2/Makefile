@@ -51,6 +51,7 @@ nanoclock.o \
 nanosec.o \
 nist_isotopes_db.o \
 ph_velocity.o \
+posix_signal.o \
 q_grids.o \
 quter.o \
 timers.o \

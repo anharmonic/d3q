@@ -122,19 +122,13 @@ MODULE nanoclock
     calls = timer%calls
     CALL mpi_ipl_sum(calls)
     tot = REAL(timer%tot,kind=DP)
+    ! CAREFUL! clock could be running on some processor but not on all of them!
+    IF(timer%t0>0) tot = tot+ (c_nanosec()-timer%t0) 
     CALL mpi_ipl_sum(tot)
     !
-    IF(timer%t0>0) THEN
-      ! print a running clock, this is not going to be accurate in parallel, but I do not care to do it properly
-      ioWRITE(*,'(2x," * ",a24," * ",f15.6," ms    * ",f15.6," ms/call * ", f8.3, " % wtime * ", i12," calls * RUNNING!")') &
-      TRIM(timer%name), tot+ (c_nanosec()-timer%t0), (1000*tot)/calls, &
-      100*(tot+ (c_nanosec()-timer%t0))/c_nanosec(), calls
-    ELSE
-     !ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * ",3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
-      ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", i12," *")') &
-      TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &
-      100*tot/c_nanosec()/num_procs, calls
-    ENDIF
+    ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", i12," *")') &
+    TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &
+    100*tot/c_nanosec()/num_procs, calls
     
   END SUBROUTINE print_nanoclock
   
@@ -143,12 +137,12 @@ MODULE nanoclock
     get_wall= REAL(c_nanosec(), kind=DP)
   END FUNCTION
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_head()
+  SUBROUTINE print_timers_header()
     IMPLICIT NONE
     !
     ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * ",3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
     !
-  END SUBROUTINE print_head
+  END SUBROUTINE print_timers_header
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_memory()
     USE iso_c_binding,  ONLY : c_int

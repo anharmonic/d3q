@@ -45,6 +45,12 @@ MODULE mpi_thermal
      call MPI_FINALIZE ( ierr )
   END SUBROUTINE
 
+  SUBROUTINE abort_mpi(errorcode)
+        INTEGER :: ierr
+        INTEGER, INTENT(IN):: errorcode
+        CALL mpi_abort(mpi_comm_world, errorcode, ierr)
+  END SUBROUTINE
+
   ! In-place MPI sum of integer, scalar, vector and matrix
   SUBROUTINE mpi_ipl_sum_int(scl)
     IMPLICIT NONE

@@ -72,7 +72,8 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    WRITE(stdout,*) "q-grid scattered with MPI",grid%iq0
+    !WRITE(stdout,*) "q-grid scattered with MPI",grid%iq0
+    ioWRITE(stdout,*) "q-grid scattered with MPI"
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.

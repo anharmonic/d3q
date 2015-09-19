@@ -82,6 +82,7 @@ PROGRAM_tk.o : ./more_constants.o
 PROGRAM_tk.o : ./mpi_thermal.o
 PROGRAM_tk.o : ./nanoclock.o
 PROGRAM_tk.o : ./ph_velocity.o
+PROGRAM_tk.o : ./posix_signal.o
 PROGRAM_tk.o : ./q_grids.o
 PROGRAM_tk.o : ./timers.o
 PROGRAM_tk.o : ./variational_tk.o
@@ -170,6 +171,8 @@ nist_isotopes_db.o : ../../Modules/kind.o
 ph_velocity.o : ../../Modules/kind.o
 ph_velocity.o : ./fc2_interp.o
 ph_velocity.o : ./input_fc.o
+posix_signal.o : ./mpi_thermal.o
+posix_signal.o : ./timers.o
 q_grids.o : ../../Modules/kind.o
 q_grids.o : ./fc2_interp.o
 q_grids.o : ./input_fc.o
@@ -193,6 +196,7 @@ variational_tk.o : ./isotopes.o
 variational_tk.o : ./linewidth.o
 variational_tk.o : ./more_constants.o
 variational_tk.o : ./mpi_thermal.o
+variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
@@ -205,5 +209,6 @@ final_state.o :
 input_fc.o : 
 mpi_thermal.o : 
 nanoclock.o : 
+posix_signal.o : 
 q_grids.o : 
 variational_tk.o : 

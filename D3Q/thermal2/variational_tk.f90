@@ -10,11 +10,12 @@ MODULE variational_tk
   USE more_constants,  ONLY : eps_vel, eps_freq
   USE q_grids,         ONLY : q_grid
   USE mpi_thermal,     ONLY : ionode
-  ! 
+  USE posix_signal,      ONLY : check_graceful_termination
+  !
   ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
-  ! Multiply matrix in diagonal form, like A_out, A_out^-1, A_out^-1/2 
+  ! Multiply matrix in diagonal form, like A_out, A_out^-1, A_out^-1/2
   ! with a vector (f, b, etc)
   FUNCTION A_diag_f(A, f, nconf, nat3, nq) RESULT(Af)
     IMPLICIT NONE
@@ -39,7 +40,7 @@ MODULE variational_tk
     ENDDO
 !$OMP END DO
     ENDDO
-!$OMP END PARALLEL    
+!$OMP END PARALLEL
     !
   END FUNCTION A_diag_f
   ! \/o\________\\\_________________________________________/^>
@@ -76,7 +77,7 @@ MODULE variational_tk
     ENDDO
 !$OMP END DO
   ENDDO
-!$OMP END PARALLEL    
+!$OMP END PARALLEL
     !
   END FUNCTION A_diagm1_f  !
   ! \/o\________\\\_________________________________________/^>
@@ -117,7 +118,7 @@ MODULE variational_tk
     !
     lw_isotopic = 0._dp
     lw_casimir  = 0._dp
-    
+
     QPOINT_LOOP : &
     DO iq = 1,out_grid%nq
       ! bang!
@@ -151,7 +152,7 @@ MODULE variational_tk
           ! Check if we have zero linewidth and non-zero velocity it is a problem
           ! lw (should not, but) can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
-            WRITE(*,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it 
+            WRITE(*,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
             lw(nu,it) = - lw(nu,it)
           ENDIF
           IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
@@ -160,15 +161,15 @@ MODULE variational_tk
               CALL errore("compute_A_out", "diverging A_out", 1)
             ELSE
               !WRITE(*,"(3x,a,3i6)") "skip (iq,nu,it):", iq, nu, it
-              CYCLE MODE_LOOP 
+              CYCLE MODE_LOOP
             ENDIF
           ENDIF
           !
           !DO ix = 1,3
           A_out(it,nu,iq) = bose(nu,it)*(1+bose(nu,it)) * lw(nu,it)
           !ENDDO
-        ENDDO MODE_LOOP 
-      ENDDO CONF_LOOP 
+        ENDDO MODE_LOOP
+      ENDDO CONF_LOOP
     ENDDO QPOINT_LOOP
     !
 !     ! Recollect among CPUs if using MPI parallelisation
@@ -287,7 +288,7 @@ MODULE variational_tk
   END SUBROUTINE A_in_times_f
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Apply the A = (A_out+A_in) matrix to a vector f, A_out must be computed already 
+  ! Apply the A = (A_out+A_in) matrix to a vector f, A_out must be computed already
   ! THIS IS BY FAR THE MOST EXPENSIVE PART OF THE CG LOOP
   SUBROUTINE A_times_f(f, Af, A_out, input, basis, grid, S, fc2, fc3)
     USE constants,          ONLY : RY_TO_CMM1
@@ -381,7 +382,7 @@ MODULE variational_tk
         ENDDO
       ENDDO
     ENDDO
-      
+
     DO iq = 1,out_grid%nq
       ! apply A_in
       Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T, sigma_ry, S, basis, in_grid, &
@@ -412,6 +413,7 @@ MODULE variational_tk
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_ipl_sum
+    USE timers
     !USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
     !
@@ -421,7 +423,8 @@ MODULE variational_tk
     TYPE(q_basis),INTENT(in)     :: basis
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
-    REAL(DP),INTENT(in) :: f(3,nconf,S%nat3,grid%nq)
+    ! CAREFUL! grid%nq is scattered over MPI, basis%nq is the total number of q vectors
+    REAL(DP),INTENT(in) :: f(3,nconf,S%nat3,basis%nq)
     REAL(DP),INTENT(in)  :: xq0(3)
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
@@ -447,7 +450,7 @@ MODULE variational_tk
     ! xq(:,5) -> -xq2
     ! And accordingly for U(:,:,i).
     ! Note that U(5) = CONJG(U(2)) and freq(5)=freq(2)
-    
+
 
     ALLOCATE(U(S%nat3, S%nat3,5))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
@@ -458,15 +461,18 @@ MODULE variational_tk
     P3_isot = 0._dp
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
+      timer_CALL t_freq%start()
     xq(:,1) = xq0
     nu0(1)  = set_nu0(xq(:,1), S%at)
     !freq(:,1) = basis%w(:,iq0)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      timer_CALL t_freq%stop()
     !
     QPOINT_INNER_LOOP : &
     DO iq = 1, grid%nq
       !
       ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+        timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
       xq(:,4) =  xq(:,2)-xq(:,1)
@@ -477,11 +483,18 @@ MODULE variational_tk
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
         !write(*,'(99f12.4)') freq(:,jq)*RY_TO_CMM1
       ENDDO
+        timer_CALL t_freq%stop()
       !
       ! Interpolate D3(q1,q2,-q1-q2)
+        timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+        timer_CALL t_fc3int%stop()
+        timer_CALL t_fc3rot%start()
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+        timer_CALL t_fc3rot%stop()
+        timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+        timer_CALL t_fc3m2%stop()
       !
       ! Interpolate D3(q1,-q2, q2-q1)
       ! For this process, we send q2 -> -q2,
@@ -495,30 +508,40 @@ MODULE variational_tk
         !CALL freq_phq_safe(xq(:,5), S, fc2, freq(:,5), U(:,:,5))
         !IF(ANY(ABS(U(:,:,2)-CONJG(U(:,:,5)))>1.d-10)  ) STOP 999
         U(:,:,5) = CONJG(U(:,:,2))
+          timer_CALL t_fc3int%start()
         CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
+          timer_CALL t_fc3int%stop()
+          timer_CALL t_fc3rot%start()
         CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
+          timer_CALL t_fc3rot%stop()
+          timer_CALL t_fc3m2%start()
         V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
+          timer_CALL t_fc3m2%stop()
       ENDIF
       !
-      ! These loops are not in the optimal order, but it does not matter for performance
       DO it = 1,nconf
-!         bose(:,1) = basis%be(:,it,iq0)
-!         bose(:,2) = basis%be(:,it,iq)
+          timer_CALL t_bose%start()
         DO jq = 1,4
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
+          timer_CALL t_bose%stop()
         !
-        ! P3 is a 3*nat x 3*nat minor of the A matrix, the implicit indexes are 
+        ! P3 is a 3*nat x 3*nat minor of the A matrix, the implicit indexes are
         ! iq0 and iq, the matrix A has dimension (3*nat*nq x 3*nat*nq)
         ! Do not forget the minus sign!!
+          timer_CALL t_sum%start()
         P3 = - sum_scattering_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0 )
+          timer_CALL t_sum%stop()
         !
         IF(isotopic_disorder)THEN
+            timer_CALL t_lwisot%start()
           P3_isot = sum_isotope_scattering_modes(S%nat3, S%nat, sigma(it), freq, &
                                               bose, S%ntyp, S%ityp, S%amass_variance, U)
           P3 = P3 + P3_isot
+            timer_CALL t_lwisot%stop()
         ENDIF
         !
+          timer_CALL t_xain%start()
         ! 3*nat lines of the A matrix are applied now to f to produce 3*nat elements of Af
         DO mu = 1,S%nat3
         DO nu = 1,S%nat3
@@ -527,20 +550,27 @@ MODULE variational_tk
           ENDDO
         ENDDO
         ENDDO
+          timer_CALL t_xain%stop()
         !
       ENDDO
       !
     ENDDO &
     QPOINT_INNER_LOOP
     !
-    !A_in_times_f_q = p/grid%nq
-    IF(grid%scattered) CALL mpi_ipl_sum(3,nconf,S%nat3, Af_q)
+    ! Recollect over MPI processes if necessary
+    IF(grid%scattered) THEN
+        timer_CALL t_mpicom%start()
+      CALL mpi_ipl_sum(3,nconf,S%nat3, Af_q)
+        timer_CALL t_mpicom%stop()
+    ENDIF
+    !
+    CALL check_graceful_termination
     A_in_times_f_q = Af_q
     !
     DEALLOCATE(U, V3sq, V3Bsq, D3)
     !
   END FUNCTION A_in_times_f_q
-  !  
+  !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the scattering probability required for the matrix A.
   ! The form is a bit more complex than in  PRB 88, 045430 (2013)
@@ -562,7 +592,7 @@ MODULE variational_tk
     REAL(DP) :: sum_scattering_modes(nat3,nat3)
     !
     ! _C -> scattering, _X -> cohalescence
-    REAL(DP) :: bose_a, bose_b, bose_c ! final/initial state populations 
+    REAL(DP) :: bose_a, bose_b, bose_c ! final/initial state populations
     REAL(DP) :: dom_a, dom_b, dom_c   ! \delta\omega
     REAL(DP) :: ctm_a, ctm_b, ctm_c   !
     REAL(DP) :: norm_a, norm_bc
@@ -613,7 +643,7 @@ MODULE variational_tk
       ENDDO
     ENDDO
 !$OMP END DO
-!$OMP END PARALLEL 
+!$OMP END PARALLEL
     !
     sum_scattering_modes = p
     !
@@ -639,7 +669,7 @@ MODULE variational_tk
     tk = 0._dp
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(4)    
+!$OMP DO COLLAPSE(4)
       DO nu = 1,nat3
         DO it = 1,nconf
           DO jx = 1,3
@@ -649,7 +679,7 @@ MODULE variational_tk
           ENDDO
         ENDDO
       ENDDO
-!$OMP ENDDO      
+!$OMP ENDDO
     ENDDO
 !$OMP END PARALLEL
     DO it = 1,nconf
@@ -681,7 +711,7 @@ MODULE variational_tk
     tk = 0._dp
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(4)    
+!$OMP DO COLLAPSE(4)
       DO nu = 1,nat3
         DO it = 1,nconf
           DO jx = 1,3
@@ -691,7 +721,7 @@ MODULE variational_tk
           ENDDO
         ENDDO
       ENDDO
-!$OMP ENDDO      
+!$OMP ENDDO
     ENDDO
 !$OMP END PARALLEL
     DO it = 1,nconf
@@ -727,7 +757,7 @@ MODULE variational_tk
     tk = 0._dp
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(4)    
+!$OMP DO COLLAPSE(4)
       DO nu = 1,nat3
         DO it = 1,nconf
           DO jx = 1,3
@@ -738,7 +768,7 @@ MODULE variational_tk
           ENDDO
         ENDDO
       ENDDO
-!$OMP ENDDO      
+!$OMP ENDDO
     ENDDO
 !$OMP END PARALLEL
     DO it = 1,nconf
@@ -792,5 +822,5 @@ MODULE variational_tk
     !
   END SUBROUTINE print_gradmod2_tk
   !
-  !  
+  !
 END MODULE variational_tk

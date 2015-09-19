@@ -9,6 +9,8 @@ MODULE thermalk_program
   !
   USE kinds,       ONLY : DP
   USE mpi_thermal, ONLY : ionode
+  USE posix_signal,  ONLY : check_graceful_termination
+  USE timers
   !
   CONTAINS
   ! 
@@ -228,7 +230,7 @@ MODULE thermalk_program
     !
 #ifdef timer_CALL
     ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
-    CALL print_head()
+    CALL print_timers_header()
     CALL t_tksma%print()
     ioWRITE(stdout,'(a)') "*** * Contributions to SMA conductivity:"
     CALL t_tksum%print()
@@ -321,6 +323,7 @@ MODULE thermalk_program
     ALLOCATE(      pref(3, nconf) )
     !
     ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+      timer_CALL t_tkaout%start()
     ! f0 = f_SMA = 1/(A_out) b
     !f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
     f = A_diagm1_f(A_out, qbasis%b, nconf, nat3, nq)
@@ -337,12 +340,16 @@ MODULE thermalk_program
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
     CALL  print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+      timer_CALL t_tkaout%stop()
     !
     DO iter = 1,niter_max
       ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
       ! t = (A_in+A_out)h
+        timer_CALL t_tkain%start()
       CALL A_times_f(h, t, A_out, input, qbasis, out_grid, S, fc2, fc3)
+        timer_CALL t_tkain%stop()
       !
+        timer_CALL t_tkcg%start()
       ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
       ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
       g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
@@ -364,6 +371,7 @@ MODULE thermalk_program
       !pref = g_mod2 / g_mod2_old
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
+        timer_CALL t_tkcg%stop()
     ENDDO
     !
   END SUBROUTINE TK_CG
@@ -438,6 +446,7 @@ MODULE thermalk_program
     ALLOCATE(      pref(3, nconf) )
     !
     ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+        timer_CALL t_tkaout%start()
     ! \tilde{f0} = A_out^(-1/2) b
     ! \tilde{b} = \tilde{f0}
     f = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
@@ -458,12 +467,17 @@ MODULE thermalk_program
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
     CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+        timer_CALL t_tkaout%stop()
     !
     DO iter = 1,niter_max
+      CALL check_graceful_termination()
       ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
       ! t = (A_in+A_out)h
+        timer_CALL t_tkain%start()
       CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+        timer_CALL t_tkain%stop()
       !
+        timer_CALL t_tkcg%start()
       ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
       ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
       g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
@@ -484,6 +498,7 @@ MODULE thermalk_program
       !pref = g_mod2 / g_mod2_old
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
+        timer_CALL t_tkcg%stop()
     ENDDO
     !
   END SUBROUTINE TK_CG_prec
@@ -503,6 +518,8 @@ PROGRAM thermalk
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
   USE nanoclock,        ONLY : init_nanoclock
+  !
+  USE posix_signal,       ONLY : set_TERMINATE_GRACEFULLY
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid)     :: fc2
@@ -516,6 +533,7 @@ PROGRAM thermalk
   CALL init_nanoclock()
   CALL start_mpi()
   CALL print_citations_linewidth()
+  CALL set_TERMINATE_GRACEFULLY() !print_timers_and_die)
 
   ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
   CALL READ_INPUT("TK", tkinput, out_grid, S, fc2, fc3)
