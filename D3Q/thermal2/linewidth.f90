@@ -15,7 +15,7 @@ MODULE linewidth
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
-  USE mpi_thermal, ONLY : my_id, mpi_ipl_sum
+  USE mpi_thermal, ONLY : my_id, mpi_bsum
   USE timers
 
   CONTAINS
@@ -104,7 +104,7 @@ MODULE linewidth
     ENDDO
     !
       timer_CALL t_mpicom%start()
-    IF(grid%scattered) CALL mpi_ipl_sum(S%nat3,nconf,lw)
+    IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,lw)
       timer_CALL t_mpicom%stop()
     linewidth_q = -0.5_dp * lw
     !
@@ -198,7 +198,7 @@ MODULE linewidth
     ENDDO
     !
       timer_CALL t_mpicom%start()
-    IF(grid%scattered) CALL mpi_ipl_sum(S%nat3,nconf,se)
+    IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,se)
       timer_CALL t_mpicom%stop()
     selfnrg_q = -0.5_dp * se
     !
@@ -347,7 +347,7 @@ MODULE linewidth
       !
     ENDDO
     !
-    IF(grid%scattered) CALL mpi_ipl_sum(ne,S%nat3,nconf,selfnrg)
+    IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf,selfnrg)
     selfnrg = -0.5_dp * selfnrg
     !
     DO it = 1,nconf

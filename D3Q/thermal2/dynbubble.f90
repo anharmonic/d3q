@@ -7,7 +7,6 @@
 ! [1] Calandra, Lazzeri, Mauri : Physica C 456 (2007) 38-44
 ! [2] arXiv: 1312.7467v1
 ! [3] R.Biaco et.al. in prep.
-#include "para_io.h"
 
 MODULE dynbubble
 
@@ -16,6 +15,7 @@ MODULE dynbubble
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
   USE timers
+#include "mpi_thermal.h"
 
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//

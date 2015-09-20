@@ -9,7 +9,7 @@ MODULE code_input
   USE kinds,    ONLY : DP
   USE mpi_thermal, ONLY : ionode
   USE timers
-#include "para_io.h"
+#include "mpi_thermal.h"
   !
   REAL(DP) :: default_sigma = 10._dp
   
@@ -20,7 +20,7 @@ MODULE code_input
     CHARACTER(len=16) :: calculation ! lw=linewidth, spf=spectral function
     CHARACTER(len=16) :: mode        ! "full" or "simple" spectral function 
     CHARACTER(len=256) :: outdir
-    CHARACTER(len=256) :: prefix     ! put this in fron of file names
+    CHARACTER(len=256) :: prefix     ! put this in front of file names
     !
     LOGICAL :: exp_t_factor
     !
@@ -105,6 +105,9 @@ MODULE code_input
     REAL(DP) :: casimir_length_mm = -1._dp ! length in millimitres
     REAL(DP) :: casimir_dir(3) = 0._dp
     !
+    INTEGER  :: max_seconds = -1
+    REAL(DP) :: max_time    = -1._dp
+    !
     ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, j, naux, nq1, nq2, nq3
@@ -122,19 +125,22 @@ MODULE code_input
       nconf, nq, nk, &
       ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, &
       isotopic_disorder, &
-      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir
+      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
+      max_seconds, max_time
 
     NAMELIST  / tkinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, nk, nk_in, &
       isotopic_disorder, &
-      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir
+      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
+      max_seconds, max_time
 
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nk, nq
+      nconf, nk, nq,&
+      max_seconds, max_time
     ioWRITE(*,*) "Waiting for input"
     !
     OPEN(unit=5, file="input.lw", status="OLD", action="READ")
@@ -157,6 +163,8 @@ MODULE code_input
     IF(TRIM(file_mat3) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
     IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
+
+    CALL set_time_limit(max_seconds, max_time)
     
     input%file_mat2 = file_mat2
     input%file_mat3 = file_mat3

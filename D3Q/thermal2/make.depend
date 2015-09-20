@@ -183,6 +183,7 @@ quter.o : ../../Modules/kind.o
 quter.o : ./input_fc.o
 quter_standalone.o : ../../Modules/constants.o
 quter_standalone.o : ../../Modules/kind.o
+timers.o : ../../Modules/kind.o
 timers.o : ./nanoclock.o
 variational_tk.o : ../../Modules/constants.o
 variational_tk.o : ../../Modules/kind.o
@@ -211,4 +212,5 @@ mpi_thermal.o :
 nanoclock.o : 
 posix_signal.o : 
 q_grids.o : 
+timers.o : 
 variational_tk.o : 

@@ -3,9 +3,9 @@
 !  released under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
-#include "para_io.h"
 !
 MODULE variational_tk
+#include "mpi_thermal.h"
   USE kinds,           ONLY : DP
   USE more_constants,  ONLY : eps_vel, eps_freq
   USE q_grids,         ONLY : q_grid
@@ -91,7 +91,7 @@ MODULE variational_tk
     USE casimir_linewidth,  ONLY : casimir_linewidth_vel
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE mpi_thermal,        ONLY : mpi_ipl_sum
+    USE mpi_thermal,        ONLY : mpi_bsum
     USE timers
     IMPLICIT NONE
     !
@@ -173,7 +173,7 @@ MODULE variational_tk
     ENDDO QPOINT_LOOP
     !
 !     ! Recollect among CPUs if using MPI parallelisation
-!     IF(in_grid%scattered) CALL mpi_ipl_sum(input%nconf,S%nat3, out_grid%nq, A_out)
+!     IF(in_grid%scattered) CALL mpi_bsum(input%nconf,S%nat3, out_grid%nq, A_out)
 !     !
   END SUBROUTINE compute_A_out
   !
@@ -412,7 +412,7 @@ MODULE variational_tk
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
-    USE mpi_thermal,        ONLY : mpi_ipl_sum
+    USE mpi_thermal,        ONLY : mpi_bsum
     USE timers
     !USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
@@ -560,7 +560,7 @@ MODULE variational_tk
     ! Recollect over MPI processes if necessary
     IF(grid%scattered) THEN
         timer_CALL t_mpicom%start()
-      CALL mpi_ipl_sum(3,nconf,S%nat3, Af_q)
+      CALL mpi_bsum(3,nconf,S%nat3, Af_q)
         timer_CALL t_mpicom%stop()
     ENDIF
     !

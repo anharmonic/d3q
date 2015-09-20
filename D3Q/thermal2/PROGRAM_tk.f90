@@ -3,10 +3,10 @@
 !  released under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !
-#include "para_io.h"
 !
 MODULE thermalk_program
   !
+#include "mpi_thermal.h"
   USE kinds,       ONLY : DP
   USE mpi_thermal, ONLY : ionode
   USE posix_signal,  ONLY : check_graceful_termination
@@ -70,6 +70,7 @@ MODULE thermalk_program
     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an outer grid of", out_grid%nq, " points"
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                               "lw."//TRIM(input%prefix)//&
@@ -96,6 +97,7 @@ MODULE thermalk_program
 !         ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
         CALL flush_unit(3000)
       ENDIF
+    ENDIF
     !
     tk = 0._dp
     dq = S%Omega/out_grid%nq
@@ -195,16 +197,18 @@ MODULE thermalk_program
       !
     ENDDO QPOINT_LOOP
       timer_CALL t_tksma%stop()
-      
+
+    IF(ionode)THEN      
     DO it = 1, input%nconf
       CLOSE(1000+it)
       IF(input%isotopic_disorder) CLOSE(2000+it)
     ENDDO
     IF(input%casimir_scattering) CLOSE(3000)
+    ENDIF
     !
     ! Write to disk
-    OPEN(unit=10000, file=TRIM(input%outdir)//"/"//&
-                          TRIM(input%prefix)//"."//"out")
+    IF(ionode) OPEN(unit=10000, file=TRIM(input%outdir)//"/"//&
+                                     TRIM(input%prefix)//"."//"out")
     ioWRITE(10000,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
                         "    K_x            K_y            K_z             ",&
                         "    K_xy           K_xz           K_yz            ",&
@@ -215,7 +219,7 @@ MODULE thermalk_program
       tk(1,2,it)*RY_TO_WATTMM1KM1,tk(1,3,it)*RY_TO_WATTMM1KM1,tk(2,3,it)*RY_TO_WATTMM1KM1, &
       tk(2,1,it)*RY_TO_WATTMM1KM1,tk(3,1,it)*RY_TO_WATTMM1KM1,tk(3,2,it)*RY_TO_WATTMM1KM1
     ENDDO
-    CLOSE(10000)
+    IF(ionode) CLOSE(10000)
     !
     ! Write to screen
     ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, also stored in file:"

@@ -22,7 +22,7 @@ MODULE fc3_interpolate
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
   USE mpi_thermal,      ONLY : ionode
-#include "para_io.h"
+#include "mpi_thermal.h"
   !USE input_fc,              ONLY : ph_system_info
   ! Base implementation: all methods stop with error
   TYPE,ABSTRACT :: forceconst3

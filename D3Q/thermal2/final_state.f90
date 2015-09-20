@@ -8,8 +8,8 @@ MODULE final_state
   USE input_fc,        ONLY : ph_system_info, forceconst2_grid
   USE fc2_interpolate, ONLY : ip_cart2pat
   USE fc3_interpolate, ONLY : forceconst3
-  USE mpi_thermal,     ONLY : mpi_ipl_sum, ionode
-#include "para_io.h"
+  USE mpi_thermal,     ONLY : mpi_bsum, ionode
+#include "mpi_thermal.h"
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
@@ -125,7 +125,7 @@ MODULE final_state
       IF(grid%scattered)THEN
       CALL errore("final_state_q","grid resolved not implemented in parallel",1)
       !DO it = 1,nconf
-      !  CALL mpi_ipl_sum(ne,S%nat3,qpath%nq, xqbar(:,:,:,it))
+      !  CALL mpi_bsum(ne,S%nat3,qpath%nq, xqbar(:,:,:,it))
       !ENDDO
       ENDIF
       !
@@ -149,7 +149,7 @@ MODULE final_state
       DEALLOCATE(xqbar)
     ENDIF
     !
-    IF(grid%scattered) CALL mpi_ipl_sum(ne,S%nat3,nconf, fstate_q)
+    IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf, fstate_q)
     final_state_q = -0.5_dp * fstate_q
     !
     DEALLOCATE(U, V3sq, D3, fstate_q)

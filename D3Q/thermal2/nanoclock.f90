@@ -17,7 +17,7 @@ MODULE nanoclock
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
   USE mpi_thermal,      ONLY : ionode
-#include "para_io.h"  
+#include "mpi_thermal.h"  
   IMPLICIT NONE
   !
 !   TYPE(nanoclock) :: timer
@@ -111,7 +111,7 @@ MODULE nanoclock
   ! \/o\________\\\_________________________________________/^>
   !
   SUBROUTINE print_nanoclock(timer)
-    USE mpi_thermal, ONLY : num_procs, mpi_ipl_sum
+    USE mpi_thermal, ONLY : num_procs, mpi_bsum
     IMPLICIT NONE
     CLASS(nanotimer),INTENT(in) :: timer
     REAL(DP) :: tot
@@ -120,11 +120,11 @@ MODULE nanoclock
     IF(timer%calls<=0) RETURN
     !
     calls = timer%calls
-    CALL mpi_ipl_sum(calls)
+    CALL mpi_bsum(calls)
     tot = REAL(timer%tot,kind=DP)
     ! CAREFUL! clock could be running on some processor but not on all of them!
     IF(timer%t0>0) tot = tot+ (c_nanosec()-timer%t0) 
-    CALL mpi_ipl_sum(tot)
+    CALL mpi_bsum(tot)
     !
     ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", i12," *")') &
     TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &

@@ -9,7 +9,7 @@ MODULE input_fc
   USE kinds,            ONLY : DP
   USE parameters,       ONLY : ntypx
   USE mpi_thermal,      ONLY : ionode
-#include "para_io.h"
+#include "mpi_thermal.h"
   !
   ! \/o\________\\\_________________________________________/^>
   TYPE ph_system_info

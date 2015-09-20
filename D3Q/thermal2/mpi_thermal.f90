@@ -3,25 +3,26 @@ MODULE mpi_thermal
   USE kinds,  ONLY : DP
   !USE timers, ONLY : t_mpicom
   include "mpif.h"
-#include "para_io.h"
+#define __MPI_THERMAL
+#include "mpi_thermal.h"
   
   INTEGER :: my_id, num_procs, ierr
   LOGICAL :: ionode = .TRUE. ! everyone is ionode before I start MPI
   LOGICAL :: mpi_started = .FALSE.
   INTEGER :: omp_tot_thr
 
-  INTERFACE mpi_ipl_sum
-     MODULE PROCEDURE mpi_ipl_sum_int
+  INTERFACE mpi_bsum
+     MODULE PROCEDURE mpi_bsum_int
 
-     MODULE PROCEDURE mpi_ipl_sum_scl
-     MODULE PROCEDURE mpi_ipl_sum_vec
-     MODULE PROCEDURE mpi_ipl_sum_mat
-     MODULE PROCEDURE mpi_ipl_sum_tns
+     MODULE PROCEDURE mpi_bsum_scl
+     MODULE PROCEDURE mpi_bsum_vec
+     MODULE PROCEDURE mpi_bsum_mat
+     MODULE PROCEDURE mpi_bsum_tns
 
-     MODULE PROCEDURE mpi_ipl_sum_zscl
-     MODULE PROCEDURE mpi_ipl_sum_zvec
-     MODULE PROCEDURE mpi_ipl_sum_zmat
-     MODULE PROCEDURE mpi_ipl_sum_ztns
+     MODULE PROCEDURE mpi_bsum_zscl
+     MODULE PROCEDURE mpi_bsum_zvec
+     MODULE PROCEDURE mpi_bsum_zmat
+     MODULE PROCEDURE mpi_bsum_ztns
   END INTERFACE
 
 
@@ -36,7 +37,7 @@ MODULE mpi_thermal
     ionode = (my_id == 0)
     IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
     omp_tot_thr =  omp_get_max_threads()
-    CALL mpi_ipl_sum(omp_tot_thr)
+    CALL mpi_bsum(omp_tot_thr)
     IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i6,a)") "Using",  omp_tot_thr, " total MPI+OpenMP threads"
     mpi_started = .true.
   END SUBROUTINE
@@ -51,8 +52,27 @@ MODULE mpi_thermal
         CALL mpi_abort(mpi_comm_world, errorcode, ierr)
   END SUBROUTINE
 
+  SUBROUTINE mpi_any(lgc)
+    IMPLICIT NONE
+    LOGICAL,INTENT(inout) :: lgc
+
+      !timer_CALL t_mpicom%start()
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LOR,&
+                       MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+  END SUBROUTINE
+  SUBROUTINE mpi_all(lgc)
+    IMPLICIT NONE
+    LOGICAL,INTENT(inout) :: lgc
+
+      !timer_CALL t_mpicom%start()
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LAND,&
+                       MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+  END SUBROUTINE
+ 
   ! In-place MPI sum of integer, scalar, vector and matrix
-  SUBROUTINE mpi_ipl_sum_int(scl)
+  SUBROUTINE mpi_bsum_int(scl)
     IMPLICIT NONE
     INTEGER,INTENT(inout) :: scl
 
@@ -61,7 +81,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_scl(scl)
+  SUBROUTINE mpi_bsum_scl(scl)
     IMPLICIT NONE
     REAL(DP),INTENT(inout) :: scl
 
@@ -70,7 +90,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_vec(nn, vec)
+  SUBROUTINE mpi_bsum_vec(nn, vec)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nn
     REAL(DP),INTENT(inout) :: vec(nn)
@@ -80,7 +100,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_mat(mm, nn, mat)
+  SUBROUTINE mpi_bsum_mat(mm, nn, mat)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: mm, nn
     REAL(DP),INTENT(inout) :: mat(mm,nn)
@@ -90,7 +110,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_tns(ll,mm, nn, tns)
+  SUBROUTINE mpi_bsum_tns(ll,mm, nn, tns)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll,mm, nn
     REAL(DP),INTENT(inout) :: tns(ll,mm,nn)
@@ -101,7 +121,7 @@ MODULE mpi_thermal
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
 !!  ! --------- ------------- --- -- -- -- - - - comple numbers follow
-  SUBROUTINE mpi_ipl_sum_zscl(scl)
+  SUBROUTINE mpi_bsum_zscl(scl)
     IMPLICIT NONE
     COMPLEX(DP),INTENT(inout) :: scl
 
@@ -110,7 +130,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_zvec(nn, vec)
+  SUBROUTINE mpi_bsum_zvec(nn, vec)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nn
     COMPLEX(DP),INTENT(inout) :: vec(nn)
@@ -120,7 +140,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_zmat(mm, nn, mat)
+  SUBROUTINE mpi_bsum_zmat(mm, nn, mat)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: mm, nn
     COMPLEX(DP),INTENT(inout) :: mat(mm,nn)
@@ -130,7 +150,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
   END SUBROUTINE
-  SUBROUTINE mpi_ipl_sum_ztns(ll, mm, nn, tns)
+  SUBROUTINE mpi_bsum_ztns(ll, mm, nn, tns)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll, mm, nn
     COMPLEX(DP),INTENT(inout) :: tns(ll, mm,nn)

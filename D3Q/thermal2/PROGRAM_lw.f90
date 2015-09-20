@@ -8,13 +8,13 @@
 ! yR, yq --> crystalline coordinates
 !
 !
-#include "para_io.h"
 !
 MODULE linewidth_program
   USE timers
   !
   USE kinds,       ONLY : DP
-  USE mpi_thermal,      ONLY : ionode
+  !USE mpi_thermal,      ONLY : ionode
+#include "mpi_thermal.h"
   !
   CONTAINS
   ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
@@ -47,14 +47,18 @@ MODULE linewidth_program
     REAL(DP)   :: lw_casimir(S%nat3)
     REAL(DP)   :: sigma_ry(input%nconf)
     CHARACTER(len=15) :: f1, f2
+    CHARACTER(len=256) :: filename
     !
     CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
     CALL grid%scatter()
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
-      OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                                "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+      filename=TRIM(input%outdir)//"/"//&
+               TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                 "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+      ioWRITE(*,*) "filename", filename
+      OPEN(unit=1000+it, file=filename)
       IF (TRIM(input%mode) == "full") THEN
         ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
       ELSE
@@ -66,6 +70,7 @@ MODULE linewidth_program
     ! Prepare formats to write out data
     ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
     ioWRITE(f2,'(i6,a)') S%nat3, "e15.5,6x,"
+    ENDIF
     !
     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
     ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
@@ -132,9 +137,11 @@ MODULE linewidth_program
     ENDDO
     !
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
       CLOSE(unit=1000+it)
     ENDDO
+    ENDIF
     !
 #ifdef timer_CALL
       ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
@@ -192,6 +199,7 @@ MODULE linewidth_program
     ener = ener/RY_TO_CMM1
     sigma_ry = input%sigma/RY_TO_CMM1
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                               TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
@@ -201,6 +209,7 @@ MODULE linewidth_program
       ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
       CALL flush_unit(1000+it)
     ENDDO
+    ENDIF
     !
     dpl = 0._dp; pl = 0._dp
     !
@@ -241,9 +250,11 @@ MODULE linewidth_program
     ENDDO
     !
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
       CLOSE(unit=1000+it)
     ENDDO
+    ENDIF
     !
     DEALLOCATE(spectralf, ener)
     !
@@ -290,6 +301,7 @@ MODULE linewidth_program
     e_inital_ry = input%e_initial/RY_TO_CMM1
     sigma_ry = input%sigma/RY_TO_CMM1
     !
+    IF(ionode)THEN 
     DO it = 1,input%nconf
       filename = TRIM(input%outdir)//"/"//&
                               TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
@@ -301,6 +313,7 @@ MODULE linewidth_program
       ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
       CALL flush_unit(1000+it)
     ENDDO
+    ENDIF
     !
     dpl = 0._dp; pl = 0._dp
     !
@@ -332,9 +345,11 @@ MODULE linewidth_program
 !     ENDDO
     !
     !
+    IF(ionode)THEN
     DO it = 1,input%nconf
       CLOSE(unit=1000+it)
     ENDDO
+    ENDIF
     !
     DEALLOCATE(fstate, ener)
     !

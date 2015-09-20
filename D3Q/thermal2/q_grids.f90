@@ -8,7 +8,7 @@ MODULE q_grids
 
   USE kinds,     ONLY : DP
   USE mpi_thermal,      ONLY : ionode
-#include "para_io.h"
+#include "mpi_thermal.h"
   
   TYPE q_grid
     CHARACTER(len=9) :: basis = ''

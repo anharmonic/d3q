@@ -6,8 +6,11 @@
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE timers
   USE nanoclock, ONLY : nanotimer, get_wall, print_timers_header, init_nanoclock
-  IMPLICIT NONE
-  
+  USE kinds,     ONLY : DP
+#include "mpi_thermal.h"
+
+  INTEGER :: limit_seconds = -1
+
   TYPE(nanotimer) :: t_freq =   nanotimer("ph interp & diag"), &
                      t_bose =   nanotimer("bose distrib"), &
                      t_sum  =   nanotimer("sum modes"), &
@@ -64,4 +67,37 @@ MODULE timers
     CALL t_xain%print()
   END SUBROUTINE
   !
+  SUBROUTINE set_time_limit(max_seconds, max_time)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: max_seconds
+    REAL(DP),INTENT(in) :: max_time
+    REAL(DP) :: aux
+    ! let' start time tracking in case it has not already
+    CALL init_nanoclock()
+    ! max_time is in hh.mmss format, we do not check if minute>59 or seconds>59
+    IF(max_time>0) THEN
+      limit_seconds = NINT(100*(max_time*100 - INT(max_time*100)))
+      aux = DBLE(INT(max_time*100))/100._dp
+      limit_seconds = limit_seconds &
+                     +NINT(60*(100*aux-INT(aux)*100))&
+                     +3600*NINT(max_time)
+
+      !print*, "lll", max_time, 100*(max_time*100 - INT(max_time*100)), &
+      !0*(100*aux-INT(aux)*100), 3600*INT(max_time)
+    ELSE IF(max_seconds>0)THEN
+      limit_seconds = max_seconds
+    ENDIF
+    IF(limit_seconds>0)THEN
+      ioWRITE(stdout, '(2x,a,i12,a)') "Code will try to stop after", limit_seconds, "s"
+    ENDIF
+  END SUBROUTINE
+  !
+  LOGICAL FUNCTION check_time_limit()
+    IMPLICIT NONE
+    !print*, "check", limit_seconds, INT(get_wall())
+    check_time_limit = (INT(get_wall())>limit_seconds)&
+                     .and. (limit_seconds>0)
+  END FUNCTION
+
+
 END MODULE
