@@ -47,6 +47,7 @@ MODULE code_input
     REAL(DP) :: casimir_dir(3)
     !
     INTEGER :: nk(3), nk_in(3)
+    CHARACTER(len=6) :: grid_type
   END TYPE code_input_type
   !
   CONTAINS
@@ -54,7 +55,7 @@ MODULE code_input
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     !USE io_global,      ONLY : stdout
-    USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_path, setup_grid
     USE constants,      ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
     USE more_constants, ONLY : INVALID, MASS_DALTON_TO_RY
     USE wrappers,       ONLY : f_mkdir_safe
@@ -84,6 +85,7 @@ MODULE code_input
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
+    CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
@@ -122,7 +124,7 @@ MODULE code_input
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nq, nk, &
+      nconf, nq, nk, grid_type, &
       ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
@@ -131,7 +133,7 @@ MODULE code_input
     NAMELIST  / tkinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nk, nk_in, &
+      nconf, nk, nk_in, grid_type, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time
@@ -139,7 +141,7 @@ MODULE code_input
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nk, nq,&
+      nconf, nk, nq, grid_type, &
       max_seconds, max_time
     ioWRITE(*,*) "Waiting for input"
     !
@@ -172,6 +174,7 @@ MODULE code_input
     input%asr2      = asr2
     input%nconf     = nconf
     input%nk        = nk
+    input%grid_type = grid_type
     input%exp_t_factor = exp_t_factor
     !
     input%isotopic_disorder  = isotopic_disorder
@@ -259,7 +262,7 @@ MODULE code_input
           IF(ios/=0) CALL errore("READ_INPUT", "reading nq1, nq2, nq3 for q-grid calculation", 1)
           line=''
           ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
-          !CALL setup_simple_grid(S%bg, nq1,nq2,nq3, qpts) this is done later
+          !CALL setup_grid(input%grid_type, S%bg, nq1,nq2,nq3, qpts) this is done later
           CYCLE READ_CARDS
         ENDIF
         !
@@ -420,11 +423,14 @@ MODULE code_input
         nq1=nk(1); nq2=nk(2); nq3=nk(3)
         qpoints_ok = .true.
       ENDIF
-      CALL setup_simple_grid(S%bg, nq1, nq2, nq3, qpts)
+      CALL setup_grid(input%grid_type, S%bg, nq1, nq2, nq3, qpts)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &
                 "x"//TRIM(int_to_char(nq3))
+      !DO i = 1,qpts%nq
+      !  WRITE(*,'(i3,3f12.6,f16.3)') i, qpts%xq(:,i), qpts%w(i)
+      !ENDDO
     ENDIF
     !
     ! Set natural isotope concentration for every species, if not read from input

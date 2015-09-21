@@ -24,7 +24,7 @@ MODULE thermalk_program
     USE linewidth,          ONLY : linewidth_q
     USE constants,          ONLY : RY_TO_CMM1
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
-    USE q_grids,            ONLY : q_grid, setup_simple_grid
+    USE q_grids,            ONLY : q_grid, setup_grid, setup_bz_grid
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_vel
@@ -64,7 +64,7 @@ MODULE thermalk_program
     ! this is not relly necessary in SMA, will fix later
     ! In any case we need to use to separate grids, because the 
     ! inner one (in_grid) is scatterd over MPI
-    CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), in_grid)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), in_grid)
     CALL in_grid%scatter()
     !
     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
@@ -267,7 +267,7 @@ MODULE thermalk_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE q_grids,            ONLY : q_grid, q_basis, setup_simple_grid, &
+    USE q_grids,            ONLY : q_grid, q_basis, setup_grid, setup_bz_grid, &
                                    prepare_q_basis, qbasis_dot, qbasis_ax, &
                                    qbasis_a_over_b
     USE variational_tk
@@ -300,7 +300,7 @@ MODULE thermalk_program
     nq    = out_grid%nq
     
     ! make the inner grid on top of the outer one
-    CALL setup_simple_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
+    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
     CALL in_grid%scatter()
 
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
@@ -390,7 +390,7 @@ MODULE thermalk_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE q_grids,            ONLY : q_grid, q_basis, setup_simple_grid, &
+    USE q_grids,            ONLY : q_grid, q_basis, setup_grid, setup_bz_grid, &
                                    prepare_q_basis, qbasis_dot, qbasis_ax, &
                                    qbasis_a_over_b
     USE variational_tk
@@ -424,7 +424,8 @@ MODULE thermalk_program
     nq    = out_grid%nq
     
     ! make the inner grid on top of the outer one
-    CALL setup_simple_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
+    !CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
+    CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
     CALL in_grid%scatter()
     
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
@@ -517,7 +518,7 @@ PROGRAM thermalk
 !   USE environment,      ONLY : environment_start, environment_end
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, ph_system_info
-  USE q_grids,          ONLY : q_grid !, setup_simple_grid
+  USE q_grids,          ONLY : q_grid !, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi

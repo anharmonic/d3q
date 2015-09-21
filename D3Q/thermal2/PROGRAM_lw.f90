@@ -22,7 +22,7 @@ MODULE linewidth_program
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
-    USE q_grids,            ONLY : q_grid, setup_simple_grid
+    USE q_grids,            ONLY : q_grid, setup_grid
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -49,7 +49,7 @@ MODULE linewidth_program
     CHARACTER(len=15) :: f1, f2
     CHARACTER(len=256) :: filename
     !
-    CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
     CALL grid%scatter()
     !
     IF(ionode)THEN
@@ -166,7 +166,7 @@ MODULE linewidth_program
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor
     USE constants,      ONLY : RY_TO_CMM1
-    USE q_grids,        ONLY : q_grid, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_grid
     USE more_constants, ONLY : write_conf
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
@@ -191,7 +191,7 @@ MODULE linewidth_program
     REAL(DP) :: w2(S%nat3)
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
-    CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
     CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
@@ -265,7 +265,7 @@ MODULE linewidth_program
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag
     USE  final_state,   ONLY : final_state_q
     USE constants,      ONLY : RY_TO_CMM1
-    USE q_grids,        ONLY : q_grid, setup_simple_grid
+    USE q_grids,        ONLY : q_grid, setup_grid
     USE more_constants, ONLY : write_conf
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
@@ -291,7 +291,7 @@ MODULE linewidth_program
     !
     ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
     !
-    CALL setup_simple_grid(S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
     CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
@@ -366,7 +366,7 @@ PROGRAM linewidth
 !   USE environment,      ONLY : environment_start, environment_end
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, ph_system_info
-  USE q_grids,          ONLY : q_grid !, setup_simple_grid
+  USE q_grids,          ONLY : q_grid !, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode

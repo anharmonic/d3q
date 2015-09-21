@@ -72,8 +72,7 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    !WRITE(stdout,*) "q-grid scattered with MPI",grid%iq0
-    ioWRITE(stdout,*) "q-grid scattered with MPI"
+    ioWRITE(stdout,"(2x,a)") "Grid scattered with MPI"
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.
@@ -96,8 +95,151 @@ MODULE q_grids
 !     ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~ 
 !     CALL find_sym ( S%nat, S%tau, S%ityp, 6,6,6, .false., m_loc )
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
-!   END SUBROUTINE setup_symmetry
-!   ! \/o\________\\\_________________________________________/^>
+!    END SUBROUTINE setup_symmetry
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0)
+    USE input_fc, ONLY : ph_system_info
+    IMPLICIT NONE
+    CHARACTER(len=6),INTENT(in)     :: grid_type
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
+    INTEGER,INTENT(in) :: n1,n2,n3
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
+    !
+    IF(grid_type=="simple")THEN
+      CALL setup_simple_grid(bg, n1,n2,n3, grid, xq0)
+    ELSE IF (grid_type=="bz")THEN
+      CALL setup_bz_grid(bg, n1,n2,n3, grid, xq0)
+    ELSE
+      CALL errore("setup_grid", "wrong grid type", 1)
+    ENDIF
+    ioWRITE(stdout,'(2x,"Setup a ",a," grid of",i6," q-points")') grid_type, grid%nq
+  END SUBROUTINE setup_grid
+
+  ! \/o\________\\\_________________________________________/^>
+  ! Setup a grid that respects the symmetry of the Brillouin zone
+  SUBROUTINE setup_bz_grid(bg, n1,n2,n3, grid, xq0)
+    USE input_fc, ONLY : ph_system_info 
+    IMPLICIT NONE
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
+    INTEGER,INTENT(in) :: n1,n2,n3
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
+    !
+    TYPE(q_grid) :: sg
+    INTEGER :: i,j,k, iq
+    REAL(DP) :: g(3), qg(3), qbz(3,12), qgmod2, qgmod2_min
+    INTEGER :: nqbz
+    INTEGER,PARAMETER :: far=2
+    REAL(DP),PARAMETER :: eps = 1.d-4
+
+    ! Do not put the optional xq0 shift here, I'll add it at the end to
+    ! have a grid that is centered around xq0
+    CALL setup_simple_grid(bg, n1,n2,n3, sg)
+
+    grid%n(1) = n1
+    grid%n(2) = n2
+    grid%n(3) = n3
+    !
+    IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
+    !
+    grid%nq = 0
+    
+    DO iq = 1, sg%nq
+      qgmod2_min = SUM(sg%xq(:,iq)**2)
+      qbz = 0._dp
+      nqbz = 0
+      DO i = -far,far
+      DO j = -far,far
+      DO k = -far,far
+        g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
+        qg = sg%xq(:,iq)+g
+        qgmod2 = SUM(qg**2)
+        IF(ABS(qgmod2-qgmod2_min)< eps)THEN
+          ! same distance: add this vector to the list f degeneracies
+          nqbz = nqbz+1
+          qbz(:,nqbz) = qg
+          qgmod2_min = qgmod2
+        ELSEIF(qgmod2<qgmod2_min)THEN
+          ! shorter distance: reinit the list of degeneracies
+          qbz = 0._dp
+          nqbz = 1 
+          qbz(:,nqbz) = qg
+          qgmod2_min = qgmod2
+        ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+      ! here we have a complete list of equivalent q-points
+      ! we add them to the grid with their weight
+      !print*, "found", nqbz, qbz(:,1:nqbz)
+      CALL expand_wlist(grid%nq, grid%w,  nqbz)
+      CALL expand_qlist(grid%nq, grid%xq, nqbz, qbz)
+      grid%nq = grid%nq + nqbz
+    ENDDO
+
+    grid%basis = 'cartesian'
+    IF(NINT(sum(grid%w)) /= sg%nq) CALL errore('setup_bz_grid,''wrong weight',1)
+    !
+    IF(present(xq0)) THEN
+      DO iq = 1,grid%nq
+        grid%xq(:,iq) = grid%xq(:,iq) + xq0
+      ENDDO
+    ENDIF
+    !
+  END SUBROUTINE setup_bz_grid
+  !
+  SUBROUTINE expand_qlist(nq, xq, nq_add, xq_add)
+    INTEGER,INTENT(inout) :: nq 
+    INTEGER,INTENT(in) :: nq_add
+    REAL(DP),ALLOCATABLE,INTENT(inout) :: xq(:,:)
+    REAL(DP),INTENT(in) :: xq_add(3,nq_add)
+    !
+    REAL(DP),ALLOCATABLE :: xq_aux(:,:)
+    IF(allocated(xq)) THEN
+      ALLOCATE(xq_aux(3,nq))
+      xq_aux = xq
+      DEALLOCATE(xq)
+      ALLOCATE(xq(3,nq+nq_add))
+      xq(:, 1:nq)           = xq_aux
+      xq(:, nq+1:nq+nq_add) = xq_add(:, 1:nq_add)
+      !nq = nq+nq_add
+      DEALLOCATE(xq_aux)
+    ELSE
+      IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
+      ALLOCATE(xq(3,nq_add))
+      xq = xq_add(:, 1:nq_add)
+      !nq = nq_add
+    ENDIF
+    RETURN
+  END SUBROUTINE
+  SUBROUTINE expand_wlist(nq, w, nq_add)
+    INTEGER,INTENT(in) :: nq 
+    INTEGER,INTENT(in) :: nq_add
+    REAL(DP),ALLOCATABLE,INTENT(inout) :: w(:)
+    !
+    REAL(DP),ALLOCATABLE :: w_aux(:)
+    IF(allocated(w)) THEN
+      !print*,"got", size(w), nq, nq_add 
+      IF(size(w)/=nq) CALL errore('expand_wlist', 'wrong size', 1)
+      ALLOCATE(w_aux(nq))
+      w_aux(1:nq) = w(1:nq)
+      DEALLOCATE(w)
+      ALLOCATE(w(nq+nq_add))
+      w(1:nq)           = w_aux
+      w(nq+1:nq+nq_add) = 1._dp/DBLE(nq_add)
+      DEALLOCATE(w_aux)
+    ELSE
+      !print*,"got", size(w), nq, nq_add 
+      IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
+      ALLOCATE(w(nq_add))
+      w = 1._dp/DBLE(nq_add)
+    ENDIF
+    RETURN
+  END SUBROUTINE
+
+
+  ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_simple_grid(bg, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
