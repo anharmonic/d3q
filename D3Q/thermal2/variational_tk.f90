@@ -728,7 +728,7 @@ MODULE variational_tk
       tk(:,:,it) = -2*Omega*tk(:,:,it)/nq/T(it)**2
     ENDDO
     !
-    CALL print_tk(tk, nconf, "variational")
+    !CALL print_tk(tk, input%sigma, input%T, nconf, "variational")
     !
   END SUBROUTINE calc_tk_variational
   !
@@ -779,17 +779,19 @@ MODULE variational_tk
   END FUNCTION calc_tk_gf
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_tk(tk, nconf, name)
+  SUBROUTINE print_tk(tk, sigma, T, nconf, name)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: tk(3,3,nconf)
+    REAL(DP),INTENT(in) :: sigma(nconf)
+    REAL(DP),INTENT(in) :: T(nconf)
     INTEGER,INTENT(in) :: nconf
     CHARACTER(len=*),INTENT(in) :: name
     !
     INTEGER :: it
     ioWRITE(stdout,'(2x,a)') name
     DO it = 1,nconf
-      ioWRITE(stdout,'(i6,3(3e17.8,3x))') it, &
+      ioWRITE(stdout,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
       tk(1,1,it)*RY_TO_WATTMM1KM1, &
       tk(2,2,it)*RY_TO_WATTMM1KM1, &
       tk(3,3,it)*RY_TO_WATTMM1KM1, &

@@ -332,7 +332,7 @@ MODULE thermalk_program
     !f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
     f = A_diagm1_f(A_out, qbasis%b, nconf, nat3, nq)
     tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, nconf, "SMA tk")
+    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
     ! g0 = Af0 - b
     CALL A_times_f(f, g, A_out, input, qbasis, out_grid, S, fc2, fc3)
 !     g = A_diag_f(A_out, f, nconf, nat3, nq)
@@ -342,8 +342,8 @@ MODULE thermalk_program
     !
     h = g
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
-    CALL  print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb) - initial")
+    CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
       timer_CALL t_tkaout%stop()
     !
     DO iter = 1,niter_max
@@ -366,7 +366,7 @@ MODULE thermalk_program
       !
       !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, nconf, "TK from 1/2(fg-fb)")
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)")
       !
       ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
@@ -457,7 +457,7 @@ MODULE thermalk_program
     qbasis%b = f
     !
     tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, nconf, "SMA tk")
+    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
     !
     ! f0 = f_SMA = 1/(A_out) b
     ! g0 = Af0 - b
@@ -469,7 +469,7 @@ MODULE thermalk_program
     !
     h = g
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, nconf, "TK from 1/2(fg-fb) - initial")
+    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb) - initial")
     CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
         timer_CALL t_tkaout%stop()
     !
@@ -493,7 +493,7 @@ MODULE thermalk_program
       !
       !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, nconf, "TK from 1/2(fg-fb)")
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)")
       !
       ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
