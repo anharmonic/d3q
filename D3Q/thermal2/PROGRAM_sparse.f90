@@ -40,6 +40,7 @@ PROGRAM gen_sparse
     USE gen_sparse_program
     USE random_numbers, ONLY : randy
     USE wrappers,       ONLY : f_get_vm_size
+    USE mpi_thermal,    ONLY : start_mpi, stop_mpi
     IMPLICIT NONE
     !
     TYPE(grid)   :: fc
@@ -112,6 +113,7 @@ PROGRAM gen_sparse
       IF(i/=0) CALL errore("gen_sparse","bad test number, run without arguments for help",1)
       
       WRITE(*,*) "Running", ntest, "test configurations"
+      CALL start_mpi()
       
       ALLOCATE(D1(S%nat3, S%nat3, S%nat3))
       ALLOCATE(D2(S%nat3, S%nat3, S%nat3))
@@ -146,6 +148,8 @@ PROGRAM gen_sparse
 
       CALL t_fc%print()
       CALL t_sfc%print()
+
+      CALL stop_mpi()
 
     ENDIF
 
