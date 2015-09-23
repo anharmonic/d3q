@@ -73,7 +73,7 @@ MODULE posix_signal
   !
   ! This subroutine must be called by all the mpi processes
   SUBROUTINE check_graceful_termination()
-    USE mpi_thermal, ONLY : mpi_bsum, stop_mpi, mpi_any
+    USE mpi_thermal, ONLY : mpi_bsum, stop_mpi, mpi_any, abort_mpi
     USE timers,      ONLY : print_all_timers, check_time_limit
     IMPLICIT NONE
     LOGICAL :: time_is_out
@@ -88,8 +88,9 @@ MODULE posix_signal
     !
     IF(signal_trapped>0 .or. time_is_out) THEN
       CALL print_all_timers()
-      CALL stop_mpi()
-      STOP 1
+      !CALL stop_mpi()
+      CALL abort_mpi(signal_trapped)
+      STOP 0
     ENDIF
 
   END SUBROUTINE check_graceful_termination

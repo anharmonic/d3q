@@ -57,7 +57,7 @@ MODULE linewidth_program
       filename=TRIM(input%outdir)//"/"//&
                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
-      ioWRITE(*,*) "filename", filename
+      !ioWRITE(*,*) "filename", TRIM(filename)
       OPEN(unit=1000+it, file=filename)
       IF (TRIM(input%mode) == "full") THEN
         ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"

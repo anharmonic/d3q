@@ -115,18 +115,19 @@ MODULE nanoclock
     IMPLICIT NONE
     CLASS(nanotimer),INTENT(in) :: timer
     REAL(DP) :: tot
-    INTEGER  :: calls
+    REAL(DP) :: calls ! I use a REAL for the number of calls, because it tends
+                      ! to overflow an integer on large parallel systems
     !
     IF(timer%calls<=0) RETURN
     !
-    calls = timer%calls
+    calls = DBLE(timer%calls)
     CALL mpi_bsum(calls)
     tot = REAL(timer%tot,kind=DP)
     ! CAREFUL! clock could be running on some processor but not on all of them!
     IF(timer%t0>0) tot = tot+ (c_nanosec()-timer%t0) 
     CALL mpi_bsum(tot)
     !
-    ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", i12," *")') &
+    ioWRITE(*,'(2x," * ",a24," * ",f15.6," * ",f15.6," * ",f15.3," * ",f15.6," * ", f8.3, " * ", f12.0," *")') &
     TRIM(timer%name), 1000*tot/num_procs, (1000*tot)/(calls*num_procs), 1000*tot, (1000*tot)/calls, &
     100*tot/c_nanosec()/num_procs, calls
     
