@@ -116,8 +116,9 @@ MODULE code_input
     !
     CHARACTER(len=1024) :: line, word
     CHARACTER(len=16)   :: word2, word3
+    CHARACTER(len=512)  :: input_file
     CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
-    CHARACTER (LEN=6), EXTERNAL :: int_to_char
+    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     !
     LOGICAL :: qpoints_ok=.false., configs_ok=.false., isotopes_ok=.false.
     !
@@ -143,9 +144,11 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       nconf, nk, nq, grid_type, &
       max_seconds, max_time
-    ioWRITE(*,*) "Waiting for input"
     !
-    OPEN(unit=5, file="input.lw", status="OLD", action="READ")
+    input_file="input."//TRIM(code)
+    CALL parse_command_line(input_file)
+    ioWRITE(stdout,'(2x,3a)'), "Reading input file '", TRIM(input_file), "'"
+    OPEN(unit=5, file=input_file, status="OLD", action="READ")
     !
     IF(code=="LW")THEN
       calculation="lw"
@@ -493,5 +496,26 @@ MODULE code_input
     !
   END SUBROUTINE READ_DATA
   !
+  SUBROUTINE parse_command_line(input_file)
+    IMPLICIT NONE
+    CHARACTER(len=512),INTENT(inout) :: input_file ! left unchanged if "-in XXXX" not found
+    INTEGER :: count, i, ierr
+    CHARACTER(len=512) :: argv
+    count = command_argument_count()
+    i = 0
+    DO
+      i = i +1
+      IF(i>count) EXIT 
+      CALL get_command_argument(i,argv)
+      IF(argv=='-in')THEN
+        i = i +1
+        CALL get_command_argument(i,argv,status=ierr)
+        IF(ierr>0) CALL errore('parse_command_line','cannot read input file name',1)
+        IF(ierr<0) CALL errore('parse_command_line','input file name too long (max 512 chars)',1)
+        input_file = argv
+      ENDIF
+    ENDDO
+  END SUBROUTINE
+
 END MODULE code_input
 ! <<^V^\\=========================================//-//-//========//O\\//

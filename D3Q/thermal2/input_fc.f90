@@ -364,6 +364,40 @@ MODULE input_fc
     ENDDO
     !
   END SUBROUTINE div_mass_fc2
+  FUNCTION multiply_mass_dyn (S,dyn) RESULT(dyn_mass)
+    USE kinds, only : DP
+    !USE input_fc,         ONLY : ph_system_info
+    IMPLICIT NONE
+    TYPE(ph_system_info)   :: S
+    COMPLEX(DP),INTENT(in) :: dyn(S%nat3, S%nat3)
+    COMPLEX(DP) :: dyn_mass(S%nat3, S%nat3)
+    !
+    INTEGER :: i, j
+    !
+    DO j = 1, S%nat3
+    DO i = 1, S%nat3
+      dyn_mass(i,j) = dyn(i,j)/(S%sqrtmm1(i)*S%sqrtmm1(j))
+    ENDDO
+    ENDDO
+    !
+  END FUNCTION multiply_mass_dyn
+  FUNCTION div_mass_dyn (S,dyn) RESULT(dyn_mass)
+    USE kinds, only : DP
+    !USE input_fc,         ONLY : ph_system_info
+    IMPLICIT NONE
+    TYPE(ph_system_info)   :: S
+    COMPLEX(DP),INTENT(in) :: dyn(S%nat3, S%nat3)
+    COMPLEX(DP) :: dyn_mass(S%nat3, S%nat3)
+    !
+    INTEGER :: i, j
+    !
+    DO j = 1, S%nat3
+    DO i = 1, S%nat3
+      dyn_mass(i,j) = dyn(i,j)*(S%sqrtmm1(i)*S%sqrtmm1(j))
+    ENDDO
+    ENDDO
+    !
+  END FUNCTION div_mass_dyn
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_citations_linewidth
     ioWRITE(stdout,*)

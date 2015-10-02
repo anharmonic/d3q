@@ -36,10 +36,11 @@ PROGRAM gen_sparse
     USE fc3_interpolate,      ONLY : grid, sparse, forceconst3, fc3_grid_to_sparse, read_fc3
     USE input_fc,       ONLY : aux_system,  ph_system_info
     USE io_global,      ONLY : stdout
-    USE nanoclock
+    USE nanoclock,      ONLY : nanotimer, print_timers_header
     USE gen_sparse_program
     USE random_numbers, ONLY : randy
     USE wrappers,       ONLY : f_get_vm_size
+    USE mpi_thermal,    ONLY : start_mpi, stop_mpi
     IMPLICIT NONE
     !
     TYPE(grid)   :: fc
@@ -107,6 +108,8 @@ PROGRAM gen_sparse
     IF(fileout/="none") CALL sfc%write(fileout, S)
 
     IF(nargs>3)THEN
+      !CALL start_mpi()
+
       CALL getarg(4, argx)
       READ(argx, *,iostat=i) ntest
       IF(i/=0) CALL errore("gen_sparse","bad test number, run without arguments for help",1)
@@ -147,6 +150,7 @@ PROGRAM gen_sparse
       CALL t_fc%print()
       CALL t_sfc%print()
 
+      !CALL stop_mpi()
     ENDIF
 
     CALL fc%destroy()

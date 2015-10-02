@@ -24,11 +24,12 @@ MODULE dynbubble
   !  its complex part is the intrinsic linewidth
   FUNCTION dynbubble_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
     USE q_grids,          ONLY : q_grid
-    USE input_fc,         ONLY : ph_system_info
+    USE input_fc,         ONLY : ph_system_info, div_mass_dyn
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq,&
                                  set_nu0, ip_cart2pat, dyn_cart2pat
     USE fc3_interpolate,  ONLY : forceconst3
     USE constants,        ONLY : RY_TO_CMM1
+    USE mpi_thermal,      ONLY : mpi_bsum
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -45,6 +46,7 @@ MODULE dynbubble
     COMPLEX(DP) :: dynbubble_q(S%nat3,S%nat3,nconf)
     COMPLEX(DP) :: dyn(S%nat3,S%nat3,nconf) ! aux
     COMPLEX(DP) :: dyndio(S%nat3,S%nat3) ! aux
+    REAL(DP) :: sqtrace(S%nat3) ! aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
@@ -85,7 +87,7 @@ MODULE dynbubble
         ENDDO
 !/nope/!$OMP END PARALLEL DO
         !
-        dyndio = sum_dynbubble( S%nat3, T(it), freq, bose, D3, nu0 )
+        dyndio = grid%w(iq)*sum_dynbubble( S%nat3, T(it), sigma(it), freq, bose, D3, nu0 )
 !         WRITE(*, *) iq, it
 !         WRITE(*, "(3(2f12.4,3x))") -0.5_dp * dyndio/grid%nq
         dyn(:,:,it) = dyn(:,:,it) + dyndio
@@ -94,24 +96,32 @@ MODULE dynbubble
       !
     ENDDO
     !
-    dyn = -0.5_dp * dyn/grid%nq
+    IF(grid%scattered) CALL mpi_bsum(S%nat3,S%nat3,nconf, dyn)
+    
     DO it=1,nconf
-    WRITE(*, "('>>',6(2f12.6,4x))") (RY_TO_CMM1*REAL(dyn(nu,nu,it),DP), nu=1,S%nat3 )
-      CALL dyn_cart2pat(dyn(:,:,it), S%nat3, U(:,:,1), -1)
+      DO nu = 1, S%nat3
+        sqtrace(nu) = dyn(nu,nu,S%nat3)
+        sqtrace(nu) = SIGN(SQRT(ABS(DBLE(dyn(nu,nu,it)))), DBLE(dyn(nu,nu,it)))
+      ENDDO
+    !  ioWRITE(*, "('>>',6(2f12.6,4x))") (RY_TO_CMM1*sqtrace(nu), nu=1,S%nat3 )
+    !  ioWRITE(*, "('qq',6(2f12.6,4x))") (RY_TO_CMM1*DBLE(dyn(nu,nu,it)), nu=1,S%nat3 )
+    !  WRITE(*, "('>>',6(2f12.6,4x))") (RY_TO_CMM1*REAL(dyn(nu,nu,it),DP), nu=1,S%nat3 )
+        CALL dyn_cart2pat(dyn(:,:,it), S%nat3, U(:,:,1), -1)
+        dyn(:,:,it) = div_mass_dyn(S, dyn(:,:,it))
     ENDDO
-    dynbubble_q = dyn
+    dynbubble_q = -0.5_dp * dyn
     !
     DEALLOCATE(U)
     !
   END FUNCTION dynbubble_q  
   ! \/o\________\\\_________________________________________/^>
   ! Sum the self energy for the phonon modes
-  FUNCTION sum_dynbubble(nat3, T, freq, bose, V3, nu0)
+  FUNCTION sum_dynbubble(nat3, T, sigma, freq, bose, V3, nu0)
     USE functions,    ONLY : df_bose
     USE constants,    ONLY : RY_TO_CMM1
     IMPLICIT NONE
     INTEGER, INTENT(in) :: nat3
-    REAL(DP),INTENT(in) :: T
+    REAL(DP),INTENT(in) :: T, sigma
     REAL(DP),INTENT(in) :: freq(nat3,1:3)
     REAL(DP),INTENT(in) :: bose(nat3,2:3)
     COMPLEX(DP),INTENT(in) :: V3(nat3,nat3,nat3)
@@ -121,7 +131,7 @@ MODULE dynbubble
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
     REAL(DP) :: freqtotm1_23nm, freqtotm1_23n, freqtotm1_23
     REAL(DP) :: omega_P,  omega_M
-    COMPLEX(DP) :: ctm_P, ctm_M
+    COMPLEX(DP) :: ctm_P, ctm_M, reg
     !
     INTEGER :: i, j,k, n,m
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
@@ -129,14 +139,18 @@ MODULE dynbubble
     COMPLEX(DP) :: dyn(nat3,nat3), aux
     REAL(DP)    :: freqm1(nat3,2:3)
     REAL(DP)    :: sqfreqm1(nat3)
-    !
-    REAL(DP),PARAMETER :: reg = -(5._dp/RY_TO_CMM1)**2
+    REAL(DP)    :: sqfreq(nat3)
     !
     ! Prepare some auxiliary
     freqm1 = 0._dp
     sqfreqm1 = 0._dp
     DO i = 1,nat3
+      sqfreq(i) = DSQRT(freq(i,1))
+      !IF(sigma>=0)THEN
+!        sqfreqm1(i) = DSQRT(2.0_dp)
+      !ELSE
       IF(i>=nu0(1)) sqfreqm1(i) = DSQRT(0.5_dp/freq(i,1))
+      !ENDIF
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
     ENDDO
@@ -149,30 +163,33 @@ MODULE dynbubble
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
         !
-        IF(omega_P>0._dp)THEN
-          ctm_P = 2 * bose_P /omega_P
-        ELSE
-          ctm_P = 0._dp
-        ENDIF
-        !
+       !
         omega_M  = freq(j,3)-freq(k,2)
-        !  
-        IF(ABS(omega_M)>1.e-6_dp)THEN
-          bose_M   = bose(k,3) - bose(j,2)
-          ctm_M = 2 * bose_M /omega_M
-        ELSE
-          !ctm_M = 0._dp
-          IF(omega_P>0._dp)THEN
-            !print*, "doing deriv", 1
-            ctm_M = 2* df_bose(0.5_dp * omega_P, T)
+        !
+        IF(sigma>0._dp)THEN  
+          ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2 )
+          ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2 )
+        ELSE IF( sigma==0._dp ) THEN
+          !
+          IF(ABS(omega_P)>1.e-7_dp)THEN
+            ctm_P = 2 * bose_P /omega_P
           ELSE
-            !print*, "doing deriv", 0
-            ctm_M = 0._dp
+            ctm_P = 0._dp
+          ENDIF
+          !
+          IF(ABS(omega_M)>1.e-5_dp)THEN
+            bose_M   = bose(k,3) - bose(j,2)
+            ctm_M = 2 * bose_M /omega_M
+          ELSE
+            !ctm_M = 0._dp
+            IF(omega_P>0._dp)THEN
+              ctm_M = 2* df_bose(0.5_dp * omega_P, T)
+            ELSE
+              ctm_M = 0._dp
+            ENDIF
           ENDIF
         ENDIF
         !
-!         ctm_P = 2 * bose_P *omega_P/(omega_P**2-reg )
-!         ctm_M = 2 * bose_M *omega_M/(omega_M**2-reg )
         !
         freqtotm1_23 = freqm1(j,2)*freqm1(k,3)
         !
@@ -185,6 +202,13 @@ MODULE dynbubble
             freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
             !
             !
+            IF(sigma<0)THEN
+              reg = CMPLX(sqfreq(n)*sqfreq(m), -sigma, kind=DP)**2
+              ctm_P = 2 * bose_P *omega_P/(omega_P**2-reg )
+              ctm_M = 2 * bose_M *omega_M/(omega_M**2-reg )
+            ENDIF
+              
+
 !             aux = (ctm_P + ctm_M)*freqtotm1_23nm * CONJG(V3(m,j,k)) *V3(n,j,k)
 !             IF(ISNAN(REAL(aux)) .or. ISNAN(IMAG(aux)))THEN
 !               print*,k,j,n,m

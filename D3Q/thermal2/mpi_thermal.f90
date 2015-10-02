@@ -6,10 +6,10 @@ MODULE mpi_thermal
 #define __MPI_THERMAL
 #include "mpi_thermal.h"
   
-  INTEGER :: my_id, num_procs, ierr
+  INTEGER :: my_id=0, num_procs=1, ierr
   LOGICAL :: ionode = .TRUE. ! everyone is ionode before I start MPI
   LOGICAL :: mpi_started = .FALSE.
-  INTEGER :: omp_tot_thr
+  INTEGER :: omp_tot_thr=1
 
   INTERFACE mpi_bsum
      MODULE PROCEDURE mpi_bsum_int

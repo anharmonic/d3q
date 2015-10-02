@@ -58,7 +58,7 @@ timers.o \
 variational_tk.o
 #vector.o
 
-EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x
+EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x
 
 all : tldeps $(EXECUTABLES)
 
@@ -107,6 +107,12 @@ sqom.x : PROGRAM_sqom.o $(D3QTOOLSLIBS)
 
 q2r.x : PROGRAM_q2r.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(D3QTOOLSLIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+
+qq2rr.x : PROGRAM_qq2rr.o $(D3QTOOLSLIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o $(D3QTOOLSLIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
