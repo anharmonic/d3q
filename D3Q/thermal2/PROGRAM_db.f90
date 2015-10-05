@@ -14,7 +14,7 @@ PROGRAM add_bubble
   USE kinds,            ONLY : DP
   USE add_bubble_program
   USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, &
-                               ph_system_info, multiply_mass_dyn
+                               ph_system_info, multiply_mass_dyn, write_dyn
   USE fc2_interpolate,  ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE q_grids,          ONLY : q_grid, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
@@ -32,8 +32,10 @@ PROGRAM add_bubble
   !
   INTEGER :: iq, it, nu, mu
   COMPLEX(DP),ALLOCATABLE :: dyn(:,:,:)
-  COMPLEX(DP),ALLOCATABLE :: dyn0(:,:), U(:,:), dynX(:,:)
-  REAL(DP),ALLOCATABLE    :: freq(:), freq0(:)
+  COMPLEX(DP),ALLOCATABLE :: dyn0(:,:), U(:,:), dynX(:,:), dynY(:,:)
+  REAL(DP),ALLOCATABLE    :: freq(:), freq0(:), freqY(:)
+  CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+  CHARACTER(len=512) :: filename
 
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('LW')
@@ -48,8 +50,9 @@ PROGRAM add_bubble
   ALLOCATE(dyn(S%nat3,S%nat3,input%nconf))
   ALLOCATE(dyn0(S%nat3,S%nat3))
   ALLOCATE(dynX(S%nat3,S%nat3))
+  ALLOCATE(dynY(S%nat3,S%nat3))
   ALLOCATE(U(S%nat3,S%nat3))
-  ALLOCATE(freq(S%nat3), freq0(S%nat3))
+  ALLOCATE(freq(S%nat3), freq0(S%nat3), freqY(S%nat3))
   DO iq = 1, qpts%nq
     ioWRITE(*, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
     ioWRITE(*, '(i6,3f12.6)') iq, qpts%xq(:,iq)
@@ -80,13 +83,27 @@ PROGRAM add_bubble
      !ioWRITE(*, "(6(2f12.6,4x))") RY_TO_CMM1*dynX
        
       !dynX = multiply_mass_dyn(S, dynX) + dyn0
-      dynX = DBLE(dynX) + dyn0
+      dynX = dynX + dyn0
+      !
+      dynY = multiply_mass_dyn(S, dynX)
+      filename = "dyn_conf"//TRIM(int_to_char(it))//"_"//TRIM(int_to_char(iq))
+      CALL write_dyn(filename, qpts%xq(:,iq), dynY, S)
+      !
+      dynY = dynX
       CALL mat2_diag(S%nat3, dynX, freq)
       freq = SIGN(SQRT(ABS(freq)), freq)
-       
-      ioWRITE(*,"(6f20.12)") freq*RY_TO_CMM1
-      ioWRITE(*,"(6e20.6)") (freq-freq0)*RY_TO_CMM1
+      
+      CALL dyn_cart2pat(dynY, S%nat3, U, +1)
+      FORALL(nu=1:S%nat3) freqY(nu) = dynY(nu,nu)
+      freqY = SIGN(SQRT(ABS(freqY)), freqY)
+             
+      ioWRITE(*,"('freqX ',6f20.12)") freq*RY_TO_CMM1
+      ioWRITE(*,"('freqY ',6f20.12)") freqY*RY_TO_CMM1
+      ioWRITE(*,"('shiftX',6e20.6)") (freq-freq0)*RY_TO_CMM1
+      ioWRITE(*,"('shiftY',6e20.6)") (freqY-freq0)*RY_TO_CMM1
       ioWRITE(*,*)
+      !
+      !
     ENDDO
   ENDDO
 

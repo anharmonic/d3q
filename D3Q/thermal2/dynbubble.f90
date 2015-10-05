@@ -46,7 +46,7 @@ MODULE dynbubble
     COMPLEX(DP) :: dynbubble_q(S%nat3,S%nat3,nconf)
     COMPLEX(DP) :: dyn(S%nat3,S%nat3,nconf) ! aux
     COMPLEX(DP) :: dyndio(S%nat3,S%nat3) ! aux
-    REAL(DP) :: sqtrace(S%nat3) ! aux
+!     REAL(DP) :: sqtrace(S%nat3) ! aux
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
@@ -99,15 +99,15 @@ MODULE dynbubble
     IF(grid%scattered) CALL mpi_bsum(S%nat3,S%nat3,nconf, dyn)
     
     DO it=1,nconf
-      DO nu = 1, S%nat3
-        sqtrace(nu) = dyn(nu,nu,S%nat3)
-        sqtrace(nu) = SIGN(SQRT(ABS(DBLE(dyn(nu,nu,it)))), DBLE(dyn(nu,nu,it)))
-      ENDDO
+!       DO nu = 1, S%nat3
+!         sqtrace(nu) = dyn(nu,nu,S%nat3)
+!         sqtrace(nu) = SIGN(SQRT(ABS(DBLE(dyn(nu,nu,it)))), DBLE(dyn(nu,nu,it)))
+!       ENDDO
     !  ioWRITE(*, "('>>',6(2f12.6,4x))") (RY_TO_CMM1*sqtrace(nu), nu=1,S%nat3 )
     !  ioWRITE(*, "('qq',6(2f12.6,4x))") (RY_TO_CMM1*DBLE(dyn(nu,nu,it)), nu=1,S%nat3 )
     !  WRITE(*, "('>>',6(2f12.6,4x))") (RY_TO_CMM1*REAL(dyn(nu,nu,it),DP), nu=1,S%nat3 )
         CALL dyn_cart2pat(dyn(:,:,it), S%nat3, U(:,:,1), -1)
-        dyn(:,:,it) = div_mass_dyn(S, dyn(:,:,it))
+        !dyn(:,:,it) = div_mass_dyn(S, dyn(:,:,it))
     ENDDO
     dynbubble_q = -0.5_dp * dyn
     !
@@ -147,9 +147,9 @@ MODULE dynbubble
     DO i = 1,nat3
       sqfreq(i) = DSQRT(freq(i,1))
       !IF(sigma>=0)THEN
-!        sqfreqm1(i) = DSQRT(2.0_dp)
+       sqfreqm1(i) = 1._dp
       !ELSE
-      IF(i>=nu0(1)) sqfreqm1(i) = DSQRT(0.5_dp/freq(i,1))
+!       IF(i>=nu0(1)) sqfreqm1(i) = DSQRT(0.5_dp/freq(i,1))
       !ENDIF
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
@@ -202,7 +202,7 @@ MODULE dynbubble
             freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
             !
             !
-            IF(sigma<0)THEN
+            IF(sigma<0._dp)THEN
               reg = CMPLX(sqfreq(n)*sqfreq(m), -sigma, kind=DP)**2
               ctm_P = 2 * bose_P *omega_P/(omega_P**2-reg )
               ctm_M = 2 * bose_M *omega_M/(omega_M**2-reg )

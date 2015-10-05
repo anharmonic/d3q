@@ -206,7 +206,7 @@ MODULE fc2_interpolate
   
   ! \/o\________\\\_________________________________________/^>
   ! IN PLACE diagonalization of D
-  RECURSIVE SUBROUTINE mat2_diag_save(n, D, w2)
+  SUBROUTINE mat2_diag_save(n, D, w2)
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: n
@@ -251,7 +251,7 @@ MODULE fc2_interpolate
   ! \/o\________\\\_________________________________________/^>
   ! IN PLACE diagonalization of D
   ! Cannot declare explicitly pure, because ZHEEV isn't pure
-  RECURSIVE SUBROUTINE mat2_diag_pure(n, D, w2)
+  SUBROUTINE mat2_diag_pure(n, D, w2)
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: n
@@ -277,7 +277,7 @@ MODULE fc2_interpolate
   ! IN PLACE diagonalization of D using divide and conquer, 
   ! should be faster, but it'sactually slower for small number of atoms
   ! Cannot declare explicitly pure, because ILAENZ and ZHEEV aren't pure
-  RECURSIVE SUBROUTINE mat2_diag_pure_dac(n, D, w2)
+  SUBROUTINE mat2_diag_pure_dac(n, D, w2)
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: n
