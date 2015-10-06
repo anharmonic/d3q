@@ -190,7 +190,7 @@ MODULE linewidth
 !/nope/!$OMP END PARALLEL DO
         !
           timer_CALL t_sum%start()
-        se(:,it) = se(:,it) + grid%w(iq)*sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq, nu0 )
+        se(:,it) = se(:,it) + grid%w(iq)*sum_selfnrg_modes( S, sigma(it), T(it), freq, bose, V3sq, nu0 )
           timer_CALL t_sum%stop()
         !
       ENDDO
@@ -467,11 +467,12 @@ MODULE linewidth
   !
   ! \/o\________\\\_________________________________________/^>
   ! Sum the self energy for the phonon modes
-  FUNCTION sum_selfnrg_modes(S, sigma, freq, bose, V3sq, nu0)
+  FUNCTION sum_selfnrg_modes(S, sigma, T, freq, bose, V3sq, nu0)
     USE input_fc,           ONLY : ph_system_info
+    USE functions,          ONLY : df_bose
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma
+    REAL(DP),INTENT(in) :: sigma, T
     REAL(DP),INTENT(in) :: freq(S%nat3,3)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
@@ -519,19 +520,52 @@ MODULE linewidth
         omega_M  = freq(j,2)-freq(k,3)
         omega_M2 = omega_M**2
         !
+        IF(sigma<0._dp)THEN
+          ctm_P = 2 * bose_P *omega_P/(omega_P2+sigma**2)
+          ctm_M = 2 * bose_M *omega_M/(omega_M2+sigma**2)
+        ELSE IF (sigma==0._dp)THEN
+          !
+          IF(ABS(omega_P)>1.e-7_dp)THEN
+            ctm_P = 2 * bose_P /omega_P
+          ELSE
+            ctm_P = 0._dp
+          ENDIF
+          !
+          IF(ABS(omega_M)>1.e-5_dp)THEN
+            bose_M   = bose(k,3) - bose(j,2)
+            ctm_M = 2 * bose_M /omega_M
+          ELSE
+            IF(ABS(omega_P*T)>1.e-7_dp)THEN
+              ctm_M = 2* df_bose(0.5_dp * omega_P, T)
+            ELSE
+              ctm_M = 0._dp
+            ENDIF
+          ENDIF
+          !
+        ENDIF
+        !
         DO i = 1,S%nat3
           !
-          ! This comes from the definition of u_qj, Ref. 1. (there is an hidden factor 8)
+          ! This comes from the definition of u_qj, Ref. 1. (there is an hidden factor 1/8)
           freqtotm1 = freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
           ! regularization:
-          reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+          IF(sigma>0._dp)THEN
+            reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
+          ENDIF
           !reg = -sigma**2
           !
-          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
-          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
           !
           se(i) = se(i) + (ctm_P + ctm_M)*freqtotm1 * V3sq(i,j,k)
+          !IF(ISNAN(REAL(se(i))))THEN
+          ! print*, "gottanan "
+          ! print*, ctm_P, ctm_M, freqtotm1, V3sq(i,j,k)
+          ! print*, omega_P, omega_M, T, sigma
+          ! print*, k,i,j
+          ! stop 1
+          !ENDIF
           !
         ENDDO
       ENDDO
@@ -611,33 +645,33 @@ MODULE linewidth
   ! NOTE: test function! It computes the full self-energy then it takes the imag part
   !       the interesting part is the conversion between the sigma of a Gaussian
   !       and the width of a Lorentzian
-  ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_linewidth_modes2(S, sigma, freq, bose, V3sq, nu0)
-    USE input_fc,           ONLY : ph_system_info
-    IMPLICIT NONE
-    TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma
-    REAL(DP),INTENT(in) :: freq(S%nat3,3)
-    REAL(DP),INTENT(in) :: bose(S%nat3,3)
-    REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
-    INTEGER,INTENT(in)  :: nu0(3)
-    !
-    ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
-    ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
-    ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
-    ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
-    !  =>  g = 2 sqrt(log(2) c = 0.6 c
-    REAL(DP),PARAMETER :: csig =  (2 * DSQRT(DLOG(2._dp)))
-    REAL(DP) :: tsigma
-    !
-    REAL(DP) :: sum_linewidth_modes2(S%nat3)
-    COMPLEX(DP) :: se(S%nat3)
-    !
-    tsigma = csig*sigma
-    se = sum_selfnrg_modes(S, tsigma, freq, bose, V3sq, nu0)
-    sum_linewidth_modes2  = -DIMAG(se)
-    !
-  END FUNCTION sum_linewidth_modes2
+!   ! \/o\________\\\_________________________________________/^>
+!   FUNCTION sum_linewidth_modes2(S, sigma, freq, bose, V3sq, nu0)
+!     USE input_fc,           ONLY : ph_system_info
+!     IMPLICIT NONE
+!     TYPE(ph_system_info),INTENT(in)   :: S
+!     REAL(DP),INTENT(in) :: sigma
+!     REAL(DP),INTENT(in) :: freq(S%nat3,3)
+!     REAL(DP),INTENT(in) :: bose(S%nat3,3)
+!     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
+!     INTEGER,INTENT(in)  :: nu0(3)
+!     !
+!     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
+!     ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
+!     ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
+!     ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
+!     !  =>  g = 2 sqrt(log(2) c = 0.6 c
+!     REAL(DP),PARAMETER :: csig =  (2 * DSQRT(DLOG(2._dp)))
+!     REAL(DP) :: tsigma
+!     !
+!     REAL(DP) :: sum_linewidth_modes2(S%nat3)
+!     COMPLEX(DP) :: se(S%nat3)
+!     !
+!     tsigma = csig*sigma
+!     se = sum_selfnrg_modes(S, tsigma, freq, bose, V3sq, nu0)
+!     sum_linewidth_modes2  = -DIMAG(se)
+!     !
+!   END FUNCTION sum_linewidth_modes2
   !
   ! Add the elastic peak of Raman
   SUBROUTINE add_exp_t_factor(nconf, T, ne, nat3, ener, spectralf)

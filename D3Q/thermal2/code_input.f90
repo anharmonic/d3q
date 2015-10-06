@@ -147,7 +147,7 @@ MODULE code_input
     !
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
-    ioWRITE(stdout,'(2x,3a)'), "Reading input file '", TRIM(input_file), "'"
+    ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
     OPEN(unit=5, file=input_file, status="OLD", action="READ")
     !
     IF(code=="LW")THEN

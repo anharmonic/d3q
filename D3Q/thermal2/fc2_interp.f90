@@ -395,7 +395,8 @@ MODULE fc2_interpolate
     !
     ! Is the following mess really necessary? (3 days later: it is)
     !WHERE    (freq*T >  eps)
-    WHERE    (freq /=  0._dp)
+    !WHERE    (freq /=  0._dp)
+    WHERE    (freq*T > 0._dp)
       bose = f_bose(freq, T)
     ELSEWHERE
       bose = 0._dp

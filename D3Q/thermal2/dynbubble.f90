@@ -182,7 +182,7 @@ MODULE dynbubble
             ctm_M = 2 * bose_M /omega_M
           ELSE
             !ctm_M = 0._dp
-            IF(omega_P>0._dp)THEN
+            IF(omega_P>1.e-7_dp)THEN
               ctm_M = 2* df_bose(0.5_dp * omega_P, T)
             ELSE
               ctm_M = 0._dp
