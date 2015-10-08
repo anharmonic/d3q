@@ -179,7 +179,7 @@ MODULE q_grids
     ENDDO
 
     grid%basis = 'cartesian'
-    IF(NINT(sum(grid%w)) /= sg%nq) CALL errore('setup_bz_grid,''wrong weight',1)
+    IF(NINT(sum(grid%w)) /= sg%nq) CALL errore('setup_bz_grid','wrong weight',1)
     grid%w = grid%w / DBLE(sg%nq)
     !
     IF(present(xq0)) THEN
