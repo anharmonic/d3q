@@ -103,7 +103,7 @@ MODULE final_state
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
-        sumaux = grid%w(iq)*sum_final_state_e( S, sigma(it), freq, bose, V3sq, ei, ne, ener )
+        sumaux = grid%w(iq)*sum_final_state_e( S, sigma(it), T(it), freq, bose, V3sq, ei, ne, ener )
 !         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
         !
@@ -123,7 +123,7 @@ MODULE final_state
     !
     IF(qresolved)THEN
       IF(grid%scattered)THEN
-      CALL errore("final_state_q","grid resolved not implemented in parallel",1)
+      !CALL errore("final_state_q","grid resolved not implemented in parallel",1)
       !DO it = 1,nconf
       !  CALL mpi_bsum(ne,S%nat3,qpath%nq, xqbar(:,:,:,it))
       !ENDDO
@@ -158,11 +158,11 @@ MODULE final_state
   !
   ! Sum the self energy at the provided ener(ne) input energies
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_final_state_e(S, sigma, freq, bose, V3sq, ei, ne, ener)
-    USE functions, ONLY : f_gauss
+  FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, ei, ne, ener)
+    USE functions, ONLY : f_gauss, df_bose
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
+    REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
     REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
     REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
@@ -202,13 +202,45 @@ MODULE final_state
         !
         FORALL(i=1:ne) wfinal(i) = f_gauss((ener(i)-freq(j,2)), de)
         !
+
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
-        omega_P2 = omega_P**2
         !
         bose_M   = bose(k,3) - bose(j,2)
         omega_M  = freq(j,2)-freq(k,3)
-        omega_M2 = omega_M**2
+        !
+        IF(sigma>0._dp)THEN
+          omega_P2 = omega_P**2
+          omega_M2 = omega_M**2
+        ELSE IF(sigma<0._dp)THEN
+          ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2)
+          ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2)
+        ELSE !IF (sigma==0._dp)THEN
+          !
+          IF(omega_P>0._dp)THEN
+            ctm_P = 2 * bose_P /omega_P
+          ELSE
+            ctm_P = 0._dp
+          ENDIF
+          !
+          IF(ABS(omega_M)>1.e-2_dp)THEN
+            ctm_M = 2 * bose_M /omega_M
+          ELSE
+            IF(T>0._dp)THEN
+              ctm_M = -2* df_bose(0.5_dp * omega_P, T)
+            ELSE
+              ctm_M = 0._dp
+            ENDIF
+          ENDIF
+          !
+        ENDIF
+        !bose_P   = 1 + bose(j,2) + bose(k,3)
+        !omega_P  = freq(j,2)+freq(k,3)
+        !omega_P2 = omega_P**2
+        !
+        !bose_M   = bose(k,3) - bose(j,2)
+        !omega_M  = freq(j,2)-freq(k,3)
+        !omega_M2 = omega_M**2
         !
         DO i = 1,S%nat3
 !           i = 6
@@ -221,10 +253,17 @@ MODULE final_state
             !
             DO ie = 1, ne
             ! regularization:
-              reg = CMPLX(ei, sigma, kind=DP)**2
               !
-              ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
-              ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+              ! regularization:
+              IF(sigma>0._dp)THEN
+                reg = CMPLX(ei, sigma, kind=DP)**2
+                !reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+                ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+                ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
+              ENDIF
+
+              !ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+              !ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
               !
               fsdf(ie,i) = fsdf(ie,i) + wfinal(ie)*(ctm_P + ctm_M) * V3sq(i,j,k) * freqtotm1
             ENDDO
@@ -235,7 +274,8 @@ MODULE final_state
     ENDDO
 !$OMP END PARALLEL DO
     !
-    sum_final_state_e = -DIMAG(fsdf)
+    !sum_final_state_e = -DIMAG(fsdf)
+    sum_final_state_e = REAL(fsdf)
     DEALLOCATE(fsdf)
     !
   END FUNCTION sum_final_state_e

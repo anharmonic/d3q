@@ -22,6 +22,7 @@ PROGRAM add_bubble
   USE dynbubble,        ONLY : dynbubble_q
   USE constants,        ONLY : RY_TO_CMM1
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
+  USE more_constants,     ONLY : write_conf
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -53,6 +54,22 @@ PROGRAM add_bubble
   ALLOCATE(dynY(S%nat3,S%nat3))
   ALLOCATE(U(S%nat3,S%nat3))
   ALLOCATE(freq(S%nat3), freq0(S%nat3), freqY(S%nat3))
+
+  DO it = 1,input%nconf
+    filename=TRIM(input%outdir)//"/"//&
+             TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+    !ioWRITE(*,*) "filename", TRIM(filename)
+    OPEN(unit=1000+it, file=filename)
+    IF (TRIM(input%mode) == "full") THEN
+      ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
+    ELSE
+      ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
+    ENDIF
+    ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
+    CALL flush_unit(1000+it)
+  ENDDO
+
   DO iq = 1, qpts%nq
     ioWRITE(*, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
     ioWRITE(*, '(i6,3f12.6)') iq, qpts%xq(:,iq)
@@ -87,11 +104,13 @@ PROGRAM add_bubble
       !
       dynY = multiply_mass_dyn(S, dynX)
       filename = "dyn_conf"//TRIM(int_to_char(it))//"_"//TRIM(int_to_char(iq))
-      CALL write_dyn(filename, qpts%xq(:,iq), dynY, S)
+!       CALL write_dyn(filename, qpts%xq(:,iq), dynY, S)
       !
       dynY = dynX
       CALL mat2_diag(S%nat3, dynX, freq)
       freq = SIGN(SQRT(ABS(freq)), freq)
+      ioWRITE(1000+it,"(i6,2(12e20.6,5x))") iq,freq0*RY_TO_CMM1,freq*RY_TO_CMM1
+      CALL flush_unit(1000+it)
       
       CALL dyn_cart2pat(dynY, S%nat3, U, +1)
       FORALL(nu=1:S%nat3) freqY(nu) = dynY(nu,nu)
@@ -105,6 +124,10 @@ PROGRAM add_bubble
       !
       !
     ENDDO
+  ENDDO
+
+  DO it = 1,input%nconf
+    CLOSE(1000+it)
   ENDDO
 
   CALL stop_mpi()

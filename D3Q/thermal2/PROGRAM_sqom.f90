@@ -112,7 +112,7 @@ MODULE sqom_program
     WRITE(stdout,*) "Reading : done."
     WRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
     !
-    IF(input%asr2) CALL impose_asr2(S%nat, fc2)
+    IF(input%asr2) CALL impose_asr2("simple",S%nat, fc2)
     CALL div_mass_fc2(S, fc2)
     !
   END SUBROUTINE READ_DATA

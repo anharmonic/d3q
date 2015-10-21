@@ -86,7 +86,7 @@ MODULE linewidth_program
     !
     dpl = 0._dp; pl = 0._dp
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
+    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
     DO iq = 1,qpath%nq
       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
@@ -95,6 +95,7 @@ MODULE linewidth_program
       !
       IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
       pl = pl + dpl
+      !ioWRITE(*,*) pl, qpath%w(iq)
       !
       IF (TRIM(input%mode) == "full") THEN
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
@@ -213,7 +214,7 @@ MODULE linewidth_program
     !
     dpl = 0._dp; pl = 0._dp
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
+    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
       CALL freq_phq(qpath%xq(:,iq), S, fc2, w2, D)
@@ -317,7 +318,7 @@ MODULE linewidth_program
     !
     dpl = 0._dp; pl = 0._dp
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points"
+    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (3)"
     
 !     DO iq = 1,qpath%nq
 !       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
@@ -337,7 +338,7 @@ MODULE linewidth_program
       DO it = 1,input%nconf
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(2f14.8,100e18.6e4)') &
-                pl, ener(ie), SUM(fstate(ie,:,it)), fstate(ie,:,it)
+                pl, ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
           CALL flush_unit(1000+it)
         ENDDO
       ENDDO

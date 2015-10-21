@@ -10,6 +10,7 @@
 
 MODULE linewidth
 
+#include "mpi_thermal.h"
   USE kinds,          ONLY : DP
   USE more_constants, ONLY : eps_freq
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
@@ -17,6 +18,7 @@ MODULE linewidth
   !USE fc3_interpolate, ONLY : forceconst3
   USE mpi_thermal, ONLY : my_id, mpi_bsum
   USE timers
+
 
   CONTAINS
 
@@ -493,17 +495,17 @@ MODULE linewidth
     !
     se(:) = (0._dp, 0._dp)
     !
-    WHERE(ABS(freq)>eps_freq)
-      freqm1 = 0.5_dp/freq
-    ELSEWHERE
-      freqm1 = 0._dp
-    ENDWHERE
-!     freqm1 = 0._dp
-!     DO i = 1,S%nat3
-!       IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
-!       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
-!       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-!     ENDDO
+!    WHERE(ABS(freq)>eps_freq)
+!      freqm1 = 0.5_dp/freq
+!    ELSEWHERE
+!      freqm1 = 0._dp
+!    ENDWHERE
+     freqm1 = 0._dp
+     DO i = 1,S%nat3
+       IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+     ENDDO
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,bose_P,bose_M,omega_P,omega_M,&
@@ -514,29 +516,29 @@ MODULE linewidth
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
-        omega_P2 = omega_P**2
         !
         bose_M   = bose(k,3) - bose(j,2)
         omega_M  = freq(j,2)-freq(k,3)
-        omega_M2 = omega_M**2
         !
-        IF(sigma<0._dp)THEN
-          ctm_P = 2 * bose_P *omega_P/(omega_P2+sigma**2)
-          ctm_M = 2 * bose_M *omega_M/(omega_M2+sigma**2)
-        ELSE IF (sigma==0._dp)THEN
+        IF(sigma>0._dp)THEN
+          omega_P2 = omega_P**2
+          omega_M2 = omega_M**2
+        ELSE IF(sigma<0._dp)THEN
+          ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2)
+          ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2)
+        ELSE !IF (sigma==0._dp)THEN
           !
-          IF(ABS(omega_P)>1.e-7_dp)THEN
+          IF(omega_P>0._dp)THEN
             ctm_P = 2 * bose_P /omega_P
           ELSE
             ctm_P = 0._dp
           ENDIF
           !
-          IF(ABS(omega_M)>1.e-5_dp)THEN
-            bose_M   = bose(k,3) - bose(j,2)
+          IF(ABS(omega_M)>1.e-2_dp)THEN
             ctm_M = 2 * bose_M /omega_M
           ELSE
-            IF(ABS(omega_P*T)>1.e-7_dp)THEN
-              ctm_M = 2* df_bose(0.5_dp * omega_P, T)
+            IF(T>0._dp)THEN
+              ctm_M = -2* df_bose(0.5_dp * omega_P, T)
             ELSE
               ctm_M = 0._dp
             ENDIF
@@ -546,6 +548,7 @@ MODULE linewidth
         !
         DO i = 1,S%nat3
           !
+          !IF(freq(i,1)<1.d-3 .or. freq(j,2)<1.d-3 .or. freq(k,3)<1.d-3) CYCLE
           ! This comes from the definition of u_qj, Ref. 1. (there is an hidden factor 1/8)
           freqtotm1 = freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
@@ -555,15 +558,12 @@ MODULE linewidth
             ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
             ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
           ENDIF
-          !reg = -sigma**2
           !
           !
           se(i) = se(i) + (ctm_P + ctm_M)*freqtotm1 * V3sq(i,j,k)
-          !IF(ISNAN(REAL(se(i))))THEN
-          ! print*, "gottanan "
-          ! print*, ctm_P, ctm_M, freqtotm1, V3sq(i,j,k)
-          ! print*, omega_P, omega_M, T, sigma
-          ! print*, k,i,j
+
+          !IF(freqtotm1/=0._dp)THEN
+          ! ioWRITE(30000,'(3i4,99e12.4)') k,i,j, omega_P, omega_M, T, sigma, ctm_P, ctm_M, freqtotm1, V3sq(i,j,k)
           ! stop 1
           !ENDIF
           !
@@ -572,6 +572,9 @@ MODULE linewidth
     ENDDO
 !$OMP END PARALLEL DO
     !
+    !ioWRITE(30000,*) 
+    !ioWRITE(30000,*) 
+    !ioWRITE(30000,*) 
     sum_selfnrg_modes = se
     !
   END FUNCTION sum_selfnrg_modes

@@ -26,7 +26,7 @@ MODULE code_input
     !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
-    LOGICAL            :: asr2
+    CHARACTER(len=8)   :: asr2
     !
     INTEGER            :: nconf
     REAL(DP),ALLOCATABLE :: T(:), sigma(:)
@@ -79,7 +79,7 @@ MODULE code_input
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
     !
     CHARACTER(len=256) :: outdir = './'              ! where to write output files
-    LOGICAL            :: asr2 = .false.             ! apply sum rule to phonon force constants
+    CHARACTER(len=8)   :: asr2 = "no"                ! apply sum rule to phonon force constants
     INTEGER            :: nconf = 1                  ! numebr of smearing/temperature couples
     INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
@@ -190,6 +190,8 @@ MODULE code_input
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
     !
+    ! read data before reading the q-point, because we need the unit
+    ! cell to go to/from crystal coords etc
     CALL READ_DATA(input, s, fc2, fc3)
     !
     READ(calculation,*,iostat=ios) input%calculation, input%mode
@@ -260,7 +262,7 @@ MODULE code_input
         !
         ioWRITE(*,*) "Reading QPOINTS"
         !
-        IF(TRIM(input%calculation) == "grid")THEN
+        IF(TRIM(input%mode) == "grid")THEN
           READ(stdin,*,iostat=ios) nq1, nq2, nq3
           IF(ios/=0) CALL errore("READ_INPUT", "reading nq1, nq2, nq3 for q-grid calculation", 1)
           line=''
@@ -281,20 +283,16 @@ MODULE code_input
           ! Try to read point and number of points
           READ(line,*, iostat=ios2) xq(1), xq(2), xq(3), naux
           IF(ios2==0) THEN
-            IF(i>1) THEN
-              xq0 = qpts%xq(:,qpts%nq)
-            ELSE
-              xq0 = 0._dp
-            ENDIF
-            IF(SUM((xq-xq0)**2)<1.d-6) CALL errore("READ_INPUT", "q-point repeated, please think for the planet.", 1)
-            CALL setup_path(xq0, xq, naux, qpts)
+            IF(TRIM(qpts%basis) == "crystal")  CALL cryst_to_cart(1,xq,S%bg, +1)
+            CALL setup_path(xq, naux, qpts, S%at)
             CYCLE QPOINT_LOOP
           ENDIF
           !
           ! Try to read just the point 
           READ(line,*, iostat=ios2) xq(1), xq(2), xq(3)
           IF(ios2==0) THEN
-            CALL setup_path(xq, xq, 1, qpts)
+            IF(TRIM(qpts%basis) == "crystal")  CALL cryst_to_cart(1,xq,S%bg, +1)
+            CALL setup_path(xq, 1, qpts, S%at)
             CYCLE QPOINT_LOOP
           ENDIF
           !
@@ -307,11 +305,13 @@ MODULE code_input
         ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
         !
         IF(TRIM(qpts%basis) == "crystal")  THEN
-          CALL cryst_to_cart(qpts%nq,qpts%xq,S%bg, +1)
+          !CALL cryst_to_cart(qpts%nq,qpts%xq,S%bg, +1)
           qpts%basis = "cartesian"
           ioWRITE(*,"(4x,a)") "q-points converted to cartesian basis"
         ENDIF
-        ioWRITE(*,"(2x,3f12.6)") qpts%xq ! this prints all points, one per line
+        DO i = 1, qpts%nq 
+          ioWRITE(*,"(2x,3f12.6,f15.6)") qpts%xq(:,i), qpts%w(i) ! this prints all points, one per line
+        ENDDO
         ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("CONFIGS")
@@ -487,7 +487,7 @@ MODULE code_input
     ioWRITE(stdout,*) "Reading : done."
     ioWRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
     !
-    IF(input%asr2) CALL impose_asr2(S%nat, fc2)
+    CALL impose_asr2(input%asr2, S%nat, fc2)
     ! NOTE: we now divide by the mass in READ_INPUT, as the masses
     !       read from input may be different (i.e. when including isotope scattering)
 !    CALL div_mass_fc2(S, fc2)

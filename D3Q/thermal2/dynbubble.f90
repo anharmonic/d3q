@@ -10,7 +10,8 @@
 
 MODULE dynbubble
 
-  USE kinds,     ONLY : DP
+  USE kinds,           ONLY : DP
+  USE more_constants,  ONLY : eps_freq
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
@@ -129,8 +130,8 @@ MODULE dynbubble
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: freqtotm1_23nm, freqtotm1_23n, freqtotm1_23
-    REAL(DP) :: omega_P,  omega_M
+    REAL(DP) :: freqtotm1_23 !nm, freqtotm1_23n, freqtotm1_23
+    REAL(DP) :: omega_P,  omega_M, omega_P2, omega_M2
     COMPLEX(DP) :: ctm_P, ctm_M, reg
     !
     INTEGER :: i, j,k, n,m
@@ -138,16 +139,16 @@ MODULE dynbubble
     COMPLEX(DP) :: sum_dynbubble(nat3,nat3)
     COMPLEX(DP) :: dyn(nat3,nat3), aux
     REAL(DP)    :: freqm1(nat3,2:3)
-    REAL(DP)    :: sqfreqm1(nat3)
+    !REAL(DP)    :: sqfreqm1(nat3)
     REAL(DP)    :: sqfreq(nat3)
     !
     ! Prepare some auxiliary
     freqm1 = 0._dp
-    sqfreqm1 = 0._dp
+    !sqfreqm1 = 0._dp
     DO i = 1,nat3
       sqfreq(i) = DSQRT(freq(i,1))
       !IF(sigma>=0)THEN
-       sqfreqm1(i) = 1._dp
+      ! sqfreqm1(i) = 1._dp
       !ELSE
 !       IF(i>=nu0(1)) sqfreqm1(i) = DSQRT(0.5_dp/freq(i,1))
       !ENDIF
@@ -163,31 +164,37 @@ MODULE dynbubble
         bose_P   = 1 + bose(j,2) + bose(k,3)
         omega_P  = freq(j,2)+freq(k,3)
         !
-       !
-        omega_M  = freq(j,3)-freq(k,2)
+        bose_M   = bose(k,3) - bose(j,2)
+        omega_M  = freq(j,2)-freq(k,3)
         !
-        IF(sigma>0._dp)THEN  
-          ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2 )
-          ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2 )
-        ELSE IF( sigma==0._dp ) THEN
-          !
-          IF(ABS(omega_P)>1.e-7_dp)THEN
+        IF(sigma>0._dp)THEN
+          ! In this case the factors have to be computed for each omega1, I precompute what I can
+          omega_P2 = omega_P**2
+          omega_M2 = omega_M**2
+        ELSE IF(sigma<0._dp)THEN
+          ! In this case I can precompute everything
+          ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2)
+          ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2)
+        ELSE IF (sigma==0._dp)THEN
+          ! I can pre-compute everything but it is a bit a mess
+          IF(ABS(omega_P)>eps_freq)THEN
             ctm_P = 2 * bose_P /omega_P
           ELSE
             ctm_P = 0._dp
           ENDIF
           !
           IF(ABS(omega_M)>1.e-5_dp)THEN
-            bose_M   = bose(k,3) - bose(j,2)
+            !bose_M   = bose(k,3) - bose(j,2)
             ctm_M = 2 * bose_M /omega_M
           ELSE
-            !ctm_M = 0._dp
-            IF(omega_P>1.e-7_dp)THEN
-              ctm_M = 2* df_bose(0.5_dp * omega_P, T)
+            IF(T>0._dp.and.ABS(omega_P)>eps_freq)THEN
+              ctm_M = -2* df_bose(0.5_dp * omega_P, T)
+              !ctm_M = 0._dp
             ELSE
               ctm_M = 0._dp
             ENDIF
           ENDIF
+          !
         ENDIF
         !
         !
@@ -195,20 +202,20 @@ MODULE dynbubble
         !
         DO n = 1,nat3
           !
-          freqtotm1_23n = freqtotm1_23 * sqfreqm1(n)
+          !freqtotm1_23n = freqtotm1_23 * sqfreqm1(n)
           !
           DO m = 1,nat3
             !
-            freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
+            !freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
             !
             !
             IF(sigma<0._dp)THEN
               reg = CMPLX(sqfreq(n)*sqfreq(m), -sigma, kind=DP)**2
-              ctm_P = 2 * bose_P *omega_P/(omega_P**2-reg )
-              ctm_M = 2 * bose_M *omega_M/(omega_M**2-reg )
+              ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+              ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
             ENDIF
-              
-
+            dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) *freqtotm1_23 &
+                            * CONJG(V3(m,j,k)) *V3(n,j,k)
 !             aux = (ctm_P + ctm_M)*freqtotm1_23nm * CONJG(V3(m,j,k)) *V3(n,j,k)
 !             IF(ISNAN(REAL(aux)) .or. ISNAN(IMAG(aux)))THEN
 !               print*,k,j,n,m
@@ -220,10 +227,8 @@ MODULE dynbubble
 !               print*, V3(n,j,k)
 !               STOP 0
 !             ENDIF
-            dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) *freqtotm1_23nm &
-                            * CONJG(V3(m,j,k)) *V3(n,j,k)
-!             dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) &
-!                             * CONJG(V3(m,j,k)) *V3(n,j,k)
+!            dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) *freqtotm1_23nm &
+!                            * CONJG(V3(m,j,k)) *V3(n,j,k)
             !
           ENDDO
         ENDDO

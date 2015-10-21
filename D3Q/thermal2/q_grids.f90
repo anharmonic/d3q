@@ -286,59 +286,98 @@ MODULE q_grids
   END SUBROUTINE setup_simple_grid
   ! \/o\________\\\_________________________________________/^>
   ! Create a line of nq q-point from xqi to xqf, the list is appended
-  ! to the grid 
-  SUBROUTINE setup_path(xqi, xqf, nq, path)
+  ! to the grid, weights are improperly used as path length
+  SUBROUTINE setup_path(xqi, nq_new, path, at)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
-    INTEGER,INTENT(in)  :: nq
-    REAL(DP),INTENT(in) :: xqi(3), xqf(3)
+    INTEGER,INTENT(in)  :: nq_new
+    REAL(DP),INTENT(in) :: xqi(3)
+    REAL(DP),INTENT(in),OPTIONAL :: at(3,3)
     TYPE(q_grid),INTENT(inout) :: path
     !
-    INTEGER :: i, n0
+    INTEGER :: i, nq_old
     REAL(DP),PARAMETER:: eps = 1.d-8
-    REAL(DP),ALLOCATABLE :: auxq(:,:)
-    REAL(DP) :: dq(3)
+    REAL(DP),ALLOCATABLE :: auxq(:,:), auxw(:)
+    REAL(DP) :: dq(3), dql
+    LOGICAL ::  equiv
     !
-    IF(nq==0) RETURN
+    IF(nq_new==0) RETURN
+    IF(nq_new>1 .and. path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 1)
     !
+    equiv = .false.
+    ADD_TO_PATH : &
     IF(path%nq >0)THEN
-      ALLOCATE(auxq(3,path%nq))
+      ALLOCATE(auxq(3,path%nq),auxw(path%nq))
       auxq = path%xq
-      DEALLOCATE(path%xq)
-      ! If xqi is the same as the last point in the list, do not
-      ! add it again. FIXME: check for q = q'+G, use optional input S info
-      IF(SUM(ABS(auxq(:,path%nq)-xqi))<eps) THEN
-        n0 = path%nq 
-        path%nq = path%nq + nq -1
-      ELSE
-        n0 = path%nq +1
-        path%nq = path%nq + nq
-      ENDIF
+      auxw = path%w
+      DEALLOCATE(path%xq, path%w)
+      ! If xqi is the same as the last point in the list, 
+      ! do not add this distance to the path length
+      nq_old = path%nq
+      path%nq = path%nq + nq_new
       !
-      ALLOCATE(path%xq(3,path%nq))
-      path%xq(:,1:size(auxq,2)) = auxq(:,1:size(auxq,2))
-      DEALLOCATE(auxq)
-    ELSE
-      n0 = 1
-      path%nq = nq
-      ALLOCATE(path%xq(3,path%nq))
-    ENDIF
+      ALLOCATE(path%xq(3,path%nq),path%w(path%nq))
+      path%xq(:,1:nq_old) = auxq(:,1:nq_old)
+      path%w(1:nq_old) = auxw(1:nq_old)
+      ! check for turning point
+      !
+      DEALLOCATE(auxq,auxw)
+    ELSE ADD_TO_PATH
+      nq_old=0
+      path%nq = nq_new
+      ALLOCATE(path%xq(3,path%nq),path%w(path%nq))
+      path%w(1)=0._dp
+    ENDIF &
+    ADD_TO_PATH
     !
-    IF(nq>1)THEN
-      dq = (xqf-xqi)/(nq-1)
-      DO i = n0, path%nq
-        path%xq(:,i) = xqi + dq * (i-n0)
+    IF(nq_new>1)THEN
+    dq = (xqi-path%xq(:,nq_old))/(nq_new)
+    dql = SQRT(SUM(dq**2))
+    ! build the actual path
+      DO i = nq_old+1, path%nq
+        path%xq(:,i) = path%xq(:,nq_old) + dq * (i-nq_old)
+        IF(i>1) path%w(i) = path%w(i-1) + SQRT(SUM(dq**2))
       ENDDO
     ELSE
-        ! With nq=1 xqf is appended to the list, xqi is ignored
-        ! note that repeated points are dropped
-        path%xq(:,path%nq) = xqf
+      IF(nq_old>1)THEN
+        dq = path%xq(:,nq_old)-xqi
+        ! compute path length before taking it to crystal axes
+        dql = SQRT(SUM(dq**2))
+        ! if cell vectors are available, we can check for periodic image equivalence
+        IF(present(at)) THEN
+          CALL cryst_to_cart(1,dq,at,-1)
+          !ioWRITE(*,'(a,2(3f12.6,5x))') "equiv a", dqG, REAL(NINT(dq))
+          dq = dq-NINT(dq)
+        ENDIF
+        equiv=SUM(dq**2)<1.d-6
+        !
+        IF(equiv.and.nq_new==1)THEN
+          path%w(nq_old+1) = path%w(nq_old)
+        ELSE
+          path%w(nq_old+1) = path%w(nq_old)+dql
+        ENDIF
+      ENDIF
+      !
+      !
+      path%xq(:,path%nq) = xqi
     ENDIF
-    !
-    ! paths are not suitable for integrals, set al weights to zero just in case
-    IF(allocated(path%w)) DEALLOCATE(path%w)
-    ALLOCATE(path%w(path%nq))
-    path%w = 0._dp 
+    ! 
+    IF(nq_old>1)THEN
+    IF(SUM( ( (path%xq(:,nq_old-1) - path%xq(:,nq_old)) &
+              -(path%xq(:,nq_old) - path%xq(:,nq_old+1)))**2 ) > 1.d-6 ) THEN
+      ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
+    ENDIF
+    ENDIF
+!     DO i = 1, path%nq 
+!       ioWRITE(*,"(2x,3f12.6,f15.6)") path%xq(:,i), path%w(i) ! this prints all points, one per line
+!     ENDDO
+!     ioWRITE(*,*)
+
+    ! paths are not suitable for integrals, just set them to
+    ! path length, I redo this every time even if it is 
+    !IF(allocated(path%w)) DEALLOCATE(path%w)
+    !ALLOCATE(path%w(path%nq))
+    !path%w = 0._dp 
     !
   END SUBROUTINE setup_path
   ! \/o\________\\\_________________________________________/^>

@@ -37,7 +37,7 @@ PROGRAM r2q
   !  
   CALL read_fc2(file_mat2, S,  fc2)
   CALL aux_system(S)
-  IF(asr2) CALL impose_asr2(S%nat, fc2)
+  IF(asr2) CALL impose_asr2("simple",S%nat, fc2)
   CALL div_mass_fc2(S, fc2)
 
 
