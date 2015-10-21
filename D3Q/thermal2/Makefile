@@ -30,8 +30,8 @@ LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src
 #F90FLAGS += -qsmp=omp
 # intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp 
-LDFLAGS  += -openmp #-pg -g
+#F90FLAGS += -openmp 
+#LDFLAGS  += -openmp #-pg -g
 
 D3QTOOLSLIBS = \
 asr2.o \

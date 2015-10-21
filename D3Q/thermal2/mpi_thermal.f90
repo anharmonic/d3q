@@ -30,13 +30,19 @@ MODULE mpi_thermal
 
   SUBROUTINE start_mpi()
     IMPLICIT NONE
+#ifdef __OPENMP
     INTEGER,EXTERNAL ::  omp_get_max_threads
+#endif
     call MPI_INIT ( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, my_id, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
     ionode = (my_id == 0)
     IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
+#ifdef __OPENMP
     omp_tot_thr =  omp_get_max_threads()
+#else
+   omp_tot_thr = 1
+#endif
     CALL mpi_bsum(omp_tot_thr)
     IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i6,a)") "Using",  omp_tot_thr, " total MPI+OpenMP threads"
     mpi_started = .true.
