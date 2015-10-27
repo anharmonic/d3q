@@ -103,8 +103,14 @@ PROGRAM add_bubble
       dynX = dynX + dyn0
       !
       dynY = multiply_mass_dyn(S, dynX)
-      filename = "dyn_conf"//TRIM(int_to_char(it))//"_"//TRIM(int_to_char(iq))
-!       CALL write_dyn(filename, qpts%xq(:,iq), dynY, S)
+      !filename = "dyn_conf"//TRIM(int_to_char(it))//"_"//TRIM(int_to_char(iq))
+      IF(input%print_dynmat) THEN
+        filename = "dyn_"//TRIM(input%prefix)//&
+                   "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                   "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
+                   "_q"//TRIM(int_to_char(iq))
+        CALL write_dyn(filename, qpts%xq(:,iq), dynY, S)
+      ENDIF
       !
       dynY = dynX
       CALL mat2_diag(S%nat3, dynX, freq)

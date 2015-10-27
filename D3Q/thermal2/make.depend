@@ -11,6 +11,7 @@ PROGRAM_db.o : ./dynbubble.o
 PROGRAM_db.o : ./fc2_interp.o
 PROGRAM_db.o : ./fc3_interp.o
 PROGRAM_db.o : ./input_fc.o
+PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
 PROGRAM_lw.o : ../../Modules/constants.o
 PROGRAM_lw.o : ../../Modules/kind.o
@@ -42,6 +43,11 @@ PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat.o
 PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat_old.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
+PROGRAM_qq2rr.o : ../../D3Q/src/d3_shuffle.o
+PROGRAM_qq2rr.o : ../../D3Q/src/d3matrix_io.o
+PROGRAM_qq2rr.o : ../../Modules/kind.o
+PROGRAM_qq2rr.o : ../../Modules/parameters.o
+PROGRAM_qq2rr.o : ./input_fc.o
 PROGRAM_r2q.o : ../../Modules/constants.o
 PROGRAM_r2q.o : ../../Modules/kind.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
@@ -55,6 +61,7 @@ PROGRAM_sparse.o : ../../Modules/wrappers.o
 PROGRAM_sparse.o : ./PROGRAM_sparse.o
 PROGRAM_sparse.o : ./fc3_interp.o
 PROGRAM_sparse.o : ./input_fc.o
+PROGRAM_sparse.o : ./mpi_thermal.o
 PROGRAM_sparse.o : ./nanoclock.o
 PROGRAM_sqom.o : ../../Modules/constants.o
 PROGRAM_sqom.o : ../../Modules/io_global.o
@@ -112,6 +119,7 @@ dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
 dynbubble.o : ./functions.o
 dynbubble.o : ./input_fc.o
+dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
 fc2_interp.o : ../../Modules/constants.o
@@ -183,6 +191,17 @@ quter.o : ../../Modules/kind.o
 quter.o : ./input_fc.o
 quter_standalone.o : ../../Modules/constants.o
 quter_standalone.o : ../../Modules/kind.o
+sqom.o : ../../Modules/constants.o
+sqom.o : ../../Modules/io_global.o
+sqom.o : ../../Modules/kind.o
+sqom.o : ../../Modules/parameters.o
+sqom.o : ../../Modules/wrappers.o
+sqom.o : ./PROGRAM_sqom.o
+sqom.o : ./asr2.o
+sqom.o : ./functions.o
+sqom.o : ./input_fc.o
+sqom.o : ./linewidth.o
+sqom.o : ./more_constants.o
 timers.o : ../../Modules/kind.o
 timers.o : ./nanoclock.o
 variational_tk.o : ../../Modules/constants.o
@@ -201,6 +220,7 @@ variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
+PROGRAM_db.o : 
 PROGRAM_lw.o : 
 PROGRAM_tk.o : 
 code_input.o : 

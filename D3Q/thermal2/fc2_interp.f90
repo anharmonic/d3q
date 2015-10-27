@@ -8,6 +8,7 @@ MODULE fc2_interpolate
   !
   USE kinds,    ONLY : DP
   USE nanoclock
+#include "mpi_thermal.h"  
   !
   ! I take forceconst2_grid globally in this module so I can USE it from here 
   ! elsewhere, which makes more sense
@@ -309,7 +310,9 @@ MODULE fc2_interpolate
   !
   ! Auxiliary subroutines follow:
   !
-  ! Interpolate dynamical matrice at q and diagonalize it
+  ! Interpolate dynamical matrice at q and diagonalize it, 
+  ! put acoustic gamma frequencies at exactl zero, 
+  ! STOP if we get any negative frequencies
   SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     IMPLICIT NONE
@@ -320,6 +323,8 @@ MODULE fc2_interpolate
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: epsq = 1.e-6_dp
     REAL(DP) :: cq(3)
+    INTEGER :: i
+    LOGICAL :: gamma
     !
     CALL fftinterp_mat2(xq, S%nat3, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
@@ -328,21 +333,29 @@ MODULE fc2_interpolate
     ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)
     cq = xq
     CALL cryst_to_cart(1,cq,S%at,-1)
-    IF(ALL( ABS(cq-INT(cq))<epsq ) )THEN
+    gamma = ALL( ABS(cq-NINT(cq))<epsq)
+    IF( gamma )THEN
       freq(1:3) = 0._dp
-!         U(:,1:3) = (0._dp, 0._dp)
+!      U(:,1:3) = (0._dp, 0._dp)
     ENDIF
-    
-    WHERE    (freq >=  0._dp)
-      freq = SQRT(freq)
-    ELSEWHERE(freq < 0._dp)
-      freq = -SQRT(-freq)
-    ENDWHERE
+    !
+    IF(ANY(freq<0._dp)) THEN
+      ioWRITE(*,"('xq = ',3f12.6)") xq
+      ioWRITE(*,"('freq = ',12f12.6)") freq
+      CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
+    ENDIF
+    !
+    freq = SQRT(freq)
+!     WHERE    (freq >=  0._dp)
+!       freq = SQRT(freq)
+!     ELSEWHERE(freq < 0._dp)
+!       freq = -SQRT(-freq)
+!     ENDWHERE
     !
   END SUBROUTINE freq_phq_safe
   !
   ! Return 1 if q-point is not Gamma, 4 if it is (3 points in input)
-  ! avoid divergence because of 1/\omega at Gamam for acoustic bands
+  ! used to avoid divergence because of 1/freq at Gamma for acoustic bands
   FUNCTION set_nu0(xq, at) RESULT(nu0)
     IMPLICIT NONE
     REAL(DP), INTENT(in) :: xq(3), at(3,3)
@@ -369,7 +382,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: eps = 1.e-16_dp
+    REAL(DP),PARAMETER :: eps = 0._dp 
     !
     CALL fftinterp_mat2(xq, S%nat3, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)

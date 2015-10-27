@@ -42,7 +42,7 @@ MODULE linewidth_program
     REAL(DP) :: pl,dpl
     INTEGER :: iq, it
     TYPE(q_grid) :: grid
-    COMPLEX(DP):: ls(S%nat3,input%nconf)
+    COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
     REAL(DP)   :: lw(S%nat3,input%nconf)
     REAL(DP)   :: lw_casimir(S%nat3)
     REAL(DP)   :: sigma_ry(input%nconf)
@@ -101,8 +101,14 @@ MODULE linewidth_program
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                         S, grid, fc2, fc3)
         DO it = 1,input%nconf
+          lsx = ls(:,it)
+          IF(input%sort_shifted_freq) THEN
+            CALL resort_w_ls(S%nat3, w2, lsx)
+          ELSE
+            lsx = lsx + w2
+          ENDIF
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
-                iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(ls(:,it))*RY_TO_CMM1, DBLE(ls(:,it))*RY_TO_CMM1
+                iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
           CALL flush_unit(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real") THEN
@@ -161,7 +167,37 @@ MODULE linewidth_program
 #endif
     !
   END SUBROUTINE LW_QBZ_LINE
-  !   
+  !
+  ! Sort w and ls so that w+real(ls) is in increasing order
+  ! On output, give ls+w correctly sorted, leave w unchanged
+  SUBROUTINE resort_w_ls(nat3, w, ls)
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nat3
+    REAL(DP),INTENT(in) :: w(nat3)
+    COMPLEX(DP),INTENT(inout):: ls(nat3)
+    !
+    REAL(DP)   :: wx(nat3)
+    COMPLEX(DP):: lsx(nat3)
+    REAL(DP)   :: tot(nat3), maxx, minx
+    INTEGER    :: i,j
+    ! Use stupid O(n^2) sort as quicksort with two list would be boring to implement
+    tot = w + DBLE(ls)
+    maxx = MAXVAL(tot)+1._dp
+    DO i = 1, nat3
+      minx = MINVAL(tot)
+      j_LOOP : DO j = 1,nat3
+        IF(tot(j)==minx)THEN
+        !ioWRITE(*,'(a,2i3,4f12.6)') "min", i, j, minx, wx(i), DBLE(lsx(i)), tot(j)
+         wx(i)  = w(j)
+         lsx(i) = ls(j)
+         tot(j) = maxx
+         EXIT j_LOOP
+        ENDIF
+      ENDDO j_LOOP
+    ENDDO
+    !w  = wx
+    ls = lsx+wx
+  END SUBROUTINE
   !  
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq

@@ -162,9 +162,8 @@ MODULE dynbubble
       DO j = 1,nat3
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
-        omega_P  = freq(j,2)+freq(k,3)
-        !
         bose_M   = bose(k,3) - bose(j,2)
+        omega_P  = freq(j,2)+freq(k,3)
         omega_M  = freq(j,2)-freq(k,3)
         !
         IF(sigma>0._dp)THEN
@@ -177,7 +176,7 @@ MODULE dynbubble
           ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2)
         ELSE IF (sigma==0._dp)THEN
           ! I can pre-compute everything but it is a bit a mess
-          IF(ABS(omega_P)>eps_freq)THEN
+          IF(ABS(omega_P)>0._dp)THEN
             ctm_P = 2 * bose_P /omega_P
           ELSE
             ctm_P = 0._dp
@@ -187,7 +186,7 @@ MODULE dynbubble
             !bose_M   = bose(k,3) - bose(j,2)
             ctm_M = 2 * bose_M /omega_M
           ELSE
-            IF(T>0._dp.and.ABS(omega_P)>eps_freq)THEN
+            IF(T>0._dp.and.ABS(omega_P)>0._dp)THEN
               ctm_M = -2* df_bose(0.5_dp * omega_P, T)
               !ctm_M = 0._dp
             ELSE
@@ -209,7 +208,7 @@ MODULE dynbubble
             !freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
             !
             !
-            IF(sigma<0._dp)THEN
+            IF(sigma>0._dp)THEN
               reg = CMPLX(sqfreq(n)*sqfreq(m), -sigma, kind=DP)**2
               ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
               ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )

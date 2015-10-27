@@ -22,7 +22,11 @@ MODULE code_input
     CHARACTER(len=256) :: outdir
     CHARACTER(len=256) :: prefix     ! put this in front of file names
     !
-    LOGICAL :: exp_t_factor
+    LOGICAL :: exp_t_factor ! add elastic peak (sort of not working)
+    LOGICAL :: sort_shifted_freq ! only applies to "full" calculation: 
+                                 ! sort w+w_shift when saving to file. Instead of w,lw,ls 
+                                 ! you have w,lw,ls+w with the last two blocks sorted differently 
+                                 ! than the first one to avoid unesthetical jumps in band plots
     !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
@@ -48,6 +52,8 @@ MODULE code_input
     !
     INTEGER :: nk(3), nk_in(3)
     CHARACTER(len=6) :: grid_type
+    ! for dynbubble:
+    LOGICAL :: print_dynmat
   END TYPE code_input_type
   !
   CONTAINS
@@ -85,7 +91,9 @@ MODULE code_input
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
+    LOGICAL            :: sort_shifted_freq = .true. ! sort w+l_shift
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
+    LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only dynbubble code)
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
@@ -126,7 +134,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, nq, nk, grid_type, &
-      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, &
+      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, sort_shifted_freq, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time
@@ -142,7 +150,7 @@ MODULE code_input
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nk, nq, grid_type, &
+      nconf, nk, nq, grid_type, print_dynmat, &
       max_seconds, max_time
     !
     input_file="input."//TRIM(code)
@@ -179,6 +187,8 @@ MODULE code_input
     input%nk        = nk
     input%grid_type = grid_type
     input%exp_t_factor = exp_t_factor
+    input%sort_shifted_freq = sort_shifted_freq
+    input%print_dynmat = print_dynmat
     !
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering

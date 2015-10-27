@@ -515,26 +515,26 @@ MODULE linewidth
       DO j = 1,S%nat3
         !
         bose_P   = 1 + bose(j,2) + bose(k,3)
-        omega_P  = freq(j,2)+freq(k,3)
-        !
         bose_M   = bose(k,3) - bose(j,2)
+        omega_P  = freq(j,2)+freq(k,3)
         omega_M  = freq(j,2)-freq(k,3)
         !
         IF(sigma>0._dp)THEN
           omega_P2 = omega_P**2
           omega_M2 = omega_M**2
-        ELSE IF(sigma<0._dp)THEN
+        ELSE IF(sigma<0._dp)THEN ! (static limit)
           ctm_P = 2 * bose_P *omega_P/(omega_P**2+sigma**2)
           ctm_M = 2 * bose_M *omega_M/(omega_M**2+sigma**2)
         ELSE !IF (sigma==0._dp)THEN
-          !
+          ! In the static limit with sigma=0 case we have to take the 
+          ! derivative of (n_3-n2)/(w_2-w_3) when w_2 is close to w_3
           IF(omega_P>0._dp)THEN
             ctm_P = 2 * bose_P /omega_P
           ELSE
             ctm_P = 0._dp
           ENDIF
           !
-          IF(ABS(omega_M)>1.e-2_dp)THEN
+          IF(ABS(omega_M)>1.e-5_dp)THEN
             ctm_M = 2 * bose_M /omega_M
           ELSE
             IF(T>0._dp)THEN
