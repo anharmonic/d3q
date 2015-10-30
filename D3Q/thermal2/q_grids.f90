@@ -330,17 +330,19 @@ MODULE q_grids
     ENDIF &
     ADD_TO_PATH
     !
+    COMPUTE_NEW_PATH : &
     IF(nq_new>1)THEN
-    dq = (xqi-path%xq(:,nq_old))/(nq_new)
-    dql = SQRT(SUM(dq**2))
-    ! build the actual path
+      dq = (xqi-path%xq(:,nq_old))/(nq_new)
+      dql = SQRT(SUM(dq**2))
+      ! build the actual path
       DO i = nq_old+1, path%nq
         path%xq(:,i) = path%xq(:,nq_old) + dq * (i-nq_old)
         IF(i>1) path%w(i) = path%w(i-1) + SQRT(SUM(dq**2))
       ENDDO
-    ELSE
-      IF(nq_old>1)THEN
-        dq = path%xq(:,nq_old)-xqi
+    ELSE &
+    COMPUTE_NEW_PATH
+      IF(nq_old>0)THEN
+        dq = xqi-path%xq(:,nq_old)
         ! compute path length before taking it to crystal axes
         dql = SQRT(SUM(dq**2))
         ! if cell vectors are available, we can check for periodic image equivalence
@@ -351,7 +353,9 @@ MODULE q_grids
         ENDIF
         equiv=SUM(dq**2)<1.d-6
         !
-        IF(equiv.and.nq_new==1)THEN
+        !IF(equiv.and.nq_new==1)THEN
+        IF(equiv)THEN
+          ioWRITE(*,*) "equiv", xqi
           path%w(nq_old+1) = path%w(nq_old)
         ELSE
           path%w(nq_old+1) = path%w(nq_old)+dql
@@ -360,7 +364,8 @@ MODULE q_grids
       !
       !
       path%xq(:,path%nq) = xqi
-    ENDIF
+    ENDIF  &
+    COMPUTE_NEW_PATH
     ! 
     IF(nq_old>1)THEN
     IF(SUM( ( (path%xq(:,nq_old-1) - path%xq(:,nq_old)) &

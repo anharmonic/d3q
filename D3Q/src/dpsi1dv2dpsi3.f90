@@ -7,6 +7,7 @@
 !
 MODULE dpsi1dv2dpsi3_module
   !
+#define __LOTTA_MEM
 CONTAINS
 !-----------------------------------------------------------------------
 SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
@@ -46,6 +47,9 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   ! non-local part of potential (beta projectors):
   COMPLEX(DP),POINTER :: vkb_rgt(:,:) => null(), vkb_lft(:,:) => null()
   ! description of the wavefunctions
+#ifdef __LOTTA_MEM
+  COMPLEX(DP),ALLOCATABLE,TARGET :: dpsi_lft_buff(:,:,:)
+#endif
   COMPLEX (DP), POINTER :: dpsi_lft (:,:), dpsi_rgt (:,:)
   INTEGER,POINTER :: igk_lft(:) =>null(), igk_rgt(:) => null()
   INTEGER :: npw_lft, npw_rgt
@@ -79,7 +83,12 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
     vkb_lft => vkb_rgt
   ENDIF
   !
+#ifdef __LOTTA_MEM
+  ALLOCATE(dpsi_lft_buff(npwx,nbnd,3*nat))
+  NULLIFY(dpsi_lft)
+#else
   ALLOCATE(dpsi_lft(npwx, nbnd))
+#endif
   ALLOCATE(dpsi_rgt(npwx, nbnd))
   ALLOCATE(dvpsi(npwx, nbnd))
   !
@@ -148,6 +157,13 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
       CALL init_us_2 (npw_rgt, igk_rgt, xk(1, ik_rgt), vkb_rgt)
       ! vkb_lft => vkb_rgt : vkb_lft is automatically a copy of vkb_rgt
     ENDIF
+#ifdef __LOTTA_MEM
+    DO nu_l = 1, 3 * nat
+      ! pre-read "left" wavefunctions, this becomes a bottleneck for more than 3 atoms
+      nrec = (nu_l - 1) * nksq + ik
+      CALL davcio (dpsi_lft_buff(:,:,nu_l), lrdwf, iu_dwfc(0, -iq_lft), nrec, -1)
+    ENDDO
+#endif
     !
     wga=0._dp
     IF (lgauss) THEN
@@ -179,6 +195,9 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
         DO nu_l = 1, 3 * nat
           !
           ! read the "left" 1st order wavefunctions (in dpsi_lft)
+#ifdef __LOTTA_MEM
+          dpsi_lft => dpsi_lft_buff(:,:,nu_l)
+#else
           IF(not_lsame .or. nu_r /= nu_l) THEN
             nrec = (nu_l - 1) * nksq + ik
             CALL davcio (dpsi_lft, lrdwf, iu_dwfc(0, -iq_lft), nrec, -1)
@@ -186,6 +205,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
             ! if we are doing the same mode at identical q's, we can just copy from memory
             dpsi_lft = dpsi_rgt
           ENDIF
+#endif
           !
           ! Compute <dpsi|dH|dpsi>, including also the weight of the k-point and the smearing
           wrk = (0._dp, 0._dp)
@@ -218,7 +238,13 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   !
   ! Clean-up
   DEALLOCATE(d3dyn_tmp)
-  DEALLOCATE(dpsi_rgt, dpsi_lft)
+  DEALLOCATE(dpsi_rgt)
+#ifdef __LOTTA_MEM
+  DEALLOCATE(dpsi_lft_buff)
+  NULLIFY(dpsi_lft)
+#else
+  DEALLOCATE(dpsi_lft)
+#endif
   DEALLOCATE(igk_rgt, vkb_rgt)
   IF(not_lsame) &
     DEALLOCATE (igk_lft, vkb_lft)

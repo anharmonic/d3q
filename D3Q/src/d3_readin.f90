@@ -96,17 +96,11 @@ SUBROUTINE d3_readin()
      !
      ethr_ph = 1.d-5
      iverbosity = 0
-     CALL get_env( 'ESPRESSO_TMPDIR', outdir )
+     CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
      IF ( TRIM( outdir ) == ' ' ) outdir = './'
-     outdir= trimcheck(outdir)//"/"
     
-     CALL get_env( 'ESPRESSO_D3DIR', d3dir )
-     IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
-     d3dir = trimcheck(d3dir)//"/"
-
-     CALL get_env( 'ESPRESSO_FILDRHO_DIR', fildrho_dir )
-     IF ( TRIM( fildrho_dir ) == ' ' ) fildrho_dir=outdir
-     fildrho_dir = trimcheck(fildrho_dir)//"/"
+     CALL get_environment_variable( 'ESPRESSO_D3DIR', d3dir )
+     CALL get_environment_variable( 'ESPRESSO_FILDRHO_DIR', fildrho_dir )
 
      
      prefix = 'pwscf'
@@ -147,9 +141,11 @@ SUBROUTINE d3_readin()
 
      READ (5, inputph, iostat = ios)
      IF(ios/=0) CALL errore (sub, 'reading inputph namelist', ABS (ios) )
-     !
+
      outdir= trimcheck(outdir)//"/"
+     IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      d3dir = trimcheck(d3dir)//"/"
+     IF ( TRIM( fildrho_dir ) == ' ' ) fildrho_dir=outdir
      fildrho_dir = trimcheck(fildrho_dir)//"/"
      !    reads the q-point
      !

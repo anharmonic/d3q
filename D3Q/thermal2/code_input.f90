@@ -30,6 +30,7 @@ MODULE code_input
     !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
+    CHARACTER(len=256) :: file_mat2_final
     CHARACTER(len=8)   :: asr2
     !
     INTEGER            :: nconf
@@ -82,6 +83,7 @@ MODULE code_input
     CHARACTER(len=16)  :: calculation = "" ! "spf"
     CHARACTER(len=256) :: file_mat3  = INVALID ! no default
     CHARACTER(len=256) :: file_mat2  = INVALID ! no default
+    CHARACTER(len=256) :: file_mat2_final  = INVALID ! default = file_mat2
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
     !
     CHARACTER(len=256) :: outdir = './'              ! where to write output files
@@ -149,7 +151,7 @@ MODULE code_input
 
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
-      file_mat2, file_mat3, asr2, &
+      file_mat2, file_mat3, file_mat2_final, asr2, &
       nconf, nk, nq, grid_type, print_dynmat, &
       max_seconds, max_time
     !
@@ -173,6 +175,7 @@ MODULE code_input
     ENDIF
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
+    IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
     IF(TRIM(file_mat3) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
     IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
@@ -180,6 +183,7 @@ MODULE code_input
     CALL set_time_limit(max_seconds, max_time)
     
     input%file_mat2 = file_mat2
+    input%file_mat2_final = file_mat2_final
     input%file_mat3 = file_mat3
     input%outdir    = TRIMCHECK(outdir)
     input%asr2      = asr2

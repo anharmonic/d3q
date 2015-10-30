@@ -782,13 +782,13 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
   ! isw = +1 : gathers data from the nodes and writes on a single file
   ! isw = -1 : reads data from a single file and distributes them
   !
-  USE kinds,     ONLY : DP
-  USE fft_base,  ONLY : dfftp
+  USE kinds,        ONLY : DP
+  USE fft_base,     ONLY : dfftp
 !   USE phcom
-  USE io_global, ONLY : ionode_id, ionode
-  USE mp_global, ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
-  USE mp,        ONLY : mp_bcast, mp_barrier
-  USE fft_base,  ONLY : dfftp, gather_grid
+  USE io_global,    ONLY : ionode_id, ionode
+  USE mp_global,    ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
+  USE mp,           ONLY : mp_bcast, mp_barrier
+  USE scatter_mod,  ONLY : gather_grid
   !
   IMPLICIT NONE
   !

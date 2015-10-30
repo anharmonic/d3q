@@ -14,7 +14,8 @@ PROGRAM add_bubble
   USE kinds,            ONLY : DP
   USE add_bubble_program
   USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, &
-                               ph_system_info, multiply_mass_dyn, write_dyn
+                               ph_system_info, multiply_mass_dyn, write_dyn, &
+                               same_system, read_fc2, aux_system, div_mass_fc2
   USE fc2_interpolate,  ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE q_grids,          ONLY : q_grid, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
@@ -22,12 +23,14 @@ PROGRAM add_bubble
   USE dynbubble,        ONLY : dynbubble_q
   USE constants,        ONLY : RY_TO_CMM1
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
-  USE more_constants,     ONLY : write_conf
+  USE more_constants,   ONLY : write_conf
+  USE asr2_module,      ONLY : impose_asr2
+
   IMPLICIT NONE
   !
-  TYPE(forceconst2_grid) :: fc2
+  TYPE(forceconst2_grid) :: fc2, fc2b
   CLASS(forceconst3),POINTER :: fc3
-  TYPE(ph_system_info)   :: S
+  TYPE(ph_system_info)   :: S, Sb
   TYPE(code_input_type)     :: input
   TYPE(q_grid)      :: qpts, grid
   !
@@ -47,6 +50,12 @@ PROGRAM add_bubble
   CALL READ_INPUT("DB", input, qpts, S, fc2, fc3)
   CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
   CALL grid%scatter()
+  !
+  CALL read_fc2(input%file_mat2_final, Sb,  fc2b)
+  CALL aux_system(Sb)
+  IF(.not. same_system(S,Sb)) CALL errore("PROGRAM_db", "S and Sb do not match", 1)
+  CALL impose_asr2(input%asr2, Sb%nat, fc2b)
+  CALL div_mass_fc2(Sb, fc2b)
   !
   ALLOCATE(dyn(S%nat3,S%nat3,input%nconf))
   ALLOCATE(dyn0(S%nat3,S%nat3))
@@ -73,7 +82,7 @@ PROGRAM add_bubble
   DO iq = 1, qpts%nq
     ioWRITE(*, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
     ioWRITE(*, '(i6,3f12.6)') iq, qpts%xq(:,iq)
-    CALL fftinterp_mat2(qpts%xq(:,iq), S%nat3, fc2, dyn0)
+    CALL fftinterp_mat2(qpts%xq(:,iq), S%nat3, fc2b, dyn0)
     U = dyn0
     ioWRITE(*, "(6(2f12.6,4x))") multiply_mass_dyn(S, U)
     CALL mat2_diag(S%nat3, U, freq0)
@@ -81,7 +90,7 @@ PROGRAM add_bubble
     ioWRITE(*,"(6f20.12)") freq0*RY_TO_CMM1
     ioWRITE(*,*)
 
-    ! Allocation is automatic in fortran 2003, of course it does not work with most compilers
+    ! Allocation is automatic in fortran 2003, but of course it does not work with most compilers
     dyn = dynbubble_q(qpts%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, S, grid, fc2, fc3)
     
     DO it = 1, input%nconf
@@ -115,7 +124,7 @@ PROGRAM add_bubble
       dynY = dynX
       CALL mat2_diag(S%nat3, dynX, freq)
       freq = SIGN(SQRT(ABS(freq)), freq)
-      ioWRITE(1000+it,"(i6,2(12e20.6,5x))") iq,freq0*RY_TO_CMM1,freq*RY_TO_CMM1
+      ioWRITE(1000+it,"(i6,4f12.6,2(12e20.6,5x))") iq,qpts%w(iq), qpts%xq(:,iq), freq0*RY_TO_CMM1,freq*RY_TO_CMM1
       CALL flush_unit(1000+it)
       
       CALL dyn_cart2pat(dynY, S%nat3, U, +1)

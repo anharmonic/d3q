@@ -207,14 +207,20 @@ MODULE dynbubble
             !
             !freqtotm1_23nm = freqtotm1_23n * sqfreqm1(m)
             !
-            !
             IF(sigma>0._dp)THEN
-              reg = CMPLX(sqfreq(n)*sqfreq(m), -sigma, kind=DP)**2
+              reg = CMPLX(sqfreq(n)*sqfreq(m), sigma, kind=DP)**2
+              !IF(n==m) THEN
+              !  reg = CMPLX(freq(n,1), sigma, kind=DP)**2
+              !IF(freq(n,1)+freq(m,1) > 0._dp)THEN
+              !  reg = CMPLX(2*freq(n,1)*freq(m,1)/(freq(n,1)+freq(m,1)), sigma, kind=DP)**2
+              !ELSE
+              !  reg = -sigma**2
+              !ENDIF
               ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
               ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
             ENDIF
             dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) *freqtotm1_23 &
-                            * CONJG(V3(m,j,k)) *V3(n,j,k)
+                                 * CONJG(V3(m,j,k)) * V3(n,j,k)
 !             aux = (ctm_P + ctm_M)*freqtotm1_23nm * CONJG(V3(m,j,k)) *V3(n,j,k)
 !             IF(ISNAN(REAL(aux)) .or. ISNAN(IMAG(aux)))THEN
 !               print*,k,j,n,m
