@@ -171,7 +171,7 @@ SUBROUTINE d3_check_time
   CALL d3_reset(print_clock=.false., cleanup=.false.)
   CALL print_clock_d3()
   CALL stop_d3()
-  CALL flush_unit(stdout)
+  FLUSH(stdout)
   !
   RETURN
   !

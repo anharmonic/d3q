@@ -154,7 +154,7 @@ program d3q
     write( stdout,   '(5x,"=    q2 = ( ",3f11.6," )   =")') xq2
     write( stdout,   '(5x,"=    q3 = ( ",3f11.6," )   =")') xq3
     write( stdout,   '(5x,"===================================================")')
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
     CALL setup_d3_iofiles(xq1, xq2, xq3)
     !
@@ -163,10 +163,10 @@ program d3q
     ELSE
       CALL d3_from_scratch()
     ENDIF
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
     CALL d3_setup(xq1, xq2, xq3)
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ! It reads the fild?rho files and sets up symmetry
     !  This subroutine prepares several variables which are needed in the
       !           CALL find_sym ( nat, tau, ityp, nr1, nr2, nr3, .FALSE., &
@@ -184,7 +184,7 @@ program d3q
     CALL run_nscf_d3(.true.)
 !     CALL run_nscf_d3(.false.)
     write( stdout, '(/,5x,"=============== run_nscf_d3 done",i3," ===============",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ! inside run_nscf_d3 subroutine setup_nscf_d3 is CALLed which increases the number
     ! of kpoints in order to generate k, k+/-q1, k+/-q2, k+/-q3
     ! wfcs are then recalculated for all these points
@@ -208,21 +208,21 @@ program d3q
     write( stdout, '(/,5x,"============== openfile_drho start",i3," =============",/)') 
     CALL openfile_drho()
     write( stdout, '(/,5x,"============== openfile_drho done",i3," ==============",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
       !           CALL drho_change_q
       !                 CALL drho_add_phase
     write( stdout, '(/,5x,"================ openfild3 start",i3," ===============",/)') 
     CALL openfild3()
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     write( stdout, '(/,5x,"================ openfild3 done",i3," ================",/)') 
     !
     CALL listu_d3(-1)
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
     write( stdout, '(/,5x,"================= d3_init start",i3," ================",/)') 
     CALL d3_init()
     write( stdout, '(/,5x,"================= d3_init done",i3," =================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
       !           IF ( nlcc_any ) CALL set_drhoc(kplusq(iq)%xq, d3c(iq)%drc)
       !           CALL setlocq_coul( kplusq(iq)%xq, upf(nt)%zp, tpiba2, ngm, g, omega,d3v(iq)%loc(1,nt) )
       !           CALL setlocq( kplusq(iq)%xq, rgrid(nt)%mesh, msh(nt), rgrid(nt)%rab, rgrid(nt)%r,&
@@ -230,7 +230,7 @@ program d3q
     write( stdout, '(/,5x,"========== d3_check_permutations start",i3," =========",/)') 
     CALL d3_check_permutations()
     write( stdout, '(/,5x,"========== d3_check_permutations done",i3," ==========",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
     CALL print_clock(code)
     CALL mp_barrier(world_comm)
@@ -274,7 +274,7 @@ program d3q
     WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
 
     !______________________________________________________________________________________________
     !
@@ -305,7 +305,7 @@ program d3q
     WRITE( stdout, '(5x,"gen_dpsi1dv2psi     cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== precomp done",i3," ================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !______________________________________________________________________________________________
     !
     ! All the ingredients are ready here, time to compute the actual 3rd order terms
@@ -340,7 +340,7 @@ program d3q
     WRITE( stdout, '(5x,"dpsi1dv2dpsi3 cpu time:",f9.2, &
           &   " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== dpdvdp done",i3," =================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ENDIF DBG_dpdvdp
     !______________________________________________________________________________________________
     !
@@ -372,7 +372,7 @@ program d3q
     WRITE( stdout, '(5x,"dpsi1dpsi2dv3 cpu time:",f9.2, &
           &   " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== dpdpdv done",i3," =================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ENDIF DBG_dpdpdv
     !______________________________________________________________________________________________
     !
@@ -412,7 +412,7 @@ program d3q
     WRITE( stdout, '(5x,"drhod2v       cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== dpd2v done",i3," ==================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ENDIF DBG_drhod2v
     !______________________________________________________________________________________________
     !
@@ -430,7 +430,7 @@ program d3q
     WRITE( stdout, '(5x,"d3vrho        cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"=================== rho d3v done ==================",/)')
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ENDIF DBG_rhod3v
     !______________________________________________________________________________________________
     !
@@ -448,7 +448,7 @@ program d3q
     WRITE( stdout, '(5x,"d3ionq        cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== ewald done",i3," ==================",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     ENDIF DBG_ion
     !______________________________________________________________________________________________
     !
@@ -526,7 +526,7 @@ program d3q
       WRITE( stdout, '(5x,"d3_valence    cpu time:",f9.2, &
           &         " sec    Total time:",f12.2," sec")') t1, t0
       write( stdout, '(/,5x,"================== valence done",i3," ===============",/)') 
-      CALL flush_unit( stdout )
+      FLUSH( stdout )
     ENDIF ADD_SMEARING_CONTRIBUTION
     !______________________________________________________________________________________________
     !
@@ -549,7 +549,7 @@ program d3q
 !    WRITE( stdout, '(5x,"d3_add_rho_core   cpu time:",f9.2, &
 !        &         " sec    Total time:",f12.2," sec")') t1, t0
 !    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
-!    CALL flush_unit( stdout )
+!    FLUSH( stdout )
     !______________________________________________________________________________________________
     !
     ! calculate d3Ei * drho * drho * drho, where drho is the variation
@@ -590,7 +590,7 @@ program d3q
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================ exc contrib done",i3," =============",/)') 
     ENDIF DBG_exc
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !______________________________________________________________________________________________
     !
     ! calculate additional terms due to non_linear-core-corrections
@@ -636,7 +636,7 @@ program d3q
       t0 = get_clock (code)
       WRITE( stdout, '(5x,"d3_nlcc_*      cpu time:",f9.2, &
           &         " sec    Total time:",f12.2," sec")') t1, t0
-      CALL flush_unit( stdout )
+      FLUSH( stdout )
       ENDIF DBG_nlcc_123
       !
       write( stdout, '(/,5x,"=============== nlcc contrib done",i3," =============",/)') 
@@ -679,7 +679,7 @@ program d3q
     WRITE( stdout, '(5x,"d3matrix      cpu time:",f9.2, &
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"=============== computing D3 done",i3," =============",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
     write( stdout, '(/,5x,"================== cleanup start",i3," ==============",/)') 
     ! Deallocate
@@ -695,7 +695,7 @@ program d3q
     CALL d3_reset(print_clock=(n_triplets_done<n_triplets_todo), cleanup=.true.)
     !
     write( stdout, '(/,5x,"================== cleanup done",i3," ===============",/)') 
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     !
   ENDDO &
   GRID_CALCULATION_QPOINT_LOOP

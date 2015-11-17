@@ -94,7 +94,7 @@ SUBROUTINE run_nscf_d3(do_band)
   IF(ionode)THEN
     fileout = TRIM(d3matrix_filename(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, at, 'nscf'))//'.out'
     WRITE(stdout, '(/,5x,a)') "--> output from 'electrons' appended to "//TRIM(fileout)
-    CALL flush_unit( stdout )
+    FLUSH( stdout )
     stdout_tmp = stdout
     stdout = 900
 #ifdef __XLF

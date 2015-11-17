@@ -246,7 +246,7 @@ SUBROUTINE write_efsh()
   IF((.not.lgauss) .or. (.not.ionode)) RETURN
   !
   WRITE (iuef) ef_sh
-  CALL flush_unit(iuef)
+  FLUSH(iuef)
   !
   RETURN
   !-----------------------------------------------------------------------

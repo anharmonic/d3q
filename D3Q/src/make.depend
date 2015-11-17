@@ -33,6 +33,7 @@ d3_exc.o : ../../Modules/mp_global.o
 d3_exc.o : ../../PW/src/scf_mod.o
 d3_exc.o : ./d3_iofiles.o
 d3_exc_gc.o : ../../Modules/cell_base.o
+d3_exc_gc.o : ../../Modules/fft_base.o
 d3_exc_gc.o : ../../Modules/funct.o
 d3_exc_gc.o : ../../Modules/io_global.o
 d3_exc_gc.o : ../../Modules/ions_base.o
@@ -43,6 +44,8 @@ d3_exc_gc.o : ../../Modules/recvec.o
 d3_exc_gc.o : ../../PHonon/PH/phcom.o
 d3_exc_gc.o : ../../PW/src/pwcom.o
 d3_exc_gc.o : ../../PW/src/scf_mod.o
+d3_exc_gc.o : ./d3_iofiles.o
+d3_exc_gc.o : ./set_kplus3q.o
 d3_exc_gc.o : ./setup_d3gc.o
 d3_grid.o : ../../Modules/cell_base.o
 d3_grid.o : ../../Modules/io_global.o
@@ -244,6 +247,7 @@ d3matrix_io.o : ./d3com.o
 d3q.o : ../../Modules/cell_base.o
 d3q.o : ../../Modules/control_flags.o
 d3q.o : ../../Modules/environment.o
+d3q.o : ../../Modules/funct.o
 d3q.o : ../../Modules/io_global.o
 d3q.o : ../../Modules/ions_base.o
 d3q.o : ../../Modules/mp.o
@@ -255,6 +259,7 @@ d3q.o : ./allocate_d3.o
 d3q.o : ./d3_basis.o
 d3q.o : ./d3_debug.o
 d3q.o : ./d3_exc.o
+d3q.o : ./d3_exc_gc.o
 d3q.o : ./d3_grid.o
 d3q.o : ./d3_init.o
 d3q.o : ./d3_iofiles.o
@@ -384,6 +389,7 @@ incdrhoscf2.o : ../../Modules/fft_interfaces.o
 incdrhoscf2.o : ../../Modules/kind.o
 incdrhoscf2.o : ../../Modules/recvec.o
 incdrhoscf2.o : ../../Modules/uspp.o
+incdrhoscf2.o : ../../PHonon/PH/phcom.o
 incdrhoscf2.o : ../../PW/src/pwcom.o
 print_clock_d3.o : ../../Modules/io_global.o
 qstar_d3.o : ../../Modules/kind.o
@@ -442,10 +448,13 @@ set_kplus3q.o : ../../PHonon/PH/phcom.o
 set_kplus3q.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../Modules/constants.o
 setup_d3gc.o : ../../Modules/fft_base.o
+setup_d3gc.o : ../../Modules/fft_interfaces.o
 setup_d3gc.o : ../../Modules/funct.o
+setup_d3gc.o : ../../Modules/io_global.o
 setup_d3gc.o : ../../Modules/kind.o
 setup_d3gc.o : ../../Modules/noncol.o
 setup_d3gc.o : ../../Modules/recvec.o
+setup_d3gc.o : ../../Modules/wavefunctions.o
 setup_d3gc.o : ../../PHonon/PH/phcom.o
 setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o

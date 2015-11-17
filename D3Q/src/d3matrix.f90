@@ -158,7 +158,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
 !        WRITE(stdout, '(9x,a,3f10.6,a)') "q1: (", sx3q(:,i,istq), " )"
 !        WRITE(stdout, '(9x,a,3f10.6,a)') "q2: (", sx3q(:,j,istq), " )"
 !        WRITE(stdout, '(9x,a,3f10.6,a)') "q3: (", sx3q(:,k,istq), " )"
-        CALL flush_unit( stdout )
+        FLUSH( stdout )
         ! Write to file
         CALL write_d3dyn_xml(d3dyn_basename, sx3q(:,i,istq), sx3q(:,j,istq), sx3q(:,k,istq), &
                              p3perm, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
@@ -172,7 +172,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
 !          WRITE(stdout, '(9x,a,3f10.6,a)') "q2: (", -sx3q(:,j,istq), " )"
 !          WRITE(stdout, '(9x,a,3f10.6,a)') "q3: (", -sx3q(:,k,istq), " )"
           !
-          CALL flush_unit( stdout )
+          FLUSH( stdout )
           CALL write_d3dyn_xml(d3dyn_basename, -sx3q(:,i,istq), -sx3q(:,j,istq), -sx3q(:,k,istq), &
                                CONJG(p3perm), ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
         ENDIF

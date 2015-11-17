@@ -576,7 +576,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
             irr, tcpu-tcpu0, tcpu, averlt
   ENDIF
   !
-  CALL flush_unit( stdout )
+  FLUSH( stdout )
   !
   RETURN
   !-----------------------------------------------------------------------

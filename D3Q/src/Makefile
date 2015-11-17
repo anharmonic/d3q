@@ -2,7 +2,7 @@
 
 include ../../make.sys
 
-STRIP = strip
+STRIP = true
 
 # location of needed modules
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
@@ -17,6 +17,7 @@ d3_basis.o \
 d3com.o \
 d3_debug.o \
 d3_exc.o \
+d3_exc_gc.o \
 d3_grid.o \
 d3_h_psi.o \
 d3_init.o \

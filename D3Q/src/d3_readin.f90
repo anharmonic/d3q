@@ -137,7 +137,7 @@ SUBROUTINE d3_readin()
      !     reading the namelist inputph
      !
      WRITE(stdout, '(5x,a)') "Waiting for input..."
-     CALL flush_unit( stdout )
+     FLUSH( stdout )
 
      READ (5, inputph, iostat = ios)
      IF(ios/=0) CALL errore (sub, 'reading inputph namelist', ABS (ios) )

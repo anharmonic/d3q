@@ -208,10 +208,10 @@ SUBROUTINE d3_shuffle_global(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
 
   nu1 => idx(abs(i1));  nu2 => idx(abs(i2));  nu3 => idx(abs(i3))
   mu1 => idx(abs(j1));  mu2 => idx(abs(j2));  mu3 => idx(abs(j3))
-  IF( i1/=j1 .and. i2/=j2 .and. i3/=j3 ) THEN
-    WRITE(stdout, '(9x,a,3i1,a,3i1,a,l2)') "* global shuffling: ",i1,i2,i3," --> ",j1,j2,j3, &
-                                           " c.c.", conjugate
-  ENDIF
+!   IF( i1/=j1 .and. i2/=j2 .and. i3/=j3 ) THEN
+!     WRITE(stdout, '(9x,a,3i1,a,3i1,a,l2)') "* global shuffling: ",i1,i2,i3," --> ",j1,j2,j3, &
+!                                            " c.c.", conjugate
+!   ENDIF
 
   IF(nu1==nu2 .or. nu1==nu3 .or. nu2==nu3) &
     CALL errore(sub, 'First indexes repeat', 1)
@@ -289,8 +289,8 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   nu(i2)%x => idx2; mu(j2)%x => idx2
   nu(i3)%x => idx3; mu(j3)%x => idx3
 
-  WRITE(stdout, '(9x,a,3i1,a,3i1,a,l2)') "* shuffling: ",i1,i2,i3," --> ",j1,j2,j3, &
-                                          " - c.c.", conjugate
+!   WRITE(stdout, '(9x,a,3i1,a,3i1,a,l2)') "* shuffling: ",i1,i2,i3," --> ",j1,j2,j3, &
+!                                           " - c.c.", conjugate
 
   IF(nu(1)%x==nu(2)%x .or. nu(1)%x==nu(3)%x .or. nu(2)%x==nu(3)%x) &
     CALL errore(sub, 'First indexes repeat', 1)
