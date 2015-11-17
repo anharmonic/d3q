@@ -91,6 +91,7 @@ d3_iofiles.o : ../../Modules/mp.o
 d3_iofiles.o : ../../Modules/mp_global.o
 d3_iofiles.o : ../../Modules/mp_world.o
 d3_iofiles.o : ../../Modules/recvec.o
+d3_iofiles.o : ../../Modules/scatter_mod.o
 d3_iofiles.o : ../../Modules/uspp.o
 d3_iofiles.o : ../../Modules/wrappers.o
 d3_iofiles.o : ../../PHonon/PH/dfile_autoname.o
