@@ -24,7 +24,8 @@ MODULE fc3_interpolate
   USE mpi_thermal,      ONLY : ionode
 #include "mpi_thermal.h"
   !USE input_fc,              ONLY : ph_system_info
-  ! Base implementation: all methods stop with error
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  ! Abstract implementation: all methods are abstract 
   TYPE,ABSTRACT :: forceconst3
     ! q points
     INTEGER :: n_R = 0
@@ -40,7 +41,7 @@ MODULE fc3_interpolate
       procedure(write_fc3_error),deferred :: write
       procedure(div_mass_fc3_error),deferred :: div_mass
   END TYPE forceconst3
-  ! \/o\________\\\_________________________________________/^>
+  !
   ! Interfaces to the deferred subroutines:
   ABSTRACT INTERFACE
   SUBROUTINE fftinterp_mat3_error(fc, xq2,xq3, nat3, D)
@@ -92,11 +93,14 @@ MODULE fc3_interpolate
     TYPE(ph_system_info),INTENT(in)  :: S ! = System
   END SUBROUTINE div_mass_fc3_error
   END INTERFACE
-  ! \/o\________\\\_________________________________________/^>
   !
-  ! First implementation: not sparse
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  !
+  ! First implementation: not regular double grid
   TYPE,EXTENDS(forceconst3) :: grid
     REAL(DP),ALLOCATABLE :: FC(:,:,:,:) ! 3*nat,3*nat,3*nat, n_R
+    ! Optional, imaginary part of the force constants, for testing only (should be zero)
+    REAL(DP),ALLOCATABLE :: iFC(:,:,:,:) ! 3*nat,3*nat,3*nat, n_R
     !
     CONTAINS
       ! There are 2 version of the interpolation routine, that differ on the 
@@ -104,7 +108,7 @@ MODULE fc3_interpolate
       ! _flat works, because of some unclear problem with the reduction of arrays
       !procedure :: interpolate  => fftinterp_mat3_grid_reduce
 #ifdef __PRECOMPUTE_PHASES
-      procedure :: interpolate  => fftinterp_mat3_grid_flat_mkl
+      procedure :: interpolate  => fftinterp_mat3_grid_flat_prec
 #else
       procedure :: interpolate  => fftinterp_mat3_grid_flat
 #endif
@@ -118,8 +122,10 @@ MODULE fc3_interpolate
   INTERFACE grid
     MODULE PROCEDURE create_fc3_grid
   END INTERFACE
+  !
   ! \/o\________\\\_________________________________________/^>
-  ! Second implementation: sparse
+  !
+  ! Second implementation: sparse grid
   TYPE forceconst3_sparse_helper
     REAL(DP),ALLOCATABLE :: fc(:)    ! the matrix elements
     INTEGER,ALLOCATABLE  :: idx(:,:) ! the index 3*nat,3*nat,3*nat
@@ -131,7 +137,7 @@ MODULE fc3_interpolate
     !
     CONTAINS
 #ifdef __PRECOMPUTE_PHASES
-      procedure :: interpolate  => fftinterp_mat3_sparse_mkl
+      procedure :: interpolate  => fftinterp_mat3_sparse_prec
 #else
       procedure :: interpolate  => fftinterp_mat3_sparse
 #endif
@@ -144,6 +150,7 @@ MODULE fc3_interpolate
   INTERFACE sparse
     MODULE PROCEDURE create_fc3_sparse
   END INTERFACE
+  !
   ! \/o\________\\\_________________________________________/^>
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -185,7 +192,7 @@ MODULE fc3_interpolate
     RETURN
     !
   END FUNCTION read_fc3  
-  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   ! Placeholder creators:
   TYPE(grid) FUNCTION create_fc3_grid()
     RETURN
@@ -265,7 +272,7 @@ MODULE fc3_interpolate
     ENDDO
     !
   END SUBROUTINE fc3_grid_to_sparse
-  ! \/o\________\\\_________________________________________/^>
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE fftinterp_mat3_grid_reduce(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -289,7 +296,7 @@ MODULE fc3_interpolate
     END DO
 !$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat3_grid_reduce
-  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE fftinterp_mat3_grid_flat(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -322,7 +329,8 @@ MODULE fc3_interpolate
 !$OMP END PARALLEL
   END SUBROUTINE fftinterp_mat3_grid_flat
   !
-  SUBROUTINE fftinterp_mat3_grid_flat_mkl(fc, xq2,xq3, nat3, D)
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE fftinterp_mat3_grid_flat_prec(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -337,7 +345,7 @@ MODULE fc3_interpolate
     !
     D = (0._dp, 0._dp)
     !
-    ! Pre-compute phase to use the vectorized MKL subroutines
+    ! Pre-compute phase, use vectorized MKL subroutines if available
     FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
 #if defined(__INTEL)
     CALL vdCos(fc%n_R, varg, vcos)
@@ -348,6 +356,25 @@ MODULE fc3_interpolate
 #endif
     vphase =  CMPLX( vcos, -vsin, kind=DP  )
     !
+! ==================== with imaginary part, only for testing during qq2rr    
+    IMAGINARY: &
+    IF(allocated(fc%ifc))THEN
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(a,b,c)
+    DO i = 1, fc%n_R
+      !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+!$OMP DO COLLAPSE(3)
+      DO c = 1,nat3
+      DO b = 1,nat3
+      DO a = 1,nat3
+        D(a,b,c) = D(a,b,c) + vphase(i) * CMPLX(fc%fc(a,b,c, i), fc%ifc(a,b,c, i), kind=DP)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END DO      
+    END DO
+!$OMP END PARALLEL
+! ==================== without imaginary part
+   ELSE IMAGINARY
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(a,b,c)
     DO i = 1, fc%n_R
       !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
@@ -362,8 +389,12 @@ MODULE fc3_interpolate
 !$OMP END DO      
     END DO
 !$OMP END PARALLEL
-  END SUBROUTINE fftinterp_mat3_grid_flat_mkl
+    ENDIF &
+    IMAGINARY
+! ==================== without imaginary part
+  END SUBROUTINE fftinterp_mat3_grid_flat_prec
   !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE fft_doubleinterp_mat3_grid_flat(fc, xq2,xq3,xq4, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -399,6 +430,7 @@ MODULE fc3_interpolate
 !$OMP END PARALLEL
   END SUBROUTINE fft_doubleinterp_mat3_grid_flat
   !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE fftinterp_mat3_sparse(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -427,8 +459,8 @@ MODULE fc3_interpolate
 !$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat3_sparse
   !
-  !
-  SUBROUTINE fftinterp_mat3_sparse_mkl(fc, xq2,xq3, nat3, D)
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE fftinterp_mat3_sparse_prec(fc, xq2,xq3, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
@@ -465,8 +497,9 @@ MODULE fc3_interpolate
       ENDDO
     END DO
 !$OMP END PARALLEL DO
-  END SUBROUTINE fftinterp_mat3_sparse_mkl
+  END SUBROUTINE fftinterp_mat3_sparse_prec
   !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE fft_doubleinterp_mat3_sparse(fc, xq2,xq3,xq4, nat3, D)
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -501,7 +534,7 @@ MODULE fc3_interpolate
 !$OMP END PARALLEL DO
   END SUBROUTINE fft_doubleinterp_mat3_sparse
   !
-  ! \/o\________\\\_________________________________________/^>
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE read_fc3_sparse(fc, filename, S)
     USE input_fc, ONLY : read_system, ph_system_info
     IMPLICIT NONE
@@ -560,7 +593,7 @@ MODULE fc3_interpolate
     !
   END SUBROUTINE read_fc3_sparse
   !
-  ! \/o\________\\\_________________________________________/^>
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE write_fc3_sparse(fc, filename, S)
     USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
@@ -617,14 +650,14 @@ MODULE fc3_interpolate
         WRITE(unit,cformat) fc%dat(i)%idx(:,j), fc%dat(i)%fc(j)
         !
       ENDDO
-      !WRITE(unit,*)
+      WRITE(unit,*)
     ENDDO
     !
     CLOSE(unit)
     !
   END SUBROUTINE write_fc3_sparse
   !
-  ! \/o\________\\\_________________________________________/^>
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE destroy_fc3_sparse(fc)
     USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
@@ -644,7 +677,8 @@ MODULE fc3_interpolate
     DEALLOCATE(fc%dat)
     !
   END SUBROUTINE destroy_fc3_sparse
-  ! \/o\________\\\_________________________________________/^>
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE div_mass_fc3_sparse (fc,S)
     USE kinds, only : DP
     USE input_fc, ONLY : ph_system_info
@@ -667,7 +701,8 @@ MODULE fc3_interpolate
     ENDDO
     !
   END SUBROUTINE div_mass_fc3_sparse
-  ! <<^V^\\=========================================//-//-//========//O\\//
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE read_fc3_grid(fc, filename, S)
     USE input_fc, ONLY : read_system
     USE input_fc, ONLY : ph_system_info
@@ -748,7 +783,8 @@ MODULE fc3_interpolate
     CALL cryst_to_cart(n_R,fc%xR3,S%at,1)
     !
   END SUBROUTINE read_fc3_grid
-  ! \/o\________\\\_________________________________________/^>
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE write_fc3_grid(fc, filename, S)
     USE input_fc, ONLY : write_system, ph_system_info
     IMPLICIT NONE
@@ -779,16 +815,17 @@ MODULE fc3_interpolate
     n_digits(1) = CEILING(LOG10(DBLE(S%nat)))+1
     cformat='(i1,2i2,x,3i'//int_to_char(n_digits(1))//')'
     !
-    n_digits(2) = CEILING(LOG10(DBLE((MAXVAL(fc%yR2)))))+2 ! +2 to account minus signs
+    n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR2)))))+2 ! +2 to account minus signs
     n_digits(1) = n_digits(2)-1 ! no space at lines beginning
-    n_digits(3) = CEILING(LOG10(DBLE((MAXVAL(fc%yR3)))))+2
+    n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR3)))))+2
     !
     cformat2 = '( i'//int_to_char(n_digits(1))// &
                ',2i'//int_to_char(n_digits(2))// &
-               ',3i'//int_to_char(n_digits(3))//',1pe25.15)'
+               ',3i'//int_to_char(n_digits(3))//',1pe25.17,1pe13.3)'
+    !cformat2 = '(i6,2i6,3i6,1pe25.17,1pe13.3)'
     !
     DO na1=1,S%nat
-    DO na2=1,S%nat 
+    DO na2=1,S%nat
     DO na3=1,S%nat 
       DO j1=1,3
       jn1 = j1 + (na1-1)*3
@@ -802,7 +839,11 @@ MODULE fc3_interpolate
           WRITE(unit,'(i9)') fc%n_R
           !
           DO i = 1, fc%n_R
-            WRITE(unit,cformat2) fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
+            IF(allocated(fc%iFc))THEN
+              WRITE(unit,cformat2) fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i), fc%iFC(jn1,jn2,jn3,i)
+            ELSE
+              WRITE(unit,cformat2) fc%yR2(:,i), fc%yR3(:,i), fc%FC(jn1,jn2,jn3,i)
+            ENDIF
           ENDDO
       ENDDO
       ENDDO
@@ -814,7 +855,8 @@ MODULE fc3_interpolate
     CLOSE(unit)
     !
   END SUBROUTINE write_fc3_grid
-  ! \/o\________\\\_________________________________________/^>
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE destroy_fc3_grid(fc)
     USE input_fc, ONLY : write_system
     IMPLICIT NONE
@@ -827,7 +869,8 @@ MODULE fc3_interpolate
     DEALLOCATE(fc%FC)
     !
   END SUBROUTINE destroy_fc3_grid
-  ! \/o\________\\\_________________________________________/^>
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE div_mass_fc3_grid(fc,S)
     USE kinds,    ONLY : DP
     USE input_fc, ONLY : ph_system_info
@@ -852,7 +895,8 @@ MODULE fc3_interpolate
     ENDDO
     !
   END SUBROUTINE div_mass_fc3_grid
-  ! \/o\________\\\_________________________________________/^>
+  !
+  ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE destroy_fc3_(fc)
     IMPLICIT NONE
     CLASS(forceconst3),INTENT(inout) :: fc

@@ -4,6 +4,7 @@ MODULE posix_signal
 #include "mpi_thermal.h"
   ! This module is compiled only if the following preprocessing option
   ! is enabled
+#ifdef __TERMINATE_GRACEFULLY
   USE iso_c_binding
 
   IMPLICIT NONE
@@ -20,6 +21,7 @@ MODULE posix_signal
       INTEGER(C_INT)::init_TERMINATE_GRACEFULLY
     END FUNCTION init_TERMINATE_GRACEFULLY
   END INTERFACE
+#endif
 
   CONTAINS
 
@@ -33,16 +35,19 @@ MODULE posix_signal
 !       END SUBROUTINE routine
 !    END INTERFACE
 
+#ifdef __TERMINATE_GRACEFULLY
     ptr = C_FUNLOC(set_graceful_termination)
 
     IF (init_TERMINATE_GRACEFULLY(ptr) .NE. 0) THEN
        CALL errore("set_TERMINATE_GRACEFULLY", "The association of signals INT or TERM failed!", 1)
     ENDIF
+#endif
 
   END SUBROUTINE set_TERMINATE_GRACEFULLY
   !
   ! Sets the signal_trapped flag on all nodes/processors
   ! Only the master will use the signal, though
+#ifdef __TERMINATE_GRACEFULLY
   SUBROUTINE set_graceful_termination(signum) BIND(c)
     USE iso_c_binding
     USE mpi_thermal, ONLY : abort_mpi
@@ -70,6 +75,7 @@ MODULE posix_signal
     ENDIF
     !
   END SUBROUTINE set_graceful_termination
+#endif
   !
   ! This subroutine must be called by all the mpi processes
   SUBROUTINE check_graceful_termination()
@@ -78,6 +84,7 @@ MODULE posix_signal
     IMPLICIT NONE
     LOGICAL :: time_is_out
     !
+#ifdef __TERMINATE_GRACEFULLY
     CALL mpi_bsum(signal_trapped)
     ! time limit may be a few second out of sync over mpi, let's
     ! be sure that everyone stops
@@ -92,8 +99,9 @@ MODULE posix_signal
       CALL abort_mpi(signal_trapped)
       STOP 0
     ENDIF
-
+#endif
   END SUBROUTINE check_graceful_termination
+
 
 END MODULE posix_signal
 

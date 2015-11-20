@@ -76,7 +76,7 @@ PROGRAM add_bubble
       ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
     ENDIF
     ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-    CALL flush_unit(1000+it)
+    FLUSH(1000+it)
   ENDDO
 
   DO iq = 1, qpts%nq
@@ -125,7 +125,7 @@ PROGRAM add_bubble
       CALL mat2_diag(S%nat3, dynX, freq)
       freq = SIGN(SQRT(ABS(freq)), freq)
       ioWRITE(1000+it,"(i6,4f12.6,2(12e20.6,5x))") iq,qpts%w(iq), qpts%xq(:,iq), freq0*RY_TO_CMM1,freq*RY_TO_CMM1
-      CALL flush_unit(1000+it)
+      FLUSH(1000+it)
       
       CALL dyn_cart2pat(dynY, S%nat3, U, +1)
       FORALL(nu=1:S%nat3) freqY(nu) = dynY(nu,nu)

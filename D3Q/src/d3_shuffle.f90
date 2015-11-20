@@ -256,7 +256,7 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   ! the matrix.
   !
   ! This subroutine shuffles and *internal* permutation of the perturbation and
-  ! only makes sense for q_ix=+/-q_jx, x=1,2,3 (taking the conplex conjugate if
+  ! only makes sense for q_ix=+/-q_jx, x=1,2,3 (taking the complex conjugate if
   ! the sign is -).
   !
   USE kinds,      ONLY : DP

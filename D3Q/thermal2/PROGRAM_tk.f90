@@ -78,7 +78,7 @@ MODULE thermalk_program
                                "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
       ioWRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      CALL flush_unit(1000+it)
+      FLUSH(1000+it)
       !
       IF(input%isotopic_disorder) THEN
         OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
@@ -87,7 +87,7 @@ MODULE thermalk_program
                                     "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
         ioWRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
         ioWRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-        CALL flush_unit(2000+it)
+        FLUSH(2000+it)
       ENDIF
     ENDDO
       IF(input%casimir_scattering) THEN
@@ -95,7 +95,7 @@ MODULE thermalk_program
                                 "lwcas."//TRIM(input%prefix)//".out")
         ioWRITE(3000, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
 !         ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-        CALL flush_unit(3000)
+        FLUSH(3000)
       ENDIF
     ENDIF
     !

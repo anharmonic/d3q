@@ -10,7 +10,7 @@ MODULE variational_tk
   USE more_constants,  ONLY : eps_vel, eps_freq
   USE q_grids,         ONLY : q_grid
   USE mpi_thermal,     ONLY : ionode
-  USE posix_signal,      ONLY : check_graceful_termination
+  USE posix_signal,    ONLY : check_graceful_termination
   !
   ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS

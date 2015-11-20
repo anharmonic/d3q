@@ -65,7 +65,7 @@ MODULE linewidth_program
         ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
       ENDIF
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      CALL flush_unit(1000+it)
+      FLUSH(1000+it)
     ENDDO
     ! Prepare formats to write out data
     ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
@@ -109,7 +109,7 @@ MODULE linewidth_program
           ENDIF
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
-          CALL flush_unit(1000+it)
+          FLUSH(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real") THEN
           timer_CALL t_lwphph%start()
@@ -135,7 +135,7 @@ MODULE linewidth_program
         DO it = 1,input%nconf
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
                 iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
-          CALL flush_unit(1000+it)
+          FLUSH(1000+it)
         ENDDO
       ELSE
         CALL errore('LW_QBZ_LINE', 'wrong mode (real or full)', 1)
@@ -244,7 +244,7 @@ MODULE linewidth_program
       ioWRITE(1000+it, *) "# spectral function mode: ", input%mode
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
-      CALL flush_unit(1000+it)
+      FLUSH(1000+it)
     ENDDO
     ENDIF
     !
@@ -280,7 +280,7 @@ MODULE linewidth_program
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
                 pl, ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2
-          CALL flush_unit(1000+it)
+          FLUSH(1000+it)
         ENDDO
       ENDDO
       !
@@ -348,7 +348,7 @@ MODULE linewidth_program
       ioWRITE(1000+it, *) "# final state decompositions, mode: ", input%mode
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
-      CALL flush_unit(1000+it)
+      FLUSH(1000+it)
     ENDDO
     ENDIF
     !
@@ -375,7 +375,7 @@ MODULE linewidth_program
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(2f14.8,100e18.6e4)') &
                 pl, ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
-          CALL flush_unit(1000+it)
+          FLUSH(1000+it)
         ENDDO
       ENDDO
       !
