@@ -7,6 +7,7 @@ MODULE program_qq2rr
   TYPE d3_list
     COMPLEX(DP),ALLOCATABLE :: d(:,:,:, :,:,:)
     REAL(DP) :: xq1(3), xq2(3), xq3(3)
+    !REAL(DP) :: xq1_true(3), xq2_true(3), xq3_true(3)
   END TYPE
   
   CONTAINS
@@ -19,7 +20,7 @@ MODULE program_qq2rr
     REAL(DP) :: aq(3)
     INTEGER  :: iq(3), i
     aq = xq
-    CALL cryst_to_cart (3,aq,at,-1)
+    CALL cryst_to_cart (1,aq,at,-1)
     aq = aq*nq
     iq = NINT(aq)
     IF(ANY(ABS(iq-aq)>1.d-4)) THEN
@@ -28,8 +29,11 @@ MODULE program_qq2rr
       iq = -1
       RETURN
     ELSE
+      !iq = iq+1
       skip = .false.
-      FORALL(i=1:3) iq(i) = MODULO(iq(i), nq(i))+1
+      DO i =1,3
+        iq(i) = MODULO(iq(i), nq(i))+1
+      ENDDO
     ENDIF
     
   END FUNCTION
@@ -45,26 +49,29 @@ MODULE program_qq2rr
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3), nq_trip
     TYPE(ph_system_info),INTENT(out) :: S
-    TYPE(d3_list),INTENT(out) ::  d3grid(nq_trip)
+    TYPE(d3_list),INTENT(inout) ::  d3grid(nq_trip)
 
     REAL(DP) :: xq(3,3)
     COMPLEX(DP),ALLOCATABLE   :: d3(:,:,:, :,:,:), p3(:,:,:)
-    INTEGER :: i,j,k, a,b,c, ios, ntyp, iperm, iq_trip, nxr_list, nxr_list_old
+    INTEGER :: i,j,k, a,b,c, ios, ntyp, iperm, iq_trip, nxr_list, nxr_list_old, iq_aux
     LOGICAL :: first, skip
-    LOGICAL,ALLOCATABLE :: found(:,:,:,:,:,:)
+    INTEGER,ALLOCATABLE :: found(:,:,:,:,:,:)
+    INTEGER :: countq(nq_trip)
     CHARACTER(len=512) :: filename
     INTEGER :: iqa(3), iqb(3)
+    REAL(DP) :: xq_shift(3,3)
     TYPE(ph_system_info) :: Sx
     !
     ALLOCATE(found(nq(1),nq(2),nq(3),nq(1),nq(2),nq(3)))
-    found = .false.
+    found = -1
+    countq = 0
     first = .true.
     iq_trip = 0
     !
     DO 
       READ(*, '(a512)',iostat=ios) filename
       IF(ios/=0) EXIT
-      !WRITE(*,*) "Reading '", TRIM(filename),"'..."
+!       WRITE(*,*) "Reading '", TRIM(filename),"'..."
 
       IF(first)THEN
         first=.false.
@@ -77,6 +84,7 @@ MODULE program_qq2rr
         CALL recips(S%at(:,1), S%at(:,2), S%at(:,3), S%bg(:,1), S%bg(:,2), S%bg(:,3))
         ALLOCATE(p3(S%nat3, S%nat3, S%nat3))
         !
+          !WRITE(*,*), 100, TRIM(filename)
       ELSE
         CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, nat=Sx%nat, atm=Sx%atm, ntyp=Sx%ntyp, &
                             ityp=Sx%ityp, ibrav=Sx%ibrav, celldm=Sx%celldm, at=Sx%at, amass=Sx%amass,&
@@ -86,22 +94,30 @@ MODULE program_qq2rr
         CALL recips(Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%bg(:,1), Sx%bg(:,2), Sx%bg(:,3))
         !CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3)
         IF(.not.same_system(S,Sx)) CALL errore("qq2rr", "not same system "//TRIM(filename), 1)
+          !WRITE(*,*), 200, TRIM(filename)
       ENDIF
+      PERM_LOOP : &
       DO iperm = 1,nperms
         a = d3perms_order(1,iperm)
         b = d3perms_order(2,iperm)
         c = d3perms_order(3,iperm)
+          !WRITE(*,*), 300+iperm, TRIM(filename)
         !
-        iqa = check_in_grid(nq, xq(:,a), S%at, skip)
-        IF(skip) CYCLE
-        iqb = check_in_grid(nq, xq(:,b), S%at, skip)
-        IF(skip) CYCLE
+        ! Check if the points are in the grid:
+        iqa = check_in_grid(nq, xq(:,b), S%at, skip)
+          !WRITE(*,*), 310+iperm, TRIM(filename)
+        IF(skip) CYCLE PERM_LOOP
+        iqb = check_in_grid(nq, xq(:,c), S%at, skip)
+          !WRITE(*,*), 320+iperm, TRIM(filename)
+        IF(skip) CYCLE PERM_LOOP
         !
-        IF(.not.found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) ) THEN
-          WRITE(*,'(a,3(3f10.4,3x),2(3i3,3x))') "    xq ", xq(:,a), xq(:,b), xq(:,c), iqa-1, iqb-1
+        ! Add this point to the grid, if an equivalent was not already added
+        IF(found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) < 0) THEN
           iq_trip = iq_trip + 1
-          found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) = .true.
-          ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
+          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,i6  )') iq_trip, "xq ", xq(:,a), xq(:,b), xq(:,c), iqa, iqb, &
+            a,b,c, TRIM(filename),iperm
+          found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) = iq_trip
+          countq(iq_trip) = 1
           !
           ! Repack the matrix, shuffle it and repack it again
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
@@ -109,21 +125,52 @@ MODULE program_qq2rr
           !CALL d3_shuffle_equiv( 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
           !
+          ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
           d3grid(iq_trip)%d   = d3
-          d3grid(iq_trip)%xq1(:) = xq(:,a)
-          d3grid(iq_trip)%xq2(:) = xq(:,b)
-          d3grid(iq_trip)%xq3(:) = xq(:,c)
+          !
+          xq_shift(:,2) = (iqa-1)/DBLE(nq)
+          xq_shift(:,3) = (iqb-1)/DBLE(nq)
+          xq_shift(:,1) = -(xq_shift(:,2)+xq_shift(:,3))
+          CALL cryst_to_cart(3, xq_shift, S%bg, +1)
+          d3grid(iq_trip)%xq1(:) = xq_shift(:,1)
+          d3grid(iq_trip)%xq2(:) = xq_shift(:,2)
+          d3grid(iq_trip)%xq3(:) = xq_shift(:,3)
+          !
+!           d3grid(iq_trip)%xq1(:) = xq(:,a)
+!           d3grid(iq_trip)%xq2(:) = xq(:,b)
+!           d3grid(iq_trip)%xq3(:) = xq(:,c)
         ELSE
-          !WRITE(*,'(a,3(3f10.4,3x),2(3i3,3x))') "  skip ", xq(:,a), xq(:,b), xq(:,c), iqa-1, iqb-1
+!           iq_aux = found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3))
+!           countq(iq_aux) = countq(iq_aux) +1
+!           CALL d3_6idx_2_3idx(S%nat, d3, p3)
+!           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
+!           CALL d3_3idx_2_6idx(S%nat, p3, d3)
+! !           IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
+! !             WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') iq_aux, "xqR", xq(:,a), xq(:,b), xq(:,c), iqa, iqb, &
+! !             a,b,c, TRIM(filename)
+! !             print*, iq_aux, iq_trip
+! !             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
+! !             print*, xq
+! !             WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
+! !             stop 666
+! !           ENDIF
+!           d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
+          
         ENDIF
-      ENDDO
+      ENDDO &
+      PERM_LOOP
       
     ENDDO
+    
+!     DO iq_aux = 1,nq_trip
+!       print*, iq_aux, countq(iq_aux)
+!       d3grid(iq_aux)%d = d3grid(iq_aux)%d/DBLE(countq(iq_aux))
+!     ENDDO
     
     IF(first) CALL errore("read_d3_matrices","I found nothing to read",1)
     DEALLOCATE(p3)
     
-    IF(ANY(.not.found)) THEN
+    IF(ANY(found<0)) THEN
       WRITE(*,*) "Expecting:", nq_trip, "triplets, found:", iq_trip
       WRITE(*,*) "List of missing ones follow:"
       DO c = 1, nq(3)
@@ -132,7 +179,7 @@ MODULE program_qq2rr
         DO k = 1, nq(3)
         DO j = 1, nq(2)
         DO i = 1, nq(1)
-          IF(.not.found(i,j,k,a,b,c)) print*, i,j,k,a,b,c
+          IF(found(i,j,k,a,b,c)<0) print*, i,j,k,a,b,c
         ENDDO
         ENDDO
         ENDDO
@@ -226,7 +273,15 @@ MODULE program_qq2rr
           arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
           phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
           fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
+          !write(*,'(3(2f10.4,3x))') d3grid(iq)%xq2,d3grid(iq)%xq3
         ENDDO
+        !if(iat/=jat) then
+          write(999,*)
+          write(999,'(99i6)') iat,jat,kat,ixr,jxr
+          write(999,'(3(2f10.4,3x))') fc
+        !  stop 10
+        !endif
+        !stop 10
         !
         ! Look among the super-cell equivalent tripets of R points for the one(s)
         ! with the shortest perimeter
@@ -274,7 +329,7 @@ MODULE program_qq2rr
             matx = mat
             DEALLOCATE(mat)
             ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-            mat(:,:,:, :,:,:, nxr_list_old+1:nxr_list) = CMPLX(0._dp, 0._dp, kind=DP)
+            mat(:,:,:, :,:,:, nxr_list_old+1:nxr_list) = 0._dp
             mat(:,:,:, :,:,:, 1:nxr_list_old) = matx(:,:,:, :,:,:, 1:nxr_list_old)
             DEALLOCATE(matx)
           ELSE
@@ -287,9 +342,12 @@ MODULE program_qq2rr
           perinorm = 1._dp/REAL(nperi,kind=DP)
           !print*, perinorm * fc(:,:,:)
           DO iperi = 1, nperi
+            !
             mat(:,:,:, iat,jat,kat, rx_idx(iperi)) = perinorm * fc(:,:,:)
             !PRINT*, SUM(ABS(mat(:,:,:, iat,jat,kat, rx_idx(iperi)))), iat,jat,kat, rx_idx(iperi)
           ENDDO
+        ELSE
+          CALL errore("bwfft_d3_interp", "found no perimeters", 1)
         ENDIF
         !
       ENDDO
@@ -301,12 +359,13 @@ MODULE program_qq2rr
     !
     !WRITE(998,*) mat
     !
-    fc3%n_R = nxr_list
     sum_imag = 0._dp
     max_imag = 0._dp
     max_imag_frac = 0._dp
     max_imag_mag = 0._dp
     count_imag = 0
+    !
+    fc3%n_R = nxr_list
     ALLOCATE(fcx(3*nat,3*nat,3*nat))
     ALLOCATE(fc3%fc(3*nat,3*nat,3*nat, nxr_list))
     ALLOCATE(fc3%ifc(3*nat,3*nat,3*nat, nxr_list))
@@ -344,7 +403,7 @@ MODULE program_qq2rr
     !
     WRITE(*,'(4x,a,es10.3)') "Sum of imaginary parts:    ", sum_imag
     WRITE(*,'(4x,a,es10.3)') "Average imaginary part:    ", avg_imag
-    WRITE(*,'(4x,a,es10.3,a,2es10.3)') "Largest imaginary fraction:", max_imag_frac, " at ", max_imag_mag
+    WRITE(*,'(4x,a,es10.3,a,2es10.3)') "Largest imaginary fraction:", max_imag_frac, " for ", max_imag_mag
     WRITE(*,'(4x,a,es10.3)') "Largest imaginary part:    ", max_imag
     !
     WHERE(ABS(fc3%fc) < 1.d-30)  fc3%fc = 0._dp
@@ -370,25 +429,29 @@ MODULE program_qq2rr
     REAL(DP),INTENT(inout),ALLOCATABLE :: rx_list(:,:,:) !(3,2,nxr_list)
     INTEGER,INTENT(inout) :: rx_idx(nperi)         !(nxr_list)
     !
-    INTEGER :: iperi, irx, nxr_list_new
+    INTEGER :: iperi, irx, nxr_list_new, nxr_list_out
     REAL(DP),ALLOCATABLE :: rx_aux(:,:,:) !(3,2,nxr_list)
     REAL(DP),PARAMETER :: eps_rx = 1.d-5
     !
     rx_idx = -1
     !
-    DO iperi = 1, nperi
-      DO irx = 1, nxr_list
-        !
-        IF( ALL(ABS(farx_list(:,:,iperi)-rx_list(:,:,irx))<eps_rx) ) THEN
-          rx_idx(iperi) = irx 
-          EXIT
-        ENDIF
-        !
+    IF(nxr_list>0)THEN
+      !
+      DO iperi = 1, nperi
+        DO irx = 1, nxr_list
+          !
+          IF( ALL(ABS(farx_list(:,:,iperi)-rx_list(:,:,irx))<eps_rx) ) THEN
+            rx_idx(iperi) = irx 
+            EXIT
+          ENDIF
+          !
+        ENDDO
       ENDDO
-    ENDDO
-    !
-    ! If I found all the couple of Rs, return here
-    IF (ALL(rx_idx>0)) RETURN
+      !
+      ! If I found all the couple of Rs, return here
+      IF (ALL(rx_idx>0)) RETURN
+      !
+    ENDIF
     !
     ! Add enough space for the new vectors
     nxr_list_new = COUNT(rx_idx < 0)
@@ -397,10 +460,13 @@ MODULE program_qq2rr
       ALLOCATE(rx_aux(3,2,nxr_list))
       rx_aux(:,:,1:nxr_list) = rx_list(:,:,1:nxr_list)
       DEALLOCATE(rx_list)
-      ALLOCATE(rx_list(3,2,nxr_list+nxr_list_new))
+      !
+      nxr_list_out = nxr_list+nxr_list_new
+      ALLOCATE(rx_list(3,2,nxr_list_out))
       rx_list(:,:,1:nxr_list) = rx_aux(:,:,1:nxr_list)
       DEALLOCATE(rx_aux)
     ELSE
+      nxr_list_out = nxr_list_new
       ALLOCATE(rx_list(3,2,nxr_list_new))
     ENDIF
     !
@@ -412,8 +478,8 @@ MODULE program_qq2rr
         rx_idx(iperi) = nxr_list
       ENDIF
     ENDDO
-    !
-    IF (ANY(rx_idx<0)) CALL errore('update_rlist', 'something wrong', 1)
+    IF(nxr_list /= nxr_list_out) CALL errore("update_rlist", "something wrong",1)
+    IF (ANY(rx_idx<0)) CALL errore('update_rlist', 'something wrong', 2)
     
   END SUBROUTINE update_rlist
   ! \/o\________\\\________________\\/\_________________________/^>
@@ -436,6 +502,7 @@ MODULE program_qq2rr
     ALLOCATE(D3(S%nat3,S%nat3,S%nat3))
     ALLOCATE(P3(S%nat3,S%nat3,S%nat3))
     DO iq = 1, nq_trip
+      !CALL fc3%interpolate(d3grid(iq)%xq2_true, d3grid(iq)%xq3_true, S%nat3, D3)
       CALL fc3%interpolate(d3grid(iq)%xq2, d3grid(iq)%xq3, S%nat3, D3)
       CALL d3_6idx_2_3idx(S%nat, d3grid(iq)%d, P3)
       rmaxi = MAXVAL(ABS(DBLE(D3)-DBLE(P3)))
