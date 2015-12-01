@@ -10,8 +10,9 @@ MODULE dq1rhodq23v_module
 !  USE kinds, ONLY : DP
 !  COMPLEX(DP),ALLOCATABLE :: d3mrd(:,:,:)
 !  LOGICAL :: first = .true.
-
-  PUBLIC  :: dq1rhodq23v, dq1rhodqv
+  IMPLICIT NONE
+  !
+  PUBLIC  :: dq1rhodq23v
   PRIVATE :: dpsi_correction, dq23v_nonlocal, dq23v_local
   !
   LOGICAL,PARAMETER :: prof_dq1rhod2v = .false.

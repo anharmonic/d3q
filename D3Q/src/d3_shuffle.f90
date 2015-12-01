@@ -202,7 +202,7 @@ SUBROUTINE d3_shuffle_global(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
 
   IF( ANY(ABS((/ i1,i2,i3, j1,j2,j3 /))>3) .or. &
       ANY(ABS((/ i1,i2,i3, j1,j2,j3 /))<1) ) &
-    CALL errore(sub, 'One index is out of range', 3)
+    CALL errore(sub, 'Index out of range', 3)
 
   idx = (/ 0,-1,1 /)
 
@@ -281,7 +281,7 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
 
   IF( ANY((/ i1,i2,i3, j1,j2,j3 /)>3) .or. &
       ANY((/ i1,i2,i3, j1,j2,j3 /)<1) ) &
-    CALL errore(sub, 'One index is out of range', 3)
+    CALL errore(sub, 'Index out of range', 3)
 
   idx1=0; idx2=1; idx3=-1
 
