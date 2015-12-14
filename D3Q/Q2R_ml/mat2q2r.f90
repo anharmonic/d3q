@@ -289,19 +289,19 @@ PROGRAM q2r
      call errore('init',' missing q-point(s)!',1)
   end if
 
-  IF (lread_tau) THEN
-     IF (tau_(1,1).EQ.0.D0 .AND. tau_(2,1).EQ.0.D0 .AND. tau_(3,1).EQ.0.D0 ) THEN
-        DO ia = 2, nat
-           IF (tau_(1,ia).EQ.0.D0 .AND. tau_(2,ia).EQ.0.D0 .AND. tau_(3,ia).EQ.0.D0 ) &
-              call errore('','',1)
-        END DO
-     END IF
-  ELSE
+!   IF (lread_tau) THEN
+!      IF (tau_(1,1).EQ.0.D0 .AND. tau_(2,1).EQ.0.D0 .AND. tau_(3,1).EQ.0.D0 ) THEN
+!         DO ia = 2, nat
+!            IF (tau_(1,ia).EQ.0.D0 .AND. tau_(2,ia).EQ.0.D0 .AND. tau_(3,ia).EQ.0.D0 ) &
+!               call errore('','',1)
+!         END DO
+!      END IF
+!   ELSE
      tau_(:,:) = tau(:,:)
      DO ia = 1, natx
         icorr(ia) = ia
      END DO
-  ENDIF
+!   ENDIF
 
 
   atws(:,1) = at(:,1)*DFLOAT(nr(1))
@@ -310,6 +310,9 @@ PROGRAM q2r
   ! initialize WS r-vectors
   CALL wsinit(rws,nrwsx,nrws,atws)
 
+  open(unit=12,file='matF')
+    write(12,'(3f12.6)') at 
+    write(12,*) "====================+"
   nRbig=0
   do l1=-2*nr(1),2*nr(1)
      do l2=-2*nr(2),2*nr(2)
@@ -317,13 +320,15 @@ PROGRAM q2r
           nRbig=nRbig+1
            if (nRbig.gt.nRbigxx) call errore('main','nRbigxx exceeded',1)
            Rbig_(:, nRbig) = at(:,1)*l1+at(:,2)*l2 +at(:,3)*l3
+           write(12,'(i6,3f12.6)') nRbig,Rbig_(:, nRbig) 
          end do
      end do
   end do
+  print*, " nRbig", nRbig
+  write(12,*) "====================+"
 
    
 
-  open(unit=12,file='matF')
   !
   ! dyn.mat. FFT
   !
@@ -340,7 +345,11 @@ PROGRAM q2r
                  aus=cmplx(0.d0,0.d0)
                  dist(:) = Rbig_(:,iR) + tau_(:,na1_) - tau_(:,na2_)
                  Rbig(:) = dist(:) - tau(:,na1) + tau(:,na2)
+                 IF(ANY(tau_(:,na1_)/= tau(:,na1)  )) STOP 1
+                 IF(ANY(tau_(:,na2_)/= tau(:,na2)  )) STOP 2
+                 IF(ANY(Rbig(:)/= Rbig_(:,iR)  )) STOP 3
                  wg = wsweight(dist,rws,nrws)
+                 write(12,'(i6,4(4x,3f7.3),f12.6)') iR, dist, Rbig_(:,iR), tau_(:,na1), tau_(:,na2), wg
                  if(wg.ne.0) then 
 
                     do iiq=1,nqt
@@ -356,6 +365,7 @@ PROGRAM q2r
                  end if
                  totalweight=totalweight+wg
                end do
+               print*, "weight", totalweight, nrtot
               if(abs(totalweight-nrtot) .gt.eps) call errore('main','wrong totalweight',1)  
            enddo
         enddo
@@ -655,7 +665,7 @@ SUBROUTINE  find_in_list (nrpx,rlist,rinit,iout,nrp)
   REAL(8), PARAMETER :: eps=1.0d-6
  
   DO ip = 1, nrp
-     ddist = dsqrt((rinit(1)-rlist(1,ip))**2.0d0 +(rinit(2)-rlist(2,ip))**2.0d0 +(rinit(3)-rlist(3,ip))**2.0d0 ) 
+     ddist = dsqrt((rinit(1)-rlist(1,ip))**2 +(rinit(2)-rlist(2,ip))**2 +(rinit(3)-rlist(3,ip))**2 ) 
      IF (ddist.le.eps) THEN
         iout = ip
         RETURN

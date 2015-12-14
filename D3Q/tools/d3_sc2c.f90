@@ -31,7 +31,7 @@ PROGRAM d3_sc2c
   ! wat20100225: Clean up the things we don't use
   ! wat20100225: USE sc2c_params, ONLY : read_file_sc2c, ph_system_info
   USE mp,         ONLY : mp_start, mp_end, mp_barrier
-  USE fft_scalar, ONLY : cfft3d
+!  USE fft_scalar, ONLY : cfft3d
   USE iotk_module
   USE d3matrix_io
   !

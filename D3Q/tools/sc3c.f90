@@ -5,7 +5,10 @@
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
+! Compute a D3 matrix from finite differences of D2 matrices and compares this
+! with a D3 matrix from input. 
 !
+! MUST BE REFACTORED BECAUSE IT DOES NOT READ THE CURRENT FILE FORMAT!!
 !
 !----------------------------------------------------------------------------
 PROGRAM sc3c

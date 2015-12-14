@@ -1,8 +1,8 @@
 # Makefile for D3Q
 # Adapted from TDDFPT main Makefile
 
-SUBDIRS = src tools
-OPTDIRS = Q2R3 Q2R_ml thermal thermal2  
+SUBDIRS = src tools thermal2  
+OPTDIRS = Q2R3 Q2R_ml thermal 
 
 default: all
 

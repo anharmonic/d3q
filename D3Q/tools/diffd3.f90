@@ -1,5 +1,5 @@
 !
-! Small example program
+! Small example program, reads two D3 matrix files and print out the difference
 !
 PROGRAM read3
   USE kinds,       ONLY : DP
@@ -10,7 +10,7 @@ PROGRAM read3
   IMPLICIT NONE
   REAL(DP) :: xq1(3), xq2(3), xq3(3), maxdiff, maxperc, perc, diff
   COMPLEX(DP),ALLOCATABLE :: p3(:,:,:, :,:,:), q3(:,:,:, :,:,:)
-  CHARACTER(len=256) :: fname1, fname2
+  CHARACTER(len=256) :: fname1, fname2, basename
   INTEGER :: natoms, i,j,k,a,b,c
   LOGICAL :: found
   !
@@ -18,8 +18,29 @@ PROGRAM read3
   !READ(*,*) fname1
   !READ(*,*) fname2
 
-  READ(*,*) fname1   ! <-- the first one is the full file (e.g. anh_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0)
-  READ(*,*) fname2   ! <-- this is just the basename (e.g. "../check/anh")
+  INTEGER,INTRINSIC :: iargc
+  INTEGER :: nargs
+  !
+  nargs = iargc()
+  !
+  IF(nargs>=1) THEN
+    CALL getarg(1, fname1)
+  ELSE
+    PRINT*, "enter file1"
+    READ(*,"(a256)") fname1
+  ENDIF
+  IF(nargs>=2) THEN
+    CALL getarg(2, fname2)
+  ELSE
+    PRINT*, "enter file2 or directory"
+    READ(*,"(a256)") fname2
+  ENDIF
+  
+  IF(nargs>=3) THEN
+    CALL getarg(3, basename)
+    fname1 = TRIM(fname1)//TRIM(basename)
+    fname2 = TRIM(fname2)//TRIM(basename)
+  ENDIF
   !
   !CALL read_d3dyn_xml(fname1, d3=p3, nat=natoms)
   !CALL read_d3dyn_xml(fname2, d3=q3)
@@ -120,7 +141,7 @@ PROGRAM read3
 !   ! ntypx viene dal modulo parameters (USE parameters, ONLY : ntypx), mentre ityp e tau sono allocabili (così è nel resto del codice)
 !   !
 !   ! NOTA: at (la cella del reticolo) viene letto SOLO SE ibrav=0, altrimenti devi generartelo a mano:
-!   !  IF(ibrav==0) CALL latgen( ibrav, celldm, at(:,1), at(:,2), at(:,3), omega )
+!   !  IF(ibrav/=0) CALL latgen( ibrav, celldm, at(:,1), at(:,2), at(:,3), omega )
 !   !
   !
 END PROGRAM read3

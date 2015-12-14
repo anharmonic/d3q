@@ -58,7 +58,7 @@ MODULE program_qq2rr
     INTEGER,ALLOCATABLE :: found(:,:,:,:,:,:)
     INTEGER :: countq(nq_trip)
     CHARACTER(len=512) :: filename
-    INTEGER :: iqa(3), iqb(3)
+    INTEGER :: iqa(3), iqb(3), iqc(3)
     REAL(DP) :: xq_shift(3,3)
     TYPE(ph_system_info) :: Sx
     !
@@ -92,7 +92,6 @@ MODULE program_qq2rr
         CALL latgen( Sx%ibrav, Sx%celldm, Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%omega )
         Sx%at=Sx%at/Sx%celldm(1)
         CALL recips(Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%bg(:,1), Sx%bg(:,2), Sx%bg(:,3))
-        !CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3)
         IF(.not.same_system(S,Sx)) CALL errore("qq2rr", "not same system "//TRIM(filename), 1)
           !WRITE(*,*), 200, TRIM(filename)
       ENDIF
@@ -104,57 +103,63 @@ MODULE program_qq2rr
           !WRITE(*,*), 300+iperm, TRIM(filename)
         !
         ! Check if the points are in the grid:
-        iqa = check_in_grid(nq, xq(:,b), S%at, skip)
+        iqb = check_in_grid(nq, xq(:,b), S%at, skip)
           !WRITE(*,*), 310+iperm, TRIM(filename)
         IF(skip) CYCLE PERM_LOOP
-        iqb = check_in_grid(nq, xq(:,c), S%at, skip)
+        iqc = check_in_grid(nq, xq(:,c), S%at, skip)
           !WRITE(*,*), 320+iperm, TRIM(filename)
         IF(skip) CYCLE PERM_LOOP
         !
         ! Add this point to the grid, if an equivalent was not already added
-        IF(found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) < 0) THEN
+        IF(found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3)) < 0) THEN
           iq_trip = iq_trip + 1
-          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,i6  )') iq_trip, "xq ", xq(:,a), xq(:,b), xq(:,c), iqa, iqb, &
+          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,i6  )') iq_trip, "xq ", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
             a,b,c, TRIM(filename),iperm
-          found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3)) = iq_trip
+          found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3)) = iq_trip
           countq(iq_trip) = 1
           !
           ! Repack the matrix, shuffle it and repack it again
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
+          !CALL d3_shuffle_simple( a,b,c, .false., p3)
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-          !CALL d3_shuffle_equiv( 1,2,3, a,b,c, .false., p3)
+          !CALL d3_shuffle_global( 1,2,3, a,b,c, d3perms_conjg(iperm), p3)
+          !CALL d3_shuffle_equiv( 1,2,3, a,b,c, .not.d3perms_conjg(iperm), p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
           !
           ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
           d3grid(iq_trip)%d   = d3
           !
-          xq_shift(:,2) = (iqa-1)/DBLE(nq)
-          xq_shift(:,3) = (iqb-1)/DBLE(nq)
-          xq_shift(:,1) = -(xq_shift(:,2)+xq_shift(:,3))
-          CALL cryst_to_cart(3, xq_shift, S%bg, +1)
-          d3grid(iq_trip)%xq1(:) = xq_shift(:,1)
-          d3grid(iq_trip)%xq2(:) = xq_shift(:,2)
-          d3grid(iq_trip)%xq3(:) = xq_shift(:,3)
+          !  Recenter xq2 qnd xq3 in the first unit cell (it makes no difference really)
+!           xq_shift(:,2) = (iqb-1)/DBLE(nq)
+!           xq_shift(:,3) = (iqc-1)/DBLE(nq)
+!           iqa = check_in_grid(nq, xq(:,a), S%at, skip)
+!           xq_shift(:,1) = (iqa-1)/DBLE(nq)
+!           
+!           !xq_shift(:,1) = -(xq_shift(:,2)+xq_shift(:,3))
+!           CALL cryst_to_cart(3, xq_shift, S%bg, +1)
+!           d3grid(iq_trip)%xq1(:) = xq_shift(:,1)
+!           d3grid(iq_trip)%xq2(:) = xq_shift(:,2)
+!           d3grid(iq_trip)%xq3(:) = xq_shift(:,3)
           !
-!           d3grid(iq_trip)%xq1(:) = xq(:,a)
-!           d3grid(iq_trip)%xq2(:) = xq(:,b)
-!           d3grid(iq_trip)%xq3(:) = xq(:,c)
+          d3grid(iq_trip)%xq1(:) = xq(:,a)
+          d3grid(iq_trip)%xq2(:) = xq(:,b)
+          d3grid(iq_trip)%xq3(:) = xq(:,c)
         ELSE
-!           iq_aux = found(iqa(1),iqa(2),iqa(3), iqb(1),iqb(2),iqb(3))
-!           countq(iq_aux) = countq(iq_aux) +1
-!           CALL d3_6idx_2_3idx(S%nat, d3, p3)
-!           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-!           CALL d3_3idx_2_6idx(S%nat, p3, d3)
-! !           IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
-! !             WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') iq_aux, "xqR", xq(:,a), xq(:,b), xq(:,c), iqa, iqb, &
-! !             a,b,c, TRIM(filename)
-! !             print*, iq_aux, iq_trip
-! !             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
-! !             print*, xq
-! !             WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
-! !             stop 666
-! !           ENDIF
-!           d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
+          iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
+          countq(iq_aux) = countq(iq_aux) +1
+          CALL d3_6idx_2_3idx(S%nat, d3, p3)
+          CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
+          CALL d3_3idx_2_6idx(S%nat, p3, d3)
+          IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
+            WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') iq_aux, "xqR", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
+            a,b,c, TRIM(filename)
+            print*, iq_aux, iq_trip
+            print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
+            print*, xq
+            WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
+            stop 666
+          ENDIF
+          !d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
           
         ENDIF
       ENDDO &
@@ -319,7 +324,7 @@ MODULE program_qq2rr
         ! in any case, return the indeces of the vectors in the list
         nxr_list_old = nxr_list
         CALL update_rlist(nperi, farx_list, nxr_list, rx_list, rx_idx)
-        IF(nperi>1) WRITE(*,'(3i3,3x,2i3,3x,i6,999i8)') iat,jat,kat, ixr,jxr, nperi, rx_idx(1:nperi)
+        !IF(nperi>1) WRITE(*,'(3i3,3x,2i3,3x,i6,999i8)') iat,jat,kat, ixr,jxr, nperi, rx_idx(1:nperi)
         !
         ! Make room for new force constants, if necessary
         IF(nxr_list>nxr_list_old)THEN

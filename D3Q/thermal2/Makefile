@@ -20,7 +20,7 @@ QEMODS = ../../Modules/libqemod.a
 TLDEPS= bindir mods libs pw
 
 #IBOBJS        = ../../flib/pthermal2.a 
-LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a
+LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
 # line for xlf90 on bluegene:
 #LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../lapack-3.2/lapack.a
 

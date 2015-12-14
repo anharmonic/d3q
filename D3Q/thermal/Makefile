@@ -1,8 +1,8 @@
 #.SUFFIXES : .o .f90
 F90 = $(MPIF90)
 
-.f90.o:
-	$(F90) $(F90FLAGS) -c $<
+#.f90.o:
+#	$(F90) $(F90FLAGS) -c $<
 
 include ../../make.sys
 
@@ -20,7 +20,7 @@ all : thermalk.x
 
 OBJS=thermalk.o linpack.o libs.o nanosec.o mat_input.o modules.o
 thermalk.x: $(OBJS)
-	$(F90) -o thermalk.x  $(OBJS)   $(LIBS)  $(F90FLAGS)
+	$(MPIF90) -o thermalk.x  $(OBJS)   $(LIBS)  $(F90FLAGS)
 
 clean:
 	rm -f *.o *.mod *.x

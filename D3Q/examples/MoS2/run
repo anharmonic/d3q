@@ -20,14 +20,14 @@ mkdir -p $EXAMPLE/$TITLE/FILD3DYN/
 echo ================================================================
 
 bin="$ESPRESSO_BIN"
-pref="mpirun -np 4 "  # e.g. "mpirun -np 4 "
-post=" "  # e.g. "-npool 4 " 
+pref="mpirun -np 1 "  # e.g. "mpirun -np 4 "
+#post=" -npool 2 "  # e.g. "-npool 4 " 
 
 # STEP1: pw.x calculation, then ph.x calculation
-echo "pw calculation"
-$pref $bin/pw.x $post -in pw.in > pw.out
-echo "ph calculation"
-$pref $bin/ph.x $post -in ph.in > ph.out
+ echo "pw calculation"
+ $pref $bin/pw.x $post -in pw.in > pw.out
+ echo "ph calculation"
+ $pref $bin/ph.x $post -in ph.in > ph.out
 
 echo ================================================================
 # STEP2: After the ph.x has finished, any number of d3q.x calculations can

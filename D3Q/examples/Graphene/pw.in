@@ -8,6 +8,9 @@
     disk_io='low'
  /
  &system
+    nosym=.true.
+    noinv=.true.
+
     ibrav=  4
         celldm(1) = 4.60742348
         celldm(3) = 3.0 ! ~7A
@@ -23,7 +26,8 @@
     conv_thr =  1.0d-9 !2
  /
 ATOMIC_SPECIES
- C    12.0107  C.adc_nc.UPF 
+ C    12.0107  C.pbe-mt_fhi.UPF
+ C    12.0107  C.adc_nc.UPF
 ATOMIC_POSITIONS alat
  C  0.5   0.28868  0
  C  0.5  -0.28868  0

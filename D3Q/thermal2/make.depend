@@ -30,8 +30,8 @@ PROGRAM_lw.o : ./more_constants.o
 PROGRAM_lw.o : ./mpi_thermal.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
+PROGRAM_q2r.o : ../../FFTXlib/fft_scalar.DFTI.o
 PROGRAM_q2r.o : ../../Modules/environment.o
-PROGRAM_q2r.o : ../../Modules/fft_scalar.o
 PROGRAM_q2r.o : ../../Modules/io_global.o
 PROGRAM_q2r.o : ../../Modules/kind.o
 PROGRAM_q2r.o : ../../Modules/mp.o

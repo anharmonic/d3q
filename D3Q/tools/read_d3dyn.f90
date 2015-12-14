@@ -6,6 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !
+! Crappy libraries, to be deleted
 module d3_tools
   !
   USE kinds,     only : DP
@@ -178,7 +179,7 @@ FUNCTION check_int_linearcombination(test_vector, inverted_basis)
   !
   ! wat20100312 : okay, I had to change this because it didn't work for negative translations.
   !               Feel free to change it back if you encounter problems.
-  check_int_linearcombination = ALL(ABS(ABS(coefficients)-INT(ABS(coefficients)+.5_dp))<eps8 ) 
+  check_int_linearcombination = ALL(ABS(ABS(coefficients)-NINT(ABS(coefficients)))<eps8 ) 
   !check_int_linearcombination = ALL(ABS(coefficients-INT(coefficients+.5_dp))<eps8 )
   !
 END FUNCTION check_int_linearcombination

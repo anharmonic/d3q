@@ -50,10 +50,8 @@ subroutine read_input
   ispeed3 = 1
   nq1(:) = 1           ! grid dimension outer q-point loop
   nq2(:) = 30          ! grid dimension inner q-point loop
-  deltaq1(:) = 0.2d0   ! grid shift     outer q-point loop
-  deltaq2(1) = 0.53d0  ! grid shift     inner q-point loop
-  deltaq2(2) = 0.12d0
-  deltaq2(3) = 0.89d0
+  deltaq1(:) = 0.0d0   ! grid shift     outer q-point loop
+  deltaq2(:) = 0.0d0   ! grid shift     inner q-point loop
   ntemp =1
   temp(1) =9000.0d0
   sigma(1) = 2.5

@@ -58,6 +58,11 @@ Program r2q
                        omega, at, velph, freq1_, tempm1, temp, F_0, tcond)
   ENDIF
 !
+!   CALL LANCZOS()
+  
+  CALL stop_parallel
+!   stop 10
+
   CALL conjugate_gradient
 !
   CALL alloc_dealloc_common(-1)
@@ -118,10 +123,10 @@ SUBROUTINE conjugate_gradient
            DO im = 1, nat3
               irun = im + nat3 *(iq-1)
               F_oo(irun, i1) = F_0(im, iq, ix, it) * Q_0rad(im, iq, ix, it)
-           END DO
-        END DO
-     END DO
-  END DO
+           ENDDO
+        ENDDO
+     ENDDO
+  ENDDO
 !
 ! F_old la dai come variabile di input a llop_on_q_points ed a matrix_xxx
 ! Localmente dimensioni : F_oo(dim1,dimrun)
@@ -140,8 +145,8 @@ SUBROUTINE conjugate_gradient
         rho(jj) = 0.d0
         DO ii = 1, dim1
            rho(jj) = rho(jj) + gp(ii, jj) **2
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
 !     IF(nrank == 1) write(*,*) 'rho', rho
 !
@@ -162,7 +167,7 @@ SUBROUTINE conjugate_gradient
            ELSE
               hh(:, jj) = - ggrd(:, jj)
            END IF
-        END DO
+        ENDDO
 !
 !        IF(nrank == 1) write(*,*) 'dgamma', dgamma
      END IF
@@ -171,8 +176,8 @@ SUBROUTINE conjugate_gradient
         pss(jj) = 0.d0
         DO ii = 1, dim1
            pss(jj) = pss(jj) + ggrd(ii, jj) * hh_old(ii, jj)
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
 !
 !
@@ -189,11 +194,11 @@ SUBROUTINE conjugate_gradient
         aa = 0.0d0
         DO ii = 1, dim1
            aa = aa + hh(ii, jj) * ggrd(ii, jj)
-        END DO
+        ENDDO
         cc = 0.0d0
         DO ii = 1, dim1
            cc = cc + hh(ii, jj) * ggt(ii, jj)
-        END DO
+        ENDDO
         dlambda(jj) = 0.d0
         IF(ltobedone(jj)) THEN
            IF(cc==0.d0) THEN
@@ -203,7 +208,7 @@ SUBROUTINE conjugate_gradient
              dlambda(jj) = - aa / cc ! compute lambda
            ENDIF
         ENDIF
-     END DO
+     ENDDO
 !
 !
 !     IF(nrank == 1) write(*,*) 'dlambda', dlambda
@@ -211,7 +216,7 @@ SUBROUTINE conjugate_gradient
      DO jj = 1, dimrun
         F_nn(:, jj) = F_oo(:, jj) + dlambda(jj) * hh(:, jj)
         ggrd(:, jj) = gp(:, jj) + dlambda(jj) * ggt(:, jj)
-     END DO
+     ENDDO
 !
 !
      rhold(:) = rho(:)
@@ -230,7 +235,7 @@ SUBROUTINE conjugate_gradient
 !
               tcond3old(:, :, it) = tcond3(:, :, it)
 !
-           END DO
+           ENDDO
         END IF
      END IF
 !
@@ -238,12 +243,469 @@ SUBROUTINE conjugate_gradient
 !            F_old(:,:,:,:) = F_new(:,:,:,:)
      IF(nrank == 1) CALL write_FF(iter, F_nn)
 !
-  END DO !end iteration loop
+  ENDDO !end iteration loop
 !
   Return
     !--------------------------------------------------------------------------------
 END SUBROUTINE conjugate_gradient
 !--------------------------------------------------------------------------------
+!
+!--------------------------------------------------------------------------------
+SUBROUTINE LANCZOS
+  !--------------------------------------------------------------------------------
+  !
+  USE constants
+  USE MPI_BASE
+  USE common_variables, ONLY : F_0, ntemp, nat3, nq1tot, nxcryst
+  USE mpi_base
+  IMPLICIT NONE
+!
+  Integer,PARAMETER :: iter_max = 100
+  Real(DP) :: alpha(3,ntemp,iter_max), beta(3,ntemp,iter_max), norm, norm2, value, inorm
+  Integer  :: i,j, ix, it, ierr
+  Real(DP),ALLOCATABLE :: vj(:,:,:,:), vjm(:,:,:,:), wj(:,:,:,:)
+  Real(DP) :: mat(iter_max,iter_max), vec(iter_max,iter_max), eig(iter_max)
+
+  Real,ALLOCATABLE :: oldvj(:,:,:,:,:)
+  Logical,PARAMETER :: ortho = .true., random = .false., antisym = .false.
+  Real(DP),EXTERNAL :: rndm
+
+  ALLOCATE(vj(nat3, nq1tot, 3, ntemp))
+  ALLOCATE(wj(nat3, nq1tot, 3, ntemp))
+  ALLOCATE(vjm(nat3, nq1tot, 3, ntemp))
+
+  IF (ortho) ALLOCATE(oldvj(nat3,nq1tot,3,ntemp,iter_max))
+  
+!   CALL antisymm_f(F_0)
+
+  CALL A_times_f(F_0, wj)
+  DO it = 1,ntemp
+  DO ix = 1,nxcryst
+    value = SUM( F_0(:,:,ix,it)*wj(:,:,ix,it) )
+    norm2 =  SUM( F_0(:,:,ix,it)**2)
+    IF(nrank==1) print*, "Approx 0 = ", value/norm2
+  ENDDO
+  ENDDO
+
+  IF(random)THEN
+    DO it = 1,ntemp
+    DO ix = 1,nxcryst
+    DO i = 1, nq1tot
+    DO j = 1, nat3
+      F_0(j,i,ix,it) = rndm()
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+  ENDIF
+
+
+  DO it = 1,ntemp
+  DO ix = 1,nxcryst
+    norm = DSQRT( SUM(F_0(:,:,ix,it)**2) )
+    inorm = 1/norm
+    vj(:,:,ix,it) = inorm*F_0(:,:,ix,it)
+  ENDDO
+  ENDDO
+  
+  vjm   = 0.d0  !v_(j-1)
+  wj    = 0.d0
+  alpha = 0.d0
+  beta  = 0.d0
+  !lanczos start
+  DO j = 1, iter_max
+  
+    IF(antisym) CALL antisymm_f(vj)
+    IF(ortho) oldvj(:,:,:,:,j) = vj
+    !
+    CALL A_times_f(vj, wj)
+    !
+    DO it = 1,ntemp
+    DO ix = 1,nxcryst
+      alpha(ix,it,j) = SUM(wj(:,:,ix,it)*vj(:,:,ix,it))
+    ENDDO
+    ENDDO
+    !
+    WRITE(20000,*) j, alpha(1,1,j), beta(1,1,j)
+    !
+!     CALL MPI_ALLREDUCE(MPI_IN_PLACE, alpha(:,:,j), 3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
+    
+    DO it = 1,ntemp
+    DO ix = 1,nxcryst
+      wj(:,:,ix,it) = wj(:,:,ix,it) &
+                     -alpha(ix,it,j)* vj(:,:,ix,it) &
+                     -beta(ix,it,j) * vjm(:,:,ix,it)
+    ENDDO
+    ENDDO
+    !
+    IF(j<iter_max)THEN
+      DO it = 1,ntemp
+      DO ix = 1,nxcryst
+        !
+        beta(ix,it,j+1) = DSQRT( SUM(wj(:,:,ix,it)**2) )
+        vjm(:,:,ix,it) = vj(:,:,ix,it)
+        vj(:,:,ix,it)  = wj(:,:,ix,it) / beta(ix,it,j+1)
+        !
+        ! From here on, vj is v_(j+1)
+        ! Graham-Schmidt orthogonalise to all previous vectors
+        IF(ortho)THEN
+          DO i = 1,j
+            vj(:,:,ix,it) = vj(:,:,ix,it) - SUM(vj(:,:,ix,it)*oldvj(:,:,ix,it,i))*oldvj(:,:,ix,it,i)
+          ENDDO
+        ENDIF
+        !
+      ENDDO
+      ENDDO
+!       CALL MPI_ALLREDUCE(MPI_IN_PLACE, beta(:,:,j), 3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
+!       CALL MPI_ALLREDUCE(MPI_IN_PLACE, vjm, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
+!       CALL MPI_ALLREDUCE(MPI_IN_PLACE, vj, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
+    ENDIF
+    !     print*, "alphabeta", alpha(1,1,j), beta(1,1,j+1)
+    !
+    IF(nrank==1) THEN
+    DO it = 1,ntemp
+    DO ix = 1,nxcryst
+      mat = 0.d0
+      DO i=1,j
+        mat(i,i) = alpha(ix,it,i)
+        IF(i<j)THEN
+          mat(i,i+1) = beta(ix,it,i+1)
+          mat(i+1,i) = beta(ix,it,i+1)
+        ENDIF
+      ENDDO
+      CALL rdiagh(j, mat, iter_max, eig, vec)
+      
+      write(10000+100*it+ix,'(1000e12.4)') eig(1:j)
+      
+    ENDDO
+    ENDDO
+    ENDIF
+    !
+  ENDDO
+  
+  write(20001,'(1e25.12)') eig
+
+  !  
+  DEALLOCATE(vj, wj, vjm)
+  IF(ortho) DEALLOCATE(oldvj)
+
+  Return
+    !--------------------------------------------------------------------------------
+END SUBROUTINE LANCZOS
+!--------------------------------------------------------------------------------
+
+SUBROUTINE antisymm_f(f)
+  USE constants, ONLY: DP
+  USE common_variables, ONLY : nq1tot, nq1loc, iq1_loc, nq1, &
+                               ntemp, nat3, bg, &
+                               ic_inn, ic_med, ic_out, deltaq1, deltaq2
+
+  
+  IMPLICIT NONE
+  REAL(DP),INTENT(inout)  ::  f(nat3, nq1tot, 3, ntemp)
+  Integer :: iq1_, mq1_, iq_init(3), dummy
+  Integer, Pointer :: iq1_inn, iq1_med, iq1_out
+  Integer, Target :: iq1(3)
+  Real (DP) :: q1d (3, nq1tot), aux(3), aux2(3)
+
+  Logical,SAVE :: first = .true.
+  Integer,ALLOCATABLE,SAVE :: idx_minus(:)
+  
+  Integer :: far = 2
+  Integer :: ix, it
+  Logical :: done(nq1tot)
+  
+
+  IF (first) THEN
+    ALLOCATE(idx_minus(nq1tot))
+    first = .false.
+    iq1_out => iq1(ic_out)
+    iq1_med => iq1(ic_med)
+    iq1_inn => iq1(ic_inn)
+  !
+    IF(ANY(deltaq1/=0.d0).or.ANY(deltaq2/=0.d0)) CALL errore("antisymm_f","deltas detected",1)
+
+    ! WARNING: I think q1d comes out in crystal coords, but you never know
+    DO iq1_ = 1, nq1tot
+      CALL calc_index(iq_init, nq1, ic_inn, ic_med, ic_out, iq1_, -1)
+      iq1(:) = iq_init(:)
+      q1d(:,iq1_) = dfloat(iq1(:)) / dfloat(nq1(:))
+    ENDDO
+
+    !WARNING: I do not understand how to anti-symmetrize along a specific direction
+    !
+    idx_minus = -1
+    PLUS : DO iq1_ = 1, nq1tot
+    MINUS : DO mq1_ = 1, nq1tot
+      aux(1) = q1d(1,iq1_)+q1d(1,mq1_)
+      aux(2) = q1d(2,iq1_)+q1d(2,mq1_)
+      aux(3) = q1d(3,iq1_)+q1d(3,mq1_)
+      
+      aux= aux-INT(aux)
+      IF(  SUM(ABS(aux))<1.d-6  )THEN
+        idx_minus(iq1_) = mq1_
+        EXIT MINUS
+      ENDIF
+      
+    ENDDO MINUS
+    ENDDO PLUS
+    
+    IF(ANY(idx_minus==-1))THEN
+      CALL errore("antisymm_f", "missing minus", 1)
+    ENDIF
+    
+!     print*, idx_minus
+  ENDIF
+  !
+  DO it = 1,ntemp
+  DO ix = 1,3
+    done = .false.
+    DO iq1_ = 1, nq1tot
+      mq1_ = idx_minus(iq1_)
+      IF(.not.done(mq1_))THEN
+        F(:,iq1_,ix,it) = 0.5d0*(F(:,iq1_,ix,it)-F(:,mq1_,ix,it))
+        F(:,mq1_,ix,it) = -F(:,iq1_,ix,it)
+        done(mq1_) = .true.
+      ENDIF
+    ENDDO
+  ENDDO
+  ENDDO
+
+
+END SUBROUTINE antisymm_f
+
+!--------------------------------------------------------------------------------
+SUBROUTINE A_times_f(f,Af)
+  !--------------------------------------------------------------------------------
+  !
+  USE constants, ONLY: DP, pi, sqrtpi, BOHR_TO_M, eps8
+  USE common_variables, ONLY : &
+     bos1, bos2, bos3, bos3b, &
+     freq1, freq2, freq3, freq3b, &
+     ntemp, tempm1, sigmam1, &
+     nq1tot, nq1loc, iq1_loc, nq1, q1d, &
+     iq1_, deltaq1, nq2tot, mq2d, nq2, q2d, deltaq2, q3d, q3db, &
+     imq2_, ipq2_, ipq3_, ipq3b_, &
+     Q_0, Q_0rad, Q_0radm1, &
+     ic_inn, ic_med, ic_out, &
+     nxcryst, xcryst, &
+     nat, nat3, const_iso, &
+     zz2_x, zz1_x, &
+     d3mmx, d3mmx_1, ierr, &
+     sum_IT, matrix
+  USE mpi_base
+  IMPLICIT NONE
+!
+  REAL(DP),INTENT(in)  ::  f(nat3, nq1tot, 3, ntemp)
+  REAL(DP),INTENT(out) :: Af(nat3, nq1tot, 3, ntemp)
+
+!
+  Integer :: im3, ii, isw1, isw2, km, ix_
+  Integer :: im, im2, ic, it, ix, iq_init(3)
+  Integer, Pointer :: iq1_inn, iq1_med, iq1_out, iq2_out, iq2_med, iq2_inn
+  Integer, Target :: iq1(3), iq2(3)
+  Real(DP) :: matAm3, d3mm3(nat3), d3mm_13(nat3)
+  Integer :: iqqmm1, iqqmm2
+!
+  Complex(DP) :: workc
+  Real(DP) :: zz_12(nat3, nat3), norm_iso1
+  Real(DP) :: bos_iso, dom_iso, ctm_iso, wimp_iso, prexp
+!
+  Integer :: ia
+  Real(DP) :: freq1t(nat3, nq1tot)
+  Real(DP) :: matrixloc(nat3, nq1tot, 3, ntemp)
+
+!
+  iq1_out => iq1(ic_out)
+  iq1_med => iq1(ic_med)
+  iq1_inn => iq1(ic_inn)
+!
+  iq2_out => iq2(ic_out)
+  iq2_med => iq2(ic_med)
+  iq2_inn => iq2(ic_inn)
+!
+!
+  isw1 = - 1 ! -1 from the total iq1_ index to the 3 iq1(:); isw=1 from the three iq1(:) indeces to iq1_
+  isw2 = 1 ! -1 from the total iq1_ index to the 3 iq1(:); isw=1 from the three iq1(:) indeces to iq1_
+!--------------------------------------------------------------------------------
+!for isotopic scattering contribution
+  norm_iso1 = pi * const_iso * 0.5d0 /(dfloat(nq2tot))! qui a differenza che nel loop dei qpoints la moltiplicazione per freq1 non e'
+                                                      !in norm_iso ma dopo all'interno del loop
+!     prexp= sigmam1(1) / sqrtpi
+!--------------------------------------------------------------------------------
+  matrixloc(:, :, :, :) = 0.0d0
+!--------------------------------------------------------------------------------
+!            EXTERNAL loop
+!--------------------------------------------------------------------------------
+  ! IF you change the order of these loop; you should change calc_vel accordingly
+!
+!
+  LOOP_IQ1 : &
+  DO ii = 1, nq1loc
+     iq1_ = iq1_loc(ii)
+!
+!--------------------------------------------------------------------------------
+!            q1   Index
+!--------------------------------------------------------------------------------
+!
+     CALL calc_index(iq_init, nq1, ic_inn, ic_med, ic_out, iq1_, isw1)
+     iq1(:) = iq_init(:)
+     q1d(:) = dfloat(iq1(:)) / dfloat(nq1(:)) + deltaq1(:)
+!     iq_init(:) = iq1(:)
+!--------------------------------------------------------------------------------
+!
+!
+!      sum_IT3(:,:,:) = 0.0d0
+     CALL setup(1)
+!
+!--------------------------------------------------------------------------------
+!            INTERNAL loop
+!--------------------------------------------------------------------------------
+     LOOP_IQ2_OUT :  DO iq2_out = 0, nq2(ic_out) - 1
+        CALL setup(2)
+        LOOP_IQ2_MED : DO iq2_med = 0, nq2(ic_med) - 1
+           CALL setup(3)
+           LOOP_IQ2_INN : DO iq2_inn = 0, nq2(ic_inn) - 1
+!
+!--------------------------------------------------------------------------------
+!            Indeces
+!--------------------------------------------------------------------------------
+              q2d(:) = dfloat(iq2(:)) / dfloat(nq2(:)) + deltaq2(:)
+              iq_init(:) = iq2(:)
+              CALL calc_index(iq_init, nq2, ic_inn, ic_med, ic_out, ipq2_, isw2)
+!
+              mq2d(:) = - q2d(:)
+              iq_init(:) = - iq2(:)
+              CALL calc_index(iq_init, nq2, ic_inn, ic_med, ic_out, imq2_, isw2)
+!
+!
+              q3d(:) = - q1d(:) - q2d(:)
+              iq_init(:) = - iq1(:) * nq2(:) / nq1(:) - iq2(:) - 2 * Nint(deltaq1(:)*nq2(:)) - Nint(deltaq2(:)*nq2(:))
+
+              CALL calc_index(iq_init, nq2, ic_inn, ic_med, ic_out, ipq3_, isw2)
+!
+              q3db(:) = q2d(:) - q1d(:)
+              iq_init(:) = iq2(:) - iq1(:) * nq2(:) / nq1(:) + Nint(deltaq2(:)*nq2(:)) - 2 * Nint(deltaq1(:)*nq2(:))
+              CALL calc_index(iq_init, nq2, ic_inn, ic_med, ic_out, ipq3b_, isw2)
+!--------------------------------------------------------------------------------
+              CALL setup(4)
+              !
+              DO im = 1, nat3
+                 freq1t(im, iq1_) = freq1(im)
+              ENDDO
+!
+!
+! write(*,*)'imq3',imq3_
+! irun = 0     
+              LOOP_TEMP : &
+              DO it = 1, ntemp
+                 prexp = sigmam1(it) / sqrtpi
+                 DO im = 1, 3 * nat
+                    bos1(im) = 1.d0 /(Exp(freq1(im)*tempm1(it))-1.d0)
+                    bos2(im) = 1.d0 /(Exp(freq2(im)*tempm1(it))-1.d0)
+                    bos3(im) = 1.d0 /(Exp(freq3(im)*tempm1(it))-1.d0)
+                    bos3b(im) = 1.d0 /(Exp(freq3b(im)*tempm1(it))-1.d0)
+                 ENDDO
+                 !
+                 LOOP_IX_ : &
+                 DO ix_ = 1, nxcryst
+                    ix = xcryst(ix_)
+                    zz_12(:, :) = 0.0d0
+                    !
+                    LOOP_IM : &
+                    DO im = 1, nat3
+                       iqqmm1 = im + nat3 *(iq1_-1)
+!
+                       DO im2 = 1, 3 * nat !
+                          DO ia = 1, nat
+!
+                             workc =(0.0d0, 0.0d0)
+                             DO ic = 1, 3
+!
+                                km = ic + 3 *(ia-1)
+                                workc = workc + CONJG(zz1_x(km, im, ix)) * zz2_x(km, im2, ix)
+                             ENDDO
+!
+                             zz_12(im2, im) = zz_12(im2, im) + CONJG(workc) * workc
+!
+                          ENDDO
+                       ENDDO
+!
+!
+                       LOOP_IM2 : &
+                       DO im2 = 1, nat3
+                          iqqmm2 = im2 + nat3 *(ipq2_-1)
+!
+                          DO im3 = 1, nat3
+                             d3mm3(im3) = d3mmx(im2, im3, im, ix)
+                             d3mm_13(im3) = d3mmx_1(im2, im3, im, ix)
+                          ENDDO
+!
+                          matAm3 = 0.0d0
+!--------------------------------------------------------------------------------
+! isotopic scattering contribution
+                          bos_iso = bos1(im) * bos2(im2) + 0.5d0 *(bos1(im)+bos2(im2))
+                          dom_iso =(freq1(im)-freq2(im2)) * sigmam1(it)
+                          ctm_iso = prexp * Exp(-(dom_iso*dom_iso))
+                          wimp_iso = norm_iso1 * freq1(im) * freq2(im2) * bos_iso * ctm_iso * zz_12(im2, im)
+!--------------------------------------------------------------------------------
+!
+!
+!                           CALL sum_modes3a2(nat3, nq2tot, sigmam1(it), freq1(im), freq2(im2), freq3, freq3b, &
+!                                             bos1(im), bos2(im2), bos3, bos3b, d3mm3, d3mm_13, matAm3,+1)
+! !
+                          CALL sum_modes3a3(nat3, nq2tot, sigmam1(it), iq1_, ipq2_, im, im2, freq1(im), freq2(im2), freq3, &
+                            & freq3b, bos1(im), bos2(im2), bos3, bos3b, d3mm3, d3mm_13, matAm3, Q_0(im2, ipq2_, ix, it), &
+                            & wimp_iso)
+
+
+                             IF((iq1_ == 1) .and.(im == 1)) matAm3 = 0
+                             IF((iq1_ == 1) .and.(im == 2)) matAm3 = 0
+                             IF((iq1_ == 1) .and.(im == 3)) matAm3 = 0
+!
+                             IF((ipq2_ == 1) .and.(im2 == 1)) matAm3 = 0
+                             IF((ipq2_ == 1) .and.(im2 == 2)) matAm3 = 0
+                             IF((ipq2_ == 1) .and.(im2 == 3)) matAm3 = 0
+
+
+!                           matAm3 = matAm3 - wimp_iso
+!
+!                           IF(Q_0rad(im, iq1_, ix, it) /= 0.0d0 .and. Q_0rad(im2, ipq2_, ix, it) /= 0.0d0) THEN
+!                             matAm3 = Q_0radm1(im, iq1_, ix, it) * matAm3 * Q_0radm1(im2, ipq2_, ix, it)
+!                           ELSE
+!                             matAm3 = 0.0d0
+!                           END IF
+
+                          matrixloc(im, iq1_, ix, it) = matrixloc(im, iq1_, ix, it) + matAm3 * f(im2, ipq2_, ix, it)
+!
+                       ENDDO LOOP_IM2 
+                       
+                    ENDDO LOOP_IM
+                 ENDDO LOOP_IX_
+                 !
+              ENDDO LOOP_TEMP 
+!
+           ENDDO LOOP_IQ2_INN 
+        ENDDO LOOP_IQ2_MED
+     ENDDO LOOP_IQ2_OUT
+     
+  ENDDO LOOP_IQ1
+!
+!
+!   Af = matrixloc
+  CALL MPI_ALLREDUCE(matrixloc, Af, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
+
+  Return
+  !--------------------------------------------------------------------------------
+END SUBROUTINE A_times_f
+!--------------------------------------------------------------------------------
+!
+
+
+
+
+
+
 !
 !--------------------------------------------------------------------------------
 SUBROUTINE setupmat(nat, nrtot, q, phiq2, Rbig2, mat2)
@@ -262,7 +724,7 @@ SUBROUTINE setupmat(nat, nrtot, q, phiq2, Rbig2, mat2)
      arg = tpi *(q(1)*Rbig2(1, iR)+q(2)*Rbig2(2, iR)+q(3)*Rbig2(3, iR))
      phase = cmplx(Cos(arg),-Sin(arg), kind=DP)
      phiq2(:, :) = phiq2(:, :) + phase * mat2(:, :, iR)
-  END DO
+  ENDDO
   Return
   !--------------------------------------------------------------------------------
 END SUBROUTINE setupmat
@@ -289,7 +751,7 @@ SUBROUTINE setupmat3a(nat33, nRbig31t, nRbig32, qq, Rbig3, mat3_rr, mat3_r)
      arg = tpi *(qq(1)*Rbig3(1, iR)+qq(2)*Rbig3(2, iR)+qq(3)*Rbig3(3, iR))
      phase = cmplx(Cos(arg),-Sin(arg), kind=DP)
      mat3_r(:, :) = mat3_r(:, :) + phase * mat3_rr(:, :, iR)
-  END DO
+  ENDDO
 !
   Return
   !--------------------------------------------------------------------------------
@@ -313,7 +775,7 @@ SUBROUTINE setupmat3b(nat33, nRbig3, qq, Rbig3, mat3_r, mat3)
      arg = tpi *(qq(1)*Rbig3(1, iR)+qq(2)*Rbig3(2, iR)+qq(3)*Rbig3(3, iR))
      phase = cmplx(Cos(arg),-Sin(arg), kind=DP)
      mat3(:) = mat3(:) + phase * mat3_r(:, iR)
-  END DO
+  ENDDO
 !
   Return
   !--------------------------------------------------------------------------------
@@ -338,27 +800,27 @@ SUBROUTINE calc_d3mm(d3mmx, mat3q, zz1, zz2, zz3, nat3, nat32, nat33)
         DO im2 = 1, nat3
            CALL ZGEMV('T', nat3, nat3, cone, zz1(1, 1, ix), nat3, mat3q(im2, im3, 1), nat32, czero, d3mm_aux(im2, im3, 1, ix), &
           & nat32)
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
      DO im1 = 1, nat3
         DO im3 = 1, nat3
            CALL ZGEMV('T', nat3, nat3, cone, zz2(1, 1, ix), nat3, d3mm_aux(1, im3, im1, ix), 1, czero, d3mm_aux1(1, im3, im1, &
           & ix), 1)
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
      DO im1 = 1, nat3
         DO im2 = 1, nat3
            CALL ZGEMV('T', nat3, nat3, cone, zz3(1, 1, ix), nat3, d3mm_aux1(im2, 1, im1, ix), nat3, czero, d3mm_aux2(im2, 1, &
           & im1, ix), nat3)
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
 !
      CALL square_mod_zvec(nat33, d3mm_aux2(1, 1, 1, ix), d3mmx(1, 1, 1, ix))
 !
-  END DO
+  ENDDO
 !
   !
   Return
@@ -411,8 +873,8 @@ SUBROUTINE sum_modes(nat3, nq2tot, sigmam1, freq1, freq2, freq3, bos1, bos2, bos
         freqtot = freq1 * freq2(im1) * freq3(im2)
         norm1 = norm / freqtot
         sum = sum + norm1 * delpi * d3mm(im1, im2)
-     END DO
-  END DO
+     ENDDO
+  ENDDO
 !
   !
   Return
@@ -463,13 +925,13 @@ SUBROUTINE sum_modes2iso(nat3, nq2tot, const_iso, sigmam1, freq1, freq2, freq3, 
         norm1 = norm / freqtot
         sum = sum + norm1 * delpi * d3mm(im2, im3)
           ! end if
-     END DO
+     ENDDO
      dom_iso =(freq1-freq2(im2)) * sigmam1
      ctm_iso = prexp * Exp(-(dom_iso**2))
      sum_iso = sum_iso + norm_iso * freq2(im2) * ctm_iso * zz_12(im2)! la moltiplicazione per freq1 e' in norm2
 !
       !  end if
-  END DO
+  ENDDO
   !end if
 !
    !  if( dabs(freq1) .GT. eps8  ) THEN
@@ -498,7 +960,7 @@ SUBROUTINE sum_modes2iso(nat3, nq2tot, const_iso, sigmam1, freq1, freq2, freq3, 
         Q_0_ = Q_0_ + sum_c + 0.5d0 * sum_d
           !  end if
   !  end if
-     END DO
+     ENDDO
 !
      bos_iso = bos1 * bos2(im2) + 0.5d0 *(bos1+bos2(im2))
      dom_iso =(freq1-freq2(im2)) * sigmam1
@@ -506,7 +968,7 @@ SUBROUTINE sum_modes2iso(nat3, nq2tot, const_iso, sigmam1, freq1, freq2, freq3, 
      wimp_iso = wimp_iso + norm_iso * freq2(im2) * bos_iso * ctm_iso * zz_12(im2)! la moltiplicazione per freq1 e' in norm2
 !
  !end if
-  END DO
+  ENDDO
   !  end if
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !
@@ -557,9 +1019,9 @@ SUBROUTINE sum_modes2(nat3, nq2tot, sigmam1, freq1, freq2, freq3, bos1, bos2, bo
         norm1 = norm / freqtot
         sum = sum + norm1 * delpi * d3mm(im2, im3)
           ! end if
-     END DO
+     ENDDO
       !  end if
-  END DO
+  ENDDO
   !end if
 !
 !  case(2)
@@ -588,10 +1050,10 @@ SUBROUTINE sum_modes2(nat3, nq2tot, sigmam1, freq1, freq2, freq3, bos1, bos2, bo
         Q_0_ = Q_0_ + sum_c + 0.5d0 * sum_d
           !  end if
   !  end if
-     END DO
+     ENDDO
 !
  !end if
-  END DO
+  ENDDO
   !  end if
 ! case(3) ! calcola il Q=(sum_c+1/2 sum_d)
 !end SELECT
@@ -654,10 +1116,10 @@ SUBROUTINE sum_modes3(nat3, nq2tot, sigmam1, freq1, freq2, freq3, &
 !
       ! end if
  !         END IF
-     END DO
+     ENDDO
 !
  !        END IF
-  END DO
+  ENDDO
  !         END IF
 !
 !end SELECT
@@ -723,12 +1185,12 @@ SUBROUTINE sum_modes3a(nat3, nq2tot, sigmam1, freq1, freq2, freq3, freq3b, &
         sumPF_a = sumPF_a + sum_c1 + sum_d - sum_c ! A
 
  
-     END DO
+     ENDDO
 !
      sumPF = sumPF + sumPF_a * fp2(im2)
 !
 !
-  END DO
+  ENDDO
 
   Return
   !--------------------------------------------------------------------------------
@@ -786,7 +1248,7 @@ SUBROUTINE sum_modes3a2(nat3, nq2tot, sigmam1, freq1, freq2, freq3, freq3b, &
 !
      sumPF_a = sumPF_a + sum_c1 + sum_d - sum_c ! A
 !
-  END DO
+  ENDDO
   !
   Return
   !--------------------------------------------------------------------------------
@@ -832,7 +1294,6 @@ SUBROUTINE sum_modes3a3(nat3, nq2tot, sigmam1, iq1_, ipq2_, pim, pim2, freq1, fr
 !
      bos_d =(bos1+1.0d0) * bos2 * bos3b(im3)
      dom_d =(freq1-freq2-freq3b(im3)) * sigmam1
-!
      ctm_d = 2.0d0 * pi * bos_d * prexp * Exp(-(dom_d*dom_d))
 !
      IF(dabs(freq3(im3)) > eps8) THEN
@@ -849,14 +1310,14 @@ SUBROUTINE sum_modes3a3(nat3, nq2tot, sigmam1, iq1_, ipq2_, pim, pim2, freq1, fr
      END IF
      !  if(abs(freqtot).gt.eps8) THEN
 !
-     sum_c = ctm_c * norm1 * d3mm(im3)
+     sum_c  = ctm_c  * norm1  * d3mm(im3)
      sum_c1 = ctm_c1 * norm1b * d3mm_1(im3)
-     sum_d = ctm_d * norm1b * d3mm_1(im3)
+     sum_d  = ctm_d  * norm1b * d3mm_1(im3)
 !
      sumPF_a = sumPF_a + sum_c1 + sum_d - sum_c ! A
 !
 !
-  END DO
+  ENDDO
 !
   sumPF_a = sumPF_a + wimp
 ! costruisco qui la matrice M come Q_{ij} * \delta_{ij} - A_{ij}
@@ -894,35 +1355,12 @@ SUBROUTINE dyndiag1b(nat3, dyn, w2)
   DO im = 1, nat3
      w2(im) = Sqrt(Abs(w2(im)))
 ! IF(w2(im) < 0.0d0) w2(im) = -w2(im)
-  END DO
+  ENDDO
 !  end if
 !
   Return
   !--------------------------------------------------------------------------------
 END SUBROUTINE dyndiag1b
-!--------------------------------------------------------------------------------
-!
-!--------------------------------------------------------------------------------
-SUBROUTINE mul_phase_mat(nat3, nRbig2t, Rbig2, mat_in, deltaq, mat_out)
-  !--------------------------------------------------------------------------------
-  USE constants, ONLY: DP, tpi
-  IMPLICIT NONE
-  Integer :: nat3, nRbig2t
-  Real(DP) :: Rbig2(3, nRbig2t), deltaq(3)
-  Complex(DP) :: mat_in(nat3, nat3, nRbig2t)
-  Complex(DP) :: mat_out(nat3, nat3, nRbig2t)
-  Integer :: iR
-  Real(DP) :: arg
-  Complex(DP) :: phase
-  DO iR = 1, nRbig2t
-     arg = tpi *(deltaq(1)*Rbig2(1, iR)+deltaq(2)*Rbig2(2, iR)+deltaq(3)*Rbig2(3, iR))
-     phase = cmplx(Cos(arg), Sin(arg), kind=DP)
-     mat_out(:, :, iR) = mat_in(:, :, iR) * phase
-  END DO
-!
-  Return
-  !--------------------------------------------------------------------------------
-END SUBROUTINE mul_phase_mat
 !--------------------------------------------------------------------------------
 !
 !--------------------------------------------------------------------------------
@@ -990,9 +1428,9 @@ SUBROUTINE change_m2r_index
      DO ii = 1, nRbig2_in
         imin(ic) = Min(iRbig2_in(ic, ii), imin(ic))
         imax(ic) = Max(iRbig2_in(ic, ii), imax(ic))
-     END DO
+     ENDDO
      nRbig2(ic) = imax(ic) - imin(ic) + 1
-  END DO
+  ENDDO
   nRbig2t = nRbig2(1) * nRbig2(2) * nRbig2(3)
   ALLOCATE(iRbig2(3, nRbig2t))
   ALLOCATE(Rbig2(3, nRbig2t))
@@ -1005,9 +1443,9 @@ SUBROUTINE change_m2r_index
            iRbig2(ic_out, ii) = i1
            iRbig2(ic_med, ii) = i2
            iRbig2(ic_inn, ii) = i3
-        END DO
-     END DO
-  END DO
+        ENDDO
+     ENDDO
+  ENDDO
 !
   ALLOCATE(ldone(nRbig2_in))
   mat2 = 0.d0
@@ -1021,13 +1459,13 @@ SUBROUTINE change_m2r_index
            ldone(jr) = .True.
            Go To 120
         END IF
-     END DO
+     ENDDO
      mat2(:, :, iR) = 0.d0
 120      Continue
-  END DO
+  ENDDO
   DO jr = 1, nRbig2_in
      IF( .Not. ldone(jr)) CALL errore('change_nr2_index', 'something wrong 2', 1)
-  END DO
+  ENDDO
 !
   Rbig2(:, :) = dfloat(iRbig2(:, :))
 !
@@ -1058,11 +1496,11 @@ SUBROUTINE change_m3q_index(nat3, nr1, nr2, mat3)
            DO im2 = 1, nat3
               DO im1 = 1, nat3
                  mat3(im2, im3, im1, ir1, ir2) = aux(im1, im2, im3, ir1, ir2)
-              END DO
-           END DO
-        END DO
-     END DO
-  END DO
+              ENDDO
+           ENDDO
+        ENDDO
+     ENDDO
+  ENDDO
   Return
   !--------------------------------------------------------------------------------
 END SUBROUTINE change_m3q_index
@@ -1111,10 +1549,10 @@ SUBROUTINE initializations
            phasem3_q2_(jr, ic) = cmplx(Cos(arg),-Sin(arg))
            arg = tpi * Rbig31(ic, iR) * deltaq2(ic)
            phasem3_q2_init(jr, ic) = cmplx(Cos(arg),-Sin(arg))
-        END DO
+        ENDDO
         phasem3_q2_init(:, ic) = phasem3_q2_init(:, ic) * CONJG(phasem3_q2_(:, ic))
 !
-     END DO
+     ENDDO
   END IF
 !
   tphase = 0.d0
@@ -1449,7 +1887,7 @@ SUBROUTINE loop_on_qpoints
      T1, T0, ttot_0, tsetup2, tmodes, tinit_1, tdindiag, td3mm, tbose, ttot_1, &
      tsetup3, tphase, lambdiso, tcondc_, &
      zz2_x, zz1_x, velph, lambd, &
-     d3mmx, d3mmx_1, ierr
+     d3mmx, d3mmx_1, ierr, bg
      
   USE mpi_base
   IMPLICIT NONE
@@ -1457,6 +1895,7 @@ SUBROUTINE loop_on_qpoints
   Integer :: itemp, im, ic, it, ix, iq_init(3),  isw1, isw2, iqq1, km, im2, ia, ix_
   Real(DP) :: lambdloc(nat3, ntemp, 3, nq1tot), lambdloc2(nat3, ntemp, 3, nq1tot)
   Real(DP) :: Q_0loc(nat3, nq1tot, 3, ntemp)!,F_0loc(nat3,nq1tot,3,ntemp)
+  Real(DP) :: xq(3,nq1tot)
 !
   Real(DP) :: zz_12(nat3, nat3)
 !
@@ -1503,6 +1942,7 @@ SUBROUTINE loop_on_qpoints
      CALL calc_index(iq_init, nq1, ic_inn, ic_med, ic_out, iq1_, isw1)
      iq1(:) = iq_init(:)
      q1d(:) = dfloat(iq1(:)) / dfloat(nq1(:)) + deltaq1(:)
+     xq(:,iq1_) = q1d
 !      IF(nrank == 1) write(10,*) iq_init(:), iq1_
      CALL setup(1)
 !--------------------------------------------------------------------------------
@@ -1544,7 +1984,7 @@ SUBROUTINE loop_on_qpoints
                     bos2(im) = 1.d0 /(Exp(freq2(im)*tempm1(itemp))-1.d0)
                     bos3(im) = 1.d0 /(Exp(freq3(im)*tempm1(itemp))-1.d0)
                     bos3b(im) = 1.d0 /(Exp(freq3b(im)*tempm1(itemp))-1.d0)
-                 END DO
+                 ENDDO
                  tbose = tbose + nanosec(T0) - T1
 
                  T1 = nanosec(T0)
@@ -1560,25 +2000,25 @@ SUBROUTINE loop_on_qpoints
 !
                                 km = ic + 3 *(ia-1)
                                 workc = workc + CONJG(zz1_x(km, im, ix)) * zz2_x(km, im2, ix)
-                             END DO
+                             ENDDO
 !
                              zz_12(im2, im) = zz_12(im2, im) + CONJG(workc) * workc
 !
-                          END DO
-                       END DO
+                          ENDDO
+                       ENDDO
 !
                        CALL sum_modes2iso(nat3, nq2tot, const_iso, sigmam1(itemp), freq1(im), freq2, freq3, freq3b, bos1(im), &
                       & bos2, bos3, bos3b, d3mmx(1, 1, im, ix), d3mmx_1(1, 1, im, ix), zz_12(1, im), lambdloc(im, itemp, ix, &
                       & iq1_), Q_0loc(im, iq1_, ix, itemp), lambdloc2(im, itemp, ix, iq1_))
 !
-                    END DO
-                 END DO
+                    ENDDO
+                 ENDDO
                  tmodes = tmodes + nanosec(T0) - T1
        !   enddo
-              END DO
-           END DO
-        END DO
-     END DO
+              ENDDO
+           ENDDO
+        ENDDO
+     ENDDO
 !
 !
 !
@@ -1586,7 +2026,7 @@ SUBROUTINE loop_on_qpoints
         DO it = 1, ntemp
            DO im = 1, 3 * nat
               bos1(im) = 1.d0 /(Exp(freq1(im)*tempm1(it))-1.d0)
-           END DO
+           ENDDO
            DO ix_ = 1, nxcryst
               ix = xcryst(ix_)
               DO im = 1, nat3
@@ -1594,41 +2034,67 @@ SUBROUTINE loop_on_qpoints
                                           * Abs(velph(ix, im, iq1_)) * Lcasm1 * 2.0d0
  !              Q_0loc(im,iq1_,ix,it) =  Q_0loc(im,iq1_,ix,it) + bos1(im)*(1.0d0+bos1(im))* 1096892.13894d-8 * Lcasm1 *2.0d0
 !
-              END DO
-           END DO
-        END DO
+              ENDDO
+           ENDDO
+        ENDDO
      END IF
 !
-  END DO
+  ENDDO
   CALL MPI_ALLREDUCE(lambdloc, lambd, nat3*ntemp*3*nq1tot, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
   CALL MPI_ALLREDUCE(lambdloc2, lambdiso, nat3*ntemp*3*nq1tot, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
   CALL MPI_ALLREDUCE(Q_0loc, Q_0, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
 !CALL MPI_ALLREDUCE(F_0loc,F_0,nat3*nq1tot*3*ntemp,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 !
   IF(.True.) THEN
+!      IF(nrank == 1) THEN
+! !!   write(*,*) x_iso,fracmass2,const_iso,lambdiso(1,1,1,1)
+!         Open(Unit=222, File='LW.dat', Position='append')
+!         Open(Unit=223, File='LWiso.dat', Position='append')
+! !
+! !
+!         DO iq1_ = 1, nq1tot
+!            DO itemp = 1, ntemp
+!               Write(222,*) 'TEMPERATURE', temp(itemp), iq1_
+!               Write(223,*) 'TEMPERATURE', temp(itemp), iq1_
+!    !      do im=1,nat3
+!               DO ix = 1, 3
+!                  Write(222, '(6e14.6)')(pi*lambd(im, itemp, ix, iq1_)*ry_to_cm1, im=1, nat3)
+!                  Write(223, '(6e14.6)')(lambdiso(im, itemp, ix, iq1_)*ry_to_cm1, im=1, nat3)
+! !!            WRITE(23,'(6e14.6)')(pi*lambdiso(im,itemp,isigma,iq1_)*ry_to_cm1,isigma=1,nsigma)
+!               ENDDO
+!    !      enddo
+!               Write(222,*) '----------------------------------------------------------------'
+!               Write(223,*) '----------------------------------------------------------------'
+!            ENDDO
+!         ENDDO
+!         Close(Unit=222)
+!         Close(Unit=223)
+! !
+     CALL cryst_to_cart(nq1tot, xq, bg, +1)
+
      IF(nrank == 1) THEN
 !!   write(*,*) x_iso,fracmass2,const_iso,lambdiso(1,1,1,1)
-        Open(Unit=222, File='LW.dat', Position='append')
-        Open(Unit=223, File='LWiso.dat', Position='append')
+!         Open(Unit=222, File='LW.dat', Position='append')
+!         Open(Unit=223, File='LWiso.dat', Position='append')
 !
 !
         DO iq1_ = 1, nq1tot
            DO itemp = 1, ntemp
-              Write(222,*) 'TEMPERATURE', temp(itemp), iq1_
-              Write(223,*) 'TEMPERATURE', temp(itemp), iq1_
+!               Write(1000+itemp,*) 'TEMPERATURE', temp(itemp), iq1_
+!               Write(2000+itemp,*) 'TEMPERATURE', temp(itemp), iq1_
    !      do im=1,nat3
-              DO ix = 1, 3
-                 Write(222, '(6e14.6)')(pi*lambd(im, itemp, ix, iq1_)*ry_to_cm1, im=1, nat3)
-                 Write(223, '(6e14.6)')(lambdiso(im, itemp, ix, iq1_)*ry_to_cm1, im=1, nat3)
+!               DO ix = 1, 3
+                 Write(1000+itemp, '(3f12.6,99e20.10)') xq(:,iq1_), pi*lambd(:, itemp, 1, iq1_)*ry_to_cm1
+                 Write(2000+itemp, '(3f12.6,99e20.10)') xq(:,iq1_), lambdiso(:, itemp, 1, iq1_)*ry_to_cm1
 !!            WRITE(23,'(6e14.6)')(pi*lambdiso(im,itemp,isigma,iq1_)*ry_to_cm1,isigma=1,nsigma)
-              END DO
+!               ENDDO
    !      enddo
               Write(222,*) '----------------------------------------------------------------'
               Write(223,*) '----------------------------------------------------------------'
-           END DO
-        END DO
-        Close(Unit=222)
-        Close(Unit=223)
+           ENDDO
+        ENDDO
+!         Close(Unit=222)
+!         Close(Unit=223)
 !
      END IF
   END IF
@@ -1649,14 +2115,14 @@ SUBROUTINE loop_on_qpoints
                   Q_0rad(im, iqq1, ix, it) = 0.0d0
                   Q_0radm1(im, iqq1, ix, it) = 0.0d0 ! equal to zero ONLY because anyway I never consider the contribution when Q_0 =0.0d0
                 END IF
-            END DO
-          END DO
-      END DO
+            ENDDO
+          ENDDO
+      ENDDO
 !
      CALL calc_f0(iqq1)
 !
      CALL sum_conduct(iqq1)
-  END DO
+  ENDDO
 !--------------------------------------------------------------------------------
 !
   ttot_1 = nanosec(T0) - ttot_0
@@ -1801,7 +2267,7 @@ SUBROUTINE loop_on_qpointsIT(iter)
 !
               DO im = 1, nat3
                  freq1t(im, iq1_) = freq1(im)
-              END DO
+              ENDDO
 !
 !
 ! write(*,*)'imq3',imq3_
@@ -1814,7 +2280,7 @@ SUBROUTINE loop_on_qpointsIT(iter)
                     bos2(im) = 1.d0 /(Exp(freq2(im)*tempm1(it))-1.d0)
                     bos3(im) = 1.d0 /(Exp(freq3(im)*tempm1(it))-1.d0)
                     bos3b(im) = 1.d0 /(Exp(freq3b(im)*tempm1(it))-1.d0)
-                 END DO
+                 ENDDO
                  tbose = tbose + nanosec(T0) - T1
                  T1 = nanosec(T0)
                  DO ix_ = 1, nxcryst
@@ -1831,12 +2297,12 @@ SUBROUTINE loop_on_qpointsIT(iter)
 !
                                 km = ic + 3 *(ia-1)
                                 workc = workc + CONJG(zz1_x(km, im, ix)) * zz2_x(km, im2, ix)
-                             END DO
+                             ENDDO
 !
                              zz_12(im2, im) = zz_12(im2, im) + CONJG(workc) * workc
 !
-                          END DO
-                       END DO
+                          ENDDO
+                       ENDDO
 !
 !
                        DO im2 = 1, nat3
@@ -1845,7 +2311,7 @@ SUBROUTINE loop_on_qpointsIT(iter)
                           DO im3 = 1, nat3
                              d3mm3(im3) = d3mmx(im2, im3, im, ix)
                              d3mm_13(im3) = d3mmx_1(im2, im3, im, ix)
-                          END DO
+                          ENDDO
 !
                           matAm3 = 0.0d0
 !--------------------------------------------------------------------------------
@@ -1873,15 +2339,15 @@ SUBROUTINE loop_on_qpointsIT(iter)
 !
                           matrixloc(im, iq1_, ix, it) = matrixloc(im, iq1_, ix, it) + matAm3 * F_old(im2, ipq2_, ix, it)
 !
-                       END DO
-                    END DO
-                 END DO
+                       ENDDO
+                    ENDDO
+                 ENDDO
                  tmodes = tmodes + nanosec(T0) - T1
-              END DO
+              ENDDO
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
 !
 !
      DO it = 1, ntemp
@@ -1891,10 +2357,10 @@ SUBROUTINE loop_on_qpointsIT(iter)
               IF(Q_0(im, iq1_, ix, it) /= 0.d0) THEN
                  F_newloc(im, iq1_, ix, it) = F_0(im, iq1_, ix, it) + sum_ITloc(im, iq1_, ix, it) / Q_0(im, iq1_, ix, it)
               END IF
-           END DO
-        END DO
-     END DO
-  END DO ! iq1 loop
+           ENDDO
+        ENDDO
+     ENDDO
+  ENDDO ! iq1 loop
 !
   CALL MPI_ALLREDUCE(matrixloc, matrix, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
   CALL MPI_ALLREDUCE(sum_ITloc, sum_IT, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
@@ -2040,7 +2506,7 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
 !
               DO im = 1, nat3
                  freq1t(im, iq1_) = freq1(im)
-              END DO
+              ENDDO
 
               DO it = 1, ntemp
                  T1 = nanosec(T0)
@@ -2050,7 +2516,7 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
                     bos2(im) = 1.d0 /(Exp(freq2(im)*tempm1(it))-1.d0)
                     bos3(im) = 1.d0 /(Exp(freq3(im)*tempm1(it))-1.d0)
                     bos3b(im) = 1.d0 /(Exp(freq3b(im)*tempm1(it))-1.d0)
-                 END DO
+                 ENDDO
                  tbose = tbose + nanosec(T0) - T1
                  T1 = nanosec(T0)
 ! do isig = 1, nsigma
@@ -2075,12 +2541,12 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
 !
                                    km = ic + 3 *(ia-1)
                                    workc = workc + CONJG(zz1_x(km, im, ix)) * zz2_x(km, im2, ix)
-                                END DO
+                                ENDDO
 !
                                 zz_12(im2, im) = zz_12(im2, im) + CONJG(workc) * workc
 !
-                             END DO
-                          END DO
+                             ENDDO
+                          ENDDO
 
                           DO im2 = 1, nat3
                              iqqmm2 = im2 + nat3 *(ipq2_-1)
@@ -2089,7 +2555,7 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
                              DO im3 = 1, nat3
                                 d3mm3(im3) = d3mmx(im2, im3, im, ix)
                                 d3mm_13(im3) = d3mmx_1(im2, im3, im, ix)
-                             END DO
+                             ENDDO
 !
                              matAm3 = 0.0d0
                    !--------------------------------------------------------------------------------
@@ -2123,20 +2589,20 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
                                                              + matAm3 * F_old1(im2, ipq2_, ix,  it)!Ax
                    ! end if ! if dabs(freq2)
                    !
-                          END DO
+                          ENDDO
                 ! end if ! if dabs(freq1)
-                       END DO
+                       ENDDO
          !   write(15,*)sum_IT(:,it)
                     END IF
 !
-                 END DO
+                 ENDDO
                  tmodes = tmodes + nanosec(T0) - T1
-              END DO
-           END DO
-        END DO
-     END DO
+              ENDDO
+           ENDDO
+        ENDDO
+     ENDDO
 !
-  END DO !iq1_
+  ENDDO !iq1_
 !
   CALL MPI_ALLREDUCE(sum_ITq2loc, sum_ITq2, nat3*nq1tot*3*ntemp, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
 
@@ -2160,10 +2626,10 @@ SUBROUTINE loop_on_qpointsITcg(iter, F_old1, sum_ITq1)
                                            - F_0(im, iq, ix, it) &
                                             * Q_0(im, iq, ix, it) * Q_0radm1(im, iq, ix, it)! Ax-b
               ENDIF
-           END DO
-        END DO
-     END DO
-  END DO
+           ENDDO
+        ENDDO
+     ENDDO
+  ENDDO
 !
 !
 !--------------------------------------------------------------------------------
@@ -2213,7 +2679,9 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
   Integer :: im, im2, ic, it, ix, irun, iq_init(3)
   Integer, Pointer :: iq1_inn, iq1_med, iq1_out, iq2_out, iq2_med, iq2_inn
   Integer, Target :: iq1(3), iq2(3)
-  Real(DP) :: matAm3, d3mm3(nat3), d3mm_13(nat3), ggt1(dimG), hh1(dimG)
+  Real(DP) :: matAm3, d3mm3(nat3), d3mm_13(nat3)
+  real(DP), intent(out) :: ggt1(dimG)
+  Real(DP), intent(in)  :: hh1(dimG)
  ! real(DP) :: matA(nat3*nq2tot, nat3*nq1tot),autA(nat3*nq2tot),eigA(nat3*nq2tot, nat3*nq1tot)
   Integer :: count, count1
 !
@@ -2314,7 +2782,7 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
 !
               DO im = 1, nat3
                  freq1t(im, iq1_) = freq1(im)
-              END DO
+              ENDDO
 !
 !
 ! write(*,*)'imq3',imq3_
@@ -2327,7 +2795,7 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
                     bos2(im) = 1.d0 /(Exp(freq2(im)*tempm1(it))-1.d0)
                     bos3(im) = 1.d0 /(Exp(freq3(im)*tempm1(it))-1.d0)
                     bos3b(im) = 1.d0 /(Exp(freq3b(im)*tempm1(it))-1.d0)
-                 END DO
+                 ENDDO
                  tbose = tbose + nanosec(T0) - T1
                  T1 = nanosec(T0)
           ! do isig = 1, nsigma
@@ -2353,12 +2821,12 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
 !
                                    km = ic + 3 *(ia-1)
                                    workc = workc + CONJG(zz1_x(km, im, ix)) * zz2_x(km, im2, ix)
-                                END DO
+                                ENDDO
 !
                                 zz_12(im2, im) = zz_12(im2, im) + CONJG(workc) * workc
 !
-                             END DO
-                          END DO
+                             ENDDO
+                          ENDDO
 !
 !
                           DO im2 = 1, nat3
@@ -2369,7 +2837,7 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
                              DO im3 = 1, nat3
                                 d3mm3(im3) = d3mmx(im2, im3, im, ix)
                                 d3mm_13(im3) = d3mmx_1(im2, im3, im, ix)
-                             END DO
+                             ENDDO
 !
                              matAm3 = 0.0d0
                       !--------------------------------------------------------------------------------
@@ -2407,29 +2875,29 @@ SUBROUTINE matrixA_times_h(F_old1, ggt1, hh1)
 !
                       ! end if ! if dabs(freq2)
                       !
-                          END DO
+                          ENDDO
                    ! end if ! if dabs(freq1)
-                       END DO
+                       ENDDO
          !   write(15,*)sum_IT(:,it)
                     END IF
-                 END DO
+                 ENDDO
 !
                  tmodes = tmodes + nanosec(T0) - T1
-              END DO
+              ENDDO
 !
 !
 !
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
 !
 !
 !enddo
 !enddo
 !enddo
 !
-  END DO !iq1_
+  ENDDO !iq1_
 !
 ! nell'ottica poi di eliminare dimG sarebbe il caso qua sotto di sostituire dimG con dimrun*
   CALL MPI_ALLREDUCE(matrixloc, matrix, dimG, MPI_DOUBLE_PRECISION, MPI_SUM, mpi_comm_world, ierr)
@@ -2533,7 +3001,7 @@ SUBROUTINE calc_vel()
                                                              !o a quella analitica
 !!zznew   call rotate_vel_zz( q1d(ix),zz1,zz_inout(1,1,ix),freqc)
                  zz1n(:, :, iq1_, ix) = zz_inout(:, :)
-              END DO
+              ENDDO
 !
 ! if you uncomment the following line you need to commet all the calls to cryst_to_cart2
               CALL cryst_to_cart(nat3, velph_io(1, 1, iq1_), at,+1)
@@ -2582,7 +3050,7 @@ SUBROUTINE calc_vel()
                     zz_inout(:, :) = zz3(:, :)
                     CALL rotate_vel_zz(q3dv, ix, zz3, zz_inout, freqc3, velph_io)
                     zz3n(:, :, ipq3_, ix) = zz_inout(:, :)
-                 END DO
+                 ENDDO
 !--------------------------------------------------------------------------------
 !!!! q3b
 !--------------------------------------------------------------------------------
@@ -2590,7 +3058,7 @@ SUBROUTINE calc_vel()
                     zz_inout(:, :) = zz3b(:, :)
                     CALL rotate_vel_zz(q3dbv, ix, zz3b, zz_inout, freqc3b, velph_io)
                     zz3bn(:, :, ipq3b_, ix) = zz_inout(:, :)
-                 END DO
+                 ENDDO
 !
               END IF
 !
@@ -2615,7 +3083,7 @@ SUBROUTINE calc_vel()
                        ix = xcryst(ix_)
 !
                        Write(17, '(6e24.12)')(velph(ix, im, iq1_), im=1, nat3)
-                    END DO
+                    ENDDO
   !
                     Write(18, '(10x,3f10.6)') q1d_(1), q1d_(2), q1d_(3)
                     Write(18, '(6e24.12)')(freq1_(im, iq1_)*RY_TO_CMM1, im=1, nat3)
@@ -2625,9 +3093,9 @@ SUBROUTINE calc_vel()
 !
  !end do
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
 !
      IF( .Not. allzz) THEN
         q2ws(:, :) = q1ws(:, :)
@@ -2673,7 +3141,7 @@ SUBROUTINE calc_vel()
 !
        !!zznew   call rotate_vel_zz( q1d(ix),zz1,zz_inout(1,1,ix),freqc)
                  zz1n(:, :, iq1_, ix) = zz_inout(:, :)
-              END DO
+              ENDDO
 !
               CALL cryst_to_cart(nat3, velph_io(1, 1, iq1_), at,+1)
 !
@@ -2692,9 +3160,9 @@ SUBROUTINE calc_vel()
                  ix = xcryst(ix_)
                  DO i = 1, nat3
                     velphSCR(i, ix, iq1_) = velph(ix, i, iq1_)
-                 END DO
+                 ENDDO
                  Write(15, '(6e14.6)')(velphSCR(i, ix, iq1_)*RY_TO_CMM1, i=1, nat3)
-              END DO
+              ENDDO
               Write(18, '(6e14.6)')(freq1_(i, iq1_)*RY_TO_CMM1, i=1, nat3)
 !
 !
@@ -2727,7 +3195,7 @@ SUBROUTINE calc_vel()
                           zz_inout(:, :) = zz2(:, :)
                           CALL rotate_vel_zz(q2dv, ix, zz2, zz_inout, freqc2, velph_io)
                           zz2n(:, :, ipq2_, ix) = zz_inout(:, :)
-                       END DO
+                       ENDDO
 !--------------------------------------------------------------------------------
 !mq2 is simply the cc of q2 and this is evaluated inside the setup subroutine.
     !
@@ -2743,8 +3211,8 @@ SUBROUTINE calc_vel()
 !   iq_init(:) = -iq1(:) - 3*nint(deltaq1(:)*nq2(:))
 !
                        q3dv(:) = - q1dv(:) - q2dv(:)
-                       iq_init(:) = - iq1(:) * nq2(:) / nq1(:) - iq2(:) - 2 * Nint(deltaq1(:)*nq2(:)) - Nint &
-                      &(deltaq2(:)*nq2(:))
+                       iq_init(:) = - iq1(:) * nq2(:) / nq1(:) - iq2(:) &
+                                    - 2 * Nint(deltaq1(:)*nq2(:)) - Nint (deltaq2(:)*nq2(:))
                        CALL calc_index(iq_init, nq2, ic_inn, ic_med, ic_out, ipq3_, isw)
 !--------------------------------------------------------------------------------
 !            D(q3)
@@ -2782,7 +3250,7 @@ SUBROUTINE calc_vel()
                           zz_inout(:, :) = zz3(:, :)
                           CALL rotate_vel_zz(q3dv, ix, zz3, zz_inout, freqc3, velph_io)
                           zz3n(:, :, ipq3_, ix) = zz_inout(:, :)
-                       END DO
+                       ENDDO
 !--------------------------------------------------------------------------------
 !!!! q3b
 !--------------------------------------------------------------------------------
@@ -2790,16 +3258,16 @@ SUBROUTINE calc_vel()
                           zz_inout(:, :) = zz3b(:, :)
                           CALL rotate_vel_zz(q3dbv, ix, zz3b, zz_inout, freqc3b, velph_io)
                           zz3bn(:, :, ipq3b_, ix) = zz_inout(:, :)
-                       END DO
+                       ENDDO
 !
-                    END DO
-                 END DO
-              END DO
+                    ENDDO
+                 ENDDO
+              ENDDO
 !
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
 !
 !
   END IF
@@ -2828,7 +3296,7 @@ SUBROUTINE sum_conduct(iqq1)
   DO it = 1, ntemp
      DO im = 1, nat3
         bos_(im) = 1.d0 /(Exp(freq1_(im, iqq1)*tempm1(it))-1.d0)
-     END DO
+     ENDDO
 !
 !              write(119,'(6e24.12)')(bos_(im),im=1,nat3)
 !
@@ -2848,13 +3316,13 @@ SUBROUTINE sum_conduct(iqq1)
                             * bos_(im) *(bos_(im)+1.0d0) / lambtot
              END IF
 !
-           END DO
+           ENDDO
            tcondc_(xcryst(ic), xcryst(jc), it) = tcondc_(xcryst(ic), xcryst(jc), it) + wrk
 
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 
-  END DO
+  ENDDO
 !
 !
   Return
@@ -2887,9 +3355,9 @@ SUBROUTINE calc_f0(iqq1)
              F_0(im, iqq1, ix, it) &
                = - velph(ix, im, iqq1) * freq1_(im, iqq1) * bosT /  Q_0(im, iqq1, ix, it)
            ENDIF
-        END DO
-     END DO
-  END DO
+        ENDDO
+     ENDDO
+  ENDDO
 !
 !
   Return
@@ -2913,7 +3381,7 @@ SUBROUTINE sum_conductFI
   DO it = 1, ntemp
      DO im = 1, nat3
         bos_(im) = 1.d0 /(Exp(freq1_(im, iq1_)*tempm1(it))-1.d0)
-     END DO
+     ENDDO
 !
      DO jc = 1, nxcryst
         DO ic = 1, nxcryst
@@ -2924,11 +3392,11 @@ SUBROUTINE sum_conductFI
                              * freq1_(im, iq1_) &
                              * bos_(im) *(bos_(im)+1.0d0) * F_0(im, iq1_, xcryst(jc), it)
               END IF
-           END DO
+           ENDDO
            tcondFI_(xcryst(ic), xcryst(jc), it) = tcondFI_(xcryst(ic), xcryst(jc), it) + wrk
-        END DO
-     END DO
-  END DO
+        ENDDO
+     ENDDO
+  ENDDO
 !
   Return
   !--------------------------------------------------------------------------------
@@ -2960,7 +3428,7 @@ SUBROUTINE calc_conduct(nat3, nq1tot, ntemp, const_cond, omega, at, velph, freq1
      DO iq1_ = 1, nq1tot
         DO im = 1, nat3
            bos_(im) = 1.d0 /(Exp(freq1_(im, iq1_)*tempm1(it))-1.d0)
-        END DO
+        ENDDO
 !
         DO jc = 1, 3
            DO ic = 1, 3
@@ -2969,28 +3437,28 @@ SUBROUTINE calc_conduct(nat3, nq1tot, ntemp, const_cond, omega, at, velph, freq1
           !   wrk = wrk + velph(ic,im,iq1_)*freq1_(im,iq1_) * bos_(im)*(bos_(im)+1.0d0)* FF(im,iq1_,jc,it)
                  IF(Q_0(im, iq1_, ic, it) /= 0.0d0) wrk = wrk - F_0(im, iq1_, ic, it) * Q_0(im, iq1_, ic, it) * Q_0radm1 &
                 &(im, iq1_, ic, it) * FF(im, iq1_, jc, it)
-              END DO
+              ENDDO
               tcond(ic, jc, it) = tcond(ic, jc, it) + wrk
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
    !  tcond(:,:) =   - tcond(:,:) /(dfloat(nq1tot)*omega)*RY_TO_WATT/BOHR_TO_M ! utilizziamo la costante definita in read_mat2R
 !
 !
      DO ic = 1, 3
         DO jc = 1, 3
            tcond(ic, jc, it) = - tcond(ic, jc, it) * const_cond(it) * RY_TO_WATT / BOHR_TO_M
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
 !       call cryst_to_cart2(1,tcond(1,1,it),at,+1)
 !
      DO jc = 1, 3
         Write(*, '(6e20.12)')(tcond(ic, jc, it), ic=1, 3)
-     END DO
+     ENDDO
      Write(*,*) '------------------------------------------------------------'
-  END DO
+  ENDDO
 !
 !
   DEALLOCATE(bos_)
@@ -3025,7 +3493,7 @@ SUBROUTINE calc_conduct1(nat3, nq1tot, ntemp, const_cond, omega, at, velph, freq
      DO iq1_ = 1, nq1tot
         DO im = 1, nat3
            bos_(im) = 1.d0 /(Exp(freq1_(im, iq1_)*tempm1(it))-1.d0)
-        END DO
+        ENDDO
 !
         DO jc = 1, 3
            DO ic = 1, 3
@@ -3034,25 +3502,25 @@ SUBROUTINE calc_conduct1(nat3, nq1tot, ntemp, const_cond, omega, at, velph, freq
           !   wrk = wrk + velph(ic,im,iq1_)*freq1_(im,iq1_) * bos_(im)*(bos_(im)+1.0d0)* FF(im,iq1_,jc,it)
            ! if(Q_0(im,it,iq1_).ne.0.0d0) &
                  wrk = wrk - F_0(im, iq1_, ic, it) * Q_0(im, iq1_, ic, it) * FF(im, iq1_, jc, it)
-              END DO
+              ENDDO
               tcond(ic, jc, it) = tcond(ic, jc, it) + wrk
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
    !  tcond(:,:) =   - tcond(:,:) /(dfloat(nq1tot)*omega)*RY_TO_WATT/BOHR_TO_M ! utilizziamo la costante definita in read_mat2R
 !
      DO ic = 1, 3
         DO jc = 1, 3
            tcond(ic, jc, it) = - tcond(ic, jc, it) * const_cond(it) * RY_TO_WATT / BOHR_TO_M
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
      DO jc = 1, 3
         Write(*, '(6e20.12)')(tcond(ic, jc, it), ic=1, 3)
-     END DO
+     ENDDO
      Write(*,*) '------------------------------------------------------------'
-  END DO
+  ENDDO
 !
 !
   DEALLOCATE(bos_)
@@ -3083,8 +3551,8 @@ SUBROUTINE calc_conduct2(nat3, nq2tot, nq1tot, ntemp, const_cond, at, matrix, FF
      DO jc = 1, 3
         DO ic = 1, 3
            tcond2(ic, jc, it) = 0.d0
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
      DO iqq1_ = 1, nq1tot
 !
@@ -3095,26 +3563,26 @@ SUBROUTINE calc_conduct2(nat3, nq2tot, nq1tot, ntemp, const_cond, at, matrix, FF
            !         do im2=1,nat3
                  wrk = wrk + FF(im1, iqq1_, ic, it) * matrix(im1, iqq1_, jc, it)
            !         end do
-              END DO
+              ENDDO
               tcond2(ic, jc, it) = tcond2(ic, jc, it) + wrk
 !
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
 !
      DO ic = 1, 3
         DO jc = 1, 3
            tcond2(ic, jc, it) = tcond2(ic, jc, it) * const_cond(it) * RY_TO_WATT / BOHR_TO_M
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !
 !       call cryst_to_cart2(1,tcond2(1,1,it),at,+1)
 !
      DO jc = 1, 3
         Write(*, '(6e20.12)')(tcond2(ic, jc, it), ic=1, 3)
-     END DO
+     ENDDO
      Write(*,*) '------------------------------------------------------------'
-  END DO
+  ENDDO
 !
 !
   Return
@@ -3139,14 +3607,14 @@ SUBROUTINE calc_conduct3(ntemp, temp, const_cond, tcond, tcond2, tcond3)
      DO jc = 1, 3
         DO ic = 1, 3
            tcond3(ic, jc, it) = - 2.0d0 *(0.5d0*tcond2(ic, jc, it)-tcond(ic, jc, it))
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !          call cryst_to_cart2(1,tcond3(1,1,it),at,+1)
      DO jc = 1, 3
         Write(*, '(6e20.12)')(tcond3(ic, jc, it), ic=1, 3)
-     END DO
+     ENDDO
      Write(*,*) '------------------------------------------------------------'
-  END DO
+  ENDDO
   Return
   !--------------------------------------------------------------------------------
 END SUBROUTINE calc_conduct3
@@ -3164,16 +3632,16 @@ SUBROUTINE calc_tcSMA
         DO ic = 1, nxcryst
            tcondc_SMA(xcryst(ic), xcryst(jc)) = const_cond(it) * tcondc_(xcryst(ic), xcryst(jc), it) * RY_TO_WATT / BOHR_TO_M
 !
-        END DO
-     END DO
+        ENDDO
+     ENDDO
 !     call cryst_to_cart2(1,tcondc_SMA,at,+1)
 !
      Write(*,*) 'SMA', temp(it), sigma(it)*RY_TO_CMM1
      DO jc = 1, 3
         Write(*, '(6e20.12)')(tcondc_SMA(xcryst(ic), xcryst(jc)), ic=1, nxcryst)
-     END DO
+     ENDDO
      Write(*,*) '------------------------------------------------------------'
-  END DO
+  ENDDO
   !--------------------------------------------------------------------------------
 END SUBROUTINE calc_tcSMA
 !--------------------------------------------------------------------------------
@@ -3212,24 +3680,24 @@ SUBROUTINE write_F0
         DO iqq1_ = 1, nq1tot
 !
            Write(23, '(i5,99e14.6)') iqq1_, F_0(:, iqq1_, ix, it)
-        END DO
+        ENDDO
   !        write(22,*) Q_0(im,it,iq1_)
   !   end do
-     END DO
-  END DO
+     ENDDO
+  ENDDO
 !
   DO ix_ = 1, nxcryst
      ix=xcryst(ix_)
      DO iqq1_ = 1, nq1tot
         DO it = 1, ntemp
            Write(22, '(i5,99e14.6)') iqq1_, Q_0(:, iqq1_, ix, it)
-        END DO
-     END DO
-  END DO
+        ENDDO
+     ENDDO
+  ENDDO
 !
   DO iqq1_ = 1, nq1tot
      Write(21, '(i5,99e14.6)') iqq1_, freq1_(:, iqq1_) * RY_TO_CMM1
-  END DO
+  ENDDO
 !
   Close(21)
   Close(22)
@@ -3296,14 +3764,14 @@ SUBROUTINE write_FF(iter, FF)
 !                 if(abs(q1d_(3)).lt.eps8) THEN
                  Write(11, '(9e14.6)') q1d_(1), q1d_(2), q1d_(3), FF(:, iq1_, ix, it)
 !                 end if
-              END DO
-           END DO
-        END DO
+              ENDDO
+           ENDDO
+        ENDDO
 !
  !   end do
-     END DO
+     ENDDO
      Close(11)
-  END DO
+  ENDDO
 !
   Return
   !--------------------------------------------------------------------------------
@@ -3455,18 +3923,18 @@ SUBROUTINE rotate_vel_zz(qqd, ix, zz1, zz_inout, freqc, velphA)!qui ho associato
 !
   DO i = 1, nat3
      velphN(ix, i, iq1_) =(freqcp(i)-freqcm(i)) /(2.0d0*d_q)
-  END DO
+  ENDDO
 !
   DO ip = 1, nat3
      DO jp = 1, nat3
         diffM_(ip, jp) =(zp(ip, jp)-zm(ip, jp)) /(2.0d0*d_q)
-     END DO
-  END DO
+     ENDDO
+  ENDDO
   DO ip = 1, nat3
      DO jp = 1, nat3
         diffM(ip, jp) = 0.5d0 *(diffM_(ip, jp)+CONJG(diffM_(jp, ip)))
-     END DO
-  END DO
+     ENDDO
+  ENDDO
 !
   DO i = 1, nat3
      DO j = 1, nat3
@@ -3474,16 +3942,16 @@ SUBROUTINE rotate_vel_zz(qqd, ix, zz1, zz_inout, freqc, velphA)!qui ho associato
            DO jp = 1, nat3
               groupcA3(ix, i, j) = groupcA3(ix, i, j) + real((CONJG(zz1(ip, i)))*diffM(ip, jp)*zz1(jp, j)) / &
              &(2.0d0*freq1_(i, iq1_))
-           END DO
-        END DO
-     END DO
-  END DO
+           ENDDO
+        ENDDO
+     ENDDO
+  ENDDO
 !
   DO i = 1, nat3
      DO j = 1, nat3
         groupcA2(j, i) = groupcA3(ix, j, i)
-     END DO
-  END DO
+     ENDDO
+  ENDDO
   ldim = nat3
  !
   ndeg(:) = 0
@@ -3503,7 +3971,7 @@ SUBROUTINE rotate_vel_zz(qqd, ix, zz1, zz_inout, freqc, velphA)!qui ho associato
         ndeg(nf) = 1
         list(nf, ndeg(nf)) = i
      END IF
-  END DO
+  ENDDO
 !
   im = 0
 !
@@ -3515,8 +3983,8 @@ SUBROUTINE rotate_vel_zz(qqd, ix, zz1, zz_inout, freqc, velphA)!qui ho associato
         DO j = 1, ndeg(is)
            DO k = 1, ndeg(is)
               groupcA2sub(j, k) = groupcA2(list(is, j), list(is, k))
-           END DO
-        END DO
+           ENDDO
+        ENDDO
              !
         ndim_ = ndeg(is)
 !
@@ -3525,27 +3993,27 @@ SUBROUTINE rotate_vel_zz(qqd, ix, zz1, zz_inout, freqc, velphA)!qui ho associato
 !
         DO j = 1, ndim_
            groupcA2(list(is, j), list(is, j)) = autgd(j)
-        END DO
+        ENDDO
 !
         zz1sub = 0.0d0
 !
         DO ii = 1, ndim_
            DO jj = 1, ndim_
               zz1sub(:, list(is, ii)) = zz1sub(:, list(is, ii)) + zz1(:, list(is, jj)) * eiggd(jj, ii)
-           END DO
-        END DO
+           ENDDO
+        ENDDO
 !
         DO ii = 1, ndim_
            zz_inout(:, list(is, ii)) = zz1sub(:, list(is, ii))
-        END DO
+        ENDDO
 !
      END IF
 !
 !
-  END DO
+  ENDDO
   DO i = 1, nat3
      velphA(ix, i, iq1_) = groupcA2(i, i)!/(2.0d0*freqc(i))
-  END DO
+  ENDDO
   Return
   !
   !--------------------------------------------------------------------------------
@@ -3573,7 +4041,7 @@ SUBROUTINE define_iq1_loc(nq_tot, iqp, nq, nq_max, nrank, nsize)
   iqp(1) = nrank
   DO ii = 2, nq
      iqp(ii) = iqp(ii-1) + nsize
-  END DO
+  ENDDO
 !
   Return
 END SUBROUTINE define_iq1_loc
@@ -3611,9 +4079,9 @@ SUBROUTINE refold_q_ws(qq_in, qq_out, nequiv, bg)
                  iGvec(2, nGvec) = i2
                  iGvec(3, nGvec) = i3
               END IF
-           END DO
-        END DO
-     END DO
+           ENDDO
+        ENDDO
+     ENDDO
   END IF
   first = .False.
 !
@@ -3632,7 +4100,7 @@ SUBROUTINE refold_q_ws(qq_in, qq_out, nequiv, bg)
      ELSE IF(Abs(Mod-mod_) .Le. thresh) THEN
         nequiv = nequiv + 1
      END IF
-  END DO
+  ENDDO
   qq_out(:) = qq_in(:) + dfloat(iGvec(:, iws))
 !
   Return

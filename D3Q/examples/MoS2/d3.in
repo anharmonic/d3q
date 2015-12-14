@@ -13,7 +13,7 @@ MoS2b_anh ! title is optional
    ! first=1
    ! last=2
    offset=__OFFSET__
-   step=8
+   !step=8
 
    ! do no repeat calculations if you find the
    !  corresponding fild3dyn fild3dyn (partial restart is disabled because untested)
@@ -33,24 +33,24 @@ MoS2b_anh ! title is optional
 ! WARNING! no sanity check is done on these variables, setting this namelist can result
 ! in crash and random results
 ! All values default to .TRUE.
-!&d3_debug
+&d3_debug
     !
-    dbg_do_dwfc = .false.   ! compute d^q psi
-    dbg_do_dpdvp = .false.  ! pre-compute <d psi | dV| psi>
+    dbg_do_dwfc = .true.   ! compute d^q psi
+    dbg_do_dpdvp = .true.  ! pre-compute <d psi | dV| psi>
     !
-    dbg_do_dpdvdp = .false.     ! compute the <d psi| d V | d psi> term 
-    dbg_do_dpdpdv = .false.     ! compute the <d psi|d psi><psi| dV |psi>  term
-    dbg_do_drhod2v = .false.    ! compute the d \rho d^2 V term (and related wfc terms)
-    dbg_do_rhod3v = .false.     ! compute the tho d^3 V term (and related)
-    dbg_do_ion = .false.        ! compute Ewald term
-    dbg_do_smearing = .false.   ! compute metal only terms
-      dbg_do_smr_ijk = .false.  !  - no fermi shift
-      dbg_do_smr_ij = .false.   !  - one fermi shift
-      dbg_do_smr_g = .false.    !  - 2 and 3 fermi shifts
+    dbg_do_dpdvdp = .true.     ! compute the <d psi| d V | d psi> term 
+    dbg_do_dpdpdv = .true.     ! compute the <d psi|d psi><psi| dV |psi>  term
+    dbg_do_drhod2v = .true.    ! compute the d \rho d^2 V term (and related wfc terms)
+    dbg_do_rhod3v = .true.     ! compute the tho d^3 V term (and related)
+    dbg_do_ion = .true.        ! compute Ewald term
+    dbg_do_smearing = .true.   ! compute metal only terms
+      dbg_do_smr_ijk = .true.  !  - no fermi shift
+      dbg_do_smr_ij = .true.   !  - one fermi shift
+      dbg_do_smr_g = .true.    !  - 2 and 3 fermi shifts
     dbg_do_exc = .TRUE.         !  - compute exc term
-    dbg_do_nlcc = .false.       ! compute additional non-linear core correction terms
-      dbg_do_nlcc_0 = .false.   !  - correction to rhod3v
-      dbg_do_nlcc_123 = .false. !  - correction to drhod2v
+    dbg_do_nlcc = .true.       ! compute additional non-linear core correction terms
+      dbg_do_nlcc_0 = .true.   !  - correction to rhod3v
+      dbg_do_nlcc_123 = .true. !  - correction to drhod2v
     !
     dbg_write_d3_parts = .TRUE. ! write separate files for each term
     dbg_add_core = .TRUE.       ! add core correction to drho (only applies to exc and nlcc terms)
