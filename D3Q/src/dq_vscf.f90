@@ -8,8 +8,8 @@
 MODULE dq_vscf_module
 
   INTERFACE dq_vscf
-    MODULE PROCEDURE dq_vscf_nuovo
-!     MODULE PROCEDURE dq_vscf_vecchio
+!     MODULE PROCEDURE dq_vscf_nuovo
+    MODULE PROCEDURE dq_vscf_vecchio
   END INTERFACE dq_vscf
 
 
@@ -39,7 +39,7 @@ MODULE dq_vscf_module
 !       ABS(dvloc_nuovo(i)-dvloc_vecchio(i))*1000
 !     ENDDO
 !     !
-!     dvloc = dvloc_vecchio
+!     dvloc = dvloc_nuovo
 !     !
 !   END SUBROUTINE dq_vscf
   
@@ -109,7 +109,7 @@ MODULE dq_vscf_module
     ! Add Exchange-Correlation contribution in real space
     dvloc(:) = drho_tot(:) * dmuxc(:,1,1)
 
-    ! Whn spin will be implemented, do this:
+    ! When spin will be implemented, do this:
 !     DO is = 1, nspin
 !       DO is1 = 1, nspin
 !           DO ir = 1, nrxx
@@ -131,7 +131,8 @@ MODULE dq_vscf_module
     ! Remove the core correction, if necessary
     IF(nlcc_any)THEN
       !CALL read_drho(drho_tot, iq_x, nu_i, with_core=.false.)
-      CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1)
+      CALL addcore_ofq(xq_x, nu_i, u_x, d3c(iq_x)%drc, drho_tot, -1)
+      !CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1)
     ENDIF
     !
     ! copy the total (up+down) delta rho in drho_tot(*,1) and go to G-space
@@ -180,7 +181,7 @@ MODULE dq_vscf_module
       !CALL cft3 (dvloc, nr1, nr2, nr3, nrx1, nrx2, nrx3, +1)
       CALL  invfft('Dense', dvloc_g, dfftp)
       !
-      ! Add akll the terms
+      ! Add all the terms
       dvloc = dvloc + dvloc_g
       !
       if (doublegrid) CALL cinterpolate (dvloc, dvloc, - 1)
@@ -204,6 +205,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE kinds,       ONLY : DP
   USE constants,   ONLY : fpi, tpi, e2
   USE ions_base,   ONLY : nat, ityp, tau
+  USE cell_base,   ONLY : alat
   USE gvect,       ONLY : ngm, g, nl
   USE gvecs,       ONLY :  doublegrid
   USE fft_base,    ONLY : dfftp
@@ -214,6 +216,10 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE eqv,         ONLY : dmuxc 
   USE d3com,       ONLY : d3c, d3v
   USE d3_iofiles,  ONLY : read_drho
+  USE gc_ph,            ONLY : dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s, grho
+    USE scf,          ONLY : rho
+    USE funct,        ONLY : dft_is_gradient
+    USE noncollin_module, ONLY : nspin_gga, nspin_mag
   !
   IMPLICIT NONE
   INTEGER,INTENT(in)     :: nu_i ! mode under consideration
@@ -288,6 +294,13 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
      dvloc (:) = dvloc(:) + aux2 (:) * dmuxc(:,1,1)
   ENDIF
   !
+  IF ( dft_is_gradient() ) THEN
+    CALL read_drho(aux2, iq_x, nu_i, with_core=.true.)
+    
+!     CALL dgradcorr(rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+!                    aux2, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvloc)
+  ENDIF
+
   IF (doublegrid) call cinterpolate (dvloc, dvloc, - 1)
   !
   !

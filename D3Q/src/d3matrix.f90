@@ -200,9 +200,6 @@ SUBROUTINE write_d3dyn_raw (xq1,xq2,xq3, iud3dyn, nat, d3dyn)
   !-----------------------------------------------------------------------
   !
   !     writes in a file the third derivative of dynamical matrix
-  !     isw = +1  :  d3dyn_x is in cartesian axis
-  !     isw = -1  :  rotates d3dyn_x from the basis of pattern to
-  !                      cartesian axis
   USE kinds,       ONLY : DP
   USE io_global,   ONLY : ionode
   !

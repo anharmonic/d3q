@@ -577,13 +577,25 @@ program d3q
         d3tmp = d3tmp + d3(iperm)%dyn
         CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'exc_gc.'//d3perms(iperm)%name, 1)
       ENDDO
+      !
+      ! DEBUG DEBUG DEBUG!
       d3dyn_exc = d3tmp/6._dp
-!       CALL d3_exc_gc(d3dyn_exc)
+      
+!       d3tmp = (0._dp, 0._dp)
+!       CALL d3_exc_gc(1,2,3, d3tmp)
+      CALL dbgwrite_d3dyn (d3dyn_exc, 'exc_GGA', 1)
+      !
+      d3tmp = (0._dp, 0._dp)
+      CALL d3_exc(d3tmp)
+      CALL dbgwrite_d3dyn (d3tmp, 'exc_LDA', 1)
+      !
+      d3dyn_exc = d3dyn_exc + d3tmp
+      !
     ELSE
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
       CALL d3_exc(d3dyn_exc)
     ENDIF
-    CALL dbgwrite_d3dyn (d3dyn_exc, 'exc',- 1)
+    CALL dbgwrite_d3dyn (d3dyn_exc, 'exc', 1)
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3_exc        cpu time:",f9.2, &

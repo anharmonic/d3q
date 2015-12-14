@@ -160,7 +160,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
         IF (na_1==na_3) THEN
           dtau = tau(:,na_2) - tau(:,na_1)         ! tau_s2 - tau_s1
           work = zv(ityp(na_1)) * zv(ityp(na_2)) & ! z_s1 * z_s2
-                * (F_abc_R(-q2,dtau,abc,eta)+F_abc_G(-q2,dtau,abc,eta))
+                * (F_abc_R(q2,dtau,abc,eta)+F_abc_G(q2,dtau,abc,eta))
           !
           d3dion(nu_1, nu_2, nu_3) = d3dion(nu_1, nu_2, nu_3) &
                                     + work
@@ -170,7 +170,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
         IF (na_1==na_2) THEN
           dtau = tau(:,na_3) - tau(:,na_2)         ! tau_s3 - tau_s2
           work = zv(ityp(na_2)) * zv(ityp(na_3)) & ! z_s2 * z_s3
-                * (F_abc_R(-q3,dtau,abc,eta)+F_abc_G(-q3,dtau,abc,eta))
+                * (F_abc_R(q3,dtau,abc,eta)+F_abc_G(q3,dtau,abc,eta))
           !
           d3dion(nu_1, nu_2, nu_3) = d3dion(nu_1, nu_2, nu_3) &
                                     + work
@@ -180,7 +180,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
         IF (na_2==na_3) THEN
           dtau = tau(:,na_1) - tau(:,na_3)         ! tau_s1 - tau_s3
           work = zv(ityp(na_3)) * zv(ityp(na_1)) & ! z_s3 * z_s1
-                * (F_abc_R(-q1,dtau,abc,eta)+F_abc_G(-q1,dtau,abc,eta))
+                * (F_abc_R(q1,dtau,abc,eta)+F_abc_G(q1,dtau,abc,eta))
           !
           d3dion(nu_1, nu_2, nu_3) = d3dion(nu_1, nu_2, nu_3) &
                                     + work
@@ -298,23 +298,23 @@ END SUBROUTINE d3ionq
     sum_on_G : &
     DO ng = 1, ngm
         !
-        Gpq_abc =   ( g(abc(1), ng) + q(abc(1)) ) &
-                  * ( g(abc(2), ng) + q(abc(2)) ) &
-                  * ( g(abc(3), ng) + q(abc(3)) )
+        Gpq_abc =   ( g(abc(1), ng) - q(abc(1)) ) &
+                  * ( g(abc(2), ng) - q(abc(2)) ) &
+                  * ( g(abc(3), ng) - q(abc(3)) )
         !
         ! Skip null terms
         IF (ABS(Gpq_abc) < eps16) &
             CYCLE sum_on_G
         !
-        gtq2 = (  (g(1, ng) + q(1)) **2 &
-                + (g(2, ng) + q(2)) **2 &
-                + (g(3, ng) + q(3)) **2 ) * (tpi/alat) **2
+        gtq2 = (  (g(1, ng) - q(1)) **2 &
+                + (g(2, ng) - q(2)) **2 &
+                + (g(3, ng) - q(3)) **2 ) * (tpi/alat) **2
         !
         facq = Gpq_abc * prefG * EXP( - gtq2 / eta**2 / 4._dp) / gtq2
         !
-        Gpq_tau = tpi *(  ( g(1, ng) + q(1) ) * t(1) &
-                        + ( g(2, ng) + q(2) ) * t(2) &
-                        + ( g(3, ng) + q(3) ) * t(3) )
+        Gpq_tau = tpi *(  ( g(1, ng) - q(1) ) * t(1) &
+                        + ( g(2, ng) - q(2) ) * t(2) &
+                        + ( g(3, ng) - q(3) ) * t(3) )
         !
         F_abc_G = F_abc_G - ii*facq* EXP(ii*Gpq_tau)
         !
@@ -367,9 +367,9 @@ END SUBROUTINE d3ionq
     sum_on_R : &
     DO nr = nr_s, nr_e
         rr   = SQRT(r2(nr)) * alat
-        qdr = tpi * (  q (1) * (r(1, nr) + t (1)) &
-                     + q (2) * (r(2, nr) + t (2)) &
-                     + q (3) * (r(3, nr) + t (3)) )
+        qdr = tpi * (- q (1) * (r(1, nr) + t (1)) &
+                     - q (2) * (r(2, nr) + t (2)) &
+                     - q (3) * (r(3, nr) + t (3)) )
         !
         IF (ABS(qdr) < eps16) THEN
             facr = - e2

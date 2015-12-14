@@ -170,6 +170,7 @@ SUBROUTINE dbgwrite_d3dyn (d3dyn_x, filename, isw)
   RETURN   ! *
   ! **********
 
+  !Also write in human easily readable format:
   IF ( .NOT. ionode ) RETURN
 
   ALLOCATE  (aux( 3 * nat, 3 * nat, 3 * nat))

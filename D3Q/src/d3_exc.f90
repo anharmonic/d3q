@@ -32,12 +32,13 @@ MODULE d3_exc_module
     COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
     !
     INTEGER :: ir, ipert, jpert, kpert
-    REAL(DP) :: d2mxc, rhotot
+    REAL(DP) :: rhotot
     COMPLEX(DP) :: aux
     REAL(DP)     :: pref
     REAL(DP),ALLOCATABLE :: d2muxc (:)
     COMPLEX (DP), ALLOCATABLE :: drho1d2muxc (:), dr1dr2d2muxc (:), drho3 (:), &
                                 d3dyn1 (:,:,:)
+    REAL(DP),EXTERNAL :: d2mxc
     !
     CALL start_clock('d3_exc')
     !
@@ -60,6 +61,7 @@ MODULE d3_exc_module
         IF (rhotot >   1.e-30_dp) d2muxc (ir) =  d2mxc( rhotot)
         IF (rhotot < - 1.e-30_dp) d2muxc (ir) = -d2mxc(-rhotot)
         ENDDO
+        !d2muxc=1.e+10_dp
         !
         ! Calculates the contribution to d3dyn
         !
@@ -99,11 +101,11 @@ MODULE d3_exc_module
         DEALLOCATE (drho1d2muxc, dr1dr2d2muxc, drho3)
         !
         ! SUM inside pool, better to do it once here than (3*nat)**3 times above
-        CALL mp_sum( d3dyn1, intra_pool_comm )
+        !CALL mp_sum( d3dyn1, intra_pool_comm )
         !
     END IF
     !
-    IF ( npool > 1 ) CALL mp_bcast( d3dyn1, ionode_id, inter_pool_comm )
+    !IF ( npool > 1 ) CALL mp_bcast( d3dyn1, ionode_id, inter_pool_comm )
     !
     d3dyn = d3dyn  + d3dyn1
     DEALLOCATE (d3dyn1)

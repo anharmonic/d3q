@@ -80,17 +80,17 @@ MODULE gc_d3
     ALLOCATE (dvxc_ssr(  dfftp%nnr , nspin0 , nspin0))
     ALLOCATE (dvxc_sss(  dfftp%nnr , nspin0 , nspin0))
     !
-    grho    (:,:,:) = 0.d0
-    dvxc_s  (:,:,:) = 0.d0
-    dvxc_rr (:,:,:) = 0.d0
-    dvxc_sr (:,:,:) = 0.d0
-    dvxc_ss (:,:,:) = 0.d0
-    dvxc_rrr(:,:,:) = 0.d0
-    dvxc_srr(:,:,:) = 0.d0
-    dvxc_ssr(:,:,:) = 0.d0
-    dvxc_sss(:,:,:) = 0.d0
+    grho    (:,:,:) = 0._dp
+    dvxc_s  (:,:,:) = 0._dp
+    dvxc_rr (:,:,:) = 0._dp
+    dvxc_sr (:,:,:) = 0._dp
+    dvxc_ss (:,:,:) = 0._dp
+    dvxc_rrr(:,:,:) = 0._dp
+    dvxc_srr(:,:,:) = 0._dp
+    dvxc_ssr(:,:,:) = 0._dp
+    dvxc_sss(:,:,:) = 0._dp
     !
-    fac = 1.d0 / DBLE (nspin0)
+    fac = 1._dp / DBLE (nspin0)
     IF (noncolin.AND.domag) THEN
       call errore('setup_d3gc',' domag not implemented',1)
     ELSE
