@@ -117,20 +117,16 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
         CALL read_drho(drho_djpert, iq_j, jpert, with_core=.true., pool_only = .true.)
         !
         DO is = 1, nspin0
-            !
-            CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert(:, is), ngm, g, nl, &
-                            alat, gdrdj(:,:,is) )
-            !
-            FORALL(ir = 1:dfftp%nnr) 
-                gr_gdrdj(ir) = SUM(grho(:,ir,is) * gdrdj(:,ir,is))
-            ENDFORALL
-            !
+          CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert(:, is), ngm, g, nl, &
+                          alat, gdrdj(:,:,is) )
+          !
+          FORALL(ir = 1:dfftp%nnr) 
+            gr_gdrdj(ir) = SUM(grho(:,ir,is) * gdrdj(:,ir,is))
+          ENDFORALL
         ENDDO
         !
         IF(nspin0 == 1) THEN
-            !
             DO ir = 1, dfftp%nnr
-              !
               DO crd = 1, 3
                 !
                 aux2(crd,ir,1) = &
@@ -150,17 +146,13 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
                             gr_gdrdi(ir) * drho_djpert(ir,1) ) * grho(crd,ir,1) & 
                         - dvxc_sss(ir,1,1) * &
                               gr_gdrdi(ir) * gr_gdrdj(ir) * grho(crd,ir,1)
-                !
               ENDDO
-              !
             ENDDO
-            !
         ENDIF
         !
         DO is = 1, nspin0
-            !    
-            CALL qgrad_dot (kplusq(iq_j)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)
-            !
+          !CALL qgrad_dot (kplusq(iq_j)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)
+          CALL qgrad_dot (kplusq(-iq_k)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)
         ENDDO
         !
         DO ir = 1, dfftp%nnr
@@ -184,17 +176,12 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
         DO kpert = 1, 3*nat
             !
             CALL read_drho(drho_dkpert, iq_k, kpert, with_core=.true., pool_only = .true.)
-            !
             !IF(nspin0 == 1) THEN
-                !
-                aux = 0._dp
-                DO ir = 1, dfftp%nnr
-                !
+              aux = 0._dp
+              DO ir = 1, dfftp%nnr
                 aux = aux &!+ d2muxc(ir)  * drho_dipert(ir,1) * drho_djpert(ir,1) * drho_dkpert(ir,1)  &
                           + aux1(ir) * drho_dkpert(ir,1)
-                !
-                ENDDO
-                !
+              ENDDO
             !ENDIF              
             !
             CALL mp_sum( aux, intra_pool_comm )
