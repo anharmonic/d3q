@@ -220,7 +220,9 @@ MODULE dynbubble
       !
       ! Is the next line necessary?
       !CALL dyn_cart2pat(dyn, S%nat3, U(:,:,1), -1)
-      CALL write_dyn("f"//TRIM(int_to_char(iq)), xq0, dyn, S)
+      !
+      ! write out the dyn mat to file
+      !CALL write_dyn("f", xq0, dyn, S)
       !
       CALL invzmat(S%nat3, dyn)
       !
