@@ -142,7 +142,8 @@ MODULE nanoclock
   SUBROUTINE print_timers_header()
     IMPLICIT NONE
     !
-    ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * ",3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
+    ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * "'&
+    //',3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
     !
   END SUBROUTINE print_timers_header
   ! \/o\________\\\_________________________________________/^>

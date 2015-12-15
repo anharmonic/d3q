@@ -329,7 +329,8 @@ MODULE fc2_interpolate
     CALL fftinterp_mat2(xq, S%nat3, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
     U = CONJG(U)
-    
+    ! RAF
+    U = CONJG(U)
     ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)
     cq = xq
     CALL cryst_to_cart(1,cq,S%at,-1)

@@ -62,7 +62,8 @@ MODULE dynbubble
     dyn = (0._dp, 0._dp)
     !
     ! Compute eigenvalues, eigenmodes at q1
-    xq(:,1) = xq0
+    ! RAF: inserito un meno
+    xq(:,1) = -xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
@@ -327,8 +328,9 @@ MODULE dynbubble
               ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
               ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
             ENDIF
-            dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) *freqtotm1_23 &
-                                 * CONJG(V3(m,j,k)) * V3(n,j,k)
+            ! RAF: scambiato le coniugazioni complesse
+            dyn(m,n) = dyn(m,n) + (ctm_P + ctm_M) * freqtotm1_23 &
+                                 * V3(m,j,k) * CONJG(V3(n,j,k))
             !
           ENDDO
         ENDDO
