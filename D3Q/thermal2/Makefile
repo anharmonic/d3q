@@ -8,7 +8,7 @@ STRIP = true #strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
-IFLAGS=-I../../include -I../../PHonon/PH -I/opt/intel/composer_xe_2013_sp1.4.211/mkl/include/intel64/lp64/
+IFLAGS=-I../../include -I../../PHonon/PH -I../../FFTXlib
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \

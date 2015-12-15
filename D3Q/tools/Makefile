@@ -16,7 +16,7 @@ QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw d3q
 
-LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
+LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
 
 D3QTOOLSOBJS = \
 diffd3.o \
