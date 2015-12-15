@@ -153,6 +153,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, file_mat2_final, asr2, &
       nconf, nk, nq, grid_type, print_dynmat, &
+      ne, de, e0, &
       max_seconds, max_time
     !
     input_file="input."//TRIM(code)

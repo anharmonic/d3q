@@ -39,7 +39,6 @@ MODULE linewidth_program
     !
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
-    REAL(DP) :: pl,dpl
     INTEGER :: iq, it
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
@@ -84,18 +83,12 @@ MODULE linewidth_program
     ! THIS FACTOR IS NOW INCLUDED DIRECTLY IN SUM_LINEWIDTH_MODES!
     sigma_ry = input%sigma/RY_TO_CMM1
     !
-    dpl = 0._dp; pl = 0._dp
-    !
     ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
     DO iq = 1,qpath%nq
       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
       !
       CALL freq_phq(qpath%xq(:,iq), S, fc2, w2, D)
-      !
-      IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
-      pl = pl + dpl
-      !ioWRITE(*,*) pl, qpath%w(iq)
       !
       IF (TRIM(input%mode) == "full") THEN
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
@@ -108,7 +101,7 @@ MODULE linewidth_program
             lsx = lsx + w2
           ENDIF
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
-                iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
+                iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
           FLUSH(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real") THEN
@@ -134,7 +127,7 @@ MODULE linewidth_program
         
         DO it = 1,input%nconf
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
-                iq,pl,qpath%xq(:,iq), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
+                iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
           FLUSH(1000+it)
         ENDDO
       ELSE
@@ -216,7 +209,6 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: qpath
     !
-    REAL(DP) :: pl,dpl
     INTEGER :: iq, it, ie
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
@@ -248,8 +240,6 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    dpl = 0._dp; pl = 0._dp
-    !
     ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
@@ -273,13 +263,10 @@ MODULE linewidth_program
       !
       IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener, spectralf)
       !
-      IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
-      pl = pl + dpl
-      !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
-                pl, ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2
+                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2
           FLUSH(1000+it)
         ENDDO
       ENDDO
@@ -315,7 +302,7 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: qpath
     !
-    REAL(DP) :: pl,dpl, e_inital_ry 
+    REAL(DP) :: e_inital_ry 
     INTEGER :: iq, it, ie
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
@@ -352,34 +339,29 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    dpl = 0._dp; pl = 0._dp
-    !
     ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (3)"
     
-!     DO iq = 1,qpath%nq
-!       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
-!       !
-!       DO it = 1,input%nconf
-!         ioWRITE(1000+it, *)
-!         ioWRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
-!       ENDDO
+    DO iq = 1,qpath%nq
+      ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+      !
+      DO it = 1,input%nconf
+        ioWRITE(1000+it, *)
+        ioWRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
+      ENDDO
       !
       fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
                              S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
                              input%q_resolved, input%sigmaq, input%outdir, input%prefix)
       !
-      IF(iq>1) dpl = SQRT(SUM( (qpath%xq(:,iq-1)-qpath%xq(:,iq))**2 ))
-      pl = pl + dpl
-      !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(2f14.8,100e18.6e4)') &
-                pl, ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
+                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
           FLUSH(1000+it)
         ENDDO
       ENDDO
       !
-!     ENDDO
+    ENDDO
     !
     !
     IF(ionode)THEN

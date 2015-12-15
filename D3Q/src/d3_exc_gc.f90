@@ -52,6 +52,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   REAL(DP), ALLOCATABLE :: d2muxc(:)
   COMPLEX(DP) :: aux
   REAL(DP) :: rhotot !user_qpoint(3), 
+  REAL(DP), PARAMETER :: epsr = 1.0d-6, epsg = 1.0d-10
   REAL(DP),EXTERNAL :: d2mxc
   !
 !  IF( .NOT. dft_is_gradient() ) RETURN
@@ -125,30 +126,35 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
           ENDFORALL
         ENDDO
         !
-        IF(nspin0 == 1) THEN
-            DO ir = 1, dfftp%nnr
-              DO crd = 1, 3
-                !
-                aux2(crd,ir,1) = &
-                        - dvxc_sr(ir,1,1) * &
-                          ( drho_dipert(ir,1) * gdrdj(crd,ir,1) &
-                           +drho_djpert(ir,1) * gdrdi(crd,ir,1) &
-                          ) &
-                        - dvxc_ss(ir,1,1) * &
-                          ( gr_gdrdj(ir) * gdrdi(crd,ir,1) &
-                           +gr_gdrdi(ir) * gdrdj(crd,ir,1) &
-                           +SUM(gdrdi(:,ir,1) * gdrdj(:,ir,1)) * grho(crd,ir,1)  &
-                           ) &
-                        - dvxc_srr(ir,1,1) * & 
-                            drho_dipert(ir,1) * drho_djpert(ir,1) * grho(crd,ir,1) &
-                        - dvxc_ssr(ir,1,1) * &
-                          ( gr_gdrdj(ir) * drho_dipert(ir,1) + &
-                            gr_gdrdi(ir) * drho_djpert(ir,1) ) * grho(crd,ir,1) & 
-                        - dvxc_sss(ir,1,1) * &
-                              gr_gdrdi(ir) * gr_gdrdj(ir) * grho(crd,ir,1)
-              ENDDO
+        !IF(nspin0 == 1) THEN
+        DO ir = 1, dfftp%nnr
+          !aux2(:,ir,1) = 0._dp
+          IF( ABS(rho%of_r(ir,1)) > epsr .and. SUM(grho(:,ir,1)**2)>epsg )THEN
+            DO crd = 1, 3
+              !
+              aux2(crd,ir,1) = &
+                      - dvxc_sr(ir,1,1) * &
+                        ( drho_dipert(ir,1) * gdrdj(crd,ir,1) &
+                          +drho_djpert(ir,1) * gdrdi(crd,ir,1) &
+                        ) &
+                      - dvxc_ss(ir,1,1) * &
+                        ( gr_gdrdj(ir) * gdrdi(crd,ir,1) &
+                          +gr_gdrdi(ir) * gdrdj(crd,ir,1) &
+                          +SUM(gdrdi(:,ir,1) * gdrdj(:,ir,1)) * grho(crd,ir,1)  &
+                        ) &
+                      - dvxc_srr(ir,1,1) * & 
+                          drho_dipert(ir,1) * drho_djpert(ir,1) * grho(crd,ir,1) &
+                      - dvxc_ssr(ir,1,1) * &
+                        ( gr_gdrdj(ir) * drho_dipert(ir,1) + &
+                          gr_gdrdi(ir) * drho_djpert(ir,1) ) * grho(crd,ir,1) & 
+                      - dvxc_sss(ir,1,1) * &
+                            gr_gdrdi(ir) * gr_gdrdj(ir) * grho(crd,ir,1)
             ENDDO
-        ENDIF
+          ELSE
+            aux2(:,ir,1) = 0._dp
+          ENDIF
+        ENDDO
+        !ENDIF
         !
         DO is = 1, nspin0
           !CALL qgrad_dot (kplusq(iq_j)%xq, dfftp%nnr, aux2(:,:,is), ngm, g, nl, alat, aux1)

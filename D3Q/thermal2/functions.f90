@@ -148,6 +148,45 @@ MODULE functions
     refold_bz_mod = SQRT(xpmodmin)
   END FUNCTION
 
+  SUBROUTINE invzmat (n, a)
+    !-----------------------------------------------------------------------
+    ! computes the inverse "a_inv" of matrix "a", both dimensioned (n,n)
+    ! if the matrix is dimensioned 3x3, it also computes determinant "da"
+    ! matrix "a" is unchanged on output - LAPACK
+    !
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: n
+    COMPLEX(DP),INTENT(inout) :: a(n,n)
+    COMPLEX(DP) :: a_inv(n,n)
+    !
+    INTEGER :: info, lda, lwork, ipiv(n), nb
+    ! info=0: inversion was successful
+    ! lda   : leading dimension (the same as n)
+    ! ipiv  : work space for pivoting (assumed of length lwork=n)
+    COMPLEX(DP),ALLOCATABLE :: work(:) 
+    INTEGER,EXTERNAL :: ILAENV
+    ! more work space
+    !
+    lda = n
+    !
+    nb = ILAENV( 1, 'ZHEEV', 'U', n, -1, -1, -1 )
+    lwork=n*nb
+    ALLOCATE(work(lwork))
+    !
+    a_inv(:,:) = a(:,:)
+    !
+    CALL ZGETRF(n, n, a_inv, lda, ipiv, info)
+    CALL errore('invzmat', 'error in DGETRF', ABS(info) )
+    CALL ZGETRI(n, a_inv, lda, ipiv, work, lwork, info)
+    CALL errore('invzmat', 'error in DGETRI', ABS(info) )
+    !
+    DEALLOCATE(work)
+    !
+    RETURN
+  END SUBROUTINE invzmat
+  
+  
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 

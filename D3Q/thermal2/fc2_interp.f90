@@ -226,7 +226,7 @@ MODULE fc2_interpolate
     !
     IF ( nat3 /= n .or. lwork < 0 ) THEN
       !     check for the block size
-      nb = ILAENV( 1, 'ZHETRD', 'U', n, -1, -1, -1 )
+      nb = ILAENV( 1, 'ZHEEV', 'U', n, -1, -1, -1 )
       IF (nb<1) nb = MAX(1,n)
       IF (nb==1 .or. nb>=n) then
         lwork=2*n-1
