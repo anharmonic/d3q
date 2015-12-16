@@ -5,7 +5,21 @@ MODULE mpi_thermal
   include "mpif.h"
 #define __MPI_THERMAL
 #include "mpi_thermal.h"
-  
+
+!dir$ message "----------------------------------------------------------------------------------------------" 
+#ifdef __MPI
+!dir$ message "Compiling _with_ MPI support" 
+#else
+!dir$ message "Compiling _without_ MPI support (mpi subroutines will do nothing)" 
+#endif
+!
+#ifdef __OPENMP
+!dir$ message "Compiling _with_ OpenMP directives" 
+#else
+!dir$ message "Compiling _without_ OpenMP directives" 
+#endif
+!dir$ message "----------------------------------------------------------------------------------------------" 
+
   INTEGER :: my_id=0, num_procs=1, ierr
   LOGICAL :: ionode = .TRUE. ! everyone is ionode before I start MPI
   LOGICAL :: mpi_started = .FALSE.
@@ -50,135 +64,161 @@ MODULE mpi_thermal
   END SUBROUTINE
 
   SUBROUTINE stop_mpi()
+#ifdef __MPI
      call MPI_FINALIZE ( ierr )
+#endif
   END SUBROUTINE
 
   SUBROUTINE abort_mpi(errorcode)
         INTEGER :: ierr
         INTEGER, INTENT(IN):: errorcode
+#ifdef __MPI
         CALL mpi_abort(mpi_comm_world, errorcode, ierr)
+#endif
   END SUBROUTINE
 
   SUBROUTINE mpi_any(lgc)
     IMPLICIT NONE
     LOGICAL,INTENT(inout) :: lgc
 
+#ifdef __MPI
       !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LOR,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
   SUBROUTINE mpi_all(lgc)
     IMPLICIT NONE
     LOGICAL,INTENT(inout) :: lgc
 
+#ifdef __MPI
       !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LAND,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
-  END SUBROUTINE
+#ENDIF
+   END SUBROUTINE
  
   ! In-place MPI sum of integer, scalar, vector and matrix
   SUBROUTINE mpi_bsum_int(scl)
     IMPLICIT NONE
     INTEGER,INTENT(inout) :: scl
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_INTEGER, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_scl(scl)
     IMPLICIT NONE
     REAL(DP),INTENT(inout) :: scl
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_vec(nn, vec)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nn
     REAL(DP),INTENT(inout) :: vec(nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_mat(mm, nn, mat)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: mm, nn
     REAL(DP),INTENT(inout) :: mat(mm,nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_tns(ll, mm, nn, tns)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll, mm, nn
     REAL(DP),INTENT(inout) :: tns(ll, mm,nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns, ll*mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
 !!  ! --------- ------------- --- -- -- -- - - - complex numbers follow
   SUBROUTINE mpi_bsum_zscl(scl)
     IMPLICIT NONE
     COMPLEX(DP),INTENT(inout) :: scl
 
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_zvec(nn, vec)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nn
     COMPLEX(DP),INTENT(inout) :: vec(nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_zmat(mm, nn, mat)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: mm, nn
     COMPLEX(DP),INTENT(inout) :: mat(mm,nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_ztns(ll, mm, nn, tns)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll, mm, nn
     COMPLEX(DP),INTENT(inout) :: tns(ll, mm,nn)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns, ll*mm*nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_bsum_ztns4(ll, mm, nn, oo, tns4)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll, mm, nn, oo
     COMPLEX(DP),INTENT(inout) :: tns4(ll, mm,nn, oo)
-
+#ifdef __MPI
       !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns4, ll*mm*nn*oo, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
+#endif
   END SUBROUTINE
-
-
+  !
   ! Scatter in-place a vector
   SUBROUTINE scatteri_vec(nn, vec, ii)
     IMPLICIT NONE
@@ -192,6 +232,7 @@ MODULE mpi_thermal
     IF(.not.allocated(vec)) CALL errore('scatteri_vec', 'input vector must be allocated', 1)
     IF(size(vec)/=nn)      CALL errore('scatteri_vec', 'input vector must be of size nn', 2)
     !
+#ifdef __MPI
     nn_send = nn
     ALLOCATE(vec_send(nn_send))
     vec_send(1:nn_send) = vec(1:nn_Send)
@@ -200,6 +241,9 @@ MODULE mpi_thermal
     ALLOCATE(vec(nn_recv))
     vec(1:nn_recv) = vec_recv(1:nn_recv)
     nn = nn_recv
+#else
+    ! do nothing
+#endif
   END SUBROUTINE
 
    ! Scatter in-place a matrix, along the second dimension
@@ -216,6 +260,7 @@ MODULE mpi_thermal
     IF(size(mat,1)/=mm)      CALL errore('scatteri_mat', 'input matrix must be of size mm*nn', 2)
     IF(size(mat,2)/=nn)      CALL errore('scatteri_mat', 'input matrix must be of size mm*nn', 3)
     !
+#ifdef __MPI
     nn_send = nn
     ALLOCATE(mat_send(mm,nn_send))
     mat_send(:,1:nn_send) = mat(:,1:nn_Send)
@@ -224,6 +269,9 @@ MODULE mpi_thermal
     ALLOCATE(mat(mm,nn_recv))
     mat(:,1:nn_recv) = mat_recv(:,1:nn_recv)
     nn = nn_recv
+#else
+    ! do nothing
+#endif
   END SUBROUTINE
  
   ! Divide a vector among all the CPUs
@@ -242,6 +290,7 @@ MODULE mpi_thermal
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
     IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
+#ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
     ALLOCATE(ii_scatt(num_procs))
 
@@ -262,7 +311,12 @@ MODULE mpi_thermal
     CALL MPI_scatterv(vec_send, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
                       vec_recv, nn_recv, MPI_DOUBLE_PRECISION, &
                       0, MPI_COMM_WORLD, ierr )
-    
+#else
+    nn_recv = nn_send
+    IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    ALLOCATE(vec_recv(nn_recv))
+    vec_recv = vec_send
+#endif
   END SUBROUTINE
 
   ! Divide a matrix, along the last dimension, among all the CPUs
@@ -280,6 +334,7 @@ MODULE mpi_thermal
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
     IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
+#ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
     ALLOCATE(ii_scatt(num_procs))
 
@@ -302,6 +357,12 @@ MODULE mpi_thermal
     CALL MPI_scatterv(mat_send, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
                       mat_recv, nn_scatt(my_id+1), MPI_DOUBLE_PRECISION, &
                       0, MPI_COMM_WORLD, ierr )
+#else
+    nn_recv = nn_send
+    IF(allocated(mat_recv)) DEALLOCATE(mat_recv)
+    ALLOCATE(mat_recv(mm,nn_recv))
+    mat_recv = mat_send
+#endif
     
   END SUBROUTINE
 
