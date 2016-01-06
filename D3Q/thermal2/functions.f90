@@ -175,7 +175,6 @@ MODULE functions
     ALLOCATE(work(lwork))
     !
     a_inv(:,:) = a(:,:)
-    !
     CALL ZGETRF(n, n, a_inv, lda, ipiv, info)
     CALL errore('invzmat', 'error in DGETRF', ABS(info) )
     CALL ZGETRI(n, a_inv, lda, ipiv, work, lwork, info)
@@ -185,6 +184,40 @@ MODULE functions
     !
     RETURN
   END SUBROUTINE invzmat
+  
+  ! RAF eliminate variable a_inv
+    SUBROUTINE invzmat2 (n, a)
+    !-----------------------------------------------------------------------
+    ! computes the inverse of matrix "a", dimensioned (n,n)
+    !
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: n
+    COMPLEX(DP),INTENT(inout) :: a(n,n)
+    !
+    INTEGER :: info, lda, lwork, ipiv(n), nb
+    ! info=0: inversion was successful
+    ! lda   : leading dimension (the same as n)
+    ! ipiv  : work space for pivoting (assumed of length lwork=n)
+    COMPLEX(DP),ALLOCATABLE :: work(:) 
+    INTEGER,EXTERNAL :: ILAENV
+    ! more work space
+    !
+    lda = n
+    nb = ILAENV( 1, 'ZHEEV', 'U', n, -1, -1, -1 )
+    lwork=n*nb
+    ALLOCATE(work(lwork))
+    !
+    CALL ZGETRF(n, n, a, lda, ipiv, info)
+    CALL errore('invzmat', 'error in DGETRF', ABS(info) )
+    CALL ZGETRI(n, a, lda, ipiv, work, lwork, info)
+    CALL errore('invzmat', 'error in DGETRI', ABS(info) )    
+    !
+    DEALLOCATE(work)
+    !
+    RETURN
+  END SUBROUTINE invzmat2
+  
   
   
 END MODULE functions

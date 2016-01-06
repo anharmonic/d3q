@@ -47,6 +47,8 @@ MODULE linewidth_program
     REAL(DP)   :: sigma_ry(input%nconf)
     CHARACTER(len=15) :: f1, f2
     CHARACTER(len=256) :: filename
+    ! RAFTEST
+    INTEGER :: nu
     !
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
     CALL grid%scatter()
@@ -94,6 +96,10 @@ MODULE linewidth_program
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                         S, grid, fc2, fc3)
         DO it = 1,input%nconf
+          ! RAFTEST
+          !DO nu=1,S%nat3
+          !  write(*,*) 'AA', w2(nu)*RY_TO_CMM1, ls(nu,it)*RY_TO_CMM1, (w2(nu)+ls(nu,it))*RY_TO_CMM1
+          !END DO
           lsx = ls(:,it)
           IF(input%sort_shifted_freq) THEN
             CALL resort_w_ls(S%nat3, w2, lsx)
@@ -262,11 +268,13 @@ MODULE linewidth_program
       ENDIF
       !
       IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener, spectralf)
-      !
+      !RAF change of units, since now I multiplicate by omega
       DO it = 1,input%nconf
         DO ie = 1,input%ne
+          !ioWRITE(1000+it, '(2f14.8,100e14.6)') &
+          !        qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2        
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
-                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2
+                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1, spectralf(ie,:,it)/RY_TO_CMM1
           FLUSH(1000+it)
         ENDDO
       ENDDO

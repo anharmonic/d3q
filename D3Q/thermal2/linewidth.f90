@@ -153,7 +153,8 @@ MODULE linewidth
     !
       timer_CALL t_freq%start()
     ! Compute eigenvalues, eigenmodes at q1
-    xq(:,1) = xq0
+    ! RAF aggiunto un  meno
+    xq(:,1) = - xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
       timer_CALL t_freq%stop()
@@ -203,7 +204,14 @@ MODULE linewidth
     IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,se)
       timer_CALL t_mpicom%stop()
     selfnrg_q = -0.5_dp * se
-    !
+   ! RAFTEST 
+   !OPEN(unit=9987, file='bubble_lw',action="write",status="replace")        
+   !do nu= 1,S%nat3                                                       
+   ! write(9987,*) nu,selfnrg_q(nu,1)
+   ! write(*,*) 'CC',nu, selfnrg_q(nu,1)*109737.31570111268_dp
+   ! end do
+   !CLOSE(unit=9987)                                
+   !
     DEALLOCATE(U, V3sq)
     !
   END FUNCTION selfnrg_q  
@@ -307,6 +315,15 @@ MODULE linewidth
     ! FUNCTION RESULT:
     REAL(DP) :: spectralf(ne,S%nat3,nconf)
     !
+    ! RAFTEST
+    LOGICAL :: seconda_formula, scrivi_bubble, scrivi_bubbleq
+    COMPLEX(DP), ALLOCATABLE :: selfnrgq(:,:)
+    ALLOCATE(selfnrgq(ne,S%nat3))
+    seconda_formula = .true.
+    scrivi_bubble = .true.
+    scrivi_bubbleq = .true.
+
+
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
@@ -334,7 +351,7 @@ MODULE linewidth
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
-      V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+      V3sq = REAL( DCONJG(D3)*D3 , kind=DP)
       !
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
@@ -343,15 +360,50 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+        ! RAFTEST
+        selfnrgq(:,:)=-0.5_dp * grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+        !selfnrgq(:,:)=-0.5_dp * grid%w(iq)*sum_selfnrg_spectre2( S, sigma(it), freq, bose, D3, ne, ener, nu0 )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + selfnrgq(:,:)!grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+        IF (scrivi_bubbleq) THEN
+          IF (it==1 .and. iq==(grid%nq-5)) THEN
+           OPEN(unit=9988,file='bubbleq',action="write",status="replace")
+           write(9988,*) it,iq
+           do i = 1,S%nat3
+            write(9988,*) i, selfnrgq(726,i)
+           enddo
+           CLOSE(unit=9988)
+          END IF
+        END IF                                     
         !
       ENDDO
       !
     ENDDO
     !
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf,selfnrg)
-    selfnrg = -0.5_dp * selfnrg
+    !selfnrg = -0.5_dp * selfnrg
+
+    !RAFTEST
+    IF (scrivi_bubble) THEN
+     OPEN(unit=9988, file='bubble',action="write",status="replace")
+      do i = 1,S%nat3
+       write(9988,*) i, selfnrg(726,i,1)
+      enddo
+     CLOSE(unit=9988)
+    END IF
     !
+    ! RAFTEST (implementazione second formula)
+    if (seconda_formula) then
+      write(*,*) 'SECONDA FORMULA' 
+      DO it= 1, nconf
+       DO i = 1,S%nat3
+        DO ie = 1, ne
+         omega = freq(i,1)
+         spectralf(ie,i,it)=4._dp*omega*DIMAG(1._dp/(omega**2-ener(ie)**2+2*omega*selfnrg(ie,i,it)))
+        END DO
+       END DO 
+      END DO
+    else        
+    ! RAF moltiplico per 4omega nella prima versione
     DO it = 1,nconf
       DO i = 1,S%nat3
         DO ie = 1, ne
@@ -361,20 +413,19 @@ MODULE linewidth
           denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
                    + 4*omega**2 *gamma**2 
           IF(ABS(denom)/=0._dp)THEN
-            spectralf(ie,i,it) = 2*omega*gamma / denom
+            spectralf(ie,i,it) = 4*omega*2*omega*gamma / denom
           ELSE
             spectralf(ie,i,it) = 0._dp
           ENDIF
         ENDDO
       ENDDO
     ENDDO
+    end if
     !
     DEALLOCATE(U, V3sq, D3, selfnrg)
     !
   END FUNCTION spectre_q
-  !
-  ! Sum the self energy at the provided ener(ne) input energies
-  ! \/o\________\\\_________________________________________/^>
+
   FUNCTION sum_selfnrg_spectre(S, sigma, freq, bose, V3sq, ne, ener, nu0)
     USE input_fc,           ONLY : ph_system_info
     IMPLICIT NONE
@@ -406,6 +457,8 @@ MODULE linewidth
     ALLOCATE(spf(ne,S%nat3))
     spf = (0._dp, 0._dp)
     !
+    ! RAF per confrontare con dynbubble.f90
+    freqm1=0.0_dp
     DO i = 1,S%nat3
       IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
@@ -466,6 +519,110 @@ MODULE linewidth
     DEALLOCATE(spf)
     !
   END FUNCTION sum_selfnrg_spectre
+
+
+  ! RAFTEST solo per controllo con dynbubble
+  !
+  ! Sum the self energy at the provided ener(ne) input energies
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION sum_selfnrg_spectre2(S, sigma, freq, bose, V3, ne, ener, nu0)
+    USE input_fc,           ONLY : ph_system_info
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
+    REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
+    REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
+    COMPLEX(DP),INTENT(in) :: V3(S%nat3,S%nat3,S%nat3) ! D^3, divided by masses,  on the basis of phonons patterns
+    !
+    INTEGER,INTENT(in)  :: ne           ! number of energies...
+    REAL(DP),INTENT(in) :: ener(ne)     ! energies for which to compute the spectral function
+    INTEGER,INTENT(in)  :: nu0(3)       ! first non-zero phomnon frequency
+    !
+    ! _P -> scattering, _M -> cohalescence
+    REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
+    COMPLEX(DP) :: factor !freqtotm1
+    REAL(DP) :: omega_P,  omega_M   ! \delta\omega
+    REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
+    COMPLEX(DP) :: ctm_P,ctm_M, reg, num
+    COMPLEX(DP) :: ctm(ne)
+    REAL(DP)    :: freqm1(S%nat3,2:3)  ! phonon energies (Ry)
+    REAL(DP)    :: sqfreqm1(S%nat3)
+    !
+    INTEGER :: i,j,k, ie
+    !
+    ! Note: using the function result in an OMP reduction causes crash with ifort 14
+    COMPLEX(DP) :: sum_selfnrg_spectre2(ne,S%nat3)
+    COMPLEX(DP),ALLOCATABLE :: spf(:,:)
+    !
+    ALLOCATE(spf(ne,S%nat3))
+    spf = (0._dp, 0._dp)
+    !
+    ! RAF per confrontare con dynbubble.f90
+    freqm1=0.0_dp
+    sqfreqm1=0._dp
+    DO i = 1,S%nat3
+      IF(i>=nu0(1)) sqfreqm1(i) = DSQRT(0.5_dp/freq(i,1))
+      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)    
+    ENDDO
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) &
+!$OMP             PRIVATE(ie,i,j,k,bose_P,bose_M,omega_P,omega_M,omega_P2,omega_M2, &
+!$OMP                     ctm_P,ctm_M,ctm,reg,factor) &
+!$OMP             REDUCTION(+: spf) COLLAPSE(2)
+    DO k = 1,S%nat3
+      DO j = 1,S%nat3
+        !
+        bose_P   = 1 + bose(j,2) + bose(k,3)
+        omega_P  = freq(j,2)+freq(k,3)
+        omega_P2 = omega_P**2
+        !
+        bose_M   = bose(k,3) - bose(j,2)
+        omega_M  = freq(j,2)-freq(k,3)
+        omega_M2 = omega_M**2
+        !
+        ! A little optimization: precompute the parts that depends only on the energy
+        DO ie = 1,ne
+          ! regularization:
+          reg = CMPLX(ener(ie), sigma, kind=DP)**2
+          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+          ctm(ie) = ctm_P + ctm_M
+        ENDDO
+        !
+        DO i = 1,S%nat3
+          !
+          ! This comes from the definition of u_qj, Ref. 1.
+          !freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
+          !
+!           IF (freqtot/=0._dp) THEN
+          !freqtotm1 = 1 / freqtot
+          factor = V3(i,j,k)*CONJG(V3(i,j,k))*sqfreqm1(i)*sqfreqm1(i)*freqm1(j,2)*freqm1(k,3)
+          !
+          !DO ie = 1, ne
+            ! regularization:
+            !reg = CMPLX(ener(ie), sigma, kind=DP)**2
+            !
+            !ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+            !ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+            !ctm = ctm_P + ctm_M
+            !
+            spf(:,i) = spf(:,i) + ctm(:) * factor !V3sq(i,j,k) * freqtotm1
+          !ENDDO
+!           ENDIF
+          !
+        ENDDO
+      ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    !
+    sum_selfnrg_spectre2 = spf
+    DEALLOCATE(spf)
+    !
+  END FUNCTION sum_selfnrg_spectre2
+
+
+
   !
   ! \/o\________\\\_________________________________________/^>
   ! Sum the self energy for the phonon modes
@@ -561,7 +718,13 @@ MODULE linewidth
           !
           !
           se(i) = se(i) + (ctm_P + ctm_M)*freqtotm1 * V3sq(i,j,k)
-
+          ! RAFTEST
+          !if (k==1 .and. j==1) then
+          !        write(*,*) 'HH j k i', j,k,i, &
+                  !se(i),V3sq(i,j,k), &
+                  !freqm1(i,1),freqm1(j,2)*freqm1(k,3)
+          !        ctm_P+ctm_M
+          !end if
           !IF(freqtotm1/=0._dp)THEN
           ! ioWRITE(30000,'(3i4,99e12.4)') k,i,j, omega_P, omega_M, T, sigma, ctm_P, ctm_M, freqtotm1, V3sq(i,j,k)
           ! stop 1
