@@ -145,20 +145,20 @@ MODULE program_qq2rr
           d3grid(iq_trip)%xq2(:) = xq(:,b)
           d3grid(iq_trip)%xq3(:) = xq(:,c)
         ELSE
-          iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
-          countq(iq_aux) = countq(iq_aux) +1
-          CALL d3_6idx_2_3idx(S%nat, d3, p3)
-          CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-          CALL d3_3idx_2_6idx(S%nat, p3, d3)
-          IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
-            WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') iq_aux, "xqR", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
-            a,b,c, TRIM(filename)
-            print*, iq_aux, iq_trip
-            print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
-            print*, xq
-            WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
-            stop 666
-          ENDIF
+!           iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
+!           countq(iq_aux) = countq(iq_aux) +1
+!           CALL d3_6idx_2_3idx(S%nat, d3, p3)
+!           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
+!           CALL d3_3idx_2_6idx(S%nat, p3, d3)
+!           IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
+!             WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') iq_aux, "xqR", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
+!             a,b,c, TRIM(filename)
+!             print*, iq_aux, iq_trip
+!             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
+!             print*, xq
+! !             WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
+!             !stop 666
+!          ENDIF
           !d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
           
         ENDIF
