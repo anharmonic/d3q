@@ -178,7 +178,7 @@ MODULE dynbubble
     USE fc3_interpolate,  ONLY : forceconst3
     USE constants,        ONLY : RY_TO_CMM1
     USE mpi_thermal,      ONLY : mpi_bsum
-    USE functions,        ONLY : invzmat2!, invzmat
+    USE functions,        ONLY : invzmat
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -338,12 +338,12 @@ MODULE dynbubble
           FORALL(n=1:S%nat3) tempA(n,n)=(freq(n,1)**2 - ener(ie)**2)
           FORALL(n=1:S%nat3) tempB(n,n)=2._dp*freq(n,1)
           tempC=tempA+MATMUL(tempB,dyn)
-          CALL invzmat2(S%nat3, tempC) 
+          CALL invzmat(S%nat3, tempC) 
           tempA=MATMUL(tempC,tempB)
           ! RAFTEST inv dacanc
           !tempC=tempA+MATMUL(tempB,dyn)
           !tempA=tempC
-          !CALL invzmat2(S%nat3, tempC)
+          !CALL invzmat(S%nat3, tempC)
           !tempB=MATMUL(tempA,tempC)
           !IF (it==1 .and. ie==726) THEN
           !OPEN(unit=9988, file='tempB',action="write",status="replace")

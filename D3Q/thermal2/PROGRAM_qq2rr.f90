@@ -71,7 +71,7 @@ MODULE program_qq2rr
     DO 
       READ(*, '(a512)',iostat=ios) filename
       IF(ios/=0) EXIT
-!       WRITE(*,*) "Reading '", TRIM(filename),"'..."
+      WRITE(*,*) "Reading '", TRIM(filename),"'..."
 
       IF(first)THEN
         first=.false.
@@ -120,10 +120,7 @@ MODULE program_qq2rr
           !
           ! Repack the matrix, shuffle it and repack it again
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
-          !CALL d3_shuffle_simple( a,b,c, .false., p3)
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-          !CALL d3_shuffle_global( 1,2,3, a,b,c, d3perms_conjg(iperm), p3)
-          !CALL d3_shuffle_equiv( 1,2,3, a,b,c, .not.d3perms_conjg(iperm), p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
           !
           ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
@@ -274,12 +271,13 @@ MODULE program_qq2rr
       DO jxr = 1, nxr
       DO ixr = 1, nxr
         !
-        fc = 0._dp
+        fc = (0._dp, 0._dp)
         DO iq = 1, nq_trip
           arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
           phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
           fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
-          !write(*,'(3(2f10.4,3x))') d3grid(iq)%xq2,d3grid(iq)%xq3
+!           write(1999,'(2f12.7,4x,4(3f8.4,3x))') &
+!             phase, d3grid(iq)%xq2,d3grid(iq)%xq3, xr(:,ixr), xr(:,jxr)
         ENDDO
         !if(iat/=jat) then
           write(999,*)
@@ -552,17 +550,18 @@ PROGRAM qq2rr
   TYPE(ph_system_info) :: S
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
-  INTEGER :: count, i, j
+  INTEGER :: narg, i, j
   CHARACTER(len=512) :: argv
 
-  count = command_argument_count()
-  IF(count>=3)THEN
+  narg = command_argument_count()
+  IF(narg>=3)THEN
     DO i = 1,3
       CALL get_command_argument(i,argv)
       READ(argv,*) nq(i)
     ENDDO
   ELSE
-    nq = (/ 0,0,0 /)
+      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x nqx nqy nqz"
+      STOP 1
   ENDIF
   WRITE(*,*) "Reading grid", nq
   
@@ -575,6 +574,11 @@ PROGRAM qq2rr
   WRITE(*,*) "Reading D3 matrices done"
   CALL memstat(kb)
   WRITE(*,*) "Total memory used : ", kb/1000, "Mb"
+  !
+  DO i = 1,nq_trip
+    WRITE(2999,'(2(3f8.4,3x))') d3grid(i)%xq2, d3grid(i)%xq3
+    !WRITE(2999,*)
+  ENDDO
   !
   WRITE(*,*) "Doing Backward FFT..."
   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3)
