@@ -65,7 +65,7 @@ MoS2b_anh ! title is optional
 ! If you only want to compute a subset of the q-point use the following variables:
    first=10
    last=50
-   offset=20
+   offset=2
    step=8
 ! This will compute one point every 8 (with an offset of 2) starting from 10 and up to 50,
 ! i.e. these points: 12, 20, 28, 36, and 44.
