@@ -48,9 +48,9 @@ SUBROUTINE d3_ch_psi(n, h, ah, e, ik, m)
   !
   USE kinds,      ONLY : DP
   USE wvfct,      ONLY : npwx!, nbnd
-!   USE uspp,       ONLY : vkb
+! USE uspp,       ONLY : vkb
   USE becmod,     ONLY : becp, calbec
-  USE phcom,      ONLY : alpha_pv
+  USE control_lr, ONLY : alpha_pv
   USE mp_global,  ONLY : intra_pool_comm
   USE mp,         ONLY : mp_sum
 !   USE linter_d3q, ONLY : igk_prj, wfc_prj, vkb_prj

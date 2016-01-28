@@ -6,8 +6,10 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !
+MODULE write_d3dyn_ascii
+  CONTAINS
 !-----------------------------------------------------------------------
-subroutine write_d3dyn_XXX (xq1,xq2,xq3, phi, nat, iudyn, wrmode)
+subroutine write_d3dyn_XXX (xq1,xq2,xq3, phi, nat, iudyn)
   !-----------------------------------------------------------------------
   !
   USE kinds, only : DP
@@ -22,8 +24,6 @@ subroutine write_d3dyn_XXX (xq1,xq2,xq3, phi, nat, iudyn, wrmode)
   !  derivative of the dynamical matrix
   real (DP) :: xq1(3), xq2(3), xq3(3)
   ! the q vector
-  logical :: wrmode (3 * nat)
-  ! if .true. this mode is to be written
   !
   ! local variables
   !
@@ -45,8 +45,8 @@ subroutine write_d3dyn_XXX (xq1,xq2,xq3, phi, nat, iudyn, wrmode)
            do nb = 1, nat
               write (iudyn, '(2i3)') na, nb
               do icar = 1, 3
-                 write (iudyn, '(6e24.12)') (phi (kcar, icar, jcar, nc, na, nb) &
-                      , jcar = 1, 3)
+                 write (iudyn, '(3(2f13.6,3x))') &
+                 (phi (kcar, icar, jcar, nc, na, nb) , jcar = 1, 3)
               enddo
            enddo
         enddo
@@ -57,3 +57,52 @@ subroutine write_d3dyn_XXX (xq1,xq2,xq3, phi, nat, iudyn, wrmode)
   return
 
 end subroutine write_d3dyn_XXX
+
+!-----------------------------------------------------------------------
+subroutine zero_d3dyn_XXX (phi, nat, thresh)
+  !-----------------------------------------------------------------------
+  !
+  USE kinds, only : DP
+  implicit none
+  !
+  ! input variables
+  !              write(*,*) "dioporco"
+
+  integer :: nat
+  ! number of atom in the unit cell
+  complex (DP) :: phi (3, 3, 3, nat, nat, nat)
+  REAL(DP) :: thresh
+  !
+  ! local variables
+  !
+  integer :: na, nb, nc, icar, jcar, kcar
+  ! counters on atoms
+  ! cartesian coordinate counters
+  ! generic counter
+  do nc = 1, nat
+  do nb = 1, nat
+  do na = 1, nat
+      do kcar = 1, 3
+      do jcar = 1, 3
+      do icar = 1, 3
+            IF( ABS(phi (icar, jcar, kcar, na, nb, nc)) < thresh) THEN 
+              phi (icar, jcar, kcar, na, nb, nc) = 0._dp
+            ELSEIF( ABS(DBLE(phi (icar, jcar, kcar, na, nb, nc))) < thresh) THEN 
+              phi (icar, jcar, kcar, na, nb, nc) = &
+                (0._dp,1._dp) * DIMAG(phi (icar, jcar, kcar, na, nb, nc))
+            ELSEIF( ABS(DIMAG(phi (icar, jcar, kcar, na, nb, nc))) < thresh) THEN 
+              phi (icar, jcar, kcar, na, nb, nc) = &
+                DBLE(phi (icar, jcar, kcar, na, nb, nc))
+            ENDIF
+      enddo
+      enddo
+      enddo
+  enddo
+  enddo
+  enddo
+
+  return
+
+end subroutine zero_d3dyn_XXX
+
+END MODULE 

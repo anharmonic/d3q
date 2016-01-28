@@ -20,7 +20,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
 !   USE ions_base,  ONLY : nat
   USE kinds,          ONLY : DP
   USE pwcom,          ONLY : npwx, omega, nbnd
-  USE phcom,          ONLY : nbnd_occ
+  USE control_lr,     ONLY : nbnd_occ
   USE gvecs,          ONLY : nls
   USE fft_base,       ONLY : dffts
   USE fft_interfaces, ONLY: invfft

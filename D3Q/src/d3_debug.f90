@@ -126,21 +126,21 @@ SUBROUTINE dbgwrite_d3dyn (d3dyn_x, filename, isw)
   !     isw = +1  :  d3dyn_x is in cartesian axis
   !     isw = -1  :  rotates d3dyn_x from the basis of pattern to
   !                      cartesian axis
-  USE kinds,       ONLY : DP
-  USE ions_base,   ONLY : nat
-  USE io_global,   ONLY : ionode
-  USE d3_basis,    ONLY : patq
-  USE kplus3q,     ONLY : kplusq
+  USE kinds,           ONLY : DP
+  USE ions_base,       ONLY : nat
+  USE io_global,       ONLY : ionode
+  USE d3_basis,        ONLY : patq
+  USE kplus3q,         ONLY : kplusq
   !
-  USE ions_base,   ONLY : nat
-  USE cell_base,   ONLY : at, bg
-  USE symm_base,   ONLY : s, irt, invs
-  USE phcom,       ONLY : rtau,irgq,irotmq,nsymq,minus_q
-  USE d3_basis,    ONLY : d3_pat2cart, patq
-  USE d3_symmetry, ONLY : d3_symmetrize
-  USE d3_shuffle,  ONLY : d3_shuffle_global
-  USE d3matrix_module,    ONLY : d3matrix
-  USE d3com,       ONLY : fild3dyn
+  USE ions_base,       ONLY : nat
+  USE cell_base,       ONLY : at, bg
+  USE symm_base,       ONLY : s, irt, invs
+  USE lr_symm_base,    ONLY : rtau,irgq,irotmq,nsymq,minus_q
+  USE d3_basis,        ONLY : d3_pat2cart, patq
+  USE d3_symmetry,     ONLY : d3_symmetrize
+  USE d3_shuffle,      ONLY : d3_shuffle_global
+  USE d3matrix_module, ONLY : d3matrix
+  USE d3com,           ONLY : fild3dyn
   !
   IMPLICIT NONE
   !

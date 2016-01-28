@@ -22,8 +22,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
   USE ions_base,       ONLY : nat, ityp, ntyp => nsp, tau, atm, amass
   USE cell_base,       ONLY : at, bg, ibrav, celldm
   USE symm_base,       ONLY : s, irt, invs, nsym
-  USE phcom,           ONLY : rtau
-  USE modes,           ONLY : nsymq, irgq, minus_q, irotmq
+  USE lr_symm_base,    ONLY : rtau, nsymq, irgq, minus_q, irotmq
   USE kplus3q,         ONLY : kplusq
   USE d3_basis,        ONLY : patq
   USE io_global,       ONLY : stdout, ionode

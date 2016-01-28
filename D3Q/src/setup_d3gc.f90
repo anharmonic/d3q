@@ -10,7 +10,7 @@ MODULE gc_d3
   !
   USE kinds, ONLY: DP
   !
-  USE gc_ph,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
+  USE gc_lr,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
   !
   REAL(DP), ALLOCATABLE :: &
        dvxc_rrr(:,:,:),          &! dfftp%nnr, nspin, nspin), 
@@ -96,19 +96,13 @@ MODULE gc_d3
     ELSE
       !
       IF (.NOT. nlcc_any) THEN
-        !
         DO is = 1, nspin0
           rho_tot_r(:,is) = rho%of_r(:,is)
-!           rho_tot_g(:,is) = rho%of_g(:,is)
         ENDDO
-        !
       ELSE
-        !
         DO is = 1, nspin0
           rho_tot_r(:,is) = fac * rho_core(:)  + rho%of_r(:,is)
-!           rho_tot_g(:,is) = fac * rhog_core(:) + rho%of_g(:,is)
         ENDDO
-        !
       ENDIF
       !
       !
@@ -116,10 +110,7 @@ MODULE gc_d3
         psic(:) = rho_tot_r(:,is)
         CALL fwfft ('Dense', psic, dfftp)
         rho_tot_g(:,is) = psic(nl(:))
-
-!           CALL gradrho (nrx1, nrx2, nrx3, nr1, nr2, nr3, dfftp%nnr, rho_tot_g (1, is), &
-!               ngm, g, nl, grho (1, 1, is) )          
-          CALL gradrho( dfftp%nnr, rho_tot_g(1,is), ngm, g, nl, grho(:,:,is) )
+        CALL gradrho( dfftp%nnr, rho_tot_g(1,is), ngm, g, nl, grho(:,:,is) )
       ENDDO
       !
     END IF
@@ -131,16 +122,15 @@ MODULE gc_d3
       grho2(1) = grho (1,ir,1)**2 + grho(2,ir,1)**2 + grho(3,ir,1)**2
       IF (nspin0 == 1) THEN
           IF (ABS (rho_tot_r (ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
-            call gcxc  (rho_tot_r (ir, 1), grho2(1), sx, sc, v1x, v2x, v1c, v2c)
-            call dgcxc (rho_tot_r (ir, 1), grho2(1), vrrx, vsrx, vssx, vrrc, &
+            CALL gcxc  (rho_tot_r (ir, 1), grho2(1), sx, sc, v1x, v2x, v1c, v2c)
+            CALL dgcxc (rho_tot_r (ir, 1), grho2(1), vrrx, vsrx, vssx, vrrc, &
                   vsrc, vssc)
             dvxc_rr (ir, 1, 1) = e2 * (vrrx + vrrc)
             dvxc_sr (ir, 1, 1) = e2 * (vsrx + vsrc)
             dvxc_ss (ir, 1, 1) = e2 * (vssx + vssc)
             dvxc_s  (ir, 1, 1) = e2 * (v2x + v2c)
-            call d3gcxc (rho_tot_r (ir, 1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
+            CALL d3gcxc (rho_tot_r (ir, 1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
                   vrrrc, vsrrc, vssrc, vsssc )
-!             write(10001, '(i7,99f12.6)') ir, rho_tot_r(ir, 1),  rho%of_r(ir,is), rho_core(ir), grho2(1), vrrrx, vsrrx, vssrx, vsssx, vrrrc, vsrrc, vssrc, vsssc 
             !
             dvxc_rrr(ir, 1, 1) = e2 * (vrrrx + vrrrc)
             dvxc_srr(ir, 1, 1) = e2 * (vsrrx + vsrrc)

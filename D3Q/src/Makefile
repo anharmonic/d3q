@@ -6,7 +6,7 @@ STRIP = true
 
 # location of needed modules
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../FFTXlib \
-          $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../PHonon/PH $(MOD_FLAG).
+          $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../PHonon/PH $(MOD_FLAG). $(MOD_FLAG)../../LR_Modules
 
 D3QOBJS = d3q.o
 
@@ -56,11 +56,13 @@ stop_d3.o \
 w_1gauss.o \
 write_d3dyn.o 
 
+LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
-PHOBJS = ../../PHonon/PH/libph.a
-QEMODS = ../../Modules/libqemod.a
+PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
+QEMODS = ../../Modules/libqemod.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
-LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
+LIBOBJS = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
+
 
 TLDEPS= bindir mods libs pw ph
 
@@ -68,7 +70,7 @@ all : tldeps d3q.x
 
 d3q.x : libd3q.a $(D3QOBJS) $(PWOBJS) $(PHOBJS) $(QEMODS) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o d3q.x $(D3QOBJS) \
-		libd3q.a $(PHOBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+		libd3q.a $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP) $@
 	- ( cd ../../bin ; ln -fs ../D3Q/src/d3q.x . )
 

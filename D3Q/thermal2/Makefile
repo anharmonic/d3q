@@ -8,7 +8,7 @@ STRIP = true #strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
-IFLAGS=-I../../include -I../../PHonon/PH -I../../FFTXlib
+IFLAGS+=-I../../include -I../../PHonon/PH 
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -19,10 +19,7 @@ QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw
 
-#IBOBJS        = ../../flib/pthermal2.a 
-LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
-# line for xlf90 on bluegene:
-#LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../lapack-3.2/lapack.a
+LIBOBJS = ../../LR_Modules/liblrmod.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 
 # lines for xlf90 on bluegene
@@ -33,7 +30,7 @@ LIBOBJS = ../../flib/flib.a ../../flib/ptools.a ../../clib/clib.a ../../iotk/src
 #F90FLAGS += -openmp 
 #LDFLAGS  += -openmp #-pg -g
 
-D3QTOOLSLIBS = \
+THERMALK2_LIBS = \
 asr2.o \
 casimir.o \
 code_input.o \
@@ -62,63 +59,63 @@ EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x
 
 all : tldeps $(EXECUTABLES)
 
-mpitest.x : PROGRAM_mpitest.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_mpitest.o $(D3QTOOLSLIBS) \
+mpitest.x : PROGRAM_mpitest.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_mpitest.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 
-tk.x : PROGRAM_tk.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(D3QTOOLSLIBS) \
+tk.x : PROGRAM_tk.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-lw.x : PROGRAM_lw.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o $(D3QTOOLSLIBS) \
+lw.x : PROGRAM_lw.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-db.x : PROGRAM_db.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o $(D3QTOOLSLIBS) \
+db.x : PROGRAM_db.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-r2q.x : PROGRAM_r2q.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o $(D3QTOOLSLIBS) \
+r2q.x : PROGRAM_r2q.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-sparse.x : PROGRAM_sparse.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o $(D3QTOOLSLIBS) \
+sparse.x : PROGRAM_sparse.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-sqom.x : PROGRAM_sqom.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o $(D3QTOOLSLIBS) \
+sqom.x : PROGRAM_sqom.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-q2r.x : PROGRAM_q2r.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(D3QTOOLSLIBS) \
+q2r.x : PROGRAM_q2r.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-qq2rr.x : PROGRAM_qq2rr.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o $(D3QTOOLSLIBS) \
+qq2rr.x : PROGRAM_qq2rr.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-asr3.x : PROGRAM_asr3.o $(D3QTOOLSLIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o $(D3QTOOLSLIBS) \
+asr3.x : PROGRAM_asr3.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o $(THERMALK2_LIBS) \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )

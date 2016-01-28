@@ -23,7 +23,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   USE kinds,        ONLY : DP
   USE ions_base,    ONLY : nat
   use pwcom,        ONLY : degauss, ngauss, lgauss, nbnd, et, ef
-  use phcom,        ONLY : nksq
+  use qpoint,       ONLY : nksq
   USE mp_global,    ONLY : inter_pool_comm
   USE io_global,    ONLY : stdout
   USE mp,           ONLY : mp_sum
@@ -207,15 +207,16 @@ END SUBROUTINE d3_valence_ijk
 SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   !-----------------------------------------------------------------------
   !
-  USE kinds,        ONLY : DP
-  USE ions_base,    ONLY : nat
-  use pwcom,        ONLY : degauss, ngauss, lgauss, nbnd, et, ef
-  use phcom,        ONLY : nksq, nbnd_occ
-  USE mp_global,    ONLY : inter_pool_comm
-  USE io_global,    ONLY : stdout
-  USE mp,           ONLY : mp_sum
-  USE kplus3q,      ONLY : kplusq, q_sum_rule
-  USE d3_iofiles,   ONLY : iu_psi_dH_psi, iudpdvp, lrpdqvp, lrdpdvp
+  USE kinds,           ONLY : DP
+  USE ions_base,       ONLY : nat
+  USE pwcom,           ONLY : degauss, ngauss, lgauss, nbnd, et, ef
+  USE qpoint,          ONLY : nksq
+  USE control_lr,      ONLY : nbnd_occ
+  USE mp_global,       ONLY : inter_pool_comm
+  USE io_global,       ONLY : stdout
+  USE mp,              ONLY : mp_sum
+  USE kplus3q,         ONLY : kplusq, q_sum_rule
+  USE d3_iofiles,      ONLY : iu_psi_dH_psi, iudpdvp, lrpdqvp, lrdpdvp
   USE d3_efermi_shift, ONLY : read_efsh, ef_sh
   !
   IMPLICIT NONE
@@ -359,7 +360,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   USE io_global,        ONLY : stdout
   USE d3_iofiles,       ONLY : iu_psi_dH_psi, lrpdqvp
   USE pwcom,            ONLY : degauss, ngauss, lgauss, nbnd, et, ef
-  USE phcom,            ONLY : nksq
+  USE qpoint,           ONLY : nksq
   USE d3_debug,         ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE

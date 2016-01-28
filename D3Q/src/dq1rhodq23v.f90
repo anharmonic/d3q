@@ -264,17 +264,18 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   ! and the first variation of the charge density with respect to a
   ! perturbation at a generic q
   !
-  USE ions_base,    ONLY : nat, ityp, ntyp => nsp
-  USE kinds,        ONLY : DP
-  USE constants,    ONLY : tpi
-  USE pwcom,        ONLY : npwx, g, lgauss, tpiba, xk, nbnd
-  USE uspp,         ONLY : dvan, nkb
-  USE uspp_param,   ONLY : nh
-  USE phcom,        ONLY : lrdwf, nbnd_occ, lrwfc, iuwfc
-  USE mp_global,    ONLY : intra_pool_comm
-  USE mp,           ONLY : mp_sum
-  USE kplus3q,      ONLY : nksq, kplusq !iunigk, iunigkq2, ikks, ikq_drho2s, kplusq
-  USE d3_iofiles,   ONLY : iu_dwfc
+  USE ions_base,       ONLY : nat, ityp, ntyp => nsp
+  USE kinds,           ONLY : DP
+  USE constants,       ONLY : tpi
+  USE pwcom,           ONLY : npwx, g, lgauss, tpiba, xk, nbnd
+  USE uspp,            ONLY : dvan, nkb
+  USE uspp_param,      ONLY : nh
+  USE phcom,           ONLY : lrdwf, lrwfc, iuwfc
+  USE control_lr,      ONLY : nbnd_occ
+  USE mp_global,       ONLY : intra_pool_comm
+  USE mp,              ONLY : mp_sum
+  USE kplus3q,         ONLY : nksq, kplusq !iunigk, iunigkq2, ikks, ikq_drho2s, kplusq
+  USE d3_iofiles,      ONLY : iu_dwfc
   USE d3_efermi_shift, ONLY : read_efsh
   !
   IMPLICIT NONE
@@ -469,14 +470,15 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   ! this routine corrects dpsi in such a way that the density matrix
   ! is given by:   Sum_{k,nu} 2 * | dpsi > < psi |
   !
-  USE kinds,        ONLY : DP
-  USE ions_base,    ONLY : nat
-  USE pwcom,        ONLY : npwx, nbnd, degauss, ngauss, et, ef
-  USE phcom,        ONLY : nbnd_occ, lrwfc, iuwfc
+  USE kinds,           ONLY : DP
+  USE ions_base,       ONLY : nat
+  USE pwcom,           ONLY : npwx, nbnd, degauss, ngauss, et, ef
+  USE phcom,           ONLY : lrwfc, iuwfc
+  USE control_lr,      ONLY : nbnd_occ
   USE d3_efermi_shift, ONLY : ef_sh
-  USE io_global,    ONLY : stdout
-  USE kplus3q,      ONLY : kplusq
-  USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
+  USE io_global,       ONLY : stdout
+  USE kplus3q,         ONLY : kplusq
+  USE d3_iofiles,      ONLY : iu_psi_dH_psi, lrpdqvp
 
   IMPLICIT NONE
 

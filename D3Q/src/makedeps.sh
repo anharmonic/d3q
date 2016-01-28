@@ -22,7 +22,7 @@ for dir in $dirs; do
     # set inter-directory dependencies - only directories containing
     # modules that are used, or files that are included, by routines
     # in directory DIR should be listed in DEPENDS
-    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../iotk/src ../../FFTXlib"
+    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../iotk/src ../../FFTXlib ../../LAXlib ../../LR_Modules"
     # generate dependencies file (only for directories that are present)
     if test -d $DIR
     then

@@ -25,7 +25,7 @@ SUBROUTINE d3_readin()
   USE pwcom,            ONLY : lsda
   USE run_info,         ONLY : title
   USE control_flags,    ONLY : iverbosity
-  USE phcom,            ONLY : lgamma
+  USE control_lr,       ONLY : lgamma
   USE d3com,            ONLY : ethr_ph, istop, d3_mode, fild3dyn, max_seconds
   USE d3_control,       ONLY : print_star, print_perm, print_trev,&
                                restart, safe_io, d3dir

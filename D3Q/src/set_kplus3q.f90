@@ -19,7 +19,7 @@ MODULE kplus3q
   !
   USE kinds,          ONLY : DP
   USE qpoint,         ONLY : nksq
-  USE phcom,          ONLY : lgamma
+  USE control_lr,     ONLY : lgamma
   !
   INTEGER             :: orig_nks, &! number of points in the original grid (i.e. k)
                          tot_nks    ! total number of distinct points: k,k+q,...
@@ -500,7 +500,8 @@ END SUBROUTINE kplus3q_grids
 SUBROUTINE write_igkq_d3(ik)
   !-----------------------------------------------------------------------
   USE kinds,      ONLY : DP
-  USE wvfct,      ONLY : g2kin, npwx, ecutwfc
+  USE wvfct,      ONLY : g2kin, npwx
+  USE gvecw,      ONLY : ecutwfc
   USE gvect,      ONLY : g, ngm
   USE cell_base,  ONLY : tpiba2
   USE klist,      ONLY : xk

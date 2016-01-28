@@ -20,7 +20,7 @@ SUBROUTINE d3_setup_q_independent()
   USE scf,              ONLY : rho, rho_core, v, vltot, vrs, kedtau
   USE funct,            ONLY : dmxc, dmxc_spin
   USE fft_base,         ONLY : dfftp
-  USE gc_d3,            ONLY : setup_d3gc
+  !USE gc_d3,            ONLY : setup_d3gc
   !
   IMPLICIT NONE
   INTEGER :: ir
@@ -53,7 +53,7 @@ SUBROUTINE d3_setup_q_independent()
      ENDDO
   ENDIF
   !
-  CALL setup_d3gc()
+  !CALL setup_d3gc()
   !
   CALL stop_clock('d3_setup_noq')
   !
@@ -100,8 +100,8 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   !
   USE kinds,            ONLY : DP
   USE io_global,        ONLY : stdout, ionode_id, ionode
-  USE phcom,            ONLY : rtau
-  USE modes,            ONLY : nsymq, irgq, minus_q, nmodes, npertx, irotmq
+  USE lr_symm_base,     ONLY : rtau, irgq, minus_q, irotmq, nsymq
+  USE modes,            ONLY : nmodes, npertx
   USE d3com,            ONLY : npert_i, npert_f
   !
   USE ions_base,        ONLY : nat, ityp, ntyp => nsp, tau

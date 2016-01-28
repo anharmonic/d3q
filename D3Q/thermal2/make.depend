@@ -12,6 +12,7 @@ PROGRAM_db.o : ./dynbubble.o
 PROGRAM_db.o : ./fc2_interp.o
 PROGRAM_db.o : ./fc3_interp.o
 PROGRAM_db.o : ./input_fc.o
+PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
 PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
@@ -45,6 +46,7 @@ PROGRAM_q2r.o : ./quter.o
 PROGRAM_qq2rr.o : ../../D3Q/src/d3_basis.o
 PROGRAM_qq2rr.o : ../../D3Q/src/d3_shuffle.o
 PROGRAM_qq2rr.o : ../../D3Q/src/d3matrix_io.o
+PROGRAM_qq2rr.o : ../../D3Q/src/write_d3dyn.o
 PROGRAM_qq2rr.o : ../../Modules/constants.o
 PROGRAM_qq2rr.o : ../../Modules/kind.o
 PROGRAM_qq2rr.o : ../../Modules/parameters.o

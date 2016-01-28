@@ -18,7 +18,8 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm
   USE mp,         ONLY : mp_sum
   USE pwcom,      ONLY : npwx, nbnd, degauss, ngauss, et, ef
-  USE phcom,      ONLY : lrdwf, nbnd_occ
+  USE phcom,      ONLY : lrdwf 
+  USE control_lr, ONLY : nbnd_occ
   USE d3com,      ONLY : eps_delta
   USE kplus3q,    ONLY : kplusq, nksq, q_names, q_names2, q_sum_rule
   USE d3_iofiles, ONLY : iu_dwfc, iu_psi_dH_psi, iu_dpsi_dH_psi, lrdpdvp, lrpdqvp

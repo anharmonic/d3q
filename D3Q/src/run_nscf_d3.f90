@@ -169,7 +169,7 @@ SUBROUTINE setup_nscf_d3()
   USE start_k,            ONLY : nks_start, xk_start, wk_start, &
                                  nk1, nk2, nk3, k1, k2, k3, reset_grid
   USE klist,              ONLY : degauss
-  USE modes,              ONLY : nsymq, invsymq, minus_q !, gi, gimq, irgq, irotmq, minus_q
+  USE lr_symm_base,       ONLY : nsymq, invsymq, minus_q !, gi, gimq, irgq, irotmq, minus_q
   USE kplus3q,            ONLY : kplus3q_grids, kplusq
   USE mp,                 ONLY : mp_sum
   USE uspp_param,         ONLY : n_atom_wfc

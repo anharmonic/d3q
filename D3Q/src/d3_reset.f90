@@ -14,7 +14,8 @@ SUBROUTINE d3_reset(print_clock, cleanup)
   !-----------------------------------------------------------------------
   ! From d3_Setup:
   USE kplus3q,            ONLY : reset_kplus3q, kplusq
-  USE phcom,              ONLY : rtau, nlcc_any
+  USE nlcc_ph,            ONLY : nlcc_any
+  USE lr_symm_base,       ONLY : rtau
   USE d3_basis,           ONLY : patq, deallocate_d3_pattern
   USE d3_symmetry,        ONLY : symq, sym_gamma, deallocate_d3_symmetry
   USE d3_iofiles,         ONLY : closefild3

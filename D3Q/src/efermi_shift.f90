@@ -31,7 +31,8 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE fft_interfaces, ONLY : fwfft
   USE fft_base,       ONLY : dfftp
   USE gvect,          ONLY : gg, nl
-  USE phcom,          ONLY : nksq, npertx
+  USE qpoint,         ONLY : nksq
+  USE modes,          ONLY : npertx
   USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
   USE kplus3q,        ONLY : kplusq
@@ -123,9 +124,9 @@ SUBROUTINE sym_def1 (def, irr)
   !
   ! Used in the q=0 metallic case only.
   !
-  USE kinds,       ONLY : DP
-  USE d3_symmetry, ONLY : sg => sym_gamma
-  USE modes,       ONLY : nsymq, minus_q
+  USE kinds,        ONLY : DP
+  USE d3_symmetry,  ONLY : sg => sym_gamma
+  USE lr_symm_base, ONLY : nsymq, minus_q
   !USE io_global,   ONLY : stdout
   IMPLICIT NONE
   INTEGER :: irr ! input: the representation under consideration

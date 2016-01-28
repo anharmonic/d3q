@@ -34,7 +34,7 @@ MODULE d3_exc_module
     INTEGER :: ir, ipert, jpert, kpert
     REAL(DP) :: rhotot
     COMPLEX(DP) :: aux
-    REAL(DP)     :: pref
+    REAL(DP)     :: domega
     REAL(DP),ALLOCATABLE :: d2muxc (:)
     COMPLEX (DP), ALLOCATABLE :: drho1d2muxc (:), dr1dr2d2muxc (:), drho3 (:), &
                                 d3dyn1 (:,:,:)
@@ -51,7 +51,7 @@ MODULE d3_exc_module
         ALLOCATE (dr1dr2d2muxc(dfftp%nnr))
         ALLOCATE (drho3(dfftp%nnr))
         !
-        pref = omega / (dfftp%nr1 * dfftp%nr2 * dfftp%nr3)
+        domega = omega / (dfftp%nr1 * dfftp%nr2 * dfftp%nr3)
         !
         ! Calculates third derivative of Exc
         !
@@ -91,7 +91,7 @@ MODULE d3_exc_module
                 aux = aux + drho3(ir)*dr1dr2d2muxc(ir) ! NOTE: dr1dr2d2muxc = rho2*rho1*d2muxc
             ENDDO
             !
-            d3dyn1(ipert, jpert, kpert) = pref * aux
+            d3dyn1(ipert, jpert, kpert) = domega * aux
             !
             ENDDO
         ENDDO

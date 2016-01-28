@@ -66,7 +66,7 @@ MODULE dq_vscf_module
     USE d3com,            ONLY : d3c, d3v
     USE d3_iofiles,       ONLY : read_drho, addcore_d3
     USE scf,              ONLY : rho, rho_core
-    USE gc_ph,            ONLY : grho
+    USE gc_lr,            ONLY : grho
     USE gc_d3,            ONLY : dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s
     USE d3com,            ONLY : d3c
     USE noncollin_module, ONLY : nspin_lsda, nspin_gga
@@ -216,7 +216,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE eqv,         ONLY : dmuxc 
   USE d3com,       ONLY : d3c, d3v
   USE d3_iofiles,  ONLY : read_drho
-  USE gc_ph,            ONLY : dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s, grho
+  USE gc_lr,            ONLY : dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s, grho
     USE scf,          ONLY : rho
     USE funct,        ONLY : dft_is_gradient
     USE noncollin_module, ONLY : nspin_gga, nspin_mag

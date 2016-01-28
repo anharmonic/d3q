@@ -41,7 +41,7 @@ program d3q
   USE d3matrix_module
   USE dpsi1dv2psi_module
   !
-  USE d3_shuffle,       ONLY : nperms, d3perms, d3_shuffle_equiv, d3_check_permutations
+  USE d3_shuffle,       ONLY : nperms, d3perms, d3_shuffle_equiv =>d3_shuffle_global, d3_check_permutations
   !USE davcio_debug
 
   USE nscf_d3,            ONLY : run_nscf_d3
@@ -59,6 +59,7 @@ program d3q
   USE d3_debug
   USE mp_world,           ONLY : world_comm
   USE funct,              ONLY : dft_is_gradient
+  USE gc_d3,            ONLY : setup_d3gc
 
   implicit none
   TYPE d3matrix_with_permutations
@@ -81,7 +82,7 @@ program d3q
       d3dyn_exc(:,:,:),    &
       d3dyn_nlcc(:,:,:),   &
       d3dyn_smear(:,:,:)
-  INTEGER :: iperm=0, jperm=0, i_triplet, n_triplets_done
+  INTEGER :: ip=0, jp=0, i_triplet, n_triplets_done
   LOGICAL :: found
   !
   !
@@ -115,6 +116,8 @@ program d3q
     !         CALL d3_grid_init .or. d3_single_point_init
 
   CALL d3_setup_q_independent()
+  CALL setup_d3gc()
+
     !           CALL set_vrs (vrs, vltot, v%of_r, kedtau, v%kin_r, nrxx, nspin, doublegrid)
     !           CALL dmxc_spin (rhoup, rhodw, dmuxc (ir, 1, 1), &
   !  _  _  _       ___  ____  ____  ____     ____  ____  ___  ____  _  _      _  _  _
@@ -236,8 +239,8 @@ program d3q
     CALL mp_barrier(world_comm)
     !
     ! Temporary space to save stuff on file!
-    DO iperm = 1, nperms
-      ALLOCATE(d3(iperm)%dyn(3*nat, 3*nat, 3*nat))
+    DO ip = 1, nperms
+      ALLOCATE(d3(ip)%dyn(3*nat, 3*nat, 3*nat))
     ENDDO
     !
     ALLOCATE(d3tmp(3*nat,3*nat,3*nat))
@@ -253,7 +256,7 @@ program d3q
     ALLOCATE(   d3dyn_nlcc(3*nat,3*nat,3*nat) )
     d3dyn(:,:,:) = (0.d0, 0.d0)
     !
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! d3_add_rho_core(+1) adds the variation of the core charge
     ! to the charge derivative and writes it to a different file.
@@ -276,7 +279,7 @@ program d3q
     write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
     FLUSH( stdout )
 
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     !printed = .false.
     t0 = get_clock (code)
@@ -290,7 +293,7 @@ program d3q
     write( stdout,'(//,5x,"generate_dwfc   cpu time:",f9.2," sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== nscf dpsi done =================",/)')
     !
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! write on files terms of the type: <dpsi| dH | psi>, that
     ! will be used for the metallic case
@@ -306,10 +309,10 @@ program d3q
         &         " sec    Total time:",f12.2," sec")') t1, t0
     write( stdout, '(/,5x,"================== precomp done",i3," ================",/)') 
     FLUSH( stdout )
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! All the ingredients are ready here, time to compute the actual 3rd order terms
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! calculate the terms < dpsi| dH | dpsi >
     !
@@ -317,19 +320,19 @@ program d3q
     write( stdout, '(/,5x,"================== dpdvdp start",i3," ================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <dpsi |dH |dpsi>")')
     d3tmp = (0._dp, 0._dp)
-    DO iperm = 1,nperms
+    DO ip = 1,nperms
       !printed = .false.
-      d3(iperm)%dyn = (0._dp, 0._dp)
-      IF (d3perms(iperm)%todo) THEN
-        CALL dpsi1dv2dpsi3(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+      d3(ip)%dyn = (0._dp, 0._dp)
+      IF (d3perms(ip)%todo) THEN
+        CALL dpsi1dv2dpsi3(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
-        jperm = d3perms(iperm)%shuffle_from
-        CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
-                              d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
-                              d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+        jp = d3perms(ip)%shuffle_from
+        CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+                              d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
+                              d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
       ENDIF
-      d3tmp = d3tmp + d3(iperm)%dyn
-      CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'dpdvdp.'//d3perms(iperm)%name, 1)
+      d3tmp = d3tmp + d3(ip)%dyn
+      CALL dbgwrite_d3dyn(2*d3(ip)%dyn, 'dpdvdp.'//d3perms(ip)%name, 1)
     ENDDO
     CALL dbgwrite_d3dyn(d3tmp, 'dpdvdp', 1)
     d3dyn_dpdvdp = d3tmp
@@ -342,26 +345,26 @@ program d3q
     write( stdout, '(/,5x,"================== dpdvdp done",i3," =================",/)') 
     FLUSH( stdout )
     ENDIF DBG_dpdvdp
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! calculate the term < dpsi| dpsi > < psi | dH | psi>
     DBG_dpdpdv : IF(dbg_do_dpdpdv) THEN 
     write( stdout, '(/,5x,"================== dpdpdv start",i3," ================",/)') 
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> ")')
     d3tmp = (0._dp, 0._dp)
-    DO iperm = 1,nperms
+    DO ip = 1,nperms
       !printed = .false.
-      d3(iperm)%dyn = (0._dp, 0._dp)
-      IF (d3perms(iperm)%todo) THEN
-        CALL dpsi1dpsi2dv3(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+      d3(ip)%dyn = (0._dp, 0._dp)
+      IF (d3perms(ip)%todo) THEN
+        CALL dpsi1dpsi2dv3(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
-        jperm = d3perms(iperm)%shuffle_from
-        CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
-                              d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
-                              d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+        jp = d3perms(ip)%shuffle_from
+        CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+                              d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
+                              d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
       ENDIF
-      d3tmp = d3tmp + d3(iperm)%dyn
-      CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'dpdpdv.'//d3perms(iperm)%name, 1)
+      d3tmp = d3tmp + d3(ip)%dyn
+      CALL dbgwrite_d3dyn(d3(ip)%dyn, 'dpdpdv.'//d3perms(ip)%name, 1)
     ENDDO
     CALL dbgwrite_d3dyn(d3tmp, 'dpdpdv', 1)
     d3dyn_dpdpdv = d3tmp
@@ -374,7 +377,7 @@ program d3q
     write( stdout, '(/,5x,"================== dpdpdv done",i3," =================",/)') 
     FLUSH( stdout )
     ENDIF DBG_dpdpdv
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! calculate the term   drho * d2V
     !
@@ -383,25 +386,25 @@ program d3q
     WRITE( stdout, '(/,5x,"Calculating the matrix elements <psi |d^2 v |dpsi>")')
     !
     d3tmp = (0._dp, 0._dp)
-    DO iperm = 1,nperms
+    DO ip = 1,nperms
       !printed = .false.
-      d3(iperm)%dyn = (0._dp, 0._dp)
+      d3(ip)%dyn = (0._dp, 0._dp)
       !
-      IF (d3perms(iperm)%todo .and. d3perms(iperm)%todo_first) THEN
-        CALL dq1rhodq23v(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+      IF (d3perms(ip)%todo .and. d3perms(ip)%todo_first) THEN
+        CALL dq1rhodq23v(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
-        IF ( .not. d3perms(iperm)%todo_first) THEN
-          jperm         = d3perms(iperm)%first_from
-          d3(iperm)%dyn = d3(jperm)%dyn
+        IF ( .not. d3perms(ip)%todo_first) THEN
+          jp         = d3perms(ip)%first_from
+          d3(ip)%dyn = d3(jp)%dyn
         ELSE
-          jperm         = d3perms(iperm)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jperm)%i, d3perms(jperm)%j, d3perms(jperm)%k, &
-                                d3perms(iperm)%i, d3perms(iperm)%j, d3perms(iperm)%k, &
-                                d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+          jp         = d3perms(ip)%shuffle_from
+          CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
+                                d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &
+                                d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
       ENDIF
-      d3tmp = d3tmp + d3(iperm)%dyn
-      CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'drd2v.'//d3perms(iperm)%name, 1)
+      d3tmp = d3tmp + d3(ip)%dyn
+      CALL dbgwrite_d3dyn(2*d3(ip)%dyn, 'drd2v.'//d3perms(ip)%name, 1)
     ENDDO
     !
     CALL dbgwrite_d3dyn(d3tmp, 'drd2v', 1)
@@ -414,7 +417,7 @@ program d3q
     write( stdout, '(/,5x,"================== dpd2v done",i3," ==================",/)') 
     FLUSH( stdout )
     ENDIF DBG_drhod2v
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! It calculates the term   rho * d3V
     !
@@ -432,7 +435,7 @@ program d3q
     write( stdout, '(/,5x,"=================== rho d3v done ==================",/)')
     FLUSH( stdout )
     ENDIF DBG_rhod3v
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! It calculates the contribution due to ionic term
     !
@@ -450,7 +453,7 @@ program d3q
     write( stdout, '(/,5x,"================== ewald done",i3," ==================",/)') 
     FLUSH( stdout )
     ENDIF DBG_ion
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! In the metallic case, calculate some additional terms
     !
@@ -465,19 +468,19 @@ program d3q
       WRITE( stdout, '(/,5x,"Calculating the valence contribution")')
        ! first term
       d3tmp = (0._dp, 0._dp)
-      DO iperm = 1,nperms
+      DO ip = 1,nperms
         !printed = .false.
-        d3(iperm)%dyn = (0._dp, 0._dp)
-        IF (d3perms(iperm)%todo) THEN
-          CALL d3_valence_ijk(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+        d3(ip)%dyn = (0._dp, 0._dp)
+        IF (d3perms(ip)%todo) THEN
+          CALL d3_valence_ijk(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
-          jperm = d3perms(iperm)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
-                                d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
-                                d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+          jp = d3perms(ip)%shuffle_from
+          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+                                d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
+                                d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
-        d3tmp = d3tmp + d3(iperm)%dyn
-        CALL dbgwrite_d3dyn(6*d3(iperm)%dyn, 'smr_ijk.'//d3perms(iperm)%name, 1)
+        d3tmp = d3tmp + d3(ip)%dyn
+        CALL dbgwrite_d3dyn(6*d3(ip)%dyn, 'smr_ijk.'//d3perms(ip)%name, 1)
       ENDDO
       CALL dbgwrite_d3dyn(d3tmp, 'smr_ijk', 1)
       d3dyn_smear = d3tmp
@@ -487,25 +490,25 @@ program d3q
       ! only do perms that are not equivalent (tricky to do properly):
       DBG_smr2 : IF(dbg_do_smr_ij) THEN
       d3tmp = (0._dp, 0._dp)
-      DO iperm = 1,nperms
+      DO ip = 1,nperms
         !printed = .false.
-        d3(iperm)%dyn = (0._dp, 0._dp)
+        d3(ip)%dyn = (0._dp, 0._dp)
         !
-        IF (d3perms(iperm)%todo .and. d3perms(iperm)%todo_first) THEN
-          CALL d3_valence_ij(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+        IF (d3perms(ip)%todo .and. d3perms(ip)%todo_first) THEN
+          CALL d3_valence_ij(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
-          IF ( .not. d3perms(iperm)%todo_first) THEN
-            jperm         = d3perms(iperm)%first_from
-            d3(iperm)%dyn = d3(jperm)%dyn
+          IF ( .not. d3perms(ip)%todo_first) THEN
+            jp         = d3perms(ip)%first_from
+            d3(ip)%dyn = d3(jp)%dyn
           ELSE
-            jperm         = d3perms(iperm)%shuffle_from
-            CALL d3_shuffle_equiv(d3perms(jperm)%i, d3perms(jperm)%j, d3perms(jperm)%k, &
-                                  d3perms(iperm)%i, d3perms(iperm)%j, d3perms(iperm)%k, &
-                                  d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+            jp         = d3perms(ip)%shuffle_from
+            CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
+                                  d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &
+                                  d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
           ENDIF
         ENDIF
-        d3tmp = d3tmp + d3(iperm)%dyn
-        CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'smr_ij.'//d3perms(iperm)%name, 1)
+        d3tmp = d3tmp + d3(ip)%dyn
+        CALL dbgwrite_d3dyn(d3(ip)%dyn, 'smr_ij.'//d3perms(ip)%name, 1)
       ENDDO
       CALL dbgwrite_d3dyn(d3tmp, 'smr_ij', 1)
       d3dyn_smear = d3dyn_smear + d3tmp
@@ -528,7 +531,7 @@ program d3q
       write( stdout, '(/,5x,"================== valence done",i3," ===============",/)') 
       FLUSH( stdout )
     ENDIF ADD_SMEARING_CONTRIBUTION
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! d3_add_rho_core(+1) adds the variation of the core charge
     ! to the charge derivative and writes it to a different file.
@@ -550,7 +553,7 @@ program d3q
 !        &         " sec    Total time:",f12.2," sec")') t1, t0
 !    write( stdout, '(/,5x,"================== add core done",i3," ===============",/)') 
 !    FLUSH( stdout )
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! calculate d3Ei * drho * drho * drho, where drho is the variation
     ! of the charge and d3Ei is the third derivative of the
@@ -563,26 +566,23 @@ program d3q
     IF ( dft_is_gradient() .and. dbg_exc_do_gga) THEN
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution with GGA")')
       d3tmp = (0._dp, 0._dp)
-      DO iperm = 1,nperms
+      DO ip = 1,nperms
         !printed = .false.
-        d3(iperm)%dyn = (0._dp, 0._dp)
-        IF (d3perms(iperm)%todo) THEN
-          CALL d3_exc_gc(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+        d3(ip)%dyn = (0._dp, 0._dp)
+        IF (d3perms(ip)%todo) THEN
+          CALL d3_exc_gc(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
-          jperm = d3perms(iperm)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
-                                d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
-                                d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+          jp = d3perms(ip)%shuffle_from
+          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+                                d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
+                                d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
-        d3tmp = d3tmp + d3(iperm)%dyn
-        CALL dbgwrite_d3dyn(d3(iperm)%dyn, 'exc_gc.'//d3perms(iperm)%name, 1)
+        d3tmp = d3tmp + d3(ip)%dyn
+        CALL dbgwrite_d3dyn(d3(ip)%dyn, 'exc_gc.'//d3perms(ip)%name, 1)
       ENDDO
       !
       ! DEBUG DEBUG DEBUG!
       d3dyn_exc = d3tmp/6._dp
-      
-!       d3tmp = (0._dp, 0._dp)
-!       CALL d3_exc_gc(1,2,3, d3tmp)
       CALL dbgwrite_d3dyn (d3dyn_exc, 'exc_GGA', 1)
       !
       d3tmp = (0._dp, 0._dp)
@@ -603,7 +603,7 @@ program d3q
     write( stdout, '(/,5x,"================ exc contrib done",i3," =============",/)') 
     ENDIF DBG_exc
     FLUSH( stdout )
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! calculate additional terms due to non_linear-core-corrections
     !
@@ -625,19 +625,19 @@ program d3q
       !
       DBG_nlcc_123 : IF(dbg_do_nlcc_123) THEN
       d3tmp = (0._dp, 0._dp)
-      DO iperm = 1,nperms
+      DO ip = 1,nperms
         !printed = .false.
-        d3(iperm)%dyn = (0._dp, 0._dp)
-        IF (d3perms(iperm)%todo) THEN
-          CALL d3_nlcc_123(d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, d3(iperm)%dyn)
+        d3(ip)%dyn = (0._dp, 0._dp)
+        IF (d3perms(ip)%todo) THEN
+          CALL d3_nlcc_123(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
-          jperm = d3perms(iperm)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jperm)%i,d3perms(jperm)%j,d3perms(jperm)%k, &
-                                d3perms(iperm)%i,d3perms(iperm)%j,d3perms(iperm)%k, &
-                                d3perms(iperm)%shuffle_conjg, d3(jperm)%dyn, d3(iperm)%dyn)
+          jp = d3perms(ip)%shuffle_from
+          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+                                d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
+                                d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
-        d3tmp = d3tmp + d3(iperm)%dyn
-        CALL dbgwrite_d3dyn(2*d3(iperm)%dyn, 'nlcc_123.'//d3perms(iperm)%name, 1)
+        d3tmp = d3tmp + d3(ip)%dyn
+        CALL dbgwrite_d3dyn(2*d3(ip)%dyn, 'nlcc_123.'//d3perms(ip)%name, 1)
       ENDDO
       CALL dbgwrite_d3dyn(d3tmp, 'nlcc_123', 1)
       d3dyn_nlcc = d3dyn_nlcc + d3tmp
@@ -653,7 +653,7 @@ program d3q
       !
       write( stdout, '(/,5x,"=============== nlcc contrib done",i3," =============",/)') 
     ENDIF ADD_NLCC_CORRECTION
-    !______________________________________________________________________________________________
+    !___________________________________________________________________________________
     !
     ! Sum all contributions
     !
@@ -675,17 +675,6 @@ program d3q
     WRITE( stdout, '(/,5x,"CALLing d3matrix")')
     CALL d3matrix(d3dyn,fild3dyn)
 
-    ! CALL d3matrix(d3dyn_dpdvdp,TRIM(fild3dyn)//'_dpdvdp')
-    ! CALL d3matrix(d3dyn_dpdpdv,TRIM(fild3dyn)//'_dpdpdv')
-    ! CALL d3matrix(d3dyn_drd2v, TRIM(fild3dyn)//'_drd2v')
-    ! CALL d3matrix(d3dyn_rd3v,  TRIM(fild3dyn)//'_rd3v')
-    ! CALL d3matrix(d3dyn_ion,   TRIM(fild3dyn)//'_ion')
-    ! CALL d3matrix(d3dyn_smear, TRIM(fild3dyn)//'_smr')
-    ! CALL d3matrix(d3dyn_exc,   TRIM(fild3dyn)//'_exc')
-    ! CALL d3matrix(d3dyn_nlcc,  TRIM(fild3dyn)//'_nlcc')
-    ! CALL d3matrix(d3dyn_dpdvdp+d3dyn_dpdpdv+d3dyn_smear,TRIM(fild3dyn)//'_dpsi')
-    ! CALL d3matrix(d3dyn_exc+d3dyn_nlcc+d3dyn_drd2v,     TRIM(fild3dyn)//'_drho')
-
     t1 = get_clock (code) - t0
     t0 = get_clock (code)
     WRITE( stdout, '(5x,"d3matrix      cpu time:",f9.2, &
@@ -695,8 +684,8 @@ program d3q
     !
     write( stdout, '(/,5x,"================== cleanup start",i3," ==============",/)') 
     ! Deallocate
-    DO iperm = 1, nperms
-      DEALLOCATE(d3(iperm)%dyn)
+    DO ip = 1, nperms
+      DEALLOCATE(d3(ip)%dyn)
     ENDDO
     DEALLOCATE(d3tmp)
     DEALLOCATE(d3dyn, d3dyn_dpdvdp, d3dyn_dpdpdv, d3dyn_drd2v, d3dyn_rd3v, &

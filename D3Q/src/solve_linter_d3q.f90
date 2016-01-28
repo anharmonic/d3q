@@ -187,7 +187,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE klist,      ONLY : xk, degauss, ngauss
   USE wvfct,      ONLY : nbnd, npwx, et
   USE uspp,       ONLY : nkb
-  USE phcom,      ONLY : nbnd_occ
+  USE control_lr, ONLY : nbnd_occ
   USE qpoint,     ONLY : nksq
   USE units_ph,   ONLY : iuwfc, lrwfc, lrdwf
   USE d3com,      ONLY : ethr_ph

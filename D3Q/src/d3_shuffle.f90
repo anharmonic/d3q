@@ -23,6 +23,15 @@ MODULE d3_shuffle
           3,  1,  2, &  !       d3toten must be changed accordingly)
           3,  2,  1  &
          /), (/3,6/) )
+  INTEGER,PARAMETER :: d3perms_order2(3,nperms) = &
+        RESHAPE( (/ &
+          1,  2,  3, &  ! NOTE: it is important to keep the permutations in
+          2,  3,  1, &  !       this order for the terms drhod2v and the second
+          3,  1,  2, &  !       part of the valence contribution!!
+          3,  2,  1, &  !       (Actually, other choices are possible, but
+          2,  1,  3, &  !       d3toten must be changed accordingly)
+          1,  3,  2  &
+         /), (/3,6/) )
   TYPE perturbation_permutation
     INTEGER :: i,j,k ! the actual permutation of 1,2,3
     LOGICAL :: todo  ! .true. if this permutation has to be computed
@@ -195,9 +204,9 @@ SUBROUTINE d3_shuffle_global(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   COMPLEX(DP),OPTIONAL,INTENT(inout) :: d3dyn_out( 3*nat, 3*nat, 3*nat)
   !
   INTEGER,VOLATILE,TARGET  :: idx(3)
-  INTEGER,POINTER :: nu1, nu2, nu3
-  INTEGER,POINTER :: mu1, mu2, mu3
-  COMPLEX(DP),ALLOCATABLE :: d3aux( :,:,: )
+  INTEGER,VOLATILE,POINTER :: nu1, nu2, nu3
+  INTEGER,VOLATILE,POINTER :: mu1, mu2, mu3
+  COMPLEX(DP),VOLATILE,ALLOCATABLE :: d3aux( :,:,: )
   CHARACTER(len=17),PARAMETER :: sub='d3_shuffle_global'
 
   IF( ANY(ABS((/ i1,i2,i3, j1,j2,j3 /))>3) .or. &
@@ -273,10 +282,10 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   TYPE pointer_array
     INTEGER,POINTER :: x
   END TYPE
-  TYPE(pointer_array) :: nu(3), mu(3)
+  TYPE(pointer_array),VOLATILE :: nu(3), mu(3)
   !
   INTEGER,VOLATILE,TARGET  :: idx1, idx2, idx3
-  COMPLEX(DP),ALLOCATABLE :: d3aux( :,:,: )
+  COMPLEX(DP),VOLATILE,ALLOCATABLE :: d3aux( :,:,: )
   CHARACTER(len=16),PARAMETER :: sub='d3_shuffle_equiv'
 
   IF( ANY((/ i1,i2,i3, j1,j2,j3 /)>3) .or. &

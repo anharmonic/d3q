@@ -42,10 +42,11 @@ MODULE program_qq2rr
   SUBROUTINE read_d3_matrices(nq, nq_trip, S, d3grid)
     USE kinds,       ONLY : DP
     USE d3matrix_io, ONLY : read_d3dyn_xml
-    USE d3_shuffle,  ONLY : nperms, d3perms_order, d3_shuffle_global, d3_shuffle_equiv
+    USE d3_shuffle,  ONLY : nperms, d3perms_order2, d3_shuffle_global, d3_shuffle_equiv
     USE d3_basis,    ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE parameters,  ONLY : ntypx
     USE input_fc,    ONLY : ph_system_info, same_system, aux_system
+    USE write_d3dyn_ascii, ONLY : write_d3dyn_XXX, zero_d3dyn_XXX
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3), nq_trip
     TYPE(ph_system_info),INTENT(out) :: S
@@ -59,7 +60,7 @@ MODULE program_qq2rr
     INTEGER :: countq(nq_trip)
     CHARACTER(len=512) :: filename
     INTEGER :: iqa(3), iqb(3), iqc(3)
-    REAL(DP) :: xq_shift(3,3)
+    REAL(DP) :: xq_shift(3,3), thresh
     TYPE(ph_system_info) :: Sx
     !
     ALLOCATE(found(nq(1),nq(2),nq(3),nq(1),nq(2),nq(3)))
@@ -97,9 +98,9 @@ MODULE program_qq2rr
       ENDIF
       PERM_LOOP : &
       DO iperm = 1,nperms
-        a = d3perms_order(1,iperm)
-        b = d3perms_order(2,iperm)
-        c = d3perms_order(3,iperm)
+        a = d3perms_order2(1,iperm)
+        b = d3perms_order2(2,iperm)
+        c = d3perms_order2(3,iperm)
           !WRITE(*,*), 300+iperm, TRIM(filename)
         !
         ! Check if the points are in the grid:
@@ -122,6 +123,8 @@ MODULE program_qq2rr
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
+          !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
+          CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
           !
           ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
           d3grid(iq_trip)%d   = d3
@@ -147,15 +150,27 @@ MODULE program_qq2rr
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
-          IF(ANY( ABS(d3grid(iq_aux)%d - d3)>1.d-6) )THEN
-            WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a)') &
+          CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
+          !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
+          !
+          thresh = MAXVAL(ABS(d3grid(iq_aux)%d - d3))
+          IF(thresh>1.d-6)THEN
+            WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,1e12.3)') &
             iq_aux, "warning sym/=perm !", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
-            a,b,c, TRIM(filename)
-!             print*, iq_aux, iq_trip
-!             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
-!             print*, xq
-! !             WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
-!             !stop 666
+            a,b,c, TRIM(filename), thresh
+            !IF(iq_trip>10)then
+            print*, iq_aux, iq_trip
+            print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
+            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+                                 d3, S%nat, 1001)
+            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+                                 d3grid(iq_aux)%d, S%nat, 1002)
+            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+                                 d3-d3grid(iq_aux)%d, S%nat, 1003)
+            !print*, xq
+            !WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
+            stop 666
+            !endif
          ENDIF
           !d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
           
@@ -280,9 +295,9 @@ MODULE program_qq2rr
 !             phase, d3grid(iq)%xq2,d3grid(iq)%xq3, xr(:,ixr), xr(:,jxr)
         ENDDO
         !if(iat/=jat) then
-          write(999,*)
-          write(999,'(99i6)') iat,jat,kat,ixr,jxr
-          write(999,'(3(2f10.4,3x))') fc
+!           write(999,*)
+!           write(999,'(99i6)') iat,jat,kat,ixr,jxr
+!           write(999,'(3(2f10.4,3x))') fc
         !  stop 10
         !endif
         !stop 10

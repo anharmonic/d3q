@@ -27,10 +27,9 @@ SUBROUTINE d3_init
   USE d3com,         ONLY : d3v, d3c
   USE mp,            ONLY : mp_barrier
   USE kplus3q,       ONLY : write_igkq_d3, nksq, kplusq, tot_nks
-
   USE pwcom,         ONLY : lsda, degauss, nelec, ngauss, &
                             ef, et, nbnd, xk, lgauss
-  USE phcom,         ONLY : nbnd_occ, alpha_pv
+  USE control_lr,    ONLY : nbnd_occ, alpha_pv
 
   IMPLICIT NONE
   ! local vars:

@@ -15,26 +15,28 @@ SUBROUTINE rhodq123v(d3dyn)
   !  This routine calculates the electronic term: <psi|V"'|psi>
   !  of the third order dynamical matrix.
   !
-  USE kinds,                ONLY : DP
-  USE constants,            ONLY : tpi
-  USE ions_base,            ONLY : nat, ityp, ntyp => nsp, tau
-  USE fft_base,             ONLY : dfftp
-  USE fft_interfaces,       ONLY : fwfft
-  USE uspp,                 ONLY : dvan, nkb
-  USE scf,                  ONLY : rho
-  USE gvect,                ONLY : g, ngm, nl, igtongl
-  USE wvfct,                ONLY : npwx, nbnd, wg
-  USE vlocal,               ONLY : vloc
-  USE klist,                ONLY : xk
-  USE cell_base,            ONLY : omega, tpiba, tpiba2
-  USE uspp_param,           ONLY : nh, nhm
-  USE mp_global,            ONLY : inter_pool_comm, intra_pool_comm
-  USE mp,                   ONLY : mp_sum
-  USE phcom,                ONLY : nksq, lrwfc, iuwfc, nbnd_occ
-  USE d3com,                ONLY : npert_i, npert_f
-  USE kplus3q,              ONLY : kplusq
-  USE d3_basis,             ONLY : patq
-  USE d3_debug,             ONLY : dbgwrite_d3dyn
+  USE kinds,          ONLY : DP
+  USE constants,      ONLY : tpi
+  USE ions_base,      ONLY : nat, ityp, ntyp => nsp, tau
+  USE fft_base,       ONLY : dfftp
+  USE fft_interfaces, ONLY : fwfft
+  USE uspp,           ONLY : dvan, nkb
+  USE scf,            ONLY : rho
+  USE gvect,          ONLY : g, ngm, nl, igtongl
+  USE wvfct,          ONLY : npwx, nbnd, wg
+  USE vlocal,         ONLY : vloc
+  USE klist,          ONLY : xk
+  USE cell_base,      ONLY : omega, tpiba, tpiba2
+  USE uspp_param,     ONLY : nh, nhm
+  USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
+  USE mp,             ONLY : mp_sum
+  USE phcom,          ONLY : lrwfc, iuwfc
+  USE qpoint,         ONLY : nksq
+  USE control_lr,     ONLY : nbnd_occ
+  USE d3com,          ONLY : npert_i, npert_f
+  USE kplus3q,        ONLY : kplusq
+  USE d3_basis,       ONLY : patq
+  USE d3_debug,       ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
