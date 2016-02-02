@@ -578,22 +578,24 @@ program d3q
                                 d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
         d3tmp = d3tmp + d3(ip)%dyn
-        CALL dbgwrite_d3dyn(d3(ip)%dyn, 'exc_gc.'//d3perms(ip)%name, 1)
+        CALL dbgwrite_d3dyn(d3(ip)%dyn, 'exc_GGA.'//d3perms(ip)%name, 1)
       ENDDO
       !
       ! DEBUG DEBUG DEBUG!
       d3dyn_exc = d3tmp/6._dp
-      CALL dbgwrite_d3dyn (d3dyn_exc, 'exc_GGA', 1)
+!       CALL dbgwrite_d3dyn (d3dyn_exc, 'exc_GGA', 1)
       !
-      d3tmp = (0._dp, 0._dp)
-      CALL d3_exc(d3tmp)
-      CALL dbgwrite_d3dyn (d3tmp, 'exc_LDA', 1)
-      !
-      d3dyn_exc = d3dyn_exc + d3tmp
+!       d3tmp = (0._dp, 0._dp)
+!       CALL d3_exc(d3tmp)
+!       CALL dbgwrite_d3dyn (d3tmp, 'exc_LDA', 1)
+!       !
+!       d3dyn_exc = d3dyn_exc + d3tmp
       !
     ELSE
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution")')
+      d3dyn_exc = 0._dp
       CALL d3_exc(d3dyn_exc)
+      CALL dbgwrite_d3dyn (d3dyn_exc, 'exc_LDA', 1)
     ENDIF
     CALL dbgwrite_d3dyn (d3dyn_exc, 'exc', 1)
     t1 = get_clock (code) - t0

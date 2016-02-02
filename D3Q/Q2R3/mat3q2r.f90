@@ -263,7 +263,28 @@ write(*,*) 'lab01'
     end do
   end do
 write(*,*) 'lab02'
- 
+
+
+do iq = 1,nqacc
+  write(2998,'(2(3f8.4,3x))') q2n(:,iq), q3n(:,iq)
+  do na3=1,nat
+    do na2=1,nat
+      do na1=1,nat
+          do ic = 1, 3
+            ii = ic + 3*(na1-1)
+            do jc = 1, 3
+              jj = jc + 3*(na2-1)
+              do kc = 1, 3
+                kk = kc + 3*(na3-1)
+                  !write(2998,*) phiqn(ii,jj,kk,iq) 
+              enddo
+              enddo
+              enddo
+      enddo
+      enddo
+      enddo
+enddo
+
 open(unit=12,file=trim(fileout))
   nRlist = 0
   norm = 1.d0 / dfloat(nRbig*nRbig)
@@ -282,6 +303,8 @@ open(unit=12,file=trim(fileout))
               arg=tpi*(q2n(1,iq)*Rbig(1,iR)+q2n(2,iq)*Rbig(2,iR)+ q2n(3,iq)*Rbig(3,iR) +&
                   q3n(1,iq)*Rbig(1,jR)+q3n(2,iq)*Rbig(2,jR)+ q3n(3,iq)*Rbig(3,jR) )
               phase = cmplx(cos(arg),sin(arg),kind=DP) ! cambiato il segno
+!           write(1998,'(2f12.7,4x,4(3f8.4,3x))') &
+!             phase, q2n(:,iq), q3n(:,iq), Rbig(:,iR), Rbig(:,jR)
               do ic = 1, 3
                 ii = ic + 3*(na1-1)
                 do jc = 1, 3

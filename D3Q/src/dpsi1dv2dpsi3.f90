@@ -36,7 +36,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   ! the indexes of the q vectors that will be associated to <dpsi|, dH and |dpsi> respectively 
   INTEGER,INTENT(in) :: iq_lft, iq_dv, iq_rgt
   ! the 3rd order dynamical matrix (it is NOT initialized to zero)
-  COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
+  COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
   ! if present AND false, the elements of D3 will NOT be ordered (see later)
   !LOGICAL,OPTIONAL,INTENT(in) :: order
   !
@@ -59,7 +59,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   REAL(DP),ALLOCATABLE :: wga(:)
   ! perturbation indexes (see later)
   INTEGER,VOLATILE,TARGET  :: nu(3)
-  INTEGER,POINTER :: nu_r, nu_v, nu_l
+  INTEGER,VOLATILE,POINTER :: nu_r, nu_v, nu_l
   ! internal switches
   LOGICAL :: not_lsame!, order_internal
   ! Various counters, i/o auxiliary:

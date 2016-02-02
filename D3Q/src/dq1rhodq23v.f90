@@ -38,7 +38,7 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   USE d3_debug,     ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
-  COMPLEX(DP),INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat) ! the D3 matrix
+  COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat) ! the D3 matrix
   INTEGER,INTENT(in) :: iq_drho ! q (index) for the perturbation of rho
   INTEGER,INTENT(in) :: iq_dva, iq_dvb ! index of qs w.r.t. we will derive the potential
   !

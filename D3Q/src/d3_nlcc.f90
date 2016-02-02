@@ -166,7 +166,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   USE kplus3q,    ONLY : kplusq, q_names
 
   IMPLICIT NONE
-  COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
+  COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
   INTEGER,INTENT(in) :: iq_cci, iq_ccj, iq_drho
 
   INTEGER :: na, nta, ig, ir, i_cart, j_cart, &
@@ -178,7 +178,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   COMPLEX (DP) ::  expf, work
   COMPLEX (DP), ALLOCATABLE :: drc_exp (:,:), drho_dmu(:), d3dyn123 (:,:)
 
-  INTEGER,POINTER :: nu_cci=>null(), nu_ccj=>null(), nu_drho=>null()
+  INTEGER,VOLATILE,POINTER :: nu_cci=>null(), nu_ccj=>null(), nu_drho=>null()
   INTEGER,VOLATILE,TARGET  :: nu(3) = (/ 0, 0, 0 /)
   CHARACTER(len=11),PARAMETER :: sub='d3_nlcc_123'
 

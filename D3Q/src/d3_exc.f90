@@ -57,9 +57,9 @@ MODULE d3_exc_module
         !
         d2muxc = 0._dp
         DO ir = 1, dfftp%nnr
-        rhotot = rho%of_r(ir, 1) + rho_core (ir)
-        IF (rhotot >   1.e-30_dp) d2muxc (ir) =  d2mxc( rhotot)
-        IF (rhotot < - 1.e-30_dp) d2muxc (ir) = -d2mxc(-rhotot)
+          rhotot = rho%of_r(ir, 1) + rho_core (ir)
+          IF (rhotot >   1.e-30_dp) d2muxc (ir) =  d2mxc( rhotot)
+          IF (rhotot < - 1.e-30_dp) d2muxc (ir) = -d2mxc(-rhotot)
         ENDDO
         !d2muxc=1.e+10_dp
         !
@@ -101,11 +101,14 @@ MODULE d3_exc_module
         DEALLOCATE (drho1d2muxc, dr1dr2d2muxc, drho3)
         !
         ! SUM inside pool, better to do it once here than (3*nat)**3 times above
-        !CALL mp_sum( d3dyn1, intra_pool_comm )
+        CALL mp_sum( d3dyn1,  intra_pool_comm )
         !
+    ELSE
+      d3dyn1 = 0._dp
     END IF
     !
-    !IF ( npool > 1 ) CALL mp_bcast( d3dyn1, ionode_id, inter_pool_comm )
+    ! Let everybody get the correct matrix (this is not really needed as only cpu 1 writes)
+    IF ( npool > 1 ) CALL mp_bcast( d3dyn1, ionode_id, inter_pool_comm )
     !
     d3dyn = d3dyn  + d3dyn1
     DEALLOCATE (d3dyn1)

@@ -413,7 +413,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       !
       !
       ! writes psidqvpsi on file
-      !
+      ! IMPORTANT: these terms are not summed inside pools!
       IF(unit_psidqvpsi>0) THEN
         nrec = imode0 + ipert + (ik - 1) * 3*nat
         CALL davcio (psidqvpsi, lrpdqvp, unit_psidqvpsi, nrec, +1)

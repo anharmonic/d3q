@@ -8,6 +8,7 @@
 !
 MODULE dpsi1dpsi2dv3_module
 CONTAINS
+!
 !-----------------------------------------------------------------------
 SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   !-----------------------------------------------------------------------
@@ -26,7 +27,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
 
   IMPLICIT NONE
   INTEGER,INTENT(in) :: iq_lft,iq_rgt,iq_dH
-  COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
+  COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
   LOGICAL,INTENT(in),OPTIONAL :: order
   !
   COMPLEX(DP),ALLOCATABLE :: dpsi_lft(:,:), dpsi_rgt(:,:), psi_dH_psi(:,:)
@@ -51,7 +52,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   !
   ! perturbation indexes (see later)
   INTEGER,VOLATILE,TARGET  :: nu(3)
-  INTEGER,POINTER :: nu_l, nu_r, nu_h
+  INTEGER,VOLATILE,POINTER :: nu_l, nu_r, nu_h
   LOGICAL :: order_internal
   !
   CALL start_clock('dpsi1dpsi2dv3')

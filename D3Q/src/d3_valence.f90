@@ -24,8 +24,8 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   USE ions_base,    ONLY : nat
   use pwcom,        ONLY : degauss, ngauss, lgauss, nbnd, et, ef
   use qpoint,       ONLY : nksq
-  USE mp_global,    ONLY : inter_pool_comm
   USE io_global,    ONLY : stdout
+  USE mp_pools,     ONLY : me_pool, inter_pool_comm
   USE mp,           ONLY : mp_sum
   USE mp_world,     ONLY : world_comm
   USE kplus3q,      ONLY : kplusq, q_sum_rule
@@ -49,7 +49,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   REAL(DP) :: degaussm1
   REAL(DP),EXTERNAL ::  wgauss, w0gauss, w_1gauss
   COMPLEX(DP),ALLOCATABLE :: pdvp_i(:,:), pdvp_j(:,:), pdvp_k(:,:)
-  COMPLEX(DP),ALLOCATABLE :: d3dyn_aux(:,:,:)
+  COMPLEX(DP),VOLATILE,ALLOCATABLE :: d3dyn_aux(:,:,:)
   !
   ! perturbation indexes (see later)
   INTEGER,VOLATILE,TARGET  :: nu(3) = (/ 0,0,0 /)
@@ -86,110 +86,115 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   IF(nu_i == nu_j .or. nu_i == nu_k .or. nu_j == nu_k) &
     CALL errore('d3_valence', "Invalid choice of iq's (repeated)", 2)
   !
-  ALLOCATE(pdvp_i( nbnd, nbnd))
-  ALLOCATE(pdvp_j( nbnd, nbnd))
-  ALLOCATE(pdvp_k( nbnd, nbnd))
-  !
-  ALLOCATE(wg_i(nbnd),  wg_j(nbnd),  wg_k(nbnd))
-  ALLOCATE(w0g_i(nbnd), w0g_j(nbnd), w0g_k(nbnd))
-  ALLOCATE(w1g_i(nbnd), w1g_j(nbnd), w1g_k(nbnd))
-  !
   ALLOCATE(d3dyn_aux(3*nat, 3*nat, 3*nat))
   d3dyn_aux = (0._dp, 0._dp)
-
-  degaussm1 = 1._dp / degauss
-
-  K_POINTS_LOOP : &
-  DO ik = 1, nksq
+  !
+  ! Only one CPU per pool works (no sums over plane waves here)
+  IF(me_pool==0)THEN
     !
-    ik_i = kplusq(   0)%ikqs(ik)
-    ik_j = kplusq( iq1)%ikqs(ik)
-    ik_k = kplusq(-iq3)%ikqs(ik)
+    ALLOCATE(pdvp_i( nbnd, nbnd))
+    ALLOCATE(pdvp_j( nbnd, nbnd))
+    ALLOCATE(pdvp_k( nbnd, nbnd))
     !
-    DO ibnd = 1, nbnd
-      wg_i(ibnd) = wgauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss)
-      wg_j(ibnd) = wgauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss)
-      wg_k(ibnd) = wgauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss)
+    ALLOCATE(wg_i(nbnd),  wg_j(nbnd),  wg_k(nbnd))
+    ALLOCATE(w0g_i(nbnd), w0g_j(nbnd), w0g_k(nbnd))
+    ALLOCATE(w1g_i(nbnd), w1g_j(nbnd), w1g_k(nbnd))
 
-      w0g_i(ibnd) = w0gauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss) * degaussm1
-      w0g_j(ibnd) = w0gauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss) * degaussm1
-      w0g_k(ibnd) = w0gauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss) * degaussm1
-
-      w1g_i(ibnd) = w_1gauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss) * degaussm1**2
-      w1g_j(ibnd) = w_1gauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss) * degaussm1**2
-      w1g_k(ibnd) = w_1gauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss) * degaussm1**2
-    ENDDO
-
-!    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(0,iq1)
-!    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(iq1,iq2)
-!    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(-iq3,iq3)
-
-    PERTURBATIONS_LOOPS : &
-    DO nu_i = 1, 3 * nat
-    nrec = nu_i + (ik-1) * 3*nat
-    CALL davcio(pdvp_i, lrpdqvp, iu_psi_dH_psi(0,iq1), nrec, - 1)
+    degaussm1 = 1._dp / degauss
     !
-    DO nu_j = 1, 3 * nat
-    nrec = nu_j + (ik-1) * 3*nat
-    CALL davcio(pdvp_j, lrpdqvp, iu_psi_dH_psi(iq1,iq2), nrec, - 1)
-    !
-    DO nu_k = 1, 3 * nat
-    nrec = nu_k + (ik-1) * 3*nat
-    CALL davcio(pdvp_k, lrpdqvp, iu_psi_dH_psi(-iq3,iq3), nrec, - 1)
+    K_POINTS_LOOP : &
+    DO ik = 1, nksq
       !
-      BANDS_LOOPS : &
-      DO ibnd = 1,nbnd
-      DO jbnd = 1,nbnd
-        de_ij = et(ibnd, ik_i) - et(jbnd, ik_j)
-        de_ji = -de_ij
-      DO kbnd = 1,nbnd
-        de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
-        de_kj = -de_jk
-        de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
-        de_ki = -de_ik
+      ik_i = kplusq(   0)%ikqs(ik)
+      ik_j = kplusq( iq1)%ikqs(ik)
+      ik_k = kplusq(-iq3)%ikqs(ik)
+      !
+      DO ibnd = 1, nbnd
+        wg_i(ibnd) = wgauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss)
+        wg_j(ibnd) = wgauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss)
+        wg_k(ibnd) = wgauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss)
+
+        w0g_i(ibnd) = w0gauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss) * degaussm1
+        w0g_j(ibnd) = w0gauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss) * degaussm1
+        w0g_k(ibnd) = w0gauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss) * degaussm1
+
+        w1g_i(ibnd) = w_1gauss((ef - et(ibnd, ik_i) ) * degaussm1, ngauss) * degaussm1**2
+        w1g_j(ibnd) = w_1gauss((ef - et(ibnd, ik_j) ) * degaussm1, ngauss) * degaussm1**2
+        w1g_k(ibnd) = w_1gauss((ef - et(ibnd, ik_k) ) * degaussm1, ngauss) * degaussm1**2
+      ENDDO
+
+  !    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(0,iq1)
+  !    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(iq1,iq2)
+  !    write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(-iq3,iq3)
+
+      PERTURBATIONS_LOOPS : &
+      DO nu_i = 1, 3 * nat
+      nrec = nu_i + (ik-1) * 3*nat
+      CALL davcio(pdvp_i, lrpdqvp, iu_psi_dH_psi(0,iq1), nrec, - 1)
+      !
+      DO nu_j = 1, 3 * nat
+      nrec = nu_j + (ik-1) * 3*nat
+      CALL davcio(pdvp_j, lrpdqvp, iu_psi_dH_psi(iq1,iq2), nrec, - 1)
+      !
+      DO nu_k = 1, 3 * nat
+      nrec = nu_k + (ik-1) * 3*nat
+      CALL davcio(pdvp_k, lrpdqvp, iu_psi_dH_psi(-iq3,iq3), nrec, - 1)
         !
-        wrk = 0._dp
-        IF(       ABS(de_ij) < 2*eps &
-            .and. ABS(de_jk) < 2*eps &
-            .and. ABS(de_ki) < 2*eps ) &
-        THEN
-          wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
-        ELSEIF( ABS(de_ij) < eps) THEN
-          wrk = ( (wg_i(ibnd)-wg_k(kbnd))/de_jk + w0g_i(ibnd) )/de_ki
-        ELSEIF( ABS(de_jk) < eps) THEN
-          wrk = ( (wg_j(jbnd)-wg_i(ibnd))/de_ki + w0g_j(jbnd) )/de_ij
-        ELSEIF( ABS(de_ki) < eps) THEN
-          wrk = ( (wg_k(kbnd)-wg_j(jbnd))/de_ij + w0g_k(kbnd) )/de_jk
-        ELSE ! All three bigger than eps
-           wrk = (wg_i(ibnd)*de_kj + wg_j(jbnd)*de_ik + wg_k(kbnd)*de_ji) &
-                / (de_jk * de_ki * de_ij)
-        ENDIF
-!        write(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3),'(3i3,50f12.6)') ibnd, jbnd, kbnd,&
-!                           wrk ,kplusq(0)%wk(ik), pdvp_i(jbnd, ibnd), pdvp_j(kbnd, jbnd),pdvp_k(ibnd, kbnd)
+        BANDS_LOOPS : &
+        DO ibnd = 1,nbnd
+        DO jbnd = 1,nbnd
+          de_ij = et(ibnd, ik_i) - et(jbnd, ik_j)
+          de_ji = -de_ij
+        DO kbnd = 1,nbnd
+          de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
+          de_kj = -de_jk
+          de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
+          de_ki = -de_ik
+          !
+          wrk = 0._dp
+          IF(       ABS(de_ij) < 2*eps &
+              .and. ABS(de_jk) < 2*eps &
+              .and. ABS(de_ki) < 2*eps ) &
+          THEN
+            wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
+          ELSEIF( ABS(de_ij) < eps) THEN
+            wrk = ( (wg_i(ibnd)-wg_k(kbnd))/de_jk + w0g_i(ibnd) )/de_ki
+          ELSEIF( ABS(de_jk) < eps) THEN
+            wrk = ( (wg_j(jbnd)-wg_i(ibnd))/de_ki + w0g_j(jbnd) )/de_ij
+          ELSEIF( ABS(de_ki) < eps) THEN
+            wrk = ( (wg_k(kbnd)-wg_j(jbnd))/de_ij + w0g_k(kbnd) )/de_jk
+          ELSE ! All three bigger than eps
+            wrk = (wg_i(ibnd)*de_kj + wg_j(jbnd)*de_ik + wg_k(kbnd)*de_ji) &
+                  / (de_jk * de_ki * de_ij)
+          ENDIF
+  !        write(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3),'(3i3,50f12.6)') ibnd, jbnd, kbnd,&
+  !                           wrk ,kplusq(0)%wk(ik), pdvp_i(jbnd, ibnd), pdvp_j(kbnd, jbnd),pdvp_k(ibnd, kbnd)
+          !
+          d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3)) &
+                                + trm1 *wrk *kplusq(0)%wk(ik) &
+                                  *pdvp_i(jbnd, ibnd) &
+                                  *pdvp_j(kbnd, jbnd) &
+                                  *pdvp_k(ibnd, kbnd)
+        ENDDO
+        ENDDO
+        ENDDO &
+        BANDS_LOOPS
         !
-        d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3)) &
-                               + trm1 *wrk *kplusq(0)%wk(ik) &
-                                *pdvp_i(jbnd, ibnd) &
-                                *pdvp_j(kbnd, jbnd) &
-                                *pdvp_k(ibnd, kbnd)
+  !      CLOSE(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3))
       ENDDO
       ENDDO
       ENDDO &
-      BANDS_LOOPS
+      PERTURBATIONS_LOOPS
       !
-!      CLOSE(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3))
-    ENDDO
-    ENDDO
     ENDDO &
-    PERTURBATIONS_LOOPS
+    K_POINTS_LOOP
     !
-  ENDDO &
-  K_POINTS_LOOP
-  !
-  DEALLOCATE(pdvp_i,pdvp_j,pdvp_k)
-  DEALLOCATE(wg_i,  wg_j,  wg_k  )
-  DEALLOCATE(w0g_i, w0g_j, w0g_k )
-  DEALLOCATE(w1g_i, w1g_j, w1g_k )
+    DEALLOCATE(pdvp_i,pdvp_j,pdvp_k)
+    DEALLOCATE(wg_i,  wg_j,  wg_k  )
+    DEALLOCATE(w0g_i, w0g_j, w0g_k )
+    DEALLOCATE(w1g_i, w1g_j, w1g_k )
+    !
+  ENDIF
   !
   CALL mp_sum( d3dyn_aux, inter_pool_comm)
   d3dyn = d3dyn + d3dyn_aux
@@ -212,7 +217,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   USE pwcom,           ONLY : degauss, ngauss, lgauss, nbnd, et, ef
   USE qpoint,          ONLY : nksq
   USE control_lr,      ONLY : nbnd_occ
-  USE mp_global,       ONLY : inter_pool_comm
+  USE mp_pools,        ONLY : inter_pool_comm, me_pool
   USE io_global,       ONLY : stdout
   USE mp,              ONLY : mp_sum
   USE kplus3q,         ONLY : kplusq, q_sum_rule
@@ -222,7 +227,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   IMPLICIT NONE
   !
   INTEGER,INTENT(in) :: iq_ef, iq_p, iq_m
-  COMPLEX(DP),INTENT(inout)   :: d3dyn(3*nat, 3*nat, 3*nat)
+  COMPLEX(DP),VOLATILE,INTENT(inout)   :: d3dyn(3*nat, 3*nat, 3*nat)
   !
   COMPLEX(DP),ALLOCATABLE :: pdvp_pq(:,:),pdvp_mq(:,:), &
                              dpsidvpsi(:,:), d3dyn_aux(:,:,:)
@@ -248,9 +253,6 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   CALL start_clock('d3_smr_ij')
   !
   degaussm1 = 1._dp / degauss
-  ALLOCATE(pdvp_pq( nbnd, nbnd))
-  ALLOCATE(pdvp_mq( nbnd, nbnd))
-  ALLOCATE(dpsidvpsi( nbnd, nbnd))
   ALLOCATE(d3dyn_aux(3*nat, 3*nat, 3*nat))
   !
   !
@@ -274,65 +276,74 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   CALL read_efsh()
   d3dyn_aux = (0._dp, 0._dp)
   !
-  K_POINTS_LOOP : &
-  DO ik = 1,nksq
-    ikG  = kplusq(iq_ef)%ikqs(ik) ! k point
-    ikpq = kplusq(iq_p)%ikqs(ik)   ! k+q point
+  ! Only one CPU per pool works (no sums over plane waves here)
+  IF(me_pool==0) THEN
     !
-    PERT_MQ_LOOP : &
-    DO nu_pq = 1,3*nat
-      nrec = nu_pq + (ik-1) * 3*nat
-!       CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
-      CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
+    ALLOCATE(pdvp_pq( nbnd, nbnd))
+    ALLOCATE(pdvp_mq( nbnd, nbnd))
+    ALLOCATE(dpsidvpsi( nbnd, nbnd))
+
+    K_POINTS_LOOP : &
+    DO ik = 1,nksq
+      ikG  = kplusq(iq_ef)%ikqs(ik) ! k point
+      ikpq = kplusq(iq_p)%ikqs(ik)   ! k+q point
       !
-      PERT_PQ_LOOP : &
-      DO nu_mq = 1,3*nat
-        nrec = nu_mq + (ik-1) * 3*nat
-!         CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(iq_p,iq_m),nrec, -1)
-        CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
+      PERT_MQ_LOOP : &
+      DO nu_pq = 1,3*nat
+        nrec = nu_pq + (ik-1) * 3*nat
+  !       CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
+        CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
         !
-        nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   ! <-- exchage pq and mq to get conjug at 0,q,-q
-        CALL davcio(dpsidvpsi, lrdpdvp, iudpdvp(iq_p), nrec, -1)
-        !
-        PERT_GAMMA_LOOP : &
-        DO nu_ef = 1,3*nat
+        PERT_PQ_LOOP : &
+        DO nu_mq = 1,3*nat
+          nrec = nu_mq + (ik-1) * 3*nat
+  !         CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(iq_p,iq_m),nrec, -1)
+          CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
           !
-          bsum = (0._dp, 0._dp)
-          DO ibnd = 1,nbnd_occ(ikG)
-          DO jbnd = 1,nbnd_occ(ikpq)
-            de = et(ibnd,ikG) - et(jbnd,ikpq)
-            IF(ABS(de)>eps) THEN
-              wrk = ( w0gauss((ef-et(ibnd,ikG)) *degaussm1,ngauss) &
-                     -w0gauss((ef-et(jbnd,ikpq))*degaussm1,ngauss) )*degaussm1/de
-            ELSE
-              wrk = - w_1gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1**2
-            ENDIF
-            bsum = bsum + kplusq(iq_ef)%wk(ik)*wrk*ef_sh(nu_ef) &
-!                          * pdvp_mq(ibnd,jbnd)*pdvp_pq(jbnd,ibnd)
-                         * CONJG(pdvp_mq(jbnd,ibnd))*pdvp_pq(jbnd,ibnd)
-          ENDDO
-          ENDDO
+          nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   ! <-- exchage pq and mq to get conjug at 0,q,-q
+          CALL davcio(dpsidvpsi, lrdpdvp, iudpdvp(iq_p), nrec, -1)
           !
-          d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3))+0.5_dp*bsum
-          !
-          bsum = (0._dp, 0._dp)
-          DO ibnd = 1,nbnd_occ(ikG)
-            bsum = bsum + kplusq(iq_ef)%wk(ik)*ef_sh(nu_ef)*dpsidvpsi(ibnd,ibnd) &
-                         *w0gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1
-          ENDDO
-          !
-          d3dyn_aux(nu(1),nu(2),nu(3))    = d3dyn_aux(nu(1),nu(2),nu(3)) +CONJG(bsum)
-          !
+          PERT_GAMMA_LOOP : &
+          DO nu_ef = 1,3*nat
+            !
+            bsum = (0._dp, 0._dp)
+            DO ibnd = 1,nbnd_occ(ikG)
+            DO jbnd = 1,nbnd_occ(ikpq)
+              de = et(ibnd,ikG) - et(jbnd,ikpq)
+              IF(ABS(de)>eps) THEN
+                wrk = ( w0gauss((ef-et(ibnd,ikG)) *degaussm1,ngauss) &
+                       -w0gauss((ef-et(jbnd,ikpq))*degaussm1,ngauss) )*degaussm1/de
+              ELSE
+                wrk = - w_1gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1**2
+              ENDIF
+              bsum = bsum + kplusq(iq_ef)%wk(ik)*wrk*ef_sh(nu_ef) &
+  !                          * pdvp_mq(ibnd,jbnd)*pdvp_pq(jbnd,ibnd)
+                          * CONJG(pdvp_mq(jbnd,ibnd))*pdvp_pq(jbnd,ibnd)
+            ENDDO
+            ENDDO
+            !
+            d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3))+0.5_dp*bsum
+            !
+            bsum = (0._dp, 0._dp)
+            DO ibnd = 1,nbnd_occ(ikG)
+              bsum = bsum + kplusq(iq_ef)%wk(ik)*ef_sh(nu_ef)*dpsidvpsi(ibnd,ibnd) &
+                           *w0gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1
+            ENDDO
+            !
+            d3dyn_aux(nu(1),nu(2),nu(3))    = d3dyn_aux(nu(1),nu(2),nu(3)) +CONJG(bsum)
+            !
+          ENDDO &
+          PERT_GAMMA_LOOP
         ENDDO &
-        PERT_GAMMA_LOOP
+        PERT_PQ_LOOP
       ENDDO &
-      PERT_PQ_LOOP
+      PERT_MQ_LOOP
     ENDDO &
-    PERT_MQ_LOOP
-  ENDDO &
-  K_POINTS_LOOP
-  !
-  DEALLOCATE(pdvp_pq, pdvp_mq, dpsidvpsi)
+    K_POINTS_LOOP
+    !
+    DEALLOCATE(pdvp_pq, pdvp_mq, dpsidvpsi)
+    !
+  ENDIF
   !
   CALL mp_sum(d3dyn_aux, inter_pool_comm)
   !
