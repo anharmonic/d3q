@@ -1,7 +1,10 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
 !  released under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  released under the GPL licence v2 and v3
+! http://www.gnu.org/licenses/gpl-3.0.en.html
+! http://www.gnu.org/licenses/gpl-2.0.en.html
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 !
@@ -10,20 +13,26 @@
 ! the total elapsed time, %calls the number of calls and %t0 the starting time
 ! (for running clocks)
 ! f_nanosec returns a system nanoclocs timer, relative to the first call of 
-! the c_nanotimer functions, it is not used here (we always use the C routine directly).
+! the c_nanotimer functions, it is not used here (we always use the C function directly).
 ! 
+! You can define timers like this:
+!   TYPE(nanotimer) :: my_timer = nanotimer("Timer description")
+!   CALL init_nanoclock() ! optional, starts global WALL clock
+!   ...
+!   CALL my_timer%start()
+!   ...
+!   CALL my_timer%stop()
+!   CALL my_timer%print()
+!   time = my_timer%tot/my_timer%calls
+!   ...
+!   wall_time = get_wall()
+!
 MODULE nanoclock
   !
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
 #include "mpi_thermal.h"  
   IMPLICIT NONE
-  !
-!   TYPE(nanoclock) :: timer
-!   timer%name = "MAIN"
-!   CALL start_nanoclock(timer)
-!   CALL stop_nanoclock(timer)
-!   CALL print_nanoclock(timer)
   !
   TYPE nanotimer
     CHARACTER(len=24)   :: name = "unknown"
@@ -38,14 +47,6 @@ MODULE nanoclock
       procedure :: start => start_nanoclock
       procedure :: stop  => stop_nanoclock
   END TYPE nanotimer
-  !
-  ! You can define timers like this:
-!   TYPE(nanotimer) :: my_timer = nanotimer("Timer description")
-!   ...
-!   CALL my_timer%start()
-!   ...
-!   CALL my_timer%stop()
-!   CALL my_timer%print()
   !
   ! c_nanosec returns the nanoseconds relative to the first time it was called
   INTERFACE
