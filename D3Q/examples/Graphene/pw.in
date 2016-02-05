@@ -8,8 +8,8 @@
     disk_io='low'
  /
  &system
-    nosym=.true.
-    noinv=.true.
+    !nosym=.true.
+    !noinv=.true.
 
     ibrav=  4
         celldm(1) = 4.60742348
