@@ -14,9 +14,9 @@ EXTOBJS = ../src/libd3q.a \
 
 QEMODS = ../../Modules/libqemod.a
 
-TLDEPS= bindir mods libs pw d3q
+TLDEPS= bindir mods libs pw 
 
-LIBOBJS        = ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
+LIBOBJS        = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
 
 D3QTOOLSOBJS = \
 diffd3.o \
