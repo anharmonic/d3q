@@ -623,12 +623,12 @@ MODULE fc3_interpolate
     ! Writing with the minimum number of white spaces saves loads of disk space (unless you zip)
     ! still keeping everything aligned for readability
     IF(MAXVAL(fc%n_terms)>0)THEN
-      n_digits(1) = CEILING(LOG10(DBLE(MAXVAL(fc%n_terms)))) ! no need to leave space in front
+      n_digits(1) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%n_terms))))) ! no need to leave space in front
     ELSE
       n_digits(1) = 1
     ENDIF
-    n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(fc%yR2))))+2 ! +2 to account minus signs
-    n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(fc%yR3))))+2
+    n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR2)))+0.1_dp))+2 ! +2 to account minus signs
+    n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR3)))+0.1_dp))+2
     cformat = '(i'//int_to_char(n_digits(1))// &
               ',3i'//int_to_char(n_digits(2))// &
               ',3i'//int_to_char(n_digits(3))//')'
@@ -637,7 +637,7 @@ MODULE fc3_interpolate
       WRITE(unit, cformat) fc%n_terms(i),  fc%yR2(:,i), fc%yR3(:,i)
     ENDDO
     !
-    n_digits(1) = CEILING(LOG10(DBLE(3*S%nat)))
+    n_digits(1) = CEILING(LOG10(DBLE(3*S%nat)+0.1_dp))
     n_digits(2) = n_digits(1)+1
     !
     cformat = '(i'//int_to_char(n_digits(1))// &
@@ -812,12 +812,12 @@ MODULE fc3_interpolate
     !
     WRITE(unit, '(3i9)') fc%nq
     !
-    n_digits(1) = CEILING(LOG10(DBLE(S%nat)))+1
+    n_digits(1) = CEILING(LOG10(DBLE(S%nat)+0.1_dp))+1
     cformat='(i1,2i2,x,3i'//int_to_char(n_digits(1))//')'
     !
-    n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR2)))))+2 ! +2 to account minus signs
+    n_digits(2) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR2)))+0.1_dp))+2 ! +2 to account minus signs
     n_digits(1) = n_digits(2)-1 ! no space at lines beginning
-    n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR3)))))+2
+    n_digits(3) = CEILING(LOG10(DBLE(MAXVAL(ABS(fc%yR3)))+0.1_dp))+2
     !
     cformat2 = '( i'//int_to_char(n_digits(1))// &
                ',2i'//int_to_char(n_digits(2))// &
