@@ -41,7 +41,7 @@ program d3q
   USE d3matrix_module
   USE dpsi1dv2psi_module
   !
-  USE d3_shuffle,       ONLY : nperms, d3perms, d3_shuffle_equiv =>d3_shuffle_global, d3_check_permutations
+  USE d3_shuffle,       ONLY : nperms, d3perms, d3_shuffle_equiv, d3_check_permutations
   !USE davcio_debug
 
   USE nscf_d3,            ONLY : run_nscf_d3
@@ -394,9 +394,11 @@ program d3q
         CALL dq1rhodq23v(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
         IF ( .not. d3perms(ip)%todo_first) THEN
+          print*, "doing first"
           jp         = d3perms(ip)%first_from
           d3(ip)%dyn = d3(jp)%dyn
         ELSE
+          print*, "doing shuffle"
           jp         = d3perms(ip)%shuffle_from
           CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
                                 d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &
@@ -404,8 +406,16 @@ program d3q
         ENDIF
       ENDIF
       d3tmp = d3tmp + d3(ip)%dyn
+      !WRITE(10077,'(//,a)') 'drd2v.'//d3perms(ip)%name
+      !WRITE(10077,'(2i3,2x,3i3,2x,3i3,l2)') ip,jp, &
+      !d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
+      !d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, d3perms(ip)%shuffle_conjg
+      !WRITE(10077,'(3(2f12.6,3x))') d3(jp)%dyn
+      !WRITE(10077,'(/,a)')  
+      !WRITE(10077,'(3(2f12.6,3x))') d3(ip)%dyn
       CALL dbgwrite_d3dyn(2*d3(ip)%dyn, 'drd2v.'//d3perms(ip)%name, 1)
     ENDDO
+    !stop 1
     !
     CALL dbgwrite_d3dyn(d3tmp, 'drd2v', 1)
     d3dyn_drd2v = d3tmp

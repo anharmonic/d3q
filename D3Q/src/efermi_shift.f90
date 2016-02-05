@@ -36,6 +36,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
   USE kplus3q,        ONLY : kplusq
+  USE control_lr,     ONLY : nbnd_occ
   IMPLICIT NONE
   INTEGER :: npe, imode0, irr
   ! input: the number of perturbation
@@ -64,7 +65,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
      DO ik = 1, nksq
         ikk = kplusq(0)%ikqs(ik)
         weight = kplusq(0)%wk(ik)
-        DO ibnd = 1, nbnd
+        DO ibnd = 1, nbnd_occ(ikk)
            wdelta = w0gauss((ef - et(ibnd, ikk))/degauss, ngauss) / degauss
            dos_ef = dos_ef + weight * wdelta
         ENDDO

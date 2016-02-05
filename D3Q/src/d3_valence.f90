@@ -145,37 +145,35 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
         DO jbnd = 1,nbnd
           de_ij = et(ibnd, ik_i) - et(jbnd, ik_j)
           de_ji = -de_ij
-        DO kbnd = 1,nbnd
-          de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
-          de_kj = -de_jk
-          de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
-          de_ki = -de_ik
-          !
-          wrk = 0._dp
-          IF(       ABS(de_ij) < 2*eps &
-              .and. ABS(de_jk) < 2*eps &
-              .and. ABS(de_ki) < 2*eps ) &
-          THEN
-            wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
-          ELSEIF( ABS(de_ij) < eps) THEN
-            wrk = ( (wg_i(ibnd)-wg_k(kbnd))/de_jk + w0g_i(ibnd) )/de_ki
-          ELSEIF( ABS(de_jk) < eps) THEN
-            wrk = ( (wg_j(jbnd)-wg_i(ibnd))/de_ki + w0g_j(jbnd) )/de_ij
-          ELSEIF( ABS(de_ki) < eps) THEN
-            wrk = ( (wg_k(kbnd)-wg_j(jbnd))/de_ij + w0g_k(kbnd) )/de_jk
-          ELSE ! All three bigger than eps
-            wrk = (wg_i(ibnd)*de_kj + wg_j(jbnd)*de_ik + wg_k(kbnd)*de_ji) &
-                  / (de_jk * de_ki * de_ij)
-          ENDIF
-  !        write(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3),'(3i3,50f12.6)') ibnd, jbnd, kbnd,&
-  !                           wrk ,kplusq(0)%wk(ik), pdvp_i(jbnd, ibnd), pdvp_j(kbnd, jbnd),pdvp_k(ibnd, kbnd)
-          !
-          d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3)) &
-                                + trm1 *wrk *kplusq(0)%wk(ik) &
-                                  *pdvp_i(jbnd, ibnd) &
-                                  *pdvp_j(kbnd, jbnd) &
-                                  *pdvp_k(ibnd, kbnd)
-        ENDDO
+          DO kbnd = 1,nbnd
+            de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
+            de_kj = -de_jk
+            de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
+            de_ki = -de_ik
+            !
+            wrk = 0._dp
+            IF(       ABS(de_ij) < 2*eps &
+                .and. ABS(de_jk) < 2*eps &
+                .and. ABS(de_ki) < 2*eps ) &
+            THEN
+              wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
+            ELSEIF( ABS(de_ij) < eps) THEN
+              wrk = ( (wg_i(ibnd)-wg_k(kbnd))/de_jk + w0g_i(ibnd) )/de_ki
+            ELSEIF( ABS(de_jk) < eps) THEN
+              wrk = ( (wg_j(jbnd)-wg_i(ibnd))/de_ki + w0g_j(jbnd) )/de_ij
+            ELSEIF( ABS(de_ki) < eps) THEN
+              wrk = ( (wg_k(kbnd)-wg_j(jbnd))/de_ij + w0g_k(kbnd) )/de_jk
+            ELSE ! All three bigger than eps
+              wrk = (wg_i(ibnd)*de_kj + wg_j(jbnd)*de_ik + wg_k(kbnd)*de_ji) &
+                    / (de_jk * de_ki * de_ij)
+            ENDIF
+            !
+            d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3)) &
+                                  + trm1 *wrk *kplusq(0)%wk(ik) &
+                                    *pdvp_i(jbnd, ibnd) &
+                                    *pdvp_j(kbnd, jbnd) &
+                                    *pdvp_k(ibnd, kbnd)
+          ENDDO
         ENDDO
         ENDDO &
         BANDS_LOOPS
@@ -307,8 +305,8 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
           DO nu_ef = 1,3*nat
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd_occ(ikG)
-            DO jbnd = 1,nbnd_occ(ikpq)
+            DO ibnd = 1,nbnd!_occ(ikG)
+            DO jbnd = 1,nbnd!_occ(ikpq)
               de = et(ibnd,ikG) - et(jbnd,ikpq)
               IF(ABS(de)>eps) THEN
                 wrk = ( w0gauss((ef-et(ibnd,ikG)) *degaussm1,ngauss) &
@@ -325,7 +323,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
             d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3))+0.5_dp*bsum
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd_occ(ikG)
+            DO ibnd = 1,nbnd!_occ(ikG)
               bsum = bsum + kplusq(iq_ef)%wk(ik)*ef_sh(nu_ef)*dpsidvpsi(ibnd,ibnd) &
                            *w0gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1
             ENDDO

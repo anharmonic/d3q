@@ -72,7 +72,6 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
   ! dpsi contains the   perturbed wavefunctions of this k point
   ! evc  contains the unperturbed wavefunctions of this k point
   !
-  !      do ibnd = 1,nbnd_occ(ikk)
   do ibnd = 1, nbnd_occ(ikk)
      psic (:) = (0.d0, 0.d0)
      do ig = 1, npw

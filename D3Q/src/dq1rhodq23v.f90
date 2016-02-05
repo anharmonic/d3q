@@ -240,11 +240,15 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
           d3dyn_wrk(na_icart, na_jcart) = d3dyn_wrk(na_icart, na_jcart) &
                 + (xq(icart) + g(icart, ng)) * (xq(jcart) + g(jcart, ng)) &
                 *  d3v(iq_drho)%loc(ng, ityp(na)) * struct_factor(ng) * drhoscf_G(nl(ng))
+!          WRITE(10088, '(4i6,99f12.6)') na, icart, jcart, ng, d3v(iq_drho)%loc(ng, ityp(na)), struct_factor(ng), drhoscf_G(nl(ng))
         ENDDO
+!        WRITE(10099,'(3i6,99f15.9)') na, icart, jcart, d3dyn_wrk(na_icart, na_jcart)
         !
       ENDDO
     ENDDO
   ENDDO VLOC_ATOMS_LOOP
+!  WRITE(10088, '(//)')
+!  WRITE(10099, '(/)')
   !
   CALL mp_sum(  d3dyn_wrk, intra_pool_comm )
   d3dyn_d23v = d3dyn_d23v + d3dyn_wrk
@@ -271,7 +275,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE uspp,            ONLY : dvan, nkb
   USE uspp_param,      ONLY : nh
   USE phcom,           ONLY : lrdwf, lrwfc, iuwfc
-  USE control_lr,      ONLY : nbnd_occ
+  !USE control_lr,      ONLY : nbnd_occ
   USE mp_global,       ONLY : intra_pool_comm
   USE mp,              ONLY : mp_sum
   USE kplus3q,         ONLY : nksq, kplusq !iunigk, iunigkq2, ikks, ikq_drho2s, kplusq
@@ -369,7 +373,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     DO icart = 1, 3
       DO jcart = 1, 3
           LOOP_ON_BANDS : &
-          DO ibnd = 1, nbnd_occ(ikq_gamm)
+          DO ibnd = 1, nbnd!_occ(ikq_gamm)
             ! Note: in this loops, xk(*,ikq_drho) is actually k+q
             !
             IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:30')
@@ -474,7 +478,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   USE ions_base,       ONLY : nat
   USE pwcom,           ONLY : npwx, nbnd, degauss, ngauss, et, ef
   USE phcom,           ONLY : lrwfc, iuwfc
-  USE control_lr,      ONLY : nbnd_occ
+  !USE control_lr,      ONLY : nbnd_occ
   USE d3_efermi_shift, ONLY : ef_sh
   USE io_global,       ONLY : stdout
   USE kplus3q,         ONLY : kplusq
@@ -521,7 +525,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   !
   IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:30')
   ! Multiply dpsi by the theta function
-  DO ibnd = 1, nbnd_occ(ik0)
+  DO ibnd = 1, nbnd!_occ(ik0)
      wg1 = wgauss( (ef - et(ibnd, ik0) )*degaussm1, ngauss)
      CALL dscal(2 * npwq, wg1, dpsi (1, ibnd), 1)
   ENDDO
@@ -530,8 +534,8 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   ! Adds to dpsi the term containing the valence wavefunctions
   !
   IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:40')
-  DO ibnd = 1, nbnd_occ(ik0)
-     DO jbnd = 1, nbnd_occ(ikq)
+  DO ibnd = 1, nbnd!_occ(ik0)
+     DO jbnd = 1, nbnd!_occ(ikq)
         deltae = et(ibnd, ik0) - et(jbnd, ikq)
         IF (ABS(deltae) > 1.0d-5) THEN
            wg1 = wgauss ( (ef - et(ibnd, ik0) )*degaussm1, ngauss)
@@ -561,7 +565,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
     IF(nu==1 .and. ik==1) &
        WRITE(stdout, "(10x,a)") "-> including Efermi_shift correction for |d^G psi_k>"
     !
-    DO ibnd = 1, nbnd_occ(ikq)
+    DO ibnd = 1, nbnd!_occ(ikq)
        wfshift = 0.5_dp * ef_sh(nu) * w0gauss( (ef - et(ibnd, ikq))*degaussm1, ngauss)*degaussm1
        CALL daxpy(2*npw, wfshift, psi_q (1, ibnd), 1, dpsi (1, ibnd), 1) ! <-- ugly
 !       CALL zaxpy(npw, CMPLX(wfshift,0._dp,kind=DP), psi_q (:, ibnd), 1, dpsi (:, ibnd), 1)

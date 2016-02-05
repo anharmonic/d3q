@@ -298,6 +298,10 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   nu(i2)%x => idx2; mu(j2)%x => idx2
   nu(i3)%x => idx3; mu(j3)%x => idx3
 
+  !WRITE(10099, '(6i3,l1)') i1,i2,i3,j1,j2,j3, conjugate
+  !WRITE(10099,'(3(2f12.6,3x))') d3dyn 
+  !WRITE(10099,'(/,a)')
+
 !   WRITE(stdout, '(9x,a,3i1,a,3i1,a,l2)') "* shuffling: ",i1,i2,i3," --> ",j1,j2,j3, &
 !                                           " - c.c.", conjugate
 
@@ -312,11 +316,13 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
     DO idx2 = 1,3*nat
       DO idx3 = 1,3*nat
         d3aux(mu(1)%x,mu(2)%x,mu(3)%x) = d3dyn(nu(1)%x,nu(2)%x,nu(3)%x)
+        !WRITE(10099,'(3(3i3,3x))') idx1,idx2,idx3, nu(1)%x, nu(2)%x, nu(3)%x, mu(1)%x, mu(2)%x, mu(3)%x
       ENDDO
     ENDDO
   ENDDO
   !
   IF(conjugate) d3aux = CONJG(d3aux)
+  !WRITE(10099,'(3(2f12.6,3x))') d3dyn_out
   !
   IF(present(d3dyn_out)) THEN
     d3dyn_out = d3aux

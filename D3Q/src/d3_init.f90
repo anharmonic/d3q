@@ -84,8 +84,8 @@ SUBROUTINE d3_init
              WRITE( stdout, '(5x,/,"WARNING! Definitely too few bands at point ", &
              & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
      ENDDO
-     ! WRITE(stdout,'(5x,a,i4)') "WARNING!! nbnd_occ == nbnd", nbnd
-     ! nbnd_occ = nbnd
+!      WRITE(stdout,'(5x,a,i4)') "WARNING!! nbnd_occ == nbnd", nbnd
+!      nbnd_occ = nbnd
   ELSE
      IF (lsda) CALL infomsg (sub, 'occupation numbers probably wrong')
      nbnd_occ(1:tot_nks) = NINT(nelec/degspin)
