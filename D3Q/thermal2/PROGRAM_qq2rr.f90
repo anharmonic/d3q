@@ -124,7 +124,7 @@ MODULE program_qq2rr
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
           !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
-          CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
+          !CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
           !
           ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
           d3grid(iq_trip)%d   = d3
@@ -150,7 +150,7 @@ MODULE program_qq2rr
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
           CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3)
-          CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
+          !CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
           !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
           !
           thresh = MAXVAL(ABS(d3grid(iq_aux)%d - d3))
@@ -159,18 +159,16 @@ MODULE program_qq2rr
             iq_aux, "warning sym/=perm !", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
             a,b,c, TRIM(filename), thresh
             !IF(iq_trip>10)then
-            print*, iq_aux, iq_trip
-            print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
-            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-                                 d3, S%nat, 1001)
-            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-                                 d3grid(iq_aux)%d, S%nat, 1002)
-            CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-                                 d3-d3grid(iq_aux)%d, S%nat, 1003)
-            !print*, xq
-            !WRITE(*,'(3(2f12.6,2x))') d3grid(iq_aux)%d - d3
-            stop 666
-            !endif
+!             print*, iq_aux, iq_trip
+!             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
+!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+!                                  d3, S%nat, 1001)
+!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+!                                  d3grid(iq_aux)%d, S%nat, 1002)
+!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
+!                                  d3-d3grid(iq_aux)%d, S%nat, 1003)
+!            stop 666
+!             !endif
          ENDIF
           !d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
           
