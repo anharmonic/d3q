@@ -100,7 +100,7 @@ PROGRAM gen_sparse
     ELSE
       thr = 0._dp
     ENDIF
-    thr = thr*MAXVAL(ABS(fc%FC))
+    !thr = thr*MAXVAL(ABS(fc%FC))
     WRITE(stdout,*) "Cutting off FCs smaller than : ", thr, "Ry/bohr^3"
 
     CALL fc3_grid_to_sparse(S%nat, fc, sfc, thr)
