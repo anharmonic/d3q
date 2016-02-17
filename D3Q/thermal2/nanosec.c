@@ -3,7 +3,10 @@
 !  released under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 */
-
+#if defined(__APPLE__)
+double c_nanosec()
+{ return 0.;  }
+#else
 #include <time.h>
 
 double c_nanosec()
@@ -14,3 +17,5 @@ double c_nanosec()
         if ( new_epoch < 0.) new_epoch = (double) T.tv_sec;
         return (((double)T.tv_sec-new_epoch) + ((double)T.tv_nsec)*1.e-9);
 }
+#endif
+
