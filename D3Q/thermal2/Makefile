@@ -8,7 +8,7 @@ STRIP = true #strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
-IFLAGS+=-I../../include -I../../PHonon/PH 
+IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \

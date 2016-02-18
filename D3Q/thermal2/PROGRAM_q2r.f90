@@ -244,10 +244,17 @@ PROGRAM q2r
         !
         WRITE (stdout,*) ' nqs= ',nqs
         DO nq = 1,nqs
-              nqtot = nqtot+1
-              matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
-              gridq(:,nqtot)      = q(:,nq)
-              WRITE(stdout,"(5x,3f12.6)") gridq(:,nqtot)
+            IF (lrigid) THEN
+              WRITE(stdout,*) "quite rigid"
+              ! Remove non-analytic part before doing the Fourier transform
+              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
+                            tau,epsil,zeu,bg,omega,-1.d0)
+            END IF
+            nqtot = nqtot+1
+            matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
+            gridq(:,nqtot)      = q(:,nq)
+            WRITE(stdout,"(5x,3f12.6)") gridq(:,nqtot)
+              
         END DO
         IF (xmldyn) DEALLOCATE(phiq)
      END DO &
@@ -264,7 +271,7 @@ PROGRAM q2r
      ! dyn.mat. FFT (use serial version)
      !
 !      DO j1=1,3
-!         DO j2=1,3
+!         DO j2=1,3doing
 !            DO na1=1,nat
 !               DO na2=1,nat
 !                  CALL cfft3d ( phid (:,j1,j2,na1,na2), &
@@ -279,16 +286,16 @@ PROGRAM q2r
 !     ! auxiliary quantities:
 !     REAL(DP),ALLOCATABLE :: sqrtmm1(:) ! 1/sqrt(amass)
 !     INTEGER :: nat3, nat32, nat33     
-     ALLOCATE(S%tau(3,nat), S%ityp(nat))
+     ALLOCATE(S%tau(3,nat), S%ityp(nat), S%zeu(3,3))
      S%ntyp  = ntyp
      S%amass = amass
      S%atm   = atm
      S%nat   = nat
      S%tau   = tau
-!      S%zeu   = zeu
+     S%zeu   = zeu
      S%ityp  = ityp
      S%ibrav = ibrav
-!      S%symm_type = symm_type
+     S%symm_type = symm_type
      S%celldm  = celldm
      S%at      = at
      S%bg      = bg

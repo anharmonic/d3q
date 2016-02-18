@@ -108,7 +108,7 @@ MODULE linewidth_program
           ENDIF
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
-          FLUSH(1000+it)
+          IF(ionode) FLUSH(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real") THEN
           timer_CALL t_lwphph%start()

@@ -22,7 +22,8 @@ for dir in $dirs; do
     # set inter-directory dependencies - only directories containing
     # modules that are used, or files that are included, by routines
     # in directory DIR should be listed in DEPENDS
-    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../D3Q/src ../../FFTXlib"
+    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../D3Q/src"
+# ../../FFTXlib"
     # generate dependencies file (only for directories that are present)
     if test -d $DIR
     then
@@ -34,7 +35,7 @@ for dir in $dirs; do
         # handle special cases
         sed '/@\/cineca\/prod\/hpm\/include\/f_hpm.h@/d' \
             make.depend > make.depend.tmp
-        sed '/@iso_c_binding@/d;/@ifcore@/d;/@iso_fortran_env@/d' make.depend.tmp > make.depend
+        sed '/@iso_c_binding@/d;/@ifcore@/d;/@iso_fortran_env@/d;/@fft_scalar@/d' make.depend.tmp > make.depend
 
         if test "$DIR" = "Modules"
         then

@@ -128,7 +128,7 @@ MODULE quter_module
             IF( ALL(fc%yR(:,i)==0) ) fc%i_0 = i
             !
             imag_tot = imag_tot + ABS(IMAG(matR(j1,j2,na1,na2,i)))
-            imag_max = MAX(imag_max, IMAG(matR(j1,j2,na1,na2,i)))
+            imag_max = MAX( imag_max, ABS(IMAG(matR(j1,j2,na1,na2,i))) )
           ENDDO
       ENDDO
       ENDDO
@@ -139,8 +139,6 @@ MODULE quter_module
     !
     IF(imag_tot>eps) WRITE(*,*) "CHECK! Sum of Imaginary parts:",imag_tot
     IF(imag_max>eps) WRITE(*,*) "CHECK! Maximum imaginary part:",imag_max
-    !
-    ! Applies sum rules
     !
   END SUBROUTINE quter
   !
