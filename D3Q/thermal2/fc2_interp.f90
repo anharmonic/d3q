@@ -12,7 +12,7 @@ MODULE fc2_interpolate
   !
   ! I take forceconst2_grid globally in this module so I can USE it from here 
   ! elsewhere, which makes more sense
-  USE input_fc, ONLY : forceconst2_grid
+  USE input_fc, ONLY : forceconst2_grid, ph_system_info
   
   ! \/o\________\\\_________________________________________/^>
   ! Moved to input_fc to avoid circular dependencies
@@ -45,7 +45,7 @@ MODULE fc2_interpolate
 !dir$ message "----------------------------------------------------------------------------------------------" 
 !dir$ message "Using MKL vectorized Sin and Cos implementation, this can use more memory but should be faster" 
 !dir$ message "----------------------------------------------------------------------------------------------" 
-    MODULE PROCEDURE fftinterp_mat2_flat_mkl   ! use standard OMP but paralelize on the innermost cycle
+    MODULE PROCEDURE fftinterp_mat2_flat_mkl   ! use standard OMP but paralelize on the innermost cycle./fc2_interp.f90:329:
 #else
     MODULE PROCEDURE fftinterp_mat2_flat   ! use standard OMP but paralelize on the innermost cycle
 #endif
@@ -87,15 +87,15 @@ MODULE fc2_interpolate
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_flat(xq, nat3, fc, D)
+  SUBROUTINE fftinterp_mat2_flat(xq, S, fc, D)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
-    INTEGER,INTENT(in)   :: nat3
+    TYPE(ph_system_info),INTENT(in) :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -108,29 +108,31 @@ MODULE fc2_interpolate
       arg = tpi * SUM(xq(:)*fc%xR(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
 !$OMP DO COLLAPSE(2)
-      DO mu= 1, nat3
-      DO nu= 1, nat3
+      DO mu= 1, S%nat3
+      DO nu= 1, S%nat3
         D(nu,mu) = D(nu,mu) + phase * fc%fc(nu,mu, i)
       ENDDO
       ENDDO
 !$OMP END DO
     END DO
 !$OMP END PARALLEL
-
+    !
+    CALL add_rgd_blk(xq, S, fc, D)
+    !
   END SUBROUTINE fftinterp_mat2_flat
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_flat_mkl(xq, nat3, fc, D)
+  SUBROUTINE fftinterp_mat2_flat_mkl(xq, S, fc, D)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq(3)
-    INTEGER,INTENT(in)   :: nat3
+    TYPE(ph_system_info),INTENT(in) :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     !
     INTEGER :: i, mu,nu
     REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
@@ -154,28 +156,30 @@ MODULE fc2_interpolate
 !       arg = tpi * SUM(xq(:)*fc%xR(:,i))
 !       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
 !$OMP DO COLLAPSE(2)
-      DO mu= 1, nat3
-      DO nu= 1, nat3
+      DO mu= 1, S%nat3
+      DO nu= 1, S%nat3
         D(nu,mu) = D(nu,mu) + vphase(i) * fc%fc(nu,mu, i)
       ENDDO
       ENDDO
 !$OMP END DO
     END DO
 !$OMP END PARALLEL
-
+    !
+    CALL add_rgd_blk(xq, S, fc, D)
+    !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc (safe version, for OpenMP)
-  SUBROUTINE fftinterp_mat2_safe(xq, nat3, fc, D)
+  SUBROUTINE fftinterp_mat2_safe(xq, S, fc, D)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
-    INTEGER,INTENT(in)   :: nat3
+    TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -186,8 +190,8 @@ MODULE fc2_interpolate
     ! clause is often miscompiled by ifort 14 (Feb 2015)
     !
     D = (0._dp, 0._dp)
-!$OMP PARALLEL DEFAULT(none) SHARED(D,nat3,fc,xq) PRIVATE(i,arg,phase,D_aux)
-    ALLOCATE(D_aux(nat3,nat3))
+!$OMP PARALLEL DEFAULT(none) SHARED(D,S%nat3,fc,xq) PRIVATE(i,arg,phase,D_aux)
+    ALLOCATE(D_aux(S%nat3,S%nat3))
     D_aux = (0._dp, 0._dp)
 !$OMP DO
     DO i = 1, fc%n_R
@@ -203,7 +207,52 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !$OMP END PARALLEL
     !
+    CALL add_rgd_blk(xq, S, fc, D)
+    !
   END SUBROUTINE fftinterp_mat2_safe
+
+  
+  SUBROUTINE add_rgd_blk(xq, S, fc, D)
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq(3)
+    COMPLEX(DP),INTENT(inout) :: D(S%nat3, S%nat3)
+    !
+    COMPLEX(DP) :: phi(3,3,S%nat,S%nat)
+    INTEGER :: nu,mu,i,j,ia,ja
+!     INTEGER :: itau(S%nat)
+    !
+!     REAL(DP) :: qhat(3), qnorm
+    !
+!     qnorm = SQRT(SUM(xq**2))
+!     IF(qnorm==0._dp) qnorm = 1._dp
+!     qhat = xq/qnorm
+!     FORALL(i=1:S%nat) itau(i) = i
+    !
+    phi = 0._dp
+    ! Non-anal is only for q=0 and depends on the direction. Better to not use it
+!     CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+    !
+    CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
+                  S%tau,S%epsil,S%zeu,S%bg,S%omega,+1.d0)
+ 
+      DO ja = 1,S%nat
+      DO ia = 1,S%nat
+        DO j = 1,3
+        mu = j + 3*(ja-1)
+        DO i = 1,3
+          nu = i + 3*(ia-1)
+          print*, mu,nu,i,j,ia,ja
+          D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
+                               *S%sqrtmm1(nu)*S%sqrtmm1(mu)
+        ENDDO
+        ENDDO
+      ENDDO
+      ENDDO
+    
+    RETURN
+  END SUBROUTINE
+
   
   ! \/o\________\\\_________________________________________/^>
   ! IN PLACE diagonalization of D
@@ -326,7 +375,7 @@ MODULE fc2_interpolate
     INTEGER :: i
     LOGICAL :: gamma
     !
-    CALL fftinterp_mat2(xq, S%nat3, fc2, U)
+    CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
     U = CONJG(U)
     ! RAF
@@ -385,7 +434,7 @@ MODULE fc2_interpolate
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: eps = 0._dp 
     !
-    CALL fftinterp_mat2(xq, S%nat3, fc2, U)
+    CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
     U = CONJG(U)
     WHERE    (freq >  eps)

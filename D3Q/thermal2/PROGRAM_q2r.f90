@@ -97,7 +97,7 @@ PROGRAM q2r
   !
   REAL(DP) :: celldm(6), at(3,3), bg(3,3)
   REAL(DP) :: q(3,48), omega, xq, amass(ntypx), resi
-  REAL(DP) :: epsil(3,3)
+  REAL(DP) :: epsil(3,3), esum
   !
   logical           :: la2F
   LOGICAL, EXTERNAL :: has_xml
@@ -245,7 +245,7 @@ PROGRAM q2r
         WRITE (stdout,*) ' nqs= ',nqs
         DO nq = 1,nqs
             IF (lrigid) THEN
-              WRITE(stdout,*) "quite rigid"
+              !WRITE(stdout,*) "quite rigid"
               ! Remove non-analytic part before doing the Fourier transform
               CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
                             tau,epsil,zeu,bg,omega,-1.d0)
@@ -286,16 +286,30 @@ PROGRAM q2r
 !     ! auxiliary quantities:
 !     REAL(DP),ALLOCATABLE :: sqrtmm1(:) ! 1/sqrt(amass)
 !     INTEGER :: nat3, nat32, nat33     
-     ALLOCATE(S%tau(3,nat), S%ityp(nat), S%zeu(3,3))
+     ALLOCATE(S%tau(3,nat), S%ityp(nat), S%zeu(3,3,nat))
      S%ntyp  = ntyp
      S%amass = amass
      S%atm   = atm
      S%nat   = nat
      S%tau   = tau
+     
+     ! simple sum rule on effective charges
+     do i=1,3
+        do j=1,3
+           esum=0.0d0
+           do na=1,nat
+              esum = esum + zeu(i,j,na)
+           end do
+           do na=1,nat
+              zeu(i,j,na) = zeu(i,j,na) - esum/nat
+           end do
+        end do
+     end do
+     !
      S%zeu   = zeu
      S%ityp  = ityp
      S%ibrav = ibrav
-     S%symm_type = symm_type
+     S%symm_type = "bogus"
      S%celldm  = celldm
      S%at      = at
      S%bg      = bg

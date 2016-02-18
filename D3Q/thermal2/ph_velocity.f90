@@ -46,12 +46,12 @@ MODULE ph_velocity
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
-      CALL fftinterp_mat2(xqp, S%nat3, fc, D2)
+      CALL fftinterp_mat2(xqp, S, fc, D2)
       CALL mat2_diag(S%nat3, D2, w2p)
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
-      CALL fftinterp_mat2(xqm, S%nat3, fc, D2)
+      CALL fftinterp_mat2(xqm, S, fc, D2)
       CALL mat2_diag(S%nat3, D2, w2m)
       !
       dh = ( xqp(ix)-xqm(ix) )
@@ -93,7 +93,7 @@ MODULE ph_velocity
     ALLOCATE(D2(S%nat3,S%nat3), U(S%nat3,S%nat3), W(S%nat3,S%nat3), &
              w2p(S%nat3), w2m(S%nat3), xvel(3,S%nat3))
     !
-    CALL fftinterp_mat2(xq, S%nat3, fc, U)
+    CALL fftinterp_mat2(xq, S, fc, U)
     CALL mat2_diag(S%nat3, U, w2p)
     !
     xvel = 0._dp
@@ -106,7 +106,7 @@ MODULE ph_velocity
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
-      CALL fftinterp_mat2(xqp, S%nat3, fc, D2)
+      CALL fftinterp_mat2(xqp, S, fc, D2)
       W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2p(nu) = REAL(W(nu,nu),kind=DP)
       WHERE(w2p>=0._dp)
@@ -126,7 +126,7 @@ MODULE ph_velocity
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
-      CALL fftinterp_mat2(xqm, S%nat3, fc, D2)
+      CALL fftinterp_mat2(xqm, S, fc, D2)
       W = rotate_d2(S%nat3, D2, U)
       FORALL(nu = 1:S%nat3) w2m(nu) = REAL(W(nu,nu),kind=DP)
       WHERE(w2m>=0._dp)

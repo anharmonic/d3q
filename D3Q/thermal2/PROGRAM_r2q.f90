@@ -32,6 +32,7 @@ PROGRAM r2q
   REAL(DP) :: xq(3)
   REAL(DP),ALLOCATABLE :: freq(:)
   COMPLEX(DP),ALLOCATABLE :: U(:,:)
+  INTEGER :: i
   !
   CALL print_citations_linewidth()
   !  
@@ -45,8 +46,13 @@ PROGRAM r2q
   ALLOCATE(U(S%nat3,S%nat3))
   !xq = (/0.333333333333_dp,  0.1924500_dp,  0.0_dp /)
   xq = 0._dp
-  CALL freq_phq_safe(xq, S, fc2, freq, U)
-
-  WRITE(*, '(a16,999f10.4)') "freq", freq*RY_TO_CMM1
+  DO i = 1,26
+    xq(3) = DBLE(i-1)/DBLE(25)
+    CALL freq_phq_safe(xq, S, fc2, freq, U)
+    !WRITE(*, '(a16,999f12.4)') "freq", freq*RY_TO_CMM1
+    WRITE(*, '(999f12.4)') freq*RY_TO_CMM1
+    WRITE(998, '(999f12.4)') xq
+    WRITE(999, '(999f12.4)') freq*RY_TO_CMM1
+  ENDDO
 
 END PROGRAM r2q

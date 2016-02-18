@@ -70,7 +70,7 @@ MODULE add_bubble_program
     DO iq = 1, qpath%nq
       ioWRITE(*, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
       ioWRITE(*, '(i6,3f12.6)') iq, qpath%xq(:,iq)
-      CALL fftinterp_mat2(qpath%xq(:,iq), S%nat3, fc2b, dyn0)
+      CALL fftinterp_mat2(qpath%xq(:,iq), S, fc2b, dyn0)
       U = dyn0
       !ioWRITE(*, "(6(2f12.6,4x))") multiply_mass_dyn(S, U)
       CALL mat2_diag(S%nat3, U, freq0)

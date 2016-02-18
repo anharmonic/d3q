@@ -105,6 +105,7 @@ MODULE input_fc
     INTEGER :: ios, dummy
     !
     INTEGER :: nt, na
+    CHARACTER(len=256) cdummy
     !
     READ(unit,*,iostat=ios) S%ntyp, S%nat, S%ibrav, S%celldm(1:6)
     IF(ios/=0) CALL errore(sub,"reading S%ntyp, S%nat, S%ibrav, S%celldm(1:6)", 1)
@@ -140,6 +141,26 @@ MODULE input_fc
       READ(unit,*,iostat=ios) dummy, S%ityp(na), S%tau(:,na)
       IF(ios/=0) CALL errore(sub,"reading na, S%atm(nt), S%amass(nt)", nt)
     ENDDO
+    !
+    READ(unit,*,iostat=ios) S%lrigid
+    print*, "lrigid", S%lrigid
+    IF(ios/=0) CALL errore(sub,"reading rigid", 1)
+    IF(S%lrigid)THEN
+!       READ(unit,*,iostat=ios) cdummy
+      READ(unit,*,iostat=ios) S%epsil
+      IF(ios/=0) CALL errore(sub,"reading epsilon (2)", 1)
+    print*, "epsil", S%epsil
+!       READ(unit,*) cdummy
+!       READ(unit,*) cdummy
+      ALLOCATE(S%zeu(3,3,S%nat))
+      DO na = 1, S%nat
+        READ(unit,*,iostat=ios) S%zeu(:,:,na)
+      print*, "zeu", na, S%zeu(:,:,na)
+        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
+!         READ(unit,*) cdummy
+      ENDDO
+      
+    ENDIF
     !
   END SUBROUTINE read_system
   ! \/o\________\\\_________________________________________/^>
@@ -178,6 +199,21 @@ MODULE input_fc
       WRITE(unit,'(2i9,3f25.16)',iostat=ios) na, S%ityp(na), S%tau(:,na)
       IF(ios/=0) CALL errore(sub,"writing na, S%atm(nt), S%amass(nt)", nt)
     ENDDO
+    
+    WRITE(unit,'(5x,l)',iostat=ios) S%lrigid
+    IF(ios/=0) CALL errore(sub,"writing rigid", 1)
+    IF(S%lrigid)THEN
+!       WRITE(unit,'(5x,a)',iostat=ios) "epsilon"
+!       IF(ios/=0) CALL errore(sub,"writing epsilon (1)", 1)
+      WRITE(unit,'(3(3f25.16,/))',iostat=ios) S%epsil
+      IF(ios/=0) CALL errore(sub,"writing epsilon (2)", 1)
+!       WRITE(unit,'(5x,a)',iostat=ios) "zeu"
+!       IF(ios/=0) CALL errore(sub,"writing zeu (1)", 1)
+      DO na = 1, S%nat
+        WRITE(unit,'(3(3f25.16,/))',iostat=ios) S%zeu(:,:,na)
+      IF(ios/=0) CALL errore(sub,"writing zeu (2)", na)
+      ENDDO
+    ENDIF
     !
   END SUBROUTINE write_system
   ! \/o\________\\\_________________________________________/^>
