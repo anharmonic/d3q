@@ -242,7 +242,7 @@ MODULE fc2_interpolate
         mu = j + 3*(ja-1)
         DO i = 1,3
           nu = i + 3*(ia-1)
-          print*, mu,nu,i,j,ia,ja
+          !print*, mu,nu,i,j,ia,ja
           D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
                                *S%sqrtmm1(nu)*S%sqrtmm1(mu)
         ENDDO
