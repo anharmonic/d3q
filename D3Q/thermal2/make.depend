@@ -147,8 +147,8 @@ functions.o : ../../Modules/constants.o
 functions.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/parameters.o
-input_fc.o : ./more_constants.o
 input_fc.o : ./mpi_thermal.o
+input_fc.o : ./ph_system.o
 isotopes.o : ../../Modules/constants.o
 isotopes.o : ../../Modules/kind.o
 isotopes.o : ./fc2_interp.o
@@ -172,6 +172,7 @@ mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
 nanoclock.o : ./mpi_thermal.o
 nist_isotopes_db.o : ../../Modules/kind.o
+ph_system.o : ./more_constants.o
 ph_velocity.o : ../../Modules/kind.o
 ph_velocity.o : ./fc2_interp.o
 ph_velocity.o : ./input_fc.o

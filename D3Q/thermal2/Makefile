@@ -19,7 +19,8 @@ QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw
 
-LIBOBJS = ../../LR_Modules/liblrmod.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+#LIBOBJS = ../../LR_Modules/liblrmod.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 
 # lines for xlf90 on bluegene
@@ -47,6 +48,7 @@ mpi_thermal.o \
 nanoclock.o \
 nanosec.o \
 nist_isotopes_db.o \
+ph_system.o \
 ph_velocity.o \
 posix_signal.o \
 q_grids.o \
