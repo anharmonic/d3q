@@ -167,24 +167,28 @@ SUBROUTINE dpsi1dv2psi(unit, iq_dp, iq_v)
      CALL dq_vscf(nu_v, dvloc(:,nu_v), kplusq(iq_v)%xq, iq_v, patq(iq_v)%u)
   ENDDO
   !
-  REWIND (unit = kplusq( 0)%iunigkq)
-  REWIND (unit = kplusq(-iq_v)%iunigkq)
+!   REWIND (unit = kplusq( 0)%iunigkq)
+!   REWIND (unit = kplusq(-iq_v)%iunigkq)
   !
   KPOINTS : &
   DO ik = 1, nksq
     !
-    READ(kplusq(0)%iunigkq, iostat = ios) npw_gam, igk_gam
-    IF(ios /=0) CALL errore(sub, 'Cannot read igk @ gamma', ABS(ios))
-    !
-    IF(.not. kplusq(-iq_v)%lsame(0)) THEN
-      READ(kplusq(-iq_v)%iunigkq, iostat = ios) npw_mqv, igk_mqv
-      IF(ios /=0) CALL errore(sub, 'Cannot read igk @ -iq_v', ABS(ios))
-    ELSE
-      npw_mqv = npw_gam ; igk_mqv = igk_gam
-    ENDIF
-    !
+    !READ(kplusq(0)%iunigkq, iostat = ios) npw_gam, igk_gam
+!     IF(ios /=0) CALL errore(sub, 'Cannot read igk @ gamma', ABS(ios))
     ik_gam = kplusq( 0)%ikqs(ik)
+    npw_gam = kplusq(0)%ngkq(ik)
+    igk_gam = kplusq(0)%igkq(:,ik)
+    !
     ik_mqv = kplusq(-iq_v)%ikqs(ik)
+    npw_mqv = kplusq(-iq_v)%ngkq(ik)
+    igk_mqv = kplusq(-iq_v)%igkq(:,ik)
+!     IF(.not. kplusq(-iq_v)%lsame(0)) THEN
+!       READ(kplusq(-iq_v)%iunigkq, iostat = ios) npw_mqv, igk_mqv
+!       IF(ios /=0) CALL errore(sub, 'Cannot read igk @ -iq_v', ABS(ios))
+!     ELSE
+!       npw_mqv = npw_gam ; igk_mqv = igk_gam
+!     ENDIF
+    !
     !
     CALL init_us_2(npw_gam, igk_gam, xk(:, ik_gam), vkb_gam)
     CALL init_us_2(npw_mqv, igk_mqv, xk(:, ik_mqv), vkb_mqv)
@@ -297,24 +301,28 @@ SUBROUTINE dpsi1dv2psi_gamma(unit, iq)
      CALL dq_vscf(nu_v, dvloc(:,nu_v), kplusq(iq)%xq, iq, patq(iq)%u)
   ENDDO
   !
-  REWIND (unit = kplusq( 0)%iunigkq)
-  REWIND (unit = kplusq(iq)%iunigkq)
+!   REWIND (unit = kplusq( 0)%iunigkq)
+!   REWIND (unit = kplusq(iq)%iunigkq)
   !
   KPOINTS : &
   DO ik = 1, nksq
     !
-    READ(kplusq(0)%iunigkq, iostat = ios) npw_g, igk_g
-    IF(ios /=0) CALL errore(sub, 'Cannot read igk @ gamma', ABS(ios))
+    ik_g  = kplusq(0)%ikqs(ik)
+    npw_g = kplusq(0)%ngkq(ik)
+    igk_g = kplusq(0)%igkq(:,ik)
+!     READ(kplusq(0)%iunigkq, iostat = ios) npw_g, igk_g
+!     IF(ios /=0) CALL errore(sub, 'Cannot read igk @ gamma', ABS(ios))
     !
-    IF(.not. kplusq(iq)%lgamma) THEN
-      READ(kplusq(iq)%iunigkq, iostat = ios) npw_q, igk_q
-      IF(ios /=0) CALL errore(sub, 'Cannot read igk @ iq', ABS(ios))
-    ELSE
-      npw_q = npw_g ; igk_q = igk_g
-    ENDIF
+    ik_q  = kplusq(iq)%ikqs(ik)
+    npw_q = kplusq(iq)%ngkq(ik)
+    igk_q = kplusq(iq)%igkq(:,ik)
+!     IF(.not. kplusq(iq)%lgamma) THEN
+!       READ(kplusq(iq)%iunigkq, iostat = ios) npw_q, igk_q
+!       IF(ios /=0) CALL errore(sub, 'Cannot read igk @ iq', ABS(ios))
+!     ELSE
+!       npw_q = npw_g ; igk_q = igk_g
+!     ENDIF
     !
-    ik_g = kplusq( 0)%ikqs(ik)
-    ik_q = kplusq(iq)%ikqs(ik)
     !
     CALL init_us_2 (npw_g, igk_g, xk(1, ik_g), vkb_g)
     CALL init_us_2 (npw_q, igk_q, xk(1, ik_q), vkb_q)

@@ -38,7 +38,7 @@ MODULE gc_d3
 !     USE gc_ph,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
   !   USE gc_d3,            ONLY : dvxc_rrr, dvxc_srr, &
   !                                dvxc_ssr, dvxc_sss
-    USE nlcc_ph,              ONLY : nlcc_any
+    USE uspp,                 ONLY : nlcc_any
     USE fft_base,             ONLY : dfftp
     USE fft_interfaces,       ONLY : fwfft
     USE wavefunctions_module, ONLY : psic

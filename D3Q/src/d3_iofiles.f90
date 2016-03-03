@@ -15,7 +15,7 @@ MODULE d3_iofiles
   ! Subroutines:
   PUBLIC :: openfild3, closefild3, openfile_drho
   PUBLIC :: d3_add_rho_core
-  PUBLIC :: addcore_d3
+!  PUBLIC :: addcore_d3
   PUBLIC :: read_drho
   PUBLIC :: fildrho_q, fildrho_q_names
   PUBLIC :: setup_d3_iofiles
@@ -169,7 +169,7 @@ SUBROUTINE openfile_drho()
 !   USE mp_global,  ONLY : me_pool, root_pool
   USE kplus3q,    ONLY : kplusq, q_names
   USE lsda_mod,   ONLY : nspin
-  USE phcom,      ONLY : nlcc_any
+  USE uspp,       ONLY : nlcc_any
   USE mp,         ONLY : mp_barrier
   USE mp_world,   ONLY : world_comm
   !
@@ -584,7 +584,7 @@ SUBROUTINE d3_add_rho_core (scalef)
   !       before the first call of drho_cc--
   !
   USE kinds,       ONLY : DP
-  USE nlcc_ph,     ONLY : nlcc_any
+  USE uspp,        ONLY : nlcc_any
 !   USE d3_iofiles,  ONLY : iu_drho_q, iu_drho_cc_q
   USE kplus3q,     ONLY : kplusq, q_names
   USE d3_basis,    ONLY : patq
@@ -613,7 +613,7 @@ SUBROUTINE d3_add_rho_core (scalef)
       DO nu = 1, 3 * nat
       !
       CALL davcio_drho_d3(drhov, lrdrho, iu_drho_q(iq), nu, -1)
-      CALL addcore_d3(kplusq(iq)%xq, patq(iq)%u, nu, d3c(iq)%drc, drhov, +1)
+      CALL addcore_ofq(kplusq(iq)%xq, nu, patq(iq)%u, d3c(iq)%drc, drhov, +1)
       CALL davcio_drho_d3(drhov, lrdrho, iu_drho_cc_q(iq), nu, +1)
       !
       ENDDO      
@@ -629,91 +629,11 @@ END SUBROUTINE d3_add_rho_core
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-subroutine addcore_d3(xq, u, mode, drc, drhoc, sign)
-  !-----------------------------------------------------------------------
-  !
-  !    This routine computes the change of the core charge
-  !    when the atoms moves along the given mode
-  !
-  !
-  USE constants, only : tpi
-  USE kinds, only : DP
-  use uspp_param, only: upf
-  USE ions_base,  ONLY : nat, ityp, ntyp => nsp, tau
-  use cell_base, only: tpiba
-  use fft_base,  only: dfftp
-  use fft_interfaces, only: invfft
-  use gvect, only: ngm, nl, mill, eigts1, eigts2, eigts3, g
-  use nlcc_ph, only: nlcc_any
-  implicit none
-
-  !
-  !   The dummy variables
-  integer, intent (IN) :: mode
-  real(DP), intent(IN) :: xq(3)
-  complex(DP),intent(in) :: u(3*nat, 3*nat), &  ! the transformation modes patterns
-                            drc(ngm, ntyp)      ! contain the rhocore (without structure factor)
-  
-  complex(DP), intent(INOUT) :: drhoc (dfftp%nnr)
-  INTEGER,INTENT(in) :: sign
-  ! input: rho / output: rho+core
-  !
-  !   Local variables
-  !
-  integer :: nt, ig, mu, na
-  complex(DP) :: fact, gu, gu0, u1, u2, u3, gtau
-  complex(DP) :: eigqts(nat)
-  real(DP)    :: arg
-  !
-  !
-  if (.not.nlcc_any) return
-  !
-  ! compute the derivative of the core charge  along the given mode
-  !
-  DO na = 1, nat
-     arg = ( xq(1) * tau(1,na) + &
-             xq(2) * tau(2,na) + &
-             xq(3) * tau(3,na) ) * tpi
-     eigqts(na) = CMPLX( COS( arg ), -SIN( arg ) ,kind=DP)
-  END DO  
-  !
-  !   drhoc(:) = (0.d0, 0.d0)
-  do na = 1, nat
-     nt = ityp (na)
-     if (upf(nt)%nlcc) then
-        fact = tpiba * (0.d0, -1.d0) * eigqts (na)
-        mu = 3 * (na - 1)
-        if ( abs(u(mu + 1, mode) ) + &
-             abs(u(mu + 2, mode) ) + &
-             abs(u(mu + 3, mode) ) > 1.0d-12) then
-           u1 = u(mu + 1, mode)
-           u2 = u(mu + 2, mode)
-           u3 = u(mu + 3, mode)
-           gu0 = xq(1)*u1 + xq(2)*u2 + xq(3)*u3
-           do ig = 1, ngm
-              gtau = eigts1 (mill (1,ig), na) &
-                   * eigts2 (mill (2,ig), na) &
-                   * eigts3 (mill (3,ig), na)
-              gu = gu0 + g (1, ig) * u1 + g (2, ig) * u2 + g (3, ig) * u3
-              drhoc (nl (ig) ) = drhoc(nl(ig)) &
-                               + sign * drc (ig, nt) * gu * fact * gtau
-           enddo
-        endif
-     endif
-  enddo
-  !
-  !   transform to real space
-  !
-!   CALL invfft ('Dense', drhoc, dfftp)
-  !
-  return
-
-end subroutine addcore_d3
-!-----------------------------------------------------------------------
 SUBROUTINE read_drho(drho, iq, ipert, with_core, pool_only)
   !-----------------------------------------------------------------------
   USE kinds,    ONLY : DP
-  USE phcom,    ONLY : lrdrho, nlcc_any
+  USE phcom,    ONLY : lrdrho
+  USE uspp,     ONLY : nlcc_any
   USE kplus3q,  ONLY : kplusq
   USE fft_base, ONLY : dfftp
   !

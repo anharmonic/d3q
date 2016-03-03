@@ -22,7 +22,7 @@ program d3q
   USE d3_basis,      ONLY : patq
   USE kplus3q,       ONLY : kplusq
   USE linter_d3q,    ONLY : generate_dwfc2
-  USE nlcc_ph,       ONLY : nlcc_any
+  USE uspp,          ONLY : nlcc_any
   USE mp,            ONLY : mp_bcast, mp_barrier
   USE cell_base,     ONLY : at
 
@@ -394,11 +394,11 @@ program d3q
         CALL dq1rhodq23v(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
         IF ( .not. d3perms(ip)%todo_first) THEN
-          print*, "doing first"
+          !print*, "doing first"
           jp         = d3perms(ip)%first_from
           d3(ip)%dyn = d3(jp)%dyn
         ELSE
-          print*, "doing shuffle"
+          !print*, "doing shuffle"
           jp         = d3perms(ip)%shuffle_from
           CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
                                 d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &

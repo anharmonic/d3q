@@ -23,7 +23,7 @@ SUBROUTINE d3_init
   USE pwcom,         ONLY : ngm, g, tpiba2, omega
   USE uspp_param,    ONLY : upf
   USE atom,          ONLY : msh, rgrid
-  USE phcom,         ONLY : nlcc_any
+  USE uspp,          ONLY : nlcc_any
   USE d3com,         ONLY : d3v, d3c
   USE mp,            ONLY : mp_barrier
   USE kplus3q,       ONLY : write_igkq_d3, nksq, kplusq, tot_nks
@@ -171,13 +171,12 @@ SUBROUTINE d3_init
   ! Writes to file the plane-wave ordering of each k (including k+q_x) point.
   !
   IF(nksq<=0) CALL errore('d3_init', 'nksq is zero', 1)
-  DO ik = 1, nksq
-    ! Note that this have already been done somewhere in the nscf calculation
-    ! but here we want it on separate files for k, k+/-q1, q2 q3.
-    ! Furthermore, I have no clue about *where* the nscf code (from run_nscf_d3)
-    ! does it
-    CALL write_igkq_d3(ik)
-  ENDDO
+  !
+  ! FIXME: The next subroutine compute the k+q+G lists for all q and k points,
+  ! this has already been done somewhere during the nscf calculation
+  ! hence doing it again here is in principle dangerous (different sort would
+  ! cause wrong results)
+  CALL write_igkq_d3()
   !
   CALL mp_barrier(world_comm)
   !

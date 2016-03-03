@@ -112,7 +112,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   USE uspp_param,       ONLY : upf
   USE control_flags,    ONLY : modenum
   USE constants,        ONLY : degspin, pi
-  USE nlcc_ph,          ONLY : nlcc_any
+  USE uspp,             ONLY : nlcc_any
   USE d3_basis,         ONLY : patq, allocate_d3_pattern
   USE d3_symmetry,      ONLY : symq, allocate_d3_symmetry, sym_gamma, &
                                d3_set_sym_irr, minus_3q

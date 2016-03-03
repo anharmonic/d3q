@@ -61,10 +61,10 @@ MODULE dq_vscf_module
     USE fft_base,         ONLY : dfftp
     USE fft_interfaces,   ONLY : fwfft, invfft
     USE uspp_param,       ONLY : upf
-    USE nlcc_ph,          ONLY : nlcc_any
+    USE uspp,             ONLY : nlcc_any
     USE eqv,              ONLY : dmuxc 
     USE d3com,            ONLY : d3c, d3v
-    USE d3_iofiles,       ONLY : read_drho, addcore_d3
+    USE d3_iofiles,       ONLY : read_drho!, addcore_d3
     USE scf,              ONLY : rho, rho_core
     USE gc_lr,            ONLY : grho
     USE gc_d3,            ONLY : dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s
@@ -212,7 +212,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE fft_interfaces, ONLY: fwfft, invfft
   USE cell_base,   ONLY : tpiba, tpiba2
   USE uspp_param,  ONLY : upf
-  USE nlcc_ph,     ONLY : nlcc_any
+  USE uspp,        ONLY : nlcc_any
   USE eqv,         ONLY : dmuxc 
   USE d3com,       ONLY : d3c, d3v
   USE d3_iofiles,  ONLY : read_drho

@@ -111,12 +111,14 @@ SUBROUTINE rhodq123v(d3dyn)
   ALLOCATE(alpha(8,nhm))
   !
   d3dynwrk2 = (0._dp, 0._dp)
-  REWIND(unit = kplusq(0)%iunigkq)
+  !REWIND(unit = kplusq(0)%iunigkq)
   !
   DO ik = 1, nksq
-     READ (kplusq(0)%iunigkq, iostat = ios) npw, igk
-     CALL errore ('d3vrho', 'reading igk', abs (ios))
+     !READ (kplusq(0)%iunigkq, iostat = ios) npw, igk
+     !CALL errore ('d3vrho', 'reading igk', abs (ios))
      ikk = kplusq(0)%ikqs(ik)
+     npw = kplusq(0)%ngkq(ik)
+     igk = kplusq(0)%igkq(:,ik)
      !
      CALL davcio (psi, lrwfc, iuwfc, ikk, -1)
      CALL init_us_2 (npw, igk, xk(1, ikk), vkb)

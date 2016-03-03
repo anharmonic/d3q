@@ -131,8 +131,8 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
     CALL dq_vscf(nu_v, dvloc(:,nu_v), kplusq(iq_dv)%xq, iq_dv, patq(iq_dv)%u)
   ENDDO
   !
-  REWIND (unit = kplusq(-iq_lft)%iunigkq)
-  IF(not_lsame) REWIND (unit = kplusq(iq_rgt)%iunigkq)
+  !REWIND (unit = kplusq(-iq_lft)%iunigkq)
+  !IF(not_lsame) REWIND (unit = kplusq(iq_rgt)%iunigkq)
   !
   K_POINTS_LOOP : & !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   DO ik = 1, nksq
@@ -141,20 +141,24 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
     ik_lft = kplusq(-iq_lft)%ikqs(ik) ! ... and of k+q_lft
     ik_gam = kplusq(0)%ikqs(ik)
     !
-    READ (kplusq(iq_rgt)%iunigkq, iostat = ios) npw_rgt,igk_rgt
-    CALL errore (sub, 'reading iunigk (right)', ABS(ios) )
+    npw_rgt = kplusq(iq_rgt)%ngkq(ik)
+    igk_rgt = kplusq(iq_rgt)%igkq(:,ik)
+    npw_lft = kplusq(-iq_lft)%ngkq(ik)
+    ! igk_lft => igk_rgt : igk_lft is automatically a copy of igk_rgt
+    IF(not_lsame) igk_lft = kplusq(-iq_lft)%igkq(:,ik)
+    
+    !READ (kplusq(iq_rgt)%iunigkq, iostat = ios) npw_rgt,igk_rgt
+    !CALL errore (sub, 'reading iunigk (right)', ABS(ios) )
     !
     IF (not_lsame) THEN
-      READ (kplusq(-iq_lft)%iunigkq, iostat = ios) npw_lft, igk_lft
-      CALL errore (sub, 'reading iunigk (left)', ABS(ios) )
+      !READ (kplusq(-iq_lft)%iunigkq, iostat = ios) npw_lft, igk_lft
+      !CALL errore (sub, 'reading iunigk (left)', ABS(ios) )
       !
       CALL init_us_2 (npw_rgt, igk_rgt, xk(1, ik_rgt), vkb_rgt)
       CALL init_us_2 (npw_lft, igk_lft, xk(1, ik_lft), vkb_lft)
     ELSE
       IF(ik_rgt /= ik_lft) CALL errore(sub, 'ik_lft /= ik_rgt', 1)
       !
-      npw_lft = npw_rgt
-      ! igk_lft => igk_rgt : igk_lft is automatically a copy of igk_rgt
       CALL init_us_2 (npw_rgt, igk_rgt, xk(1, ik_rgt), vkb_rgt)
       ! vkb_lft => vkb_rgt : vkb_lft is automatically a copy of vkb_rgt
     ENDIF

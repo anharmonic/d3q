@@ -25,17 +25,17 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   ! control to dq23v_(non)local that compute the second derivative of (non) local
   ! potential. Than it rotates the D3 matrix and ordinates it.
   !
-  USE kinds,        ONLY : DP
-  USE ions_base,    ONLY : nat
-  USE fft_base,     ONLY : dfftp
-  USE fft_interfaces, ONLY: fwfft
-  USE mp_global,    ONLY : inter_pool_comm, my_pool_id
-  USE mp,           ONLY : mp_sum, mp_bcast
-  USE d3_iofiles,   ONLY : read_drho
-  USE d3_basis,     ONLY : patq
-  USE io_global,    ONLY : stdout
-  USE kplus3q,      ONLY : q_names
-  USE d3_debug,     ONLY : dbgwrite_d3dyn
+  USE kinds,          ONLY : DP
+  USE ions_base,      ONLY : nat
+  USE fft_base,       ONLY : dfftp
+  USE fft_interfaces, ONLY : fwfft
+  USE mp_global,      ONLY : inter_pool_comm, my_pool_id
+  USE mp,             ONLY : mp_sum, mp_bcast
+  USE d3_iofiles,     ONLY : read_drho
+  USE d3_basis,       ONLY : patq
+  USE io_global,      ONLY : stdout
+  USE kplus3q,        ONLY : q_names
+  USE d3_debug,       ONLY : dbgwrite_d3dyn
   !
   IMPLICIT NONE
   COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat) ! the D3 matrix
@@ -304,7 +304,6 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   INTEGER,ALLOCATABLE :: igk_drho(:), igk_gamm(:)
   COMPLEX(DP),ALLOCATABLE :: vkb_drho(:,:), vkb_gamm(:,:)
   ! for readability
-  INTEGER,PARAMETER :: iq_gamm = 0
 
   IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc')
   ALLOCATE(d3dyn_wrk(3*nat, 3*nat))
@@ -327,8 +326,8 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   !
   ! Here we compute the nonlocal (Kleinman-Bylander) contribution.
   !
-  REWIND (unit = kplusq(iq_drho)%iunigkq)
-  REWIND (unit = kplusq(iq_gamm)%iunigkq)
+!   REWIND (unit = kplusq(iq_drho)%iunigkq)
+!   REWIND (unit = kplusq(0)%iunigkq)
   !
   IF(lgauss) CALL read_efsh()
   !
@@ -337,19 +336,23 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     !
     IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:10')
     ikq_drho = kplusq(iq_drho)%ikqs(ik)
-    ikq_gamm = kplusq(iq_gamm)%ikqs(ik)
+    npw_drho = kplusq(iq_drho)%ngkq(ik)
+    igk_drho = kplusq(iq_drho)%igkq(:,ik)
+    ikq_gamm = kplusq(0)%ikqs(ik)
+    npw_gamm = kplusq(0)%ngkq(ik)
+    igk_gamm = kplusq(0)%igkq(:,ik)
     !
     ! Read the list of plane waves at k and k+q_drho
-    READ (kplusq(iq_gamm)%iunigkq, iostat = ios) npw_gamm, igk_gamm
-    CALL errore ('dqrhod2v', 'reading igk_gamm', ABS (ios) )
-    ! if q_drho == Gamma we don't need to (actually we must not) read it twice
-    IF (kplusq(iq_drho)%iunigkq == kplusq(iq_gamm)%iunigkq) THEN
-        npw_drho = npw_gamm
-        igk_drho = igk_gamm
-    ELSE
-        READ (kplusq(iq_drho)%iunigkq, iostat = ios) npw_drho, igk_drho
-        CALL errore ('dqrhod2v', 'reading igk_drho', ABS (ios) )
-    ENDIF
+!     READ (kplusq(0)%iunigkq, iostat = ios) npw_gamm, igk_gamm
+!     CALL errore ('dqrhod2v', 'reading igk_gamm', ABS (ios) )
+!     ! if q_drho == Gamma we don't need to (actually we must not) read it twice
+!     IF (kplusq(iq_drho)%iunigkq == kplusq(0)%iunigkq) THEN
+!         npw_drho = npw_gamm
+!         igk_drho = igk_gamm
+!     ELSE
+!         READ (kplusq(iq_drho)%iunigkq, iostat = ios) npw_drho, igk_drho
+!         CALL errore ('dqrhod2v', 'reading igk_drho', ABS (ios) )
+!     ENDIF
     !
     ! Read the unperturbed wavefunctions at k (periodicity: k)
     CALL davcio (psi, lrwfc, iuwfc, ikq_gamm, -1)
@@ -360,7 +363,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     ! Reads the first variation of the wavefunction projected on conduction
     ! dpsi = d^q psi_k (periodicity: k+q)
     nrec = (nu_drho - 1) * nksq + ik
-    CALL davcio (dpsi, lrdwf, iu_dwfc(iq_gamm,iq_drho), nrec, -1)
+    CALL davcio (dpsi, lrdwf, iu_dwfc(0,iq_drho), nrec, -1)
     !
     ! In the metallic case corrects dpsi so as that the density matrix
     ! will be:   Sum_{k,nu} 2 * | dpsi > < psi |
@@ -432,7 +435,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
                     d3dyn_wrk (na_icart,na_jcart) = d3dyn_wrk (na_icart,na_jcart) &
                            +( alpha(1,ih) * beta(1,jh) + alpha(2,ih) * beta(2,jh) - &
                               alpha(3,ih) * beta(3,jh) - alpha(4,ih) * beta(4,jh) ) &
-                            * dvan(ih, jh, nt) * kplusq(iq_gamm)%wk(ik) !* 2._dp
+                            * dvan(ih, jh, nt) * kplusq(0)%wk(ik) !* 2._dp
                   ENDDO
                   ENDDO
                   !

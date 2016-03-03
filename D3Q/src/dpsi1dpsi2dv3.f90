@@ -43,7 +43,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   LOGICAL :: lmetal
   CHARACTER(len=13),PARAMETER :: sub = 'dpsi1dpsi2dv3'
   !
-  INTEGER,ALLOCATABLE :: igk_dummy(:)
+  !INTEGER,ALLOCATABLE :: igk_dummy(:)
   INTEGER :: ik_lft,ik_rgt, npw_gamma
   INTEGER :: nrec_lft,nrec_rgt,nrec_lr,nrec_rl,nrec_dH
   !
@@ -62,7 +62,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   ALLOCATE( dpsi_lft(npwx, nbnd) )
   ALLOCATE( dpsi_rgt(npwx, nbnd) )
   ALLOCATE( psi_dH_psi(nbnd, nbnd) )
-  ALLOCATE( igk_dummy( npwx) )
+  !ALLOCATE( igk_dummy( npwx) )
   !
   IF (lmetal) THEN
      degaussm1 = 1._dp / degauss
@@ -108,7 +108,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   IF(nu_l == nu_r .or. nu_H == nu_r .or. nu_H == nu_l) &
     CALL errore(sub, "Invalid choice of iq's (repeated)", 2)
   ! Rewind the units of igk, they can actually be the same, but 2 rewinds do no harm:
-  REWIND(kplusq(0)%iunigkq)
+!  REWIND(kplusq(0)%iunigkq)
   !
 !  write(stdout,'(a,i4)') "r psidvpsi:", iu_psi_dH_psi(iq_lft,iq_dH)
   !
@@ -121,7 +121,8 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
     ! read the number of plane-waves, because the dwfc that we use here are in the
     ! form |d_q psi_k-q> we take the planewaves from k+q-q which is just k.
     ! we do not actuallyt need the igk (it has to be read anyway)
-    READ (kplusq(0)%iunigkq, iostat = ios) npw_gamma, igk_dummy
+    !READ (kplusq(0)%iunigkq, iostat = ios) npw_gamma, igk_dummy
+    npw_gamma = kplusq(0)%ngkq(ik)
     !
     ! In the metal case we need to pre-compute some weights
     IF (lmetal) THEN
@@ -215,7 +216,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   ! Add dpsidvdpsi contribution to the D3 matrix we got in input
   d3dyn = d3dyn + d3dyn_tmp
   !
-  DEALLOCATE(igk_dummy)
+  !DEALLOCATE(igk_dummy)
   DEALLOCATE(dpsi_lft, dpsi_rgt)
   IF (lmetal) THEN
      DEALLOCATE( ps_lr, ps_rl )

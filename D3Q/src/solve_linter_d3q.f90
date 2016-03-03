@@ -321,9 +321,9 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   ! fixme:
   drhoscf = (0._dp, 0._dp)
   !
-  REWIND (unit = kplusq(iq_wfc)%iunigkq)
+  !REWIND (unit = kplusq(iq_wfc)%iunigkq)
 !   IF (.not.kplusq(iq_wfc)%lsame(iq_prj)) &!
-  REWIND (unit = kplusq(iq_prj)%iunigkq) ! two rewinds do not hurt
+  !REWIND (unit = kplusq(iq_prj)%iunigkq) ! two rewinds do not hurt
   !
   KPOINTS_LOOP : &
   DO ik = 1, nksq
@@ -332,12 +332,19 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
     ! the same if (iq_wfc == iq_prj) 
     ! OR the two kpoint are equal by chance (<-- not yet implemented)
     !
-    ik_wfc = kplusq(iq_wfc)%ikqs(ik)
-    ik_prj = kplusq(iq_prj)%ikqs(ik)
     !
     ! read the number of plane waves and their ordering for the unperturbed wavefunction
     ! at k+q_wfc, then read the wavefunction itself
-    READ (kplusq(iq_wfc)%iunigkq, iostat = ios) npw_wfc, igk_wfc
+    !READ (kplusq(iq_wfc)%iunigkq, iostat = ios) npw_wfc, igk_wfc
+    !print*, ik, allocated(kplusq(iq_wfc)%ngkq)
+    ik_wfc  = kplusq(iq_wfc)%ikqs(ik)
+    npw_wfc = kplusq(iq_wfc)%ngkq(ik)
+    igk_wfc = kplusq(iq_wfc)%igkq(:,ik)
+    !
+    ik_prj  = kplusq(iq_prj)%ikqs(ik)
+    npw_prj = kplusq(iq_prj)%ngkq(ik)
+    igk_prj = kplusq(iq_prj)%igkq(:,ik)
+    !
     CALL davcio (psi_wfc, lrwfc, iuwfc, ik_wfc, -1)
     !call get_buffer (evc, lrwfc, iuwfc, ikk)
     !
@@ -347,13 +354,13 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
 !     IF (kplusq(iq_wfc)%lsame(iq_prj)) THEN
     IF (ik_wfc == ik_prj) THEN
       ! If the two q vectors are equal just copy
-      npw_prj = npw_wfc
-      igk_prj = igk_wfc
+      !npw_prj = npw_wfc
+      !igk_prj = igk_wfc
       psi_prj = psi_wfc
       vkb_prj = vkb_wfc
     ELSE
       ! Otherwise, we have to repeat for q_prj
-      READ (kplusq(iq_prj)%iunigkq, iostat = ios) npw_prj, igk_prj
+      !READ (kplusq(iq_prj)%iunigkq, iostat = ios) npw_prj, igk_prj
       CALL davcio (psi_prj, lrwfc, iuwfc, ik_prj, -1)
       CALL init_us_2 (npw_prj, igk_prj, xk(1, ik_prj), vkb_prj)
       !

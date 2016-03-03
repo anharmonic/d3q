@@ -25,7 +25,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   USE cell_base,  ONLY : tpiba2, tpiba, omega
   USE fft_base,   ONLY : dfftp
   USE fft_interfaces, ONLY: fwfft
-  USE phcom,      ONLY : nlcc_any
+  USE uspp,       ONLY : nlcc_any
   USE d3com,      ONLY : d3c !, npert_i, npert_f
   !
   USE scf,        ONLY : rho, rho_core
@@ -154,7 +154,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   USE cell_base,  ONLY : tpiba2, omega
   USE fft_base,   ONLY : dfftp
   USE fft_interfaces, ONLY: fwfft
-  USE nlcc_ph,    ONLY : nlcc_any
+  USE uspp,       ONLY : nlcc_any
   USE eqv,        ONLY : dmuxc
   USE d3com,      ONLY : d3c, npert_i, npert_f
   !

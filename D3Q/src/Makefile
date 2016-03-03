@@ -61,7 +61,8 @@ PWOBJS = ../../PW/src/libpw.a
 PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 QEMODS = ../../Modules/libqemod.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
-LIBOBJS = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
+#LIBOBJS = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
+LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a
 
 
 TLDEPS= bindir mods libs pw ph

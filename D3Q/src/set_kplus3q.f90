@@ -48,7 +48,9 @@ MODULE kplus3q
     INTEGER  :: nksq    ! number of k+q points
     INTEGER  :: iunigkq ! unit where wavefunctions are written
     INTEGER  :: koffset !+1 is the index of the first kpoint belonging to this k+q grid (FIXME?)
-    INTEGER,POINTER :: ikqs(:) ! map/list of k+q points in the global list of kpoints
+    INTEGER,ALLOCATABLE :: ikqs(:) ! map/list of k+q points in the global list of kpoints
+    INTEGER,ALLOCATABLE :: igkq(:,:) ! list of plane waves for each k+q point
+    INTEGER,ALLOCATABLE :: ngkq(:)
   END TYPE
   !
   TYPE(kplus3q_type) :: kplusq(-3:3) ! -q3,-q2,-q1,Gamma,q1,q2,q3
@@ -85,6 +87,8 @@ SUBROUTINE reset_kplus3q(cleanup)
     DEALLOCATE(kplusq(iq)%ikqs)
     DEALLOCATE(kplusq(iq)%xk)
     DEALLOCATE(kplusq(iq)%wk)
+    DEALLOCATE(kplusq(iq)%igkq)
+    DEALLOCATE(kplusq(iq)%ngkq)
   ENDDO
   !
   q_special_cases_initialized = .false.
@@ -497,21 +501,19 @@ END SUBROUTINE kplus3q_grids
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE write_igkq_d3(ik)
-  !-----------------------------------------------------------------------
+SUBROUTINE write_igkq_d3()  !-----------------------------------------------------------------------
   USE kinds,      ONLY : DP
-  USE wvfct,      ONLY : g2kin, npwx
+  USE wvfct,      ONLY : npwx
   USE gvecw,      ONLY : ecutwfc
   USE gvect,      ONLY : g, ngm
   USE cell_base,  ONLY : tpiba2
-  USE klist,      ONLY : xk
+  USE klist,      ONLY : ngk, igk_k, xk
   IMPLICIT NONE
   !
-  INTEGER,INTENT(IN) :: ik
+  INTEGER :: ik
   !
-  INTEGER  :: iq, npwq, ikq
-  INTEGER,ALLOCATABLE :: igkq(:)
-!   INTEGER  :: ikk, ikq1, ikq2, ikq3
+  INTEGER  :: iq, ikq_global
+  REAL(DP),ALLOCATABLE :: g2(:)
   REAL(DP) :: gcutwfc
   CHARACTER(len=13),PARAMETER :: sub = 'write_igkq_d3'
   !
@@ -523,24 +525,36 @@ SUBROUTINE write_igkq_d3(ik)
   ! FIXME!!!! lsda is currently not supported in D3, but when it will...
 !   IF ( lsda ) current_spin = isk( ikk )
   !
-  ALLOCATE (igkq (npwx))
   !
-  ! ... g2kin is used here as work space
-  !
+  ALLOCATE (g2(npwx))
   DO iq = -3,3
-    IF(kplusq(iq)%lstored) THEN
-      ikq = kplusq(iq)%ikqs(ik)
-      ! DEBUG !!! :
-      igkq = -10000000-iq
-      !
-      CALL gk_sort( xk(1,ikq), ngm, g, gcutwfc, npwq, igkq, g2kin )
-      WRITE( kplusq(iq)%iunigkq ) npwq, igkq
-!       ! DEBUG!! :
-!       WRITE( 90000+kplusq(iq)%iunigkq,* ) npwq, igkq
-    ENDIF
+    !
+    !IF(kplusq(iq)%lstored) THEN
+    
+      ALLOCATE(kplusq(iq)%igkq(npwx,nksq))
+      ALLOCATE(kplusq(iq)%ngkq(nksq))
+      ! DEBUG :
+      kplusq(iq)%igkq = -10000000-iq
+      kplusq(iq)%ngkq = -100000000-iq
+      
+      DO ik = 1, nksq
+        !
+        ikq_global = kplusq(iq)%ikqs(ik)
+        ! This line would recompute:
+!         CALL gk_sort( kplusq(iq)%xk(:,ik), ngm, g, gcutwfc, kplusq(iq)%ngkq(ik), &
+!                       kplusq(iq)%igkq(:,ik), g2 )
+        ! Instead we copy from the NSCF ariable:
+        kplusq(iq)%ngkq(ik)   = ngk(ikq_global)
+        kplusq(iq)%igkq(:,ik) = igk_k(:,ikq_global)
+        !
+        WRITE( kplusq(iq)%iunigkq ) kplusq(iq)%ngkq(ik), kplusq(iq)%igkq(:,ik)
+  !       ! DEBUG!! :
+!         WRITE( 90000+kplusq(iq)%iunigkq,* )  kplusq(iq)%ngkq(ik), kplusq(iq)%igkq(:,ik)
+      ENDDO
+    !ENDIF
   ENDDO
   !
-  DEALLOCATE(igkq)
+  DEALLOCATE(g2)
   !
   RETURN
 END SUBROUTINE write_igkq_d3

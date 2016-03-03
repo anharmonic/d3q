@@ -80,7 +80,6 @@ d3_init.o : ../../PHonon/PH/phcom.o
 d3_init.o : ../../PW/src/pwcom.o
 d3_init.o : ./d3com.o
 d3_init.o : ./set_kplus3q.o
-d3_iofiles.o : ../../FFTXlib/fft_interfaces.o
 d3_iofiles.o : ../../FFTXlib/scatter_mod.o
 d3_iofiles.o : ../../Modules/cell_base.o
 d3_iofiles.o : ../../Modules/constants.o
@@ -93,7 +92,6 @@ d3_iofiles.o : ../../Modules/kind.o
 d3_iofiles.o : ../../Modules/mp.o
 d3_iofiles.o : ../../Modules/mp_global.o
 d3_iofiles.o : ../../Modules/mp_world.o
-d3_iofiles.o : ../../Modules/recvec.o
 d3_iofiles.o : ../../Modules/uspp.o
 d3_iofiles.o : ../../Modules/wrappers.o
 d3_iofiles.o : ../../PHonon/PH/dfile_autoname.o
@@ -214,6 +212,7 @@ d3_valence.o : ../../Modules/ions_base.o
 d3_valence.o : ../../Modules/kind.o
 d3_valence.o : ../../Modules/mp.o
 d3_valence.o : ../../Modules/mp_global.o
+d3_valence.o : ../../Modules/mp_pools.o
 d3_valence.o : ../../Modules/mp_world.o
 d3_valence.o : ../../PW/src/pwcom.o
 d3_valence.o : ./d3_debug.o
@@ -291,7 +290,6 @@ d3q.o : ./set_kplus3q.o
 d3q.o : ./setup_d3gc.o
 d3q.o : ./solve_linter_d3q.o
 d3q.o : ./stop_d3.o
-dpsi1dpsi2dv3.o : ../../LR_Modules/lrcom.o
 dpsi1dpsi2dv3.o : ../../Modules/io_global.o
 dpsi1dpsi2dv3.o : ../../Modules/ions_base.o
 dpsi1dpsi2dv3.o : ../../Modules/kind.o
@@ -302,7 +300,6 @@ dpsi1dpsi2dv3.o : ../../PW/src/pwcom.o
 dpsi1dpsi2dv3.o : ./d3_iofiles.o
 dpsi1dpsi2dv3.o : ./d3com.o
 dpsi1dpsi2dv3.o : ./set_kplus3q.o
-dpsi1dv2dpsi3.o : ../../LR_Modules/lrcom.o
 dpsi1dv2dpsi3.o : ../../Modules/fft_base.o
 dpsi1dv2dpsi3.o : ../../Modules/io_global.o
 dpsi1dv2dpsi3.o : ../../Modules/ions_base.o
@@ -318,7 +315,6 @@ dpsi1dv2dpsi3.o : ./dq_vscf.o
 dpsi1dv2dpsi3.o : ./dvdpsi.o
 dpsi1dv2dpsi3.o : ./set_kplus3q.o
 dq1rhodq23v.o : ../../FFTXlib/fft_interfaces.o
-dq1rhodq23v.o : ../../LR_Modules/lrcom.o
 dq1rhodq23v.o : ../../Modules/constants.o
 dq1rhodq23v.o : ../../Modules/fft_base.o
 dq1rhodq23v.o : ../../Modules/io_global.o
