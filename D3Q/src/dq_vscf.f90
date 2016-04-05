@@ -8,8 +8,8 @@
 MODULE dq_vscf_module
 
   INTERFACE dq_vscf
-!     MODULE PROCEDURE dq_vscf_nuovo
-    MODULE PROCEDURE dq_vscf_vecchio
+     MODULE PROCEDURE dq_vscf_nuovo
+!    MODULE PROCEDURE dq_vscf_vecchio
   END INTERFACE dq_vscf
 
 
@@ -64,7 +64,7 @@ MODULE dq_vscf_module
     USE uspp,             ONLY : nlcc_any
     USE eqv,              ONLY : dmuxc 
     USE d3com,            ONLY : d3c, d3v
-    USE d3_iofiles,       ONLY : read_drho!, addcore_d3
+    USE d3_iofiles,       ONLY : read_drho, addcore_d3
     USE scf,              ONLY : rho, rho_core
     USE gc_lr,            ONLY : grho
     USE gc_d3,            ONLY : dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s
@@ -131,8 +131,8 @@ MODULE dq_vscf_module
     ! Remove the core correction, if necessary
     IF(nlcc_any)THEN
       !CALL read_drho(drho_tot, iq_x, nu_i, with_core=.false.)
-      CALL addcore_ofq(xq_x, nu_i, u_x, d3c(iq_x)%drc, drho_tot, -1)
-      !CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1)
+      CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1._dp)
+      !CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1._dp)
     ENDIF
     !
     ! copy the total (up+down) delta rho in drho_tot(*,1) and go to G-space
@@ -297,8 +297,8 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   IF ( dft_is_gradient() ) THEN
     CALL read_drho(aux2, iq_x, nu_i, with_core=.true.)
     
-!     CALL dgradcorr(rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-!                    aux2, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvloc)
+    CALL dgradcorr(rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+                   aux2, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvloc)
   ENDIF
 
   IF (doublegrid) call cinterpolate (dvloc, dvloc, - 1)
