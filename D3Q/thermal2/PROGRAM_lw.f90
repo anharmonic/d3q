@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! CONVENTIONS :
 ! xR, xq --> cartesian coordinates
@@ -50,8 +52,8 @@ MODULE linewidth_program
     ! RAFTEST
     INTEGER :: nu
     !
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
-    CALL grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    !CALL grid%scatter()
     !
     IF(ionode)THEN
     DO it = 1,input%nconf
@@ -85,7 +87,7 @@ MODULE linewidth_program
     ! THIS FACTOR IS NOW INCLUDED DIRECTLY IN SUM_LINEWIDTH_MODES!
     sigma_ry = input%sigma/RY_TO_CMM1
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
+    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
     DO iq = 1,qpath%nq
       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
@@ -226,8 +228,8 @@ MODULE linewidth_program
     REAL(DP) :: w2(S%nat3)
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
-    CALL grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    !CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
@@ -246,7 +248,7 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
+    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
       CALL freq_phq(qpath%xq(:,iq), S, fc2, w2, D)
@@ -323,8 +325,8 @@ MODULE linewidth_program
     !
     ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
     !
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
-    CALL grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    !CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
@@ -347,7 +349,7 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (3)"
+    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (3)"
     
     DO iq = 1,qpath%nq
       ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)

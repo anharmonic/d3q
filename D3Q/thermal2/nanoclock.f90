@@ -1,10 +1,9 @@
 !
 ! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
-!  released under the GPL licence v2 and v3
-! http://www.gnu.org/licenses/gpl-3.0.en.html
-! http://www.gnu.org/licenses/gpl-2.0.en.html
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 !

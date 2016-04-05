@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE q_grids
@@ -14,6 +16,7 @@ MODULE q_grids
     CHARACTER(len=9) :: basis = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
+    INTEGER :: nqtot = 0
     LOGICAL :: scattered = .false.
     INTEGER :: iq0 = 0
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
@@ -66,6 +69,7 @@ MODULE q_grids
     IMPLICIT NONE
     CLASS(q_grid),INTENT(inout) :: grid
     INTEGER :: nq
+    IF(grid%scattered) RETURN
     nq = grid%nq
     CALL scatteri_mat(3,nq, grid%xq)
     nq = grid%nq
@@ -97,7 +101,7 @@ MODULE q_grids
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !    END SUBROUTINE setup_symmetry
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0)
+  SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0, scatter)
     USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     CHARACTER(len=6),INTENT(in)     :: grid_type
@@ -105,15 +109,29 @@ MODULE q_grids
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
+    LOGICAL,OPTIONAL,INTENT(in) :: scatter
+    !
+    LOGICAL  :: do_scatter
+    do_scatter = .false.
+    IF(present(scatter)) do_scatter = scatter
     !
     IF(grid_type=="simple")THEN
-      CALL setup_simple_grid(bg, n1,n2,n3, grid, xq0)
+      IF(.not.do_scatter)THEN
+        ! If the grid is not mpi-scattered I use the simple subroutine
+        CALL setup_simple_grid(bg, n1,n2,n3, grid, xq0)
+      ELSE
+        ! otherwise, I use this subroutine instead, which directly scatters over MPI:
+        CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
+      ENDIF
     ELSE IF (grid_type=="bz")THEN
+      ! This grid has to be generated in its entirety and then scatterd, 
+      ! mind the memory bottleneck!
       CALL setup_bz_grid(bg, n1,n2,n3, grid, xq0)
+      IF(do_scatter) CALL grid%scatter()
     ELSE
       CALL errore("setup_grid", "wrong grid type", 1)
     ENDIF
-    ioWRITE(stdout,'(2x,"Setup a ",a," grid of",i6," q-points")') grid_type, grid%nq
+    ioWRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
   END SUBROUTINE setup_grid
 
   ! \/o\________\\\_________________________________________/^>
@@ -187,6 +205,8 @@ MODULE q_grids
         grid%xq(:,iq) = grid%xq(:,iq) + xq0
       ENDDO
     ENDIF
+    !
+    grid%nqtot = grid%nq
     !
   END SUBROUTINE setup_bz_grid
   !
@@ -283,7 +303,86 @@ MODULE q_grids
       ENDDO
     ENDIF
     !
+    grid%nqtot = grid%nq
+    !
   END SUBROUTINE setup_simple_grid
+  
+  ! \/o\________\\\_________________________________________/^>
+  ! Create a scattered grid without generating a full local grid first
+  ! which becomes a memory bottleneck in some cases
+  SUBROUTINE setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
+    USE input_fc,    ONLY : ph_system_info
+    USE mpi_thermal
+    IMPLICIT NONE
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
+    INTEGER,INTENT(in) :: n1,n2,n3
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
+    !
+    INTEGER :: nqme, nqtot, nqdiv, nqresidual, nqfirst
+    INTEGER :: i,j,k, idx, my_idx
+    !
+    IF(.not.mpi_started) CALL errore("setup_scattered_grid", "mpi must be started first",1)
+    grid%n(1) = n1
+    grid%n(2) = n2
+    grid%n(3) = n3
+    ! find the number of points for this cpu, the first cpus can have 
+    ! an extra point if num_procs is not a divisor of nqtot
+    nqtot = n1*n2*n3
+    grid%nqtot = nqtot
+    !
+    nqdiv = nqtot/num_procs
+    !print*, nqtot, num_procs, nqdiv
+    nqresidual = nqtot-nqdiv*num_procs
+    nqme = nqdiv
+    IF(my_id<nqresidual) nqme = nqme+1
+    grid%nq=nqme
+    
+    nqfirst = 1
+    DO idx = 0,my_id-1
+      nqfirst = nqfirst+nqdiv
+      IF(idx<nqresidual) nqfirst = nqfirst+1
+    ENDDO
+    !print*, "me", my_id, nqfirst, nqme, nqresidual, nqdiv, num_procs
+    !
+    IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
+    ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    grid%w = 1._dp/grid%nqtot
+    grid%scattered = .true.
+    !
+    idx = 0
+    NQ_LOOP : &
+    DO i = 0, n1-1
+    DO j = 0, n2-1
+    DO k = 0, n3-1
+      !
+      idx = idx+1
+      my_idx = idx -nqfirst+1
+      IF(my_idx>nqme) EXIT NQ_LOOP
+      IF(my_idx>0)THEN
+        !print*, "yayaya", my_id, idx, my_idx
+        grid%xq(1,my_idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
+        grid%xq(2,my_idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
+        grid%xq(3,my_idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
+      ENDIF
+      !
+    ENDDO
+    ENDDO
+    ENDDO &
+    NQ_LOOP
+    !
+    CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
+    grid%basis = 'cartesian'
+    !
+    IF(present(xq0)) THEN
+      DO idx = 1,grid%nq
+        grid%xq(:,idx) = grid%xq(:,idx) + xq0
+      ENDDO
+    ENDIF
+    !
+  END SUBROUTINE setup_scattered_grid
+  !
   ! \/o\________\\\_________________________________________/^>
   ! Create a line of nq q-point from xqi to xqf, the list is appended
   ! to the grid, weights are improperly used as path length

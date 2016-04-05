@@ -97,7 +97,7 @@ MODULE mpi_thermal
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LAND,&
                        MPI_COMM_WORLD, ierr)
       !timer_CALL t_mpicom%stop()
-#ENDIF
+#endif
    END SUBROUTINE
  
   ! In-place MPI sum of integer, scalar, vector and matrix

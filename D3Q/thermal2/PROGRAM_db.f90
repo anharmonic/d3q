@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2014-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2014-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 MODULE add_bubble_program
 #include "mpi_thermal.h"
@@ -245,7 +247,7 @@ MODULE add_bubble_program
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(1x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
+    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
       CALL freq_phq(qpath%xq(:,iq), S, fc2, w2, D)

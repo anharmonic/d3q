@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! Module that uses object oriented features of Fortran 2003 to deal with both
 ! regular-grid and sparse representations of Force constants in a transparent way.
@@ -647,7 +649,7 @@ MODULE fc3_interpolate
     DO i = 1, fc%n_R
       DO j = 1, fc%n_terms(i)
         !
-        WRITE(unit,cformat) fc%dat(i)%idx(:,j), fc%dat(i)%fc(j)
+        WRITE(unit,cformat) fc%dat(i)%idx(1:3,j), fc%dat(i)%fc(j)
         !
       ENDDO
       WRITE(unit,*)

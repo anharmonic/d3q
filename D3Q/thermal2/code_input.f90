@@ -1,7 +1,11 @@
 !
-! Written by Lorenzo Paulatto (2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2015-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
+! Code contributions from Raffaello Bianco
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 ! This module is a big mess that read input and check if there are no conflicts
@@ -441,7 +445,7 @@ MODULE code_input
         nq1=nk(1); nq2=nk(2); nq3=nk(3)
         qpoints_ok = .true.
       ENDIF
-      CALL setup_grid(input%grid_type, S%bg, nq1, nq2, nq3, qpts)
+      CALL setup_grid(input%grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false.)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &

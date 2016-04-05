@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE fc2_interpolate
@@ -190,7 +192,7 @@ MODULE fc2_interpolate
     ! clause is often miscompiled by ifort 14 (Feb 2015)
     !
     D = (0._dp, 0._dp)
-!$OMP PARALLEL DEFAULT(none) SHARED(D,S%nat3,fc,xq) PRIVATE(i,arg,phase,D_aux)
+!$OMP PARALLEL DEFAULT(none) SHARED(D,S,fc,xq) PRIVATE(i,arg,phase,D_aux)
     ALLOCATE(D_aux(S%nat3,S%nat3))
     D_aux = (0._dp, 0._dp)
 !$OMP DO
@@ -207,7 +209,7 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !$OMP END PARALLEL
     !
-    CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
   END SUBROUTINE fftinterp_mat2_safe
 
@@ -377,7 +379,6 @@ MODULE fc2_interpolate
     !
     CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
-    U = CONJG(U)
     ! RAF
     U = CONJG(U)
     ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)

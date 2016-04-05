@@ -16,6 +16,12 @@ PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
 PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
+PROGRAM_import3py.o : ../../Modules/constants.o
+PROGRAM_import3py.o : ../../Modules/kind.o
+PROGRAM_import3py.o : ./PROGRAM_import3py.o
+PROGRAM_import3py.o : ./f3_bwfft.o
+PROGRAM_import3py.o : ./fc3_interp.o
+PROGRAM_import3py.o : ./input_fc.o
 PROGRAM_lw.o : ../../Modules/constants.o
 PROGRAM_lw.o : ../../Modules/kind.o
 PROGRAM_lw.o : ./PROGRAM_lw.o
@@ -42,14 +48,8 @@ PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat.o
 PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat_old.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
-PROGRAM_qq2rr.o : ../../D3Q/src/d3_basis.o
-PROGRAM_qq2rr.o : ../../D3Q/src/d3_shuffle.o
-PROGRAM_qq2rr.o : ../../D3Q/src/d3matrix_io.o
-PROGRAM_qq2rr.o : ../../D3Q/src/write_d3dyn.o
-PROGRAM_qq2rr.o : ../../Modules/constants.o
 PROGRAM_qq2rr.o : ../../Modules/kind.o
-PROGRAM_qq2rr.o : ../../Modules/parameters.o
-PROGRAM_qq2rr.o : ./PROGRAM_qq2rr.o
+PROGRAM_qq2rr.o : ./f3_bwfft.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
 PROGRAM_r2q.o : ../../Modules/constants.o
@@ -123,6 +123,15 @@ dynbubble.o : ./more_constants.o
 dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
+f3_bwfft.o : ../../D3Q/src/d3_basis.o
+f3_bwfft.o : ../../D3Q/src/d3_shuffle.o
+f3_bwfft.o : ../../D3Q/src/d3matrix_io.o
+f3_bwfft.o : ../../D3Q/src/write_d3dyn.o
+f3_bwfft.o : ../../Modules/constants.o
+f3_bwfft.o : ../../Modules/kind.o
+f3_bwfft.o : ../../Modules/parameters.o
+f3_bwfft.o : ./fc3_interp.o
+f3_bwfft.o : ./input_fc.o
 fc2_interp.o : ../../Modules/constants.o
 fc2_interp.o : ../../Modules/kind.o
 fc2_interp.o : ./functions.o
@@ -146,7 +155,6 @@ final_state.o : ./q_grids.o
 functions.o : ../../Modules/constants.o
 functions.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/kind.o
-input_fc.o : ../../Modules/parameters.o
 input_fc.o : ./mpi_thermal.o
 input_fc.o : ./ph_system.o
 isotopes.o : ../../Modules/constants.o
@@ -172,6 +180,8 @@ mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
 nanoclock.o : ./mpi_thermal.o
 nist_isotopes_db.o : ../../Modules/kind.o
+ph_system.o : ../../Modules/kind.o
+ph_system.o : ../../Modules/parameters.o
 ph_system.o : ./more_constants.o
 ph_velocity.o : ../../Modules/kind.o
 ph_velocity.o : ./fc2_interp.o
@@ -207,6 +217,7 @@ variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
 PROGRAM_db.o : 
+PROGRAM_import3py.o : 
 PROGRAM_lw.o : 
 PROGRAM_tk.o : 
 code_input.o : 
@@ -218,6 +229,7 @@ input_fc.o :
 linewidth.o : 
 mpi_thermal.o : 
 nanoclock.o : 
+ph_system.o : 
 posix_signal.o : 
 q_grids.o : 
 timers.o : 

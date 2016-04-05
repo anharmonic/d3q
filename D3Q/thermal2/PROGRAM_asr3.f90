@@ -1,7 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2013-2014) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 ! This program applies acousting sum rules to 3rd order dynamical matrices. 
 ! It is currently quite sketchy, but it works. It reads a force constant file in grid format
@@ -830,7 +832,7 @@ PROGRAM asr3
 !     delta = perm_symmetrize_fc3(S%nat,idx2,fx)
 
     APPLY_ASR : &
-    DO j = 1,10000
+    DO j = 1,100000
 !       IF(j<3)THEN
 !         IF( impose_asr3_6idx(S%nat,idx2,fx) < 1.d-6) EXIT
 !       ELSE

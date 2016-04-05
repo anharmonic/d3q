@@ -1,8 +1,9 @@
 !
-! Written by Lorenzo Paulatto (2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
-!
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
 MODULE thermalk_program
   !
@@ -24,7 +25,7 @@ MODULE thermalk_program
     USE linewidth,          ONLY : linewidth_q
     USE constants,          ONLY : RY_TO_CMM1
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
-    USE q_grids,            ONLY : q_grid, setup_grid, setup_bz_grid
+    USE q_grids,            ONLY : q_grid, setup_grid !, setup_bz_grid
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_vel
@@ -64,8 +65,8 @@ MODULE thermalk_program
     ! this is not relly necessary in SMA, will fix later
     ! In any case we need to use to separate grids, because the 
     ! inner one (in_grid) is scatterd over MPI
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), in_grid)
-    CALL in_grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), in_grid, scatter=.true.)
+    !CALL in_grid%scatter()
     !
     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an outer grid of", out_grid%nq, " points"
@@ -300,8 +301,8 @@ MODULE thermalk_program
     nq    = out_grid%nq
     
     ! make the inner grid on top of the outer one
-    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
-    CALL in_grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid, scatter=.true.)
+    !CALL in_grid%scatter()
 
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     ! Compute A_out diagonal matrix
@@ -424,9 +425,9 @@ MODULE thermalk_program
     nq    = out_grid%nq
     
     ! make the inner grid on top of the outer one
-    !CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
-    CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
-    CALL in_grid%scatter()
+    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid, scatter=.true.)
+    !CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
+    !CALL in_grid%scatter()
     
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     ! Compute A_out diagonal matrix

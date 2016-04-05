@@ -123,23 +123,25 @@ MODULE ph_system
     ENDDO
     !
     READ(unit,*,iostat=ios) S%lrigid
-    print*, "lrigid", S%lrigid
+    !print*, "lrigid", S%lrigid
     IF(ios/=0) CALL errore(sub,"reading rigid", 1)
     IF(S%lrigid)THEN
 !       READ(unit,*,iostat=ios) cdummy
       READ(unit,*,iostat=ios) S%epsil
       IF(ios/=0) CALL errore(sub,"reading epsilon (2)", 1)
-    print*, "epsil", S%epsil
+!    print*, "epsil", S%epsil
 !       READ(unit,*) cdummy
 !       READ(unit,*) cdummy
       ALLOCATE(S%zeu(3,3,S%nat))
       DO na = 1, S%nat
         READ(unit,*,iostat=ios) S%zeu(:,:,na)
       print*, "zeu", na, S%zeu(:,:,na)
-        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
+!        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
 !         READ(unit,*) cdummy
       ENDDO
-      
+     
+    ELSE
+      ALLOCATE(S%zeu(0,0,0))
     ENDIF
     !
   END SUBROUTINE read_system

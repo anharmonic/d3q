@@ -39,6 +39,7 @@ dynbubble.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
+f3_bwfft.o \
 fc3_interp.o \
 input_fc.o \
 isotopes.o \
@@ -57,7 +58,7 @@ timers.o \
 variational_tk.o
 #vector.o
 
-EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x
+EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
 
 all : tldeps $(EXECUTABLES)
 
@@ -121,6 +122,13 @@ asr3.x : PROGRAM_asr3.o $(THERMALK2_LIBS)
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+
+import3py.x : PROGRAM_import3py.o $(THERMALK2_LIBS)
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_import3py.o $(THERMALK2_LIBS) \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+
 
 
 d3q :

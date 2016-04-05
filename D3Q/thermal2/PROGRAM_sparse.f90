@@ -1,9 +1,11 @@
 !
-! Written by Lorenzo Paulatto (2013-2015) IMPMC @ UPMC / CNRS UMR7590
-!  released under the CeCILL licence v 2.1
+! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
 !
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+! \/o\________\\\________________\\/\_________________________/^>
 MODULE gen_sparse_program
   USE kinds, ONLY : DP
   
@@ -28,7 +30,7 @@ MODULE gen_sparse_program
     !
   END SUBROUTINE
 END MODULE gen_sparse_program
-
+! \/o\________\\\________________\\/\_________________________/^>
 PROGRAM gen_sparse
 
     USE kinds,          ONLY : DP
@@ -159,4 +161,4 @@ PROGRAM gen_sparse
     CALL sfc%destroy()
     
 END PROGRAM gen_sparse
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+! \/o\________\\\________________\\/\_________________________/^>
