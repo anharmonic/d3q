@@ -237,20 +237,19 @@ MODULE fc2_interpolate
     !
     CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
                   S%tau,S%epsil,S%zeu,S%bg,S%omega,+1.d0)
- 
-      DO ja = 1,S%nat
-      DO ia = 1,S%nat
-        DO j = 1,3
-        mu = j + 3*(ja-1)
-        DO i = 1,3
-          nu = i + 3*(ia-1)
-          !print*, mu,nu,i,j,ia,ja
-          D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
-                               *S%sqrtmm1(nu)*S%sqrtmm1(mu)
-        ENDDO
-        ENDDO
+    DO ja = 1,S%nat
+    DO ia = 1,S%nat
+      DO j = 1,3
+      mu = j + 3*(ja-1)
+      DO i = 1,3
+        nu = i + 3*(ia-1)
+        !print*, mu,nu,i,j,ia,ja
+        D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
+                              *S%sqrtmm1(nu)*S%sqrtmm1(mu)
       ENDDO
       ENDDO
+    ENDDO
+    ENDDO
     
     RETURN
   END SUBROUTINE
@@ -389,19 +388,33 @@ MODULE fc2_interpolate
       freq(1:3) = 0._dp
 !      U(:,1:3) = (0._dp, 0._dp)
     ENDIF
-    !
+    
     IF(ANY(freq<0._dp)) THEN
-      ioWRITE(*,"('xq = ',3f12.6)") xq
-      ioWRITE(*,"('freq = ',12f12.6)") freq
+      WRITE(*,"('xq = ',3f12.6)") xq
+      WRITE(*,"('freq = ',12f12.6)") freq
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
     ENDIF
     !
+!     DO i = 1,S%nat3
+!       IF(freq(i)<-1.d-8)THEN
+!         WRITE(*,"('xq = ',3f12.6)") xq
+!         WRITE(*,"('freq^2 = ',12f12.6)") freq
+!         CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
+!       ELSEIF(freq(i)<0._dp)THEN
+!         freq(i) = 0._dp
+!         U(:,i) = 0._dp
+!       ENDIF
+!     ENDDO
+    !
+!     IF(ANY(freq<-1.e-8_dp)) THEN
+!       WRITE(*,"('xq = ',3f12.6)") xq
+!       WRITE(*,"('freq = ',12f12.6)") freq
+!       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
+!     ELSE IF(ANY(freq<0._dp)) THEN
+!       WHERE(freq<0._dp) freq = -freq
+!     ENDIF
+    !
     freq = SQRT(freq)
-!     WHERE    (freq >=  0._dp)
-!       freq = SQRT(freq)
-!     ELSEWHERE(freq < 0._dp)
-!       freq = -SQRT(-freq)
-!     ENDWHERE
     !
   END SUBROUTINE freq_phq_safe
   !

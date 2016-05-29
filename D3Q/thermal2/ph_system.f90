@@ -47,16 +47,33 @@ MODULE ph_system
     IF(.not.same.and.verbose) WRITE(stdout,*) "nat", S%nat, Z%nat
     same = same .and. (S%ibrav == Z%ibrav)
     IF(.not.same.and.verbose) WRITE(stdout,*) "ibrav", S%ibrav, Z%ibrav
-    same = same .and. ALL( S%ityp(1:S%ntyp) == Z%ityp(1:Z%ntyp))
-    IF(.not.same.and.verbose) WRITE(stdout,*) "ityp", S%ityp, Z%ityp
+    
+    
+    IF(allocated(S%ityp).and.allocated(Z%ityp)) THEN
+      same = same .and. ALL( S%ityp(1:S%ntyp) == Z%ityp(1:Z%ntyp))
+      IF(.not.same.and.verbose) WRITE(stdout,*) "ityp", S%ityp, Z%ityp
+    ELSE
+      WRITE(stdout,*) "One system is missing ions types!"
+    ENDIF
     
     IF(allocated(S%tau).and.allocated(Z%tau)) THEN
       same = same .and. ALL( ABS(S%tau -Z%tau) < eps)
       IF(.not.same.and.verbose) WRITE(stdout,*) "tau", S%tau, Z%tau
+    ELSE
+      WRITE(stdout,*) "One system is missing ions base!"
     ENDIF
-    IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
-      same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
-      IF(.not.same.and.verbose) WRITE(stdout,*) "zeu", S%zeu, Z%zeu
+    !
+    IF(S%lrigid.or.Z%lrigid)THEN
+      IF(.not.S%lrigid) THEN
+        !WRITE(stdout,*) "Only Z has rigid"
+      ELSE IF(.not.Z%lrigid) THEN
+        !WRITE(stdout,*) "Only S has rigid"
+      ELSE
+        IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
+          same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
+          IF(.not.same.and.verbose) WRITE(stdout,*) "zeu", S%zeu, Z%zeu
+        ENDIF
+      ENDIF
     ENDIF
 
     same = same .and. ALL( ABS(S%celldm -Z%celldm) < eps)
@@ -135,13 +152,13 @@ MODULE ph_system
       ALLOCATE(S%zeu(3,3,S%nat))
       DO na = 1, S%nat
         READ(unit,*,iostat=ios) S%zeu(:,:,na)
-      print*, "zeu", na, S%zeu(:,:,na)
+!      print*, "zeu", na, S%zeu(:,:,na)
 !        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
 !         READ(unit,*) cdummy
       ENDDO
      
-    ELSE
-      ALLOCATE(S%zeu(0,0,0))
+!     ELSE
+!       ALLOCATE(S%zeu(0,0,0))
     ENDIF
     !
   END SUBROUTINE read_system

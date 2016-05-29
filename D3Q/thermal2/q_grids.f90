@@ -37,30 +37,7 @@ MODULE q_grids
 !     CONTAINS
 !       procedure :: B  => B_right_hand_side
   END TYPE q_basis
-! !   !
-! !   ! A scalar in this special space (i.e. an array of size 3,nconf)
-! !   TYPE  q_grid_real_scalar
-! !     INTEGER :: nconf ! number of temperatures
-! !     REAL(DP),ALLOCATABLE :: r(:,:)
-! !     CONTAINS
-! !       procedure :: assign_q_grid_real_scalar
-! !   END TYPE q_grid_real_scalar
-! !   INTERFACE q_grid_real_scalar
-! !     MODULE PROCEDURE real_scalar_on_q_grid
-! !   END INTERFACE
-! !   !
-! !   ! A vector in this special space (i.e. an array of size 3,nconf,3*nat,nqpts)
-! !   TYPE  q_grid_real_vector
-! !     INTEGER :: nconf ! number of temperatures
-! !     REAL(DP),ALLOCATABLE :: r(:,:,:,:)
-! !     CONTAINS
-! !       procedure :: assign_q_grid_real_scalar
-! !   END TYPE q_grid_real_vector
-! !   INTERFACE q_grid_real_vector
-! !     MODULE PROCEDURE real_vector_on_q_grid
-! !   END INTERFACE
-  
-  
+  !
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
 
@@ -126,8 +103,11 @@ MODULE q_grids
     ELSE IF (grid_type=="bz")THEN
       ! This grid has to be generated in its entirety and then scatterd, 
       ! mind the memory bottleneck!
+      !print*,1
       CALL setup_bz_grid(bg, n1,n2,n3, grid, xq0)
+      !print*,2
       IF(do_scatter) CALL grid%scatter()
+      !print*,3
     ELSE
       CALL errore("setup_grid", "wrong grid type", 1)
     ENDIF
@@ -145,7 +125,7 @@ MODULE q_grids
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     !
     TYPE(q_grid) :: sg
-    INTEGER :: i,j,k, iq
+    INTEGER :: i,j,k, iq, nqtot
     REAL(DP) :: g(3), qg(3), qbz(3,12), qgmod2, qgmod2_min
     INTEGER :: nqbz
     INTEGER,PARAMETER :: far=2
@@ -161,8 +141,10 @@ MODULE q_grids
     !
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     !
+    nqtot = 0
     grid%nq = 0
-    
+
+    ! first count the points
     DO iq = 1, sg%nq
       qgmod2_min = SUM(sg%xq(:,iq)**2)
       qbz = 0._dp
@@ -188,16 +170,54 @@ MODULE q_grids
       ENDDO
       ENDDO
       ENDDO
+      !
+      nqtot = nqtot + nqbz
+    ENDDO    
+
+    ALLOCATE(grid%xq(3,nqtot))
+    ALLOCATE(grid%w(nqtot))
+    
+    DO iq = 1, sg%nq
+      !print*, 2000, iq
+      qgmod2_min = SUM(sg%xq(:,iq)**2)
+      qbz = 0._dp
+      nqbz = 0
+      DO i = -far,far
+      DO j = -far,far
+      DO k = -far,far
+        g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
+        qg = sg%xq(:,iq)+g
+        qgmod2 = SUM(qg**2)
+        IF(ABS(qgmod2-qgmod2_min)< eps)THEN
+          ! same distance: add this vector to the list f degeneracies
+          nqbz = nqbz+1
+          qbz(:,nqbz) = qg
+          qgmod2_min = qgmod2
+        ELSEIF(qgmod2<qgmod2_min)THEN
+          ! shorter distance: reinit the list of degeneracies
+          qbz = 0._dp
+          nqbz = 1 
+          qbz(:,nqbz) = qg
+          qgmod2_min = qgmod2
+        ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+      !
+      grid%xq(:,grid%nq+1:grid%nq+nqbz) = qbz(:,1:nqbz)
+      grid%w(grid%nq+1:grid%nq+nqbz) = 1._dp/nqbz
+      grid%nq = grid%nq + nqbz
       ! here we have a complete list of equivalent q-points
       ! we add them to the grid with their weight
       !print*, "found", nqbz, qbz(:,1:nqbz)
-      CALL expand_wlist(grid%nq, grid%w,  nqbz)
-      CALL expand_qlist(grid%nq, grid%xq, nqbz, qbz)
-      grid%nq = grid%nq + nqbz
+!       CALL expand_wlist(grid%nq, grid%w,  nqbz)
+!       CALL expand_qlist(grid%nq, grid%xq, nqbz, qbz)
     ENDDO
+    IF(grid%nq /= nqtot) CALL errore('setup_bz_grid', 'nq problem', 1)
 
     grid%basis = 'cartesian'
     IF(NINT(sum(grid%w)) /= sg%nq) CALL errore('setup_bz_grid','wrong weight',1)
+    ! renormalize the weights
     grid%w = grid%w / DBLE(sg%nq)
     !
     IF(present(xq0)) THEN
@@ -209,57 +229,55 @@ MODULE q_grids
     grid%nqtot = grid%nq
     !
   END SUBROUTINE setup_bz_grid
-  !
-  SUBROUTINE expand_qlist(nq, xq, nq_add, xq_add)
-    INTEGER,INTENT(inout) :: nq 
-    INTEGER,INTENT(in) :: nq_add
-    REAL(DP),ALLOCATABLE,INTENT(inout) :: xq(:,:)
-    REAL(DP),INTENT(in) :: xq_add(3,nq_add)
-    !
-    REAL(DP),ALLOCATABLE :: xq_aux(:,:)
-    IF(allocated(xq)) THEN
-      ALLOCATE(xq_aux(3,nq))
-      xq_aux = xq
-      DEALLOCATE(xq)
-      ALLOCATE(xq(3,nq+nq_add))
-      xq(:, 1:nq)           = xq_aux
-      xq(:, nq+1:nq+nq_add) = xq_add(:, 1:nq_add)
-      !nq = nq+nq_add
-      DEALLOCATE(xq_aux)
-    ELSE
-      IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
-      ALLOCATE(xq(3,nq_add))
-      xq = xq_add(:, 1:nq_add)
-      !nq = nq_add
-    ENDIF
-    RETURN
-  END SUBROUTINE
-  SUBROUTINE expand_wlist(nq, w, nq_add)
-    INTEGER,INTENT(in) :: nq 
-    INTEGER,INTENT(in) :: nq_add
-    REAL(DP),ALLOCATABLE,INTENT(inout) :: w(:)
-    !
-    REAL(DP),ALLOCATABLE :: w_aux(:)
-    IF(allocated(w)) THEN
-      !print*,"got", size(w), nq, nq_add 
-      IF(size(w)/=nq) CALL errore('expand_wlist', 'wrong size', 1)
-      ALLOCATE(w_aux(nq))
-      w_aux(1:nq) = w(1:nq)
-      DEALLOCATE(w)
-      ALLOCATE(w(nq+nq_add))
-      w(1:nq)           = w_aux
-      w(nq+1:nq+nq_add) = 1._dp/DBLE(nq_add)
-      DEALLOCATE(w_aux)
-    ELSE
-      !print*,"got", size(w), nq, nq_add 
-      IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
-      ALLOCATE(w(nq_add))
-      w = 1._dp/DBLE(nq_add)
-    ENDIF
-    RETURN
-  END SUBROUTINE
-
-
+!   !
+!   SUBROUTINE expand_qlist(nq, xq, nq_add, xq_add)
+!     INTEGER,INTENT(inout) :: nq 
+!     INTEGER,INTENT(in) :: nq_add
+!     REAL(DP),ALLOCATABLE,INTENT(inout) :: xq(:,:)
+!     REAL(DP),INTENT(in) :: xq_add(3,nq_add)
+!     !
+!     REAL(DP),ALLOCATABLE :: xq_aux(:,:)
+!     IF(allocated(xq)) THEN
+!       ALLOCATE(xq_aux(3,nq))
+!       xq_aux = xq
+!       DEALLOCATE(xq)
+!       ALLOCATE(xq(3,nq+nq_add))
+!       xq(:, 1:nq)           = xq_aux
+!       xq(:, nq+1:nq+nq_add) = xq_add(:, 1:nq_add)
+!       !nq = nq+nq_add
+!       DEALLOCATE(xq_aux)
+!     ELSE
+!       IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
+!       ALLOCATE(xq(3,nq_add))
+!       xq = xq_add(:, 1:nq_add)
+!       !nq = nq_add
+!     ENDIF
+!     RETURN
+!   END SUBROUTINE
+!   SUBROUTINE expand_wlist(nq, w, nq_add)
+!     INTEGER,INTENT(in) :: nq 
+!     INTEGER,INTENT(in) :: nq_add
+!     REAL(DP),ALLOCATABLE,INTENT(inout) :: w(:)
+!     !
+!     REAL(DP),ALLOCATABLE :: w_aux(:)
+!     IF(allocated(w)) THEN
+!       !print*,"got", size(w), nq, nq_add 
+!       IF(size(w)/=nq) CALL errore('expand_wlist', 'wrong size', 1)
+!       ALLOCATE(w_aux(nq))
+!       w_aux(1:nq) = w(1:nq)
+!       DEALLOCATE(w)
+!       ALLOCATE(w(nq+nq_add))
+!       w(1:nq)           = w_aux
+!       w(nq+1:nq+nq_add) = 1._dp/DBLE(nq_add)
+!       DEALLOCATE(w_aux)
+!     ELSE
+!       !print*,"got", size(w), nq, nq_add 
+!       IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
+!       ALLOCATE(w(nq_add))
+!       w = 1._dp/DBLE(nq_add)
+!     ENDIF
+!     RETURN
+!   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_simple_grid(bg, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 

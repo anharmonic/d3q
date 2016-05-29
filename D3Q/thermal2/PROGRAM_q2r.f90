@@ -320,7 +320,7 @@ PROGRAM q2r
      S%lrigid  = lrigid
      
      CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc)
-     CALL write_fc2("quter.fc", S, fc)
+     CALL write_fc2("mat2R", S, fc)
      STOP 0
      !
      ! Real space force constants written to file (analytical part)

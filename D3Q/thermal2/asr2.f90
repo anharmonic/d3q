@@ -23,9 +23,9 @@ MODULE asr2_module
     !
     IF(method=="no")RETURN
     !
-    DO a = 1,3
-    DO b = 1,3
-      DO i = 1,nat
+    DO i = 1,nat
+      DO a = 1,3
+      DO b = 1,3
       nu = 3*(i-1)+a
         !
         delta = 0._dp
@@ -71,7 +71,7 @@ MODULE asr2_module
         ENDIF
        
       ENDDO
-    ENDDO
+      ENDDO
     ENDDO
     !
   END SUBROUTINE impose_asr2

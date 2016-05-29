@@ -43,11 +43,15 @@ for i in $files; do
   test -f "$i" || error_and_quit "File not found: '$i'" 256
 done
 
-nwords=$(grep -v "^ *#" $1|head -n1 |wc -w)
-nat3=$[($nwords-5)/3]
+nwords=$(grep "^ *1 " $1|wc -w)
+if grep -q lineshift $1; then
+  nat3=$[($nwords-5)/3]
+else
+  nat3=$[($nwords-5)/2]
+fi  
 nat=$[$nat3/3]
 
-#echo "$nwords, $nat3, $nat"
+echo "$nwords, $nat3, $nat" >&2
 #echo "idx: 1"
 #echo "path: 2"
 #echo "q_x..q_z: 3,4,5"

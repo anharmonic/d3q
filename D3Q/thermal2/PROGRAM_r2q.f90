@@ -21,40 +21,48 @@ PROGRAM r2q
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
-  USE fc2_interpolate,       ONLY : freq_phq_safe
+  USE fc2_interpolate,  ONLY : freq_phq
+  USE q_grids,          ONLY : q_grid
+  USE code_input,       ONLY : code_input_type, READ_INPUT
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
   TYPE(ph_system_info)   :: S
-  !TYPE(q_grid)      :: qpath
+  TYPE(q_grid)           :: qpath
+  TYPE(code_input_type)  :: input
   !
-  LOGICAL :: asr2 = .true.
-  CHARACTER(len=512) :: file_mat2 = "quter.fc"
+  CHARACTER(len=512) :: filename
   !
   REAL(DP) :: xq(3)
   REAL(DP),ALLOCATABLE :: freq(:)
   COMPLEX(DP),ALLOCATABLE :: U(:,:)
-  INTEGER :: i
+  INTEGER :: i, output_unit
   !
   CALL print_citations_linewidth()
   !  
-  CALL read_fc2(file_mat2, S,  fc2)
-  CALL aux_system(S)
-  IF(asr2) CALL impose_asr2("simple",S%nat, fc2)
-  CALL div_mass_fc2(S, fc2)
-
+  CALL READ_INPUT("R2Q", input, qpath, S, fc2)
+!   CALL read_fc2(file_mat2, S,  fc2)
+!   CALL aux_system(S)
+!   IF(asr2) CALL impose_asr2("simple",S%nat, fc2)
+!   CALL div_mass_fc2(S, fc2)
 
   ALLOCATE(freq(S%nat3))
   ALLOCATE(U(S%nat3,S%nat3))
-  !xq = (/0.333333333333_dp,  0.1924500_dp,  0.0_dp /)
-  xq = 0._dp
-  DO i = 1,26
-    xq(3) = DBLE(i-1)/DBLE(25)
-    CALL freq_phq_safe(xq, S, fc2, freq, U)
-    !WRITE(*, '(a16,999f12.4)') "freq", freq*RY_TO_CMM1
-    WRITE(*, '(999f12.4)') freq*RY_TO_CMM1
-    WRITE(998, '(999f12.4)') xq
-    WRITE(999, '(999f12.4)') freq*RY_TO_CMM1
-  ENDDO
 
+  filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//".out"
+  OPEN(unit=output_unit, file=filename)
+  !
+  DO i = 1,qpath%nq
+    CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
+    !WRITE(*, '(a16,999f12.4)') "freq", freq*RY_TO_CMM1
+    !WRITE(*, '(999f12.4)') freq*RY_TO_CMM1
+    WRITE(output_unit, '(i6,f12.6,3x,3f12.6,999f18.8)') &
+      i, qpath%w(i), qpath%xq(:,i), freq*RY_TO_CMM1
+    FLUSH(output_unit)
+    !WRITE(999, '(999f12.4)') freq*RY_TO_CMM1
+  ENDDO
+  !
+  CLOSE(output_unit)
+  DEALLOCATE(freq, U)
+  
 END PROGRAM r2q

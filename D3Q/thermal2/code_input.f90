@@ -80,7 +80,7 @@ MODULE code_input
     TYPE(code_input_type),INTENT(out) :: input
     TYPE(q_grid),INTENT(out)  :: qpts
     TYPE(forceconst2_grid),INTENT(out) :: fc2
-    CLASS(forceconst3),POINTER,INTENT(inout) :: fc3
+    CLASS(forceconst3),POINTER,OPTIONAL,INTENT(inout) :: fc3
     TYPE(ph_system_info),INTENT(out)   :: S
     !
     ! Input variable, and defaul values:
@@ -133,6 +133,8 @@ MODULE code_input
     CHARACTER(len=512)  :: input_file
     CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+    INTEGER             :: input_unit
+    INTEGER,EXTERNAL :: find_free_unit
     !
     LOGICAL :: qpoints_ok=.false., configs_ok=.false., isotopes_ok=.false.
     !
@@ -159,29 +161,45 @@ MODULE code_input
       nconf, nk, nq, grid_type, print_dynmat, &
       ne, de, e0, &
       max_seconds, max_time
-    !
+
+    NAMELIST  / r2qinput / &
+      calculation, outdir, prefix, &
+      file_mat2, asr2, nq, print_dynmat
+      !
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
     ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
-    OPEN(unit=5, file=input_file, status="OLD", action="READ")
+    input_unit = find_free_unit()
+    OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
     !
     IF(code=="LW")THEN
       calculation="lw"
-      READ(stdin, lwinput)
+      READ(input_unit, lwinput)
       ioWRITE(*, lwinput)
     ELSE IF (code=="TK")THEN
       calculation="sma"
-      READ(stdin, tkinput)
+      READ(input_unit, tkinput)
       ioWRITE(*, tkinput)
     ELSE IF (code=="DB")THEN
       calculation="db"
-      READ(stdin, dbinput)
+      READ(input_unit, dbinput)
       ioWRITE(*, dbinput)
+    ELSE IF (code=="R2Q")THEN
+      calculation="freq"
+      READ(input_unit, r2qinput)
+      ioWRITE(*, r2qinput)
+      ! Not reading nk, nconf and configs in the R2Q case
+      nk=1
+      nconf=1
+      configs_ok = .true.
+    ELSE
+       CALL errore('READ_INPUT', 'Wrong code', 1)
     ENDIF
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
     IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
-    IF(TRIM(file_mat3) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat3', 1)
+    IF(TRIM(file_mat3) == INVALID .and. present(fc3)) &
+        CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
     IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
 
@@ -258,13 +276,13 @@ MODULE code_input
     !
     ALLOCATE(input%T(nconf), input%sigma(nconf))
     !
-    READ(stdin,'(a1024)', iostat=ios) line
+    READ(input_unit,'(a1024)', iostat=ios) line
     READ_CARDS : &
     DO WHILE (ios==0)
       !
       READ(line,*,iostat=ios2) word
       IF(ios2/=0) THEN
-        READ(stdin,'(a1024)', iostat=ios) line
+        READ(input_unit,'(a1024)', iostat=ios) line
         CYCLE READ_CARDS 
       ENDIF
       !
@@ -282,7 +300,7 @@ MODULE code_input
         ioWRITE(*,*) "Reading QPOINTS"
         !
         IF(TRIM(input%mode) == "grid")THEN
-          READ(stdin,*,iostat=ios) nq1, nq2, nq3
+          READ(input_unit,*,iostat=ios) nq1, nq2, nq3
           IF(ios/=0) CALL errore("READ_INPUT", "reading nq1, nq2, nq3 for q-grid calculation", 1)
           line=''
           ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
@@ -296,7 +314,7 @@ MODULE code_input
         !
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
-          READ(stdin,'(a1024)', iostat=ios) line
+          READ(input_unit,'(a1024)', iostat=ios) line
           IF(ios/=0) CALL errore("READ_INPUT","Expecting q point: input error.", 1)
           !
           ! Try to read point and number of points
@@ -339,7 +357,7 @@ MODULE code_input
         !
         ioWRITE(*,*) "Reading CONFIGS", nconf
         DO i = 1,nconf
-          READ(stdin,'(a1024)', iostat=ios2) line
+          READ(input_unit,'(a1024)', iostat=ios2) line
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
           !
           ! try to read sigma and temperature
@@ -373,7 +391,7 @@ MODULE code_input
         !
         ISOTOPE_TYPE_LOOP : &
         DO i = 1,S%ntyp
-          READ(stdin,'(a1024)', iostat=ios2) line
+          READ(input_unit,'(a1024)', iostat=ios2) line
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope: input error.", 1)
           !
           ! Try to read isotope name and method
@@ -407,7 +425,7 @@ MODULE code_input
             READ(line,*,iostat=ios2) word2, word3, n_isotopes
             ALLOCATE(isotopes_mass(n_isotopes), isotopes_conc(n_isotopes))
             DO j = 1,n_isotopes
-              READ(stdin,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
+              READ(input_unit,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
               IF(ios2/=0) CALL errore("READ_INPUT","Reading isotope line: input error.", 4)
             ENDDO
             CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
@@ -430,7 +448,7 @@ MODULE code_input
         ENDIF
       END SELECT
       !
-      READ(stdin,'(a1024)', iostat=ios) line
+      READ(input_unit,'(a1024)', iostat=ios) line
       word = ''
       !
     ENDDO &
@@ -466,7 +484,7 @@ MODULE code_input
     ENDIF
     ! Finally, divide the FCs by the sqrt of these masses
     CALL div_mass_fc2(S, fc2)
-    CALL fc3%div_mass(S)
+    IF(present(fc3)) CALL fc3%div_mass(S)
     !
     IF(.not.qpoints_ok) CALL errore("READ_INPUT", "I did not find QPOINTS card", 1)
     IF(.not.configs_ok) CALL errore("READ_INPUT", "I did not find CONFIGS card", 1)
@@ -486,7 +504,7 @@ MODULE code_input
     !
     TYPE(code_input_type),INTENT(in)        :: input
     TYPE(forceconst2_grid),INTENT(inout) :: fc2
-    CLASS(forceconst3),POINTER,INTENT(inout) :: fc3
+    CLASS(forceconst3),POINTER,OPTIONAL,INTENT(inout) :: fc3
     TYPE(ph_system_info),INTENT(inout)   :: s
     TYPE(ph_system_info) :: s3
     !
@@ -494,10 +512,12 @@ MODULE code_input
     !
       timer_CALL t_readdt%start()
     CALL read_fc2(input%file_mat2, S,  fc2)
-    fc3 => read_fc3(input%file_mat3, S3)
-    !
-    IF(.not.same_system(S, S3)) THEN
-      ioWRITE(stdout,*) "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
+    IF(present(fc3)) THEN
+      fc3 => read_fc3(input%file_mat3, S3)
+      !
+      IF(.not.same_system(S, S3)) THEN
+        ioWRITE(stdout,*) "WARNING! FC2 and FC3 systems DO NOT MATCH !!!"
+      ENDIF
     ENDIF
     !
     CALL aux_system(S)
@@ -509,8 +529,6 @@ MODULE code_input
     CALL impose_asr2(input%asr2, S%nat, fc2)
     ! NOTE: we now divide by the mass in READ_INPUT, as the masses
     !       read from input may be different (i.e. when including isotope scattering)
-!    CALL div_mass_fc2(S, fc2)
-!     CALL fc3%div_mass(S)
       timer_CALL t_readdt%stop()
     !
   END SUBROUTINE READ_DATA
