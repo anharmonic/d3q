@@ -182,7 +182,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   WRITE(stdout,'(9x,4x,48l1)') sym
   !
   ! Reorder the symmetry operations in the intersection of the small groups:
-  ! DANGER DANGER DANGER!!! copy_sym fowles around with golbal variables!
+  ! DANGER DANGER DANGER!!! copy_sym fools around with global variables!
   nsymq  = copy_sym( nsym, sym ) ! <-- count sym.ops. and reorder them:
                                  ! 1..nsym  = symmetries of the crystal
                                  ! 1..nsymq = small group of q (note: nsym >= nsymq)
@@ -194,18 +194,20 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   ENDDO
   WRITE(stdout,'(9x,a,i2,a)') "-->", nsymq, " symmetry operation(s) have been found"
   !
+  WRITE(stdout,*) "REMARK: q -> -q symmetry yet unsupported in d3q.x"
   minus_q = symq(1)%minus_q .and. symq(2)%minus_q .and. symq(3)%minus_q
+  WRITE(stdout,'(9x,a,3l,a)') "individual q --> -q operations: ", symq(1)%minus_q, symq(2)%minus_q, symq(3)%minus_q
   !
   ! Look if there is a single sym.op. that links ALL THREE q's to their opposites
   CALL minus_3q(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, at, bg, nsym, s, minus_q, irotmq)
   IF(.not. minus_q) THEN
-    ! set individual minus_q to .false. if global minus_q is false
-    symq(1)%minus_q = .false.
-    symq(2)%minus_q = .false.
-    symq(3)%minus_q = .false.
+!     ! set individual minus_q to .false. if global minus_q is false
+!     symq(1)%minus_q = .false.
+!     symq(2)%minus_q = .false.
+!     symq(3)%minus_q = .false.
   ELSE
-    WRITE(stdout,'(9x,3a)') "a q --> -q  symm.op. has been found (",TRIM(sname(irotmq)),")"
-  ENDIF
+    WRITE(stdout,'(9x,3a)') "a global q --> -q  symm.op. has been found (",TRIM(sname(irotmq)),")"
+ ENDIF
   !
   CALL inverse_s( ) ! <-- computes invs from symm_base
   CALL s_axis_to_cart ( )
@@ -216,7 +218,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   !      of the small group of q
   !
   ALLOCATE(rtau( 3, 48, nat))
-  sym2(1:nsym)=.true.      !<---------------------------- BAD HACK! fix sgam_ph instead so that it does something sensible
+  sym2(1:nsym)=.true.  !<-- BAD HACK! fix sgam_ph instead so that it does something sensible
   CALL sgam_ph(at, bg, nsym, s, irt, tau, rtau, nat, sym2)
 
   nmodes = 3 * nat
@@ -269,13 +271,13 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
           ! representations for each q vector
           !
           symq(iq)%npertx = MAXVAL(symq(iq)%npert(1:symq(iq)%nirr))
-!#ifdef D3_EXTREME_VERBOSITY
+#ifdef D3_EXTREME_VERBOSITY
           WRITE(stdout, '(/,7x,a,i1)') "* patterns of q",iq
           DO ipert = 1,3*nat
             WRITE(stdout, '(9x,"* pert. ",i3)') ipert
             WRITE(stdout, '((9x,3(3x,2f10.5)))') patq(iq)%u(:,ipert)
           ENDDO
-!#endif
+#endif
         ENDDO
         !
         ! global npertx is the maximum of them all

@@ -352,27 +352,27 @@ SUBROUTINE d3_symmetrize(d3dyn, xq1,xq2,xq3, s, invs, rtau, irt, irgq, &
   any_gamma = kplusq(1)%lgamma.or.kplusq(2)%lgamma.or.kplusq(3)%lgamma
   IF(any_gamma) ALLOCATE(d3tmp(3*nat,3*nat,3*nat))
   !
-!   IF (kplusq(1)%lgamma) THEN
-!     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 2,3"
-!     d3tmp = d3dyn                                         !copy
-!     CALL d3_shuffle_global( 1,2,3, 1,3,2, .true., d3tmp ) !shuffle and c.c.
-!     d3dyn = d3tmp+d3dyn                                   !add
-!     d3dyn = 0.5_dp * d3dyn                                !average
-!   ENDIF
-!   IF (kplusq(2)%lgamma) THEN
-!     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,3"
-!     d3tmp = d3dyn
-!     CALL d3_shuffle_global( 1,2,3, 3,2,1, .true., d3tmp )
-!     d3dyn = d3tmp+d3dyn
-!     d3dyn = 0.5_dp * d3dyn
-!   ENDIF
-!   IF (kplusq(3)%lgamma) THEN
-!     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,2"
-!     d3tmp = d3dyn
-!     CALL d3_shuffle_global( 1,2,3, 2,1,3, .true., d3tmp )
-!     d3dyn = d3tmp+d3dyn
-!     d3dyn = 0.5_dp * d3dyn
-!   ENDIF
+  IF (kplusq(1)%lgamma) THEN
+    WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 2,3"
+    d3tmp = d3dyn                                         !copy
+    CALL d3_shuffle_global( 1,2,3, 1,3,2, .true., d3tmp ) !shuffle and c.c.
+    d3dyn = d3tmp+d3dyn                                   !add
+    d3dyn = 0.5_dp * d3dyn                                !average
+  ENDIF
+  IF (kplusq(2)%lgamma) THEN
+    WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,3"
+    d3tmp = d3dyn
+    CALL d3_shuffle_global( 1,2,3, 3,2,1, .true., d3tmp )
+    d3dyn = d3tmp+d3dyn
+    d3dyn = 0.5_dp * d3dyn
+  ENDIF
+  IF (kplusq(3)%lgamma) THEN
+    WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,2"
+    d3tmp = d3dyn
+    CALL d3_shuffle_global( 1,2,3, 2,1,3, .true., d3tmp )
+    d3dyn = d3tmp+d3dyn
+    d3dyn = 0.5_dp * d3dyn
+  ENDIF
   !
   IF(any_gamma) DEALLOCATE(d3tmp)
   !
@@ -458,6 +458,7 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
   !
   !    Then we impose the symmetry q -> -q+G if present
   !
+!   APPLY_3MINUSQ : &
 !   IF(minus_q) THEN
 !      ALLOCATE(phip(3, 3, 3, nat, nat, nat))
 !      WRITE(stdout, "(7x, a, i3)") "* symmetrizing with q --> -q operation", irotmq
@@ -489,13 +490,13 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
 !                   fasemq * s(ipol, kpol, irotmq) * &
 !                            s(jpol, lpol, irotmq) * &
 !                            s(mpol, npol, irotmq) * &
-!                           phi(npol, kpol, lpol, snc, sna, snb)*
+!                           phi(npol, kpol, lpol, snc, sna, snb)* &
 !                           fasemq
 !           ENDDO
 !           ENDDO
 !           ENDDO
 !           phip(mpol, ipol, jpol, nc, na, nb) &
-!               = 0.5d0*( phi(mpol, ipol, jpol, nc, na, nb) +CONJG(workmq) )
+!               = 0.5_dp*( phi(mpol, ipol, jpol, nc, na, nb) +CONJG(workmq) )
 !         ENDDO
 !         ENDDO
 !         ENDDO
@@ -506,7 +507,8 @@ SUBROUTINE d3_symdyn_core(xq1,xq2,xq3, phi, s, invs, rtau, irt, irgq, nsymq, &
 !     phi = phip
 !     !
 !     DEALLOCATE(phip)
-!   ENDIF ! (minus_q)
+!   ENDIF & ! (minus_q)
+!   APPLY_3MINUSQ 
   !
   !
   !    Here we symmetrize with respect to the small group of q

@@ -35,10 +35,10 @@ SUBROUTINE d3_init
   ! local vars:
   INTEGER :: ik, nt
   INTEGER :: iq, ibnd, ipol
-  REAL(DP) :: xmax, fac, TARGET, &  ! for nbnd_occ
+  REAL(DP) :: xmax, fac, target_w, &  ! for nbnd_occ
               emin, emax            ! for alpha_pv
   ! parameters:
-  REAL(DP),PARAMETER ::      small = 6.9626525973374d-5
+  REAL(DP),PARAMETER :: small = 6.9626525973374d-5
      !   small = 1.0333492677046d-2  ! corresponds to 2 gaussian sigma
      !   small = 6.9626525973374d-5  ! corresponds to 3 gaussian sigma
      !   small = 6.3491173359333d-8  ! corresponds to 4 gaussian sigma
@@ -64,25 +64,25 @@ SUBROUTINE d3_init
      !
      IF (ngauss == - 99) THEN
         fac = 1.d0 / SQRT (small)
-        xmax = 2.d0 * LOG (0.5d0 * (fac + SQRT (fac * fac - 4.0d0) ) )
+        xmax = 2.d0 * LOG (0.5d0 * (fac + SQRT (fac**2 - 4.0d0) ) )
      ENDIF
-     TARGET = ef + xmax * degauss
-     WRITE(stdout,'(5x,"target:",1f12.4)') target
+     target_w = ef + xmax * degauss
+     !WRITE(stdout,'(5x,"target:",1f12.4)') target
      DO ik = 1, tot_nks
         DO ibnd = 1, nbnd
            !WRITE(stdout,'(5x,"       ",2i6,1f12.4)') ik,ibnd, et (ibnd, ik)
-           IF (et (ibnd, ik) < TARGET) THEN
-              nbnd_occ (ik) = ibnd
+           IF (et (ibnd, ik) < target_w) THEN
+              nbnd_occ(ik) = ibnd
            !ELSE
            !   WRITE(stdout,'(5x,"       ","------------")')
            ENDIF
         ENDDO
-        IF (nbnd_occ (ik) == nbnd) &
+        IF (nbnd_occ(ik) == nbnd) &
              WRITE( stdout, '(5x,/,"Possibly too few bands at point ", &
              & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
-        IF (nbnd_occ (ik) >  nbnd) &
-             WRITE( stdout, '(5x,/,"WARNING! Definitely too few bands at point ", &
-             & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
+!         IF (nbnd_occ (ik) >  nbnd) &
+!              WRITE( stdout, '(5x,/,"WARNING! Definitely too few bands at point ", &
+!              & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
      ENDDO
 !      WRITE(stdout,'(5x,a,i4)') "WARNING!! nbnd_occ == nbnd", nbnd
 !      nbnd_occ = nbnd
@@ -104,7 +104,7 @@ SUBROUTINE d3_init
   CALL mp_min( emin, inter_pool_comm )
   !
   IF (lgauss) THEN
-     emax = TARGET
+     emax = target_w
      alpha_pv = emax - emin
   ELSE
     emax = et(1, 1)

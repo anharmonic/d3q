@@ -15,7 +15,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   !
   USE kinds,      ONLY : DP
   USE phcom,      ONLY : lrdwf
-  !USE control_lr, ONLY : nbnd_occ
+  USE control_lr, ONLY : nbnd_occ
   !
   USE ions_base,  ONLY : nat
   USE fft_base,   ONLY : dfftp
@@ -174,12 +174,12 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
     IF (lgauss) THEN
       degaussm1 = 1._dp / degauss
       !
-      DO ibnd = 1, nbnd!_occ(ik_gam)
+      DO ibnd = 1, nbnd_occ(ik_gam)
         wga(ibnd) = kplusq(0)%wk(ik) * wgauss( (ef - et(ibnd, ik_gam))*degaussm1, ngauss )
       ENDDO
     ELSE
-      !wga(1:nbnd_occ(ik_gam)) = kplusq(0)%wk(ik)
-      wga(1:nbnd) = kplusq(0)%wk(ik)
+      wga(1:nbnd_occ(ik_gam)) = kplusq(0)%wk(ik)
+      !wga(1:nbnd) = kplusq(0)%wk(ik)
     ENDIF
     !
     PERT_V_LOOP : & !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -215,7 +215,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
           !
           ! Compute <dpsi|dH|dpsi>, including also the weight of the k-point and the smearing
           wrk = (0._dp, 0._dp)
-          DO ibnd = 1, nbnd!_occ(ik_gam)
+          DO ibnd = 1, nbnd_occ(ik_gam)
             wrk = wrk + wga(ibnd) * &
                   ZDOTC(npw_lft, dpsi_lft(1, ibnd), 1, dvpsi(1, ibnd), 1)
           ENDDO

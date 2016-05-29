@@ -30,6 +30,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   USE mp_world,     ONLY : world_comm
   USE kplus3q,      ONLY : kplusq, q_sum_rule
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
+  USE control_lr,   ONLY : nbnd_occ
 
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout)   :: d3dyn( 3*nat, 3*nat, 3*nat)
@@ -141,11 +142,11 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
       CALL davcio(pdvp_k, lrpdqvp, iu_psi_dH_psi(-iq3,iq3), nrec, - 1)
         !
         BANDS_LOOPS : &
-        DO ibnd = 1,nbnd
-        DO jbnd = 1,nbnd
+        DO ibnd = 1,nbnd_occ(ik_i)
+        DO jbnd = 1,nbnd_occ(ik_j)
           de_ij = et(ibnd, ik_i) - et(jbnd, ik_j)
           de_ji = -de_ij
-          DO kbnd = 1,nbnd
+          DO kbnd = 1,nbnd_occ(ik_k)
             de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
             de_kj = -de_jk
             de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
@@ -305,8 +306,8 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
           DO nu_ef = 1,3*nat
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd!_occ(ikG)
-            DO jbnd = 1,nbnd!_occ(ikpq)
+            DO ibnd = 1,nbnd_occ(ikG)
+            DO jbnd = 1,nbnd_occ(ikpq)
               de = et(ibnd,ikG) - et(jbnd,ikpq)
               IF(ABS(de)>eps) THEN
                 wrk = ( w0gauss((ef-et(ibnd,ikG)) *degaussm1,ngauss) &
@@ -323,7 +324,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
             d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3))+0.5_dp*bsum
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd!_occ(ikG)
+            DO ibnd = 1,nbnd_occ(ikG)
               bsum = bsum + kplusq(iq_ef)%wk(ik)*ef_sh(nu_ef)*dpsidvpsi(ibnd,ibnd) &
                            *w0gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1
             ENDDO
@@ -371,6 +372,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   USE pwcom,            ONLY : degauss, ngauss, lgauss, nbnd, et, ef
   USE qpoint,           ONLY : nksq
   USE d3_debug,         ONLY : dbgwrite_d3dyn
+  USE control_lr,       ONLY : nbnd_occ
   !
   IMPLICIT NONE
   !
@@ -406,7 +408,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   DO ik = 1, nksq
     ikG = kplusq(0)%ikqs(ik)
     !
-    DO ibnd = 1, nbnd
+    DO ibnd = 1, nbnd_occ(ikG)
         d_dos = d_dos + kplusq(0)%wk(ik) * w_1gauss((ef-et(ibnd, ikG))*degaussm1, ngauss)*degaussm1**2
     ENDDO
     DO nu_i = 1, 3 * nat
@@ -414,7 +416,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
         nrec = nu_i + (ik - 1) * 3 * nat
         CALL davcio (pdvp_i, lrpdqvp, iu_psi_dH_psi(0,1), nrec, -1)
         !
-        DO ibnd = 1, nbnd
+        DO ibnd = 1, nbnd_occ(ikG)
           aux (nu_i) = aux(nu_i) + pdvp_i(ibnd, ibnd)*kplusq(0)%wk(ik) &
                                   *w_1gauss((ef-et(ibnd,ikG))*degaussm1, ngauss)*degaussm1**2
         ENDDO

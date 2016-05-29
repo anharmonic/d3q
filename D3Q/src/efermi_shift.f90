@@ -68,18 +68,22 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
         DO ibnd = 1, nbnd_occ(ikk)
            wdelta = w0gauss((ef - et(ibnd, ikk))/degauss, ngauss) / degauss
            dos_ef = dos_ef + weight * wdelta
+!             write(*,'(4i6,99e24.12)') ik, ibnd, ikk, ngauss, &
+!               (ef - et(ibnd, ikk))/degauss, w0gauss((ef - et(ibnd, ikk))/degauss, ngauss), weight, ef, et(ibnd,ikk), degauss
         ENDDO
      ENDDO
 #ifdef __MPI
      call mp_sum( dos_ef, inter_pool_comm )
 #endif
+     IF(dos_ef<1.d-8) WRITE(stdout,'(a,1e24.12,a)')&
+                      "WARNING! very low DOS at Fermi energy:", dos_ef, &
+                      "probably not enough k-points for this smearing! Wrong results are likely."
   ENDIF
   !
   ! determines Fermi energy shift (such that each pertubation is neutral)
   !
   DO ipert = 1, npe
      call  fwfft('Dense', drhoscf(:,ipert), dfftp)
-     !call cft3 (drhoscf(1, ipert), nr1, nr2, nr3, nrx1, nrx2, nrx3, - 1)
 #ifdef __MPI
      delta_n = (0._dp, 0._dp)
      IF (gg(1) < eps8) delta_n = omega * drhoscf (nl(1), ipert)
@@ -87,6 +91,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
 #else
      delta_n = omega * drhoscf(nl(1), ipert)
 #endif
+!      print*, ipert, delta_n, dos_ef, drhoscf (nl(1), ipert)
      def(ipert) = - delta_n/dos_ef
 !      PRINT*,"fermi stuff:", delta_n, drhoscf(nl(1), ipert), dos_ef
   ENDDO
@@ -103,10 +108,10 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   !
 !   WRITE( stdout, '(11x,"--> E_f shift (prt: Ry/eV) =",4(1i3,":",1f11.6,1f8.3," /",1f11.6,1f8.3))')  &
 !        (ipert, def(ipert), rytoev*def(ipert), ipert = 1, npe)
-  WRITE( stdout, '(11x,"--> E_f shift (prt: Ry/eV) =",(1i3,":",1f12.6,1f8.3," /",1f11.6,1f8.3))')  &
+  WRITE( stdout, '(11x,"--> E_f shift (prt: Ry/eV) =",(1i3,":",1f14.4,1f8.3," /",1f14.4,1f8.3))')  &
        1, def(1), rytoev*def(1)
   IF(npe>1) &
-  WRITE( stdout, '(39x,(1i3,":",1f12.6,1f8.3," /",1f11.6,1f8.3))')  &
+  WRITE( stdout, '(39x,(1i3,":",1f14.4,1f8.3," /",1f14.4,1f8.3))')  &
        (ipert, def(ipert), rytoev*def(ipert), ipert=2,npe)
   !
   CALL stop_clock('set_efsh')

@@ -23,7 +23,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   USE d3com,      ONLY : eps_delta
   USE kplus3q,    ONLY : kplusq, nksq, q_names, q_names2, q_sum_rule
   USE d3_iofiles, ONLY : iu_dwfc, iu_psi_dH_psi, iu_dpsi_dH_psi, lrdpdvp, lrpdqvp
-  !USE control_lr, ONLY : nbnd_occ
+  USE control_lr, ONLY : nbnd_occ
 
   IMPLICIT NONE
   INTEGER,INTENT(in) :: iq_lft,iq_rgt,iq_dH
@@ -129,11 +129,11 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
       wg_lft = 0._dp
       wg_rgt = 0._dp
       dwg    = 0._dp
-      DO ibnd = 1, nbnd!_occ(ik_lft)
+      DO ibnd = 1, nbnd_occ(ik_lft)
         wg_lft(ibnd) = wgauss ((ef - et(ibnd, ik_lft))*degaussm1, ngauss)
         dwg(ibnd)    = w0gauss((ef - et(ibnd, ik_lft))*degaussm1, ngauss) * degaussm1
       ENDDO
-      DO ibnd = 1, nbnd!_occ(ik_rgt)
+      DO ibnd = 1, nbnd_occ(ik_rgt)
         wg_rgt(ibnd) = wgauss ((ef - et(ibnd, ik_rgt))*degaussm1, ngauss)
       ENDDO
     ENDIF
@@ -173,8 +173,8 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
           !
           wrk   = (0._dp, 0._dp)  ! <-- collected outside pools
           wrk2  = (0._dp, 0._dp)  ! <-- collected inside AND outside pools
-          DO ibnd = 1, nbnd!_occ(ik_lft) !nbnd
-          DO jbnd = 1, nbnd!_occ(ik_rgt) !nbnd
+          DO ibnd = 1, nbnd_occ(ik_lft) !nbnd
+          DO jbnd = 1, nbnd_occ(ik_rgt) !nbnd
             IF (lmetal) THEN
               deltae = et(ibnd, ik_lft) - et(jbnd, ik_rgt)
               IF (ABS(deltae) > eps_delta) THEN

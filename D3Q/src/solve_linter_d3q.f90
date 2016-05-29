@@ -513,7 +513,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       CALL davcio (dpsi, lrdwf, unit_dpsi, nrec, + 1)
       !
       IF (lmetal) THEN
-          DO ibnd = 1, nbnd!_occ(ik_wfc)
+          DO ibnd = 1, nbnd_occ(ik_wfc)
             wg1 = wgauss ( (ef - et(ibnd, ik_wfc) ) * degaussm1, ngauss)
             CALL dscal (2*npw_prj, wg1, dpsi(1, ibnd), 1)
           ENDDO
