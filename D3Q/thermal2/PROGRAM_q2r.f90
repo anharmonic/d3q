@@ -109,12 +109,12 @@ PROGRAM q2r
   NAMELIST / input / fildyn, flfrc, zasr, la2F
   !
   CALL mp_startup()
-  CALL environment_start('Q2R')
+  CALL environment_start('D3_Q2R')
   !
   IF (ionode) CALL input_from_file ( )
      !
   fildyn = ' '
-  flfrc = ' '
+  flfrc = 'mat2R'
   zasr = 'no'
      !
   la2F=.false.
@@ -132,7 +132,7 @@ PROGRAM q2r
      !
      ! check input
      !
-  IF (flfrc == ' ')  CALL errore ('q2r',' bad flfrc',1)
+  !IF (flfrc == ' ')  CALL errore ('q2r',' bad flfrc',1)
      !
   xmldyn=has_xml(fildyn)
 
@@ -311,7 +311,7 @@ PROGRAM q2r
      S%zeu   = zeu
      S%ityp  = ityp
      S%ibrav = ibrav
-     S%symm_type = "bogus"
+     S%symm_type = "unknown"
      S%celldm  = celldm
      S%at      = at
      S%bg      = bg
@@ -320,300 +320,300 @@ PROGRAM q2r
      S%lrigid  = lrigid
      
      CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc)
-     CALL write_fc2("mat2R", S, fc)
-     STOP 0
-     !
-     ! Real space force constants written to file (analytical part)
-     !
-     IF (xmldyn) THEN
-        IF (lrigid) THEN
-           CALL write_dyn_mat_header( flfrc, ntyp, nat, ibrav, nspin_mag,  &
-                celldm, at, bg, omega, atm, amass, tau, ityp,   &
-                m_loc, nqs, epsil, zeu)
-        ELSE
-           CALL write_dyn_mat_header( flfrc, ntyp, nat, ibrav, nspin_mag,  &
-                celldm, at, bg, omega, atm, amass, tau, ityp, m_loc, nqs)
-        ENDIF
-        CALL write_ifc(nr1,nr2,nr3,nat,phid)
-     ELSE IF (ionode) THEN
-     OPEN(unit=2,file=flfrc,status='unknown',form='formatted')
-     WRITE(2,'(i3,i5,i3,6f11.7)') ntyp,nat,ibrav,celldm
-     if (ibrav==0) then
-        write (2,'(2x,3f15.9)') ((at(i,j),i=1,3),j=1,3)
-     end if
-     DO nt = 1,ntyp
-        WRITE(2,*) nt," '",atm(nt),"' ",amass(nt)
-     END DO
-     DO na=1,nat
-        WRITE(2,'(2i5,3f18.10)') na,ityp(na),(tau(j,na),j=1,3)
-     END DO
-     WRITE (2,*) lrigid
-     IF (lrigid) THEN
-        WRITE(2,'(3f15.7)') ((epsil(i,j),j=1,3),i=1,3)
-        DO na=1,nat
-           WRITE(2,'(i5)') na
-           WRITE(2,'(3f15.7)') ((zeu(i,j,na),j=1,3),i=1,3)
-        END DO
-     END IF
-     WRITE (2,'(4i4)') nr1, nr2, nr3
-     DO j1=1,3
-        DO j2=1,3
-           DO na1=1,nat
-              DO na2=1,nat
-                 WRITE (2,'(4i4)') j1,j2,na1,na2
-                 nn=0
-                 DO m3=1,nr3
-                    DO m2=1,nr2
-                       DO m1=1,nr1
-                          nn=nn+1
-                          WRITE (2,'(3i4,2x,1pe18.11)')   &
-                               m1,m2,m3, DBLE(phid(nn,j1,j2,na1,na2))
-                       END DO
-                    END DO
-                 END DO
-              END DO
-           END DO
-        END DO
-     END DO
-     CLOSE(2)
-     ENDIF
-     resi = SUM ( ABS (AIMAG ( phid ) ) )
-     IF (resi > eps12) THEN
-        WRITE (stdout,"(/5x,' fft-check warning: sum of imaginary terms = ',es12.6)") resi
-     ELSE
-        WRITE (stdout,"(/5x,' fft-check success (sum of imaginary terms < 10^-12)')")
-     END IF
-     !
-     DEALLOCATE(phid, zeu, nc)
-     IF (.NOT.xmldyn) DEALLOCATE(phiq)
-     !
-     IF(la2F) CALL gammaq2r ( nfile, nat, nr1, nr2, nr3, at )
+     CALL write_fc2(flfrc, S, fc)
+!      STOP 0
+!      !
+!      ! Real space force constants written to file (analytical part)
+!      !
+!      IF (xmldyn) THEN
+!         IF (lrigid) THEN
+!            CALL write_dyn_mat_header( flfrc, ntyp, nat, ibrav, nspin_mag,  &
+!                 celldm, at, bg, omega, atm, amass, tau, ityp,   &
+!                 m_loc, nqs, epsil, zeu)
+!         ELSE
+!            CALL write_dyn_mat_header( flfrc, ntyp, nat, ibrav, nspin_mag,  &
+!                 celldm, at, bg, omega, atm, amass, tau, ityp, m_loc, nqs)
+!         ENDIF
+!         CALL write_ifc(nr1,nr2,nr3,nat,phid)
+!      ELSE IF (ionode) THEN
+!      OPEN(unit=2,file=flfrc,status='unknown',form='formatted')
+!      WRITE(2,'(i3,i5,i3,6f11.7)') ntyp,nat,ibrav,celldm
+!      if (ibrav==0) then
+!         write (2,'(2x,3f15.9)') ((at(i,j),i=1,3),j=1,3)
+!      end if
+!      DO nt = 1,ntyp
+!         WRITE(2,*) nt," '",atm(nt),"' ",amass(nt)
+!      END DO
+!      DO na=1,nat
+!         WRITE(2,'(2i5,3f18.10)') na,ityp(na),(tau(j,na),j=1,3)
+!      END DO
+!      WRITE (2,*) lrigid
+!      IF (lrigid) THEN
+!         WRITE(2,'(3f15.7)') ((epsil(i,j),j=1,3),i=1,3)
+!         DO na=1,nat
+!            WRITE(2,'(i5)') na
+!            WRITE(2,'(3f15.7)') ((zeu(i,j,na),j=1,3),i=1,3)
+!         END DO
+!      END IF
+!      WRITE (2,'(4i4)') nr1, nr2, nr3
+!      DO j1=1,3
+!         DO j2=1,3
+!            DO na1=1,nat
+!               DO na2=1,nat
+!                  WRITE (2,'(4i4)') j1,j2,na1,na2
+!                  nn=0
+!                  DO m3=1,nr3
+!                     DO m2=1,nr2
+!                        DO m1=1,nr1
+!                           nn=nn+1
+!                           WRITE (2,'(3i4,2x,1pe18.11)')   &
+!                                m1,m2,m3, DBLE(phid(nn,j1,j2,na1,na2))
+!                        END DO
+!                     END DO
+!                  END DO
+!               END DO
+!            END DO
+!         END DO
+!      END DO
+!      CLOSE(2)
+!      ENDIF
+!      resi = SUM ( ABS (AIMAG ( phid ) ) )
+!      IF (resi > eps12) THEN
+!         WRITE (stdout,"(/5x,' fft-check warning: sum of imaginary terms = ',es12.6)") resi
+!      ELSE
+!         WRITE (stdout,"(/5x,' fft-check success (sum of imaginary terms < 10^-12)')")
+!      END IF
+!      !
+!      DEALLOCATE(phid, zeu, nc)
+!      IF (.NOT.xmldyn) DEALLOCATE(phiq)
+!      !
+!      IF(la2F) CALL gammaq2r ( nfile, nat, nr1, nr2, nr3, at )
      !
      DEALLOCATE (tau, ityp)
      !
   !
-  CALL environment_end('Q2R')
+  CALL environment_end('D3_Q2R')
 
   CALL mp_global_end()
   !
 END PROGRAM q2r
 !
-!----------------------------------------------------------------------------
-SUBROUTINE gammaq2r( nqtot, nat, nr1, nr2, nr3, at )
-  !----------------------------------------------------------------------------
-  !
-  USE kinds, ONLY : DP
-  USE fft_scalar, ONLY : cfft3d
-  USE io_global, ONLY : ionode, ionode_id, stdout
-  USE mp_images, ONLY : intra_image_comm
-  USE mp,        ONLY : mp_bcast
-  USE mp_world,  ONLY : world_comm
-  !
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: nqtot, nat, nr1, nr2, nr3
-  REAL(DP), INTENT(IN) :: at(3,3)
-  !
-  INTEGER, ALLOCATABLE :: nc(:,:,:)
-  COMPLEX(DP), ALLOCATABLE :: gaminp(:,:,:,:,:), gamout(:,:,:,:,:)
-  !
-  REAL(DP), PARAMETER :: eps=1.D-5, eps12=1.d-12
-  INTEGER  :: nsig = 10, isig, filea2F, nstar, count_q, nq, nq_log, iq, &
-       icar, ipol, m1,m2,m3, m(3), nr(3), j1,j2, na1, na2, nn
-  LOGICAL :: lq
-  REAL(DP) :: deg, ef, dosscf
-  REAL(DP) :: q(3,48), xq, resi
-  character(len=256) :: name
-  CHARACTER(LEN=256) :: elph_dir
-  CHARACTER(LEN=6) :: int_to_char
-  LOGICAL :: exst
-  INTEGER :: ios
-
-  !
-  ALLOCATE (gaminp(3,3,nat,nat,48), gamout(nr1*nr2*nr3,3,3,nat,nat) )
-  ALLOCATE ( nc (nr1,nr2,nr3) )
-  write (stdout,*)
-  write (stdout,*) '  Preparing gamma for a2F '
-  write (stdout,*)
-  !
-  nr(1) = nr1
-  nr(2) = nr2
-  nr(3) = nr3
-  elph_dir='elph_dir/'
-!  IF (ionode) INQUIRE(FILE=TRIM(elph_dir), EXIST=exst)
-!  CALL mp_bcast(exst, ionode_id, intra_image_comm)
-!  IF (.NOT. exst) CALL errore('gammaq2r','elph_dir directory not exists',1)
-  !
-  DO isig=1, nsig
-     filea2F = 50 + isig
-     nc = 0
-     DO count_q=1,nqtot
-        name= TRIM(elph_dir) // 'a2Fq2r.' // TRIM(int_to_char(filea2F)) &
-                          // '.' // TRIM(int_to_char(count_q))
-        IF (ionode) open(unit=filea2F, file=name, STATUS = 'old', &
-                                 FORM = 'formatted', IOSTAT=ios)
-        CALL mp_bcast(ios, ionode_id, intra_image_comm)
-        IF (ios /= 0) CALL errore('gammaq2r','problem opening file' &
-                                   //TRIM(name), 1)
-     !
-     ! to pass to matdyn, for each isig, we read: degauss, Fermi energy and DOS
-     !
-        !
-        IF (ionode) THEN
-           READ(filea2F,*) deg, ef, dosscf
-           READ(filea2F,*) nstar
-        ENDIF
-        CALL mp_bcast(deg, ionode_id, world_comm)
-        CALL mp_bcast(ef, ionode_id, world_comm)
-        CALL mp_bcast(dosscf, ionode_id, world_comm)
-        CALL mp_bcast(nstar, ionode_id, world_comm)
-        !
-        CALL read_gamma ( nstar, nat, filea2F, q, gaminp )
-        !
-        do nq = 1,nstar
-           lq = .true.
-           do ipol=1,3
-              xq = 0.0d0
-              do icar=1,3
-                 xq = xq + at(icar,ipol) * q(icar,nq) * nr(ipol)
-              end do
-              lq = lq .AND. (ABS(NINT(xq) - xq) < eps)
-              iq = NINT(xq)
-              !
-              m(ipol)= mod(iq,nr(ipol)) + 1
-              if (m(ipol) < 1) m(ipol) = m(ipol) + nr(ipol)
-           end do !ipol
-           IF (.NOT.lq) CALL errore('gammaq2r','q not allowed',1)
-           !
-           if(nc(m(1),m(2),m(3)) == 0) then
-              nc(m(1),m(2),m(3)) = 1
-              CALL TRASL( gamout, gaminp, nq, nr1, nr2, nr3, nat, m(1), m(2), m(3) )
-           else
-              call errore('gammaq2r',' nc already filled: wrong q grid or wrong nr',1)
-           end if
-        enddo ! stars for given q-point
-     ENDDO ! q-points
-     !
-     nq_log = SUM (nc)
-     if (nq_log == nr1*nr2*nr3) then
-        write (stdout,*)
-        write (stdout,'(" Broadening = ",F10.3)') deg
-        write (stdout,'(5x,a,i4)') ' q-space grid ok, #points = ',nq_log
-     else
-        call errore('gammaq2r',' missing q-point(s)!',1)
-     end if
-     do j1=1,3
-        do j2=1,3
-           do na1=1,nat
-              do na2=1,nat
-                 call cfft3d ( gamout(:,j1,j2,na1,na2), &
-                      nr1,nr2,nr3, nr1,nr2,nr3, 1 )
-              end do
-           end do
-        end do
-     end do
-     gamout = gamout / DBLE (nr1*nr2*nr3)
-     !
-     IF (ionode) close(filea2F)
-     !
-     filea2F = 60 + isig
-     name = TRIM(elph_dir) // 'a2Fmatdyn.'// TRIM(int_to_char(filea2F)) 
-     IF (ionode) THEN
-     open(unit=filea2F, file=name, STATUS = 'unknown')
-     !
-     WRITE(filea2F,*) deg, ef, dosscf
-     write(filea2F,'(3i4)') nr1, nr2, nr3
-
-     do j1=1,3
-        do j2=1,3
-           do na1=1,nat
-              do na2=1,nat
-                 write(filea2F,'(4i4)') j1,j2,na1,na2
-                 nn=0
-                 DO m3=1,nr3
-                    DO m2=1,nr2
-                       DO m1=1,nr1
-                          nn=nn+1
-                          write(filea2F,'(3i4,2x,1pe18.11)')   &
-                               m1,m2,m3, DBLE(gamout(nn,j1,j2,na1,na2))
-                       END DO
-                    END DO
-                 END DO
-              end do  ! na2
-           end do  ! na1
-        end do   !  j2
-     end do   ! j1
-     close(filea2F)
-     ENDIF  ! ionode
-
-     resi = SUM ( ABS ( AIMAG( gamout ) ) )
-
-     IF (resi > eps12) THEN
-        WRITE (stdout,"(/5x,' fft-check warning: sum of imaginary terms = ',es12.6)") resi
-     ELSE
-        WRITE (stdout,"(/5x,' fft-check success (sum of imaginary terms < 10^-12)')")
-     END IF
-
-  ENDDO
-  !
-  DEALLOCATE (gaminp, gamout )
-  !
-END SUBROUTINE gammaq2r
-!
-!-----------------------------------------------------------------------
-subroutine read_gamma (nqs, nat, ifn, xq, gaminp)
-  !-----------------------------------------------------------------------
-  !
-  USE kinds, ONLY : DP
-  USE io_global, ONLY : ionode, ionode_id, stdout
-  USE mp,        ONLY : mp_bcast
-  USE mp_world,  ONLY : world_comm
-  implicit none
-  !
-  ! I/O variables
-  integer, intent(in) :: nqs, nat, ifn
-  real(DP), intent(out) :: xq(3,48)
-  complex(DP), intent(out) :: gaminp(3,3,nat,nat,48)
-  !
-  logical :: lrigid
-  integer :: i, j, na, nb, nt, iq
-  real(DP) :: phir(3),phii(3)
-  CHARACTER(LEN=75) :: line
-  !
-  !
-  Do iq=1,nqs
-     IF (ionode) THEN
-        READ(ifn,*)
-        READ(ifn,*)
-        READ(ifn,*)
-        READ(ifn,'(11X,3F14.9)')  (xq(i,iq),i=1,3)
-     !     write(*,*) 'xq    ',iq,(xq(i,iq),i=1,3)
-        READ(ifn,*)
-     END IF
-     CALL mp_bcast(xq(:,iq), ionode_id, world_comm)
-     do na=1,nat
-        do nb=1,nat
-           IF (ionode) read(ifn,*) i,j
-           CALL mp_bcast(i, ionode_id, world_comm)
-           CALL mp_bcast(j, ionode_id, world_comm)
-           if (i.ne.na) call errore('read_gamma','wrong na read',na)
-           if (j.ne.nb) call errore('read_gamma','wrong nb read',nb)
-           do i=1,3
-              IF (ionode) read (ifn,*) (phir(j),phii(j),j=1,3)
-              CALL mp_bcast(phir, ionode_id, world_comm)
-              CALL mp_bcast(phii, ionode_id, world_comm)
-              do j = 1,3
-                 gaminp(i,j,na,nb,iq) = CMPLX(phir(j),phii(j),kind=DP)
-              end do
-              !           write(*,*) 'gaminp  ',(gaminp(i,j,na,nb,iq),j=1,3)
-           end do
-        end do
-     end do
-     !
-  ENDDO
-  RETURN
-  !
-end subroutine read_gamma
-!
+! !----------------------------------------------------------------------------
+! SUBROUTINE gammaq2r( nqtot, nat, nr1, nr2, nr3, at )
+!   !----------------------------------------------------------------------------
+!   !
+!   USE kinds, ONLY : DP
+!   USE fft_scalar, ONLY : cfft3d
+!   USE io_global, ONLY : ionode, ionode_id, stdout
+!   USE mp_images, ONLY : intra_image_comm
+!   USE mp,        ONLY : mp_bcast
+!   USE mp_world,  ONLY : world_comm
+!   !
+!   IMPLICIT NONE
+!   INTEGER, INTENT(IN) :: nqtot, nat, nr1, nr2, nr3
+!   REAL(DP), INTENT(IN) :: at(3,3)
+!   !
+!   INTEGER, ALLOCATABLE :: nc(:,:,:)
+!   COMPLEX(DP), ALLOCATABLE :: gaminp(:,:,:,:,:), gamout(:,:,:,:,:)
+!   !
+!   REAL(DP), PARAMETER :: eps=1.D-5, eps12=1.d-12
+!   INTEGER  :: nsig = 10, isig, filea2F, nstar, count_q, nq, nq_log, iq, &
+!        icar, ipol, m1,m2,m3, m(3), nr(3), j1,j2, na1, na2, nn
+!   LOGICAL :: lq
+!   REAL(DP) :: deg, ef, dosscf
+!   REAL(DP) :: q(3,48), xq, resi
+!   character(len=256) :: name
+!   CHARACTER(LEN=256) :: elph_dir
+!   CHARACTER(LEN=6) :: int_to_char
+!   LOGICAL :: exst
+!   INTEGER :: ios
+! 
+!   !
+!   ALLOCATE (gaminp(3,3,nat,nat,48), gamout(nr1*nr2*nr3,3,3,nat,nat) )
+!   ALLOCATE ( nc (nr1,nr2,nr3) )
+!   write (stdout,*)
+!   write (stdout,*) '  Preparing gamma for a2F '
+!   write (stdout,*)
+!   !
+!   nr(1) = nr1
+!   nr(2) = nr2
+!   nr(3) = nr3
+!   elph_dir='elph_dir/'
+! !  IF (ionode) INQUIRE(FILE=TRIM(elph_dir), EXIST=exst)
+! !  CALL mp_bcast(exst, ionode_id, intra_image_comm)
+! !  IF (.NOT. exst) CALL errore('gammaq2r','elph_dir directory not exists',1)
+!   !
+!   DO isig=1, nsig
+!      filea2F = 50 + isig
+!      nc = 0
+!      DO count_q=1,nqtot
+!         name= TRIM(elph_dir) // 'a2Fq2r.' // TRIM(int_to_char(filea2F)) &
+!                           // '.' // TRIM(int_to_char(count_q))
+!         IF (ionode) open(unit=filea2F, file=name, STATUS = 'old', &
+!                                  FORM = 'formatted', IOSTAT=ios)
+!         CALL mp_bcast(ios, ionode_id, intra_image_comm)
+!         IF (ios /= 0) CALL errore('gammaq2r','problem opening file' &
+!                                    //TRIM(name), 1)
+!      !
+!      ! to pass to matdyn, for each isig, we read: degauss, Fermi energy and DOS
+!      !
+!         !
+!         IF (ionode) THEN
+!            READ(filea2F,*) deg, ef, dosscf
+!            READ(filea2F,*) nstar
+!         ENDIF
+!         CALL mp_bcast(deg, ionode_id, world_comm)
+!         CALL mp_bcast(ef, ionode_id, world_comm)
+!         CALL mp_bcast(dosscf, ionode_id, world_comm)
+!         CALL mp_bcast(nstar, ionode_id, world_comm)
+!         !
+!         CALL read_gamma ( nstar, nat, filea2F, q, gaminp )
+!         !
+!         do nq = 1,nstar
+!            lq = .true.
+!            do ipol=1,3
+!               xq = 0.0d0
+!               do icar=1,3
+!                  xq = xq + at(icar,ipol) * q(icar,nq) * nr(ipol)
+!               end do
+!               lq = lq .AND. (ABS(NINT(xq) - xq) < eps)
+!               iq = NINT(xq)
+!               !
+!               m(ipol)= mod(iq,nr(ipol)) + 1
+!               if (m(ipol) < 1) m(ipol) = m(ipol) + nr(ipol)
+!            end do !ipol
+!            IF (.NOT.lq) CALL errore('gammaq2r','q not allowed',1)
+!            !
+!            if(nc(m(1),m(2),m(3)) == 0) then
+!               nc(m(1),m(2),m(3)) = 1
+!               CALL TRASL( gamout, gaminp, nq, nr1, nr2, nr3, nat, m(1), m(2), m(3) )
+!            else
+!               call errore('gammaq2r',' nc already filled: wrong q grid or wrong nr',1)
+!            end if
+!         enddo ! stars for given q-point
+!      ENDDO ! q-points
+!      !
+!      nq_log = SUM (nc)
+!      if (nq_log == nr1*nr2*nr3) then
+!         write (stdout,*)
+!         write (stdout,'(" Broadening = ",F10.3)') deg
+!         write (stdout,'(5x,a,i4)') ' q-space grid ok, #points = ',nq_log
+!      else
+!         call errore('gammaq2r',' missing q-point(s)!',1)
+!      end if
+!      do j1=1,3
+!         do j2=1,3
+!            do na1=1,nat
+!               do na2=1,nat
+!                  call cfft3d ( gamout(:,j1,j2,na1,na2), &
+!                       nr1,nr2,nr3, nr1,nr2,nr3, 1 )
+!               end do
+!            end do
+!         end do
+!      end do
+!      gamout = gamout / DBLE (nr1*nr2*nr3)
+!      !
+!      IF (ionode) close(filea2F)
+!      !
+!      filea2F = 60 + isig
+!      name = TRIM(elph_dir) // 'a2Fmatdyn.'// TRIM(int_to_char(filea2F)) 
+!      IF (ionode) THEN
+!      open(unit=filea2F, file=name, STATUS = 'unknown')
+!      !
+!      WRITE(filea2F,*) deg, ef, dosscf
+!      write(filea2F,'(3i4)') nr1, nr2, nr3
+! 
+!      do j1=1,3
+!         do j2=1,3
+!            do na1=1,nat
+!               do na2=1,nat
+!                  write(filea2F,'(4i4)') j1,j2,na1,na2
+!                  nn=0
+!                  DO m3=1,nr3
+!                     DO m2=1,nr2
+!                        DO m1=1,nr1
+!                           nn=nn+1
+!                           write(filea2F,'(3i4,2x,1pe18.11)')   &
+!                                m1,m2,m3, DBLE(gamout(nn,j1,j2,na1,na2))
+!                        END DO
+!                     END DO
+!                  END DO
+!               end do  ! na2
+!            end do  ! na1
+!         end do   !  j2
+!      end do   ! j1
+!      close(filea2F)
+!      ENDIF  ! ionode
+! 
+!      resi = SUM ( ABS ( AIMAG( gamout ) ) )
+! 
+!      IF (resi > eps12) THEN
+!         WRITE (stdout,"(/5x,' fft-check warning: sum of imaginary terms = ',es12.6)") resi
+!      ELSE
+!         WRITE (stdout,"(/5x,' fft-check success (sum of imaginary terms < 10^-12)')")
+!      END IF
+! 
+!   ENDDO
+!   !
+!   DEALLOCATE (gaminp, gamout )
+!   !
+! END SUBROUTINE gammaq2r
+! !
+! !-----------------------------------------------------------------------
+! subroutine read_gamma (nqs, nat, ifn, xq, gaminp)
+!   !-----------------------------------------------------------------------
+!   !
+!   USE kinds, ONLY : DP
+!   USE io_global, ONLY : ionode, ionode_id, stdout
+!   USE mp,        ONLY : mp_bcast
+!   USE mp_world,  ONLY : world_comm
+!   implicit none
+!   !
+!   ! I/O variables
+!   integer, intent(in) :: nqs, nat, ifn
+!   real(DP), intent(out) :: xq(3,48)
+!   complex(DP), intent(out) :: gaminp(3,3,nat,nat,48)
+!   !
+!   logical :: lrigid
+!   integer :: i, j, na, nb, nt, iq
+!   real(DP) :: phir(3),phii(3)
+!   CHARACTER(LEN=75) :: line
+!   !
+!   !
+!   Do iq=1,nqs
+!      IF (ionode) THEN
+!         READ(ifn,*)
+!         READ(ifn,*)
+!         READ(ifn,*)
+!         READ(ifn,'(11X,3F14.9)')  (xq(i,iq),i=1,3)
+!      !     write(*,*) 'xq    ',iq,(xq(i,iq),i=1,3)
+!         READ(ifn,*)
+!      END IF
+!      CALL mp_bcast(xq(:,iq), ionode_id, world_comm)
+!      do na=1,nat
+!         do nb=1,nat
+!            IF (ionode) read(ifn,*) i,j
+!            CALL mp_bcast(i, ionode_id, world_comm)
+!            CALL mp_bcast(j, ionode_id, world_comm)
+!            if (i.ne.na) call errore('read_gamma','wrong na read',na)
+!            if (j.ne.nb) call errore('read_gamma','wrong nb read',nb)
+!            do i=1,3
+!               IF (ionode) read (ifn,*) (phir(j),phii(j),j=1,3)
+!               CALL mp_bcast(phir, ionode_id, world_comm)
+!               CALL mp_bcast(phii, ionode_id, world_comm)
+!               do j = 1,3
+!                  gaminp(i,j,na,nb,iq) = CMPLX(phir(j),phii(j),kind=DP)
+!               end do
+!               !           write(*,*) 'gaminp  ',(gaminp(i,j,na,nb,iq),j=1,3)
+!            end do
+!         end do
+!      end do
+!      !
+!   ENDDO
+!   RETURN
+!   !
+! end subroutine read_gamma
+! !
 !----------------------------------------------------------------------------
 SUBROUTINE trasl( phid, phiq, nq, nr1, nr2, nr3, nat, m1, m2, m3 )
   !----------------------------------------------------------------------------

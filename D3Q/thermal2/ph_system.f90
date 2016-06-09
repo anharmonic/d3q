@@ -63,18 +63,19 @@ MODULE ph_system
       WRITE(stdout,*) "One system is missing ions base!"
     ENDIF
     !
-    IF(S%lrigid.or.Z%lrigid)THEN
-      IF(.not.S%lrigid) THEN
-        !WRITE(stdout,*) "Only Z has rigid"
-      ELSE IF(.not.Z%lrigid) THEN
-        !WRITE(stdout,*) "Only S has rigid"
-      ELSE
-        IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
-          same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
-          IF(.not.same.and.verbose) WRITE(stdout,*) "zeu", S%zeu, Z%zeu
-        ENDIF
-      ENDIF
-    ENDIF
+    ! Not checking: lrigid and co., because they are not in mat3R files
+!     IF(S%lrigid.or.Z%lrigid)THEN
+!       IF(.not.S%lrigid) THEN
+!         !WRITE(stdout,*) "Only Z has rigid"
+!       ELSE IF(.not.Z%lrigid) THEN
+!         !WRITE(stdout,*) "Only S has rigid"
+!       ELSE
+!         IF(allocated(S%zeu).and.allocated(Z%zeu)) THEN
+!           same = same .and. ALL( ABS(S%zeu -Z%zeu) < eps)
+!           IF(.not.same.and.verbose) WRITE(stdout,*) "zeu", S%zeu, Z%zeu
+!         ENDIF
+!       ENDIF
+!     ENDIF
 
     same = same .and. ALL( ABS(S%celldm -Z%celldm) < eps)
     IF(.not.same.and.verbose) WRITE(stdout,*) "celldm", S%celldm, Z%celldm

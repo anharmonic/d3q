@@ -766,11 +766,11 @@ PROGRAM asr3
     TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
     !
     INTEGER :: j, ios
-    REAL(DP) :: delta
+    REAL(DP) :: delta, threshold
     ! 
     INTEGER,INTRINSIC :: iargc
-    CHARACTER(len=256) :: self, filein, fileout
-    INTEGER :: nargs
+    CHARACTER(len=256) :: self, filein, fileout, aux
+    INTEGER :: nargs, niter_max
     !
     nargs = iargc()
     !
@@ -792,6 +792,20 @@ PROGRAM asr3
       CALL getarg(2, fileout)
     ELSE
       fileout = TRIM(filein)//"_asr"
+    ENDIF
+    !
+    IF(nargs>2)THEN
+      CALL getarg(3, aux)
+      READ(aux, *) threshold
+    ELSE
+      threshold = 1.d-12
+    ENDIF
+    !
+    IF(nargs>3)THEN
+      CALL getarg(4, aux)
+      READ(aux, *) niter_max
+    ELSE
+      niter_max = INT(1e+4)
     ENDIF
     ! ----------------------------------------------------------------------------
     CALL fc%read(filein, S)
@@ -832,11 +846,11 @@ PROGRAM asr3
 !     delta = perm_symmetrize_fc3(S%nat,idx2,fx)
 
     APPLY_ASR : &
-    DO j = 1,100000
+    DO j = 1,niter_max
 !       IF(j<3)THEN
 !         IF( impose_asr3_6idx(S%nat,idx2,fx) < 1.d-6) EXIT
 !       ELSE
-        IF( impose_asr3_1idx(S%nat,idx2,fx) < 1.d-12) EXIT
+        IF( impose_asr3_1idx(S%nat,idx2,fx) < threshold) EXIT
 !       ENDIF
       
       OPEN(unit=100, file="STOP", status='OLD', iostat=ios)

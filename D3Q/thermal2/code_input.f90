@@ -37,6 +37,7 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat2_final
     CHARACTER(len=8)   :: asr2
     !
+    INTEGER            :: start_q
     INTEGER            :: nconf
     REAL(DP),ALLOCATABLE :: T(:), sigma(:)
     ! for spectral function:
@@ -94,10 +95,11 @@ MODULE code_input
     CHARACTER(len=8)   :: asr2 = "no"                ! apply sum rule to phonon force constants
     INTEGER            :: nconf = 1                  ! numebr of smearing/temperature couples
     INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
+    INTEGER            :: start_q = 1                ! skip the preceeding points when computing a BZ path
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
-    LOGICAL            :: sort_shifted_freq = .true. ! sort w+l_shift
+    LOGICAL            :: sort_shifted_freq = .false. ! sort w+l_shift
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only dynbubble code)
     !
@@ -136,12 +138,15 @@ MODULE code_input
     INTEGER             :: input_unit
     INTEGER,EXTERNAL :: find_free_unit
     !
-    LOGICAL :: qpoints_ok=.false., configs_ok=.false., isotopes_ok=.false.
+    LOGICAL :: qpoints_ok=.false.,  &! true after reading QPOINTS
+               configs_ok=.false.,  &! true after reading CONFIGS
+               isotopes_ok=.false., &! true after reading ISOTOPES
+               do_grid=.false.       ! is true, construct a regular grid of q-points
     !
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, nq, nk, grid_type, &
+      nconf, start_q, nq, nk, grid_type, &
       ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, sort_shifted_freq, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
@@ -168,9 +173,14 @@ MODULE code_input
       !
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
-    ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
-    input_unit = find_free_unit()
-    OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
+    IF(TRIM(input_file)=="-")THEN
+      ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
+      input_unit = 5
+    ELSE
+      ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
+      input_unit = find_free_unit()
+      OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
+    ENDIF
     !
     IF(code=="LW")THEN
       calculation="lw"
@@ -178,6 +188,7 @@ MODULE code_input
       ioWRITE(*, lwinput)
     ELSE IF (code=="TK")THEN
       calculation="sma"
+      do_grid = .true.
       READ(input_unit, tkinput)
       ioWRITE(*, tkinput)
     ELSE IF (code=="DB")THEN
@@ -210,6 +221,7 @@ MODULE code_input
     input%file_mat3 = file_mat3
     input%outdir    = TRIMCHECK(outdir)
     input%asr2      = asr2
+    input%start_q   = start_q
     input%nconf     = nconf
     input%nk        = nk
     input%grid_type = grid_type
@@ -238,8 +250,8 @@ MODULE code_input
     ENDIF
     ioWRITE(*,*) "calculation: ", input%calculation, input%mode
     !
-    IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
-        CALL errore('READ_INPUT', 'Missing nq', 1)    
+!     IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
+!         CALL errore('READ_INPUT', 'Missing nq', 1)    
     !
     IF(TRIM(prefix)==INVALID)THEN
       input%prefix = TRIM(input%calculation)//"_"//TRIM(input%mode)
@@ -299,18 +311,24 @@ MODULE code_input
         !
         ioWRITE(*,*) "Reading QPOINTS"
         !
-        IF(TRIM(input%mode) == "grid")THEN
-          READ(input_unit,*,iostat=ios) nq1, nq2, nq3
-          IF(ios/=0) CALL errore("READ_INPUT", "reading nq1, nq2, nq3 for q-grid calculation", 1)
-          line=''
-          ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
-          !CALL setup_grid(input%grid_type, S%bg, nq1,nq2,nq3, qpts) this is done later
-          CYCLE READ_CARDS
-        ENDIF
-        !
         qpts%basis = 'cartesian'
         READ(line,*,iostat=ios) word2, word3
         IF(ios==0) qpts%basis = TRIM(word3(1:9))
+        !
+        IF(TRIM(qpts%basis) == "grid" .or. TRIM(qpts%basis) == "bz" &
+           .or. TRIM(qpts%basis)=="ws" ) THEN
+          !
+          grid_type = qpts%basis
+          qpts%basis = "cartesian"
+          do_grid = .true.
+          !
+          READ(input_unit,*,iostat=ios) nq1, nq2, nq3
+          IF(ios/=0) CALL errore("READ_INPUT", "Reading QPOINTS nq1, nq2, nq3 for grid calculation", 1)
+          line=''
+          !this is done later
+          !CALL setup_grid(input%grid_type, S%bg, nq1,nq2,nq3, qpts)
+          CYCLE READ_CARDS
+        ENDIF
         !
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
@@ -430,7 +448,9 @@ MODULE code_input
             ENDDO
             CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
             DEALLOCATE(isotopes_mass, isotopes_conc)
-
+          ELSE IF (word3=="manual") THEN
+            READ(line,*,iostat=ios2) word2, word3, auxm(i), auxs(i)
+              IF(ios2/=0) CALL errore("READ_INPUT","Reading isotope line: input error.", 5)
           ELSE
             CALL errore("READ_INPUT","I do not understand this isotope choice '"//TRIM(word2)//"'.", 1)
           ENDIF
@@ -458,16 +478,18 @@ MODULE code_input
     ! if no "Q_POINTS" section has been found, use the same grid
     ! as we used for integrating the phonon scattering
     ! (i.e. inner and outer grids are the same)
-    IF(input%calculation=="grid" .or. code=="TK") THEN
+    IF(do_grid) THEN
       IF(.not.qpoints_ok .or. code=="TK") THEN
         nq1=nk(1); nq2=nk(2); nq3=nk(3)
+        grid_type = input%grid_type
         qpoints_ok = .true.
       ENDIF
-      CALL setup_grid(input%grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false.)
+      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false.)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &
                 "x"//TRIM(int_to_char(nq3))
+      IF(LEN(TRIM(grid_type))==2) input%prefix=TRIM(input%prefix)//"@"//TRIM(grid_type)
       !DO i = 1,qpts%nq
       !  WRITE(*,'(i3,3f12.6,f16.3)') i, qpts%xq(:,i), qpts%w(i)
       !ENDDO
@@ -488,6 +510,8 @@ MODULE code_input
     !
     IF(.not.qpoints_ok) CALL errore("READ_INPUT", "I did not find QPOINTS card", 1)
     IF(.not.configs_ok) CALL errore("READ_INPUT", "I did not find CONFIGS card", 1)
+    !
+    IF(input_unit/=5) CLOSE(input_unit)
     !
   END SUBROUTINE READ_INPUT
   !

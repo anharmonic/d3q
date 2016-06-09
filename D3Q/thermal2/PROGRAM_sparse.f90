@@ -82,14 +82,15 @@ PROGRAM gen_sparse
       STOP
       !CALL errore("asr3", "missing arguments", 1)
     ENDIF
+    !
     IF(nargs>1)THEN
       CALL getarg(2, fileout)
     ELSE
-      fileout = TRIM(filein)//"_sparse"
+      fileout = TRIM(filein)//".sparse"
     ENDIF
-    
-!     afc => read_fc3("mat3R_sparse", S)
 
+    
+    
     CALL fc%read(filein, S)
     CALL aux_system(S)
     CALL memstat(kb)

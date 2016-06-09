@@ -17,7 +17,8 @@ PROGRAM r2q
   USE r2q_program
   USE input_fc,         ONLY : read_fc2, aux_system, div_mass_fc2, &
                               forceconst2_grid, ph_system_info, &
-                              print_citations_linewidth
+                              print_citations_linewidth, &
+                              multiply_mass_dyn, write_dyn
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
@@ -37,6 +38,7 @@ PROGRAM r2q
   REAL(DP),ALLOCATABLE :: freq(:)
   COMPLEX(DP),ALLOCATABLE :: U(:,:)
   INTEGER :: i, output_unit
+  CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
   CALL print_citations_linewidth()
   !  
@@ -59,7 +61,12 @@ PROGRAM r2q
     WRITE(output_unit, '(i6,f12.6,3x,3f12.6,999f18.8)') &
       i, qpath%w(i), qpath%xq(:,i), freq*RY_TO_CMM1
     FLUSH(output_unit)
-    !WRITE(999, '(999f12.4)') freq*RY_TO_CMM1
+    
+    IF(input%print_dynmat) THEN
+      U = multiply_mass_dyn(S, U)
+      filename = "r2q_dyn"//TRIM(int_to_char(i))
+      CALL write_dyn(filename, qpath%xq(:,i), U, S)
+    ENDIF
   ENDDO
   !
   CLOSE(output_unit)

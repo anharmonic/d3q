@@ -25,7 +25,7 @@ PROGRAM qq2rr
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
   INTEGER :: narg, i, j
-  CHARACTER(len=512) :: argv
+  CHARACTER(len=512) :: argv, filename
 
   narg = command_argument_count()
   IF(narg>=3)THEN
@@ -33,8 +33,16 @@ PROGRAM qq2rr
       CALL get_command_argument(i,argv)
       READ(argv,*) nq(i)
     ENDDO
+    IF(narg>=4)THEN
+      CALL get_command_argument(i,filename)
+    ELSE
+      filename="mat3R"
+    ENDIF
   ELSE
-      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x nqx nqy nqz"
+      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [FILENAME]"
+      WRITE(*,*) ""
+      WRITE(*,*) "Selects a grid of (NQX x NQY x NQZ) points from the anh* files"
+      WRITE(*,*) "apply the inverse Fourier transform, and saves it to FILENAME."
       STOP 1
   ENDIF
   WRITE(*,*) "Reading grid", nq
@@ -62,7 +70,7 @@ PROGRAM qq2rr
   WRITE(*,*) "Total memory used : ", kb/1000, "Mb"
   !
   WRITE(*,*) "Writing FCs to file..."
-  CALL fc3%write("mat3R.xxx", S)
+  CALL fc3%write(filename, S)
   !
   WRITE(*,*) "Testing Forward FFT, with imaginary part..."
   CALL test_fwfft_d3(nq_trip, S, d3grid, fc3)

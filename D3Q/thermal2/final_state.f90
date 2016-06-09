@@ -136,13 +136,10 @@ MODULE final_state
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qresolved_T"//TRIM(write_conf(it,nconf,T))//&
                         "_s"//TRIM(write_conf(it,nconf,sigma))//".out")
-        pl = 0._dp; dpl = 0._dp
         DO iqpath = 1,qpath%nq
-          IF(iqpath>1) dpl = SQRT(SUM( (qpath%xq(:,iqpath-1)-qpath%xq(:,iqpath))**2 ))
-          pl = pl + dpl
           DO ie = 1,ne
             ioWRITE(unit,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
-                            pl, xqbar(ie,:,iqpath,it)
+                            qpath%w(iqpath), xqbar(ie,:,iqpath,it)
           ENDDO
           WRITE(unit,*) 
         ENDDO

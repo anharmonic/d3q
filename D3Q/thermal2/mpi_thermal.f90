@@ -13,7 +13,7 @@ MODULE mpi_thermal
 !dir$ message "Compiling _without_ MPI support (mpi subroutines will do nothing)" 
 #endif
 !
-#ifdef __OPENMP
+#ifdef _OPENMP
 !dir$ message "Compiling _with_ OpenMP directives" 
 #else
 !dir$ message "Compiling _without_ OpenMP directives" 
@@ -45,7 +45,7 @@ MODULE mpi_thermal
 
   SUBROUTINE start_mpi()
     IMPLICIT NONE
-#ifdef __OPENMP
+#ifdef _OPENMP
     INTEGER,EXTERNAL ::  omp_get_max_threads
 #endif
     call MPI_INIT ( ierr )
@@ -53,7 +53,7 @@ MODULE mpi_thermal
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
     ionode = (my_id == 0)
     IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
-#ifdef __OPENMP
+#ifdef _OPENMP
     omp_tot_thr =  omp_get_max_threads()
 #else
    omp_tot_thr = 1

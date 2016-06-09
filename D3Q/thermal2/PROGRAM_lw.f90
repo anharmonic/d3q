@@ -60,7 +60,6 @@ MODULE linewidth_program
       filename=TRIM(input%outdir)//"/"//&
                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
-      !ioWRITE(*,*) "filename", TRIM(filename)
       OPEN(unit=1000+it, file=filename)
       IF (TRIM(input%mode) == "full") THEN
         ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
@@ -112,7 +111,7 @@ MODULE linewidth_program
                 iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
           IF(ionode) FLUSH(1000+it)
         ENDDO
-      ELSE IF (TRIM(input%mode) == "real") THEN
+      ELSE IF (TRIM(input%mode) == "real" .or. TRIM(input%mode) == "imag") THEN
           timer_CALL t_lwphph%start()
         lw = linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
                         S, grid, fc2, fc3)
@@ -139,7 +138,7 @@ MODULE linewidth_program
           FLUSH(1000+it)
         ENDDO
       ELSE
-        CALL errore('LW_QBZ_LINE', 'wrong mode (real or full)', 1)
+        CALL errore('LW_QBZ_LINE', 'wrong mode (imag or full)', 1)
       ENDIF
       !
     ENDDO
@@ -349,15 +348,16 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (3)"
+    ioWRITE(*,'(2x,a,3f12.6,a,1f12.6)') "Going to compute final state decomposition for", &
+                                input%q_initial, "  energy:", input%e_initial, "cm^-1"
     
-    DO iq = 1,qpath%nq
-      ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+    !DO iq = 1,qpath%nq
+      !ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
       !
-      DO it = 1,input%nconf
-        ioWRITE(1000+it, *)
-        ioWRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
-      ENDDO
+!       DO it = 1,input%nconf
+!         ioWRITE(1000+it, *)
+!         ioWRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
+!       ENDDO
       !
       fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
                              S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
@@ -365,13 +365,13 @@ MODULE linewidth_program
       !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
-          ioWRITE(1000+it, '(2f14.8,100e18.6e4)') &
-                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
+          ioWRITE(1000+it, '(1f14.8,100e18.6e4)') &
+               ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
           FLUSH(1000+it)
         ENDDO
       ENDDO
       !
-    ENDDO
+    !ENDDO
     !
     !
     IF(ionode)THEN

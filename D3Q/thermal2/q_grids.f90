@@ -92,7 +92,7 @@ MODULE q_grids
     do_scatter = .false.
     IF(present(scatter)) do_scatter = scatter
     !
-    IF(grid_type=="simple")THEN
+    IF(grid_type=="simple" .or. grid_type=="grid")THEN
       IF(.not.do_scatter)THEN
         ! If the grid is not mpi-scattered I use the simple subroutine
         CALL setup_simple_grid(bg, n1,n2,n3, grid, xq0)
@@ -100,7 +100,7 @@ MODULE q_grids
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
       ENDIF
-    ELSE IF (grid_type=="bz")THEN
+    ELSE IF (grid_type=="ws" .or. grid_type=="bz")THEN
       ! This grid has to be generated in its entirety and then scatterd, 
       ! mind the memory bottleneck!
       !print*,1

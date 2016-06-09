@@ -1,4 +1,4 @@
-!
+
 ! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
 !  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
@@ -550,14 +550,13 @@ MODULE fc2_interpolate
   
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3, d3out)
-    !   Rotates third derivative of the dynamical basis from cartesian axis
-    !   to the basis of the modes. Rotation is not really in place
+  SUBROUTINE ip_cart2patx(d3in, nat3, u1, u2, u3)
+    ! Rotates D3 matrix from cartesian axis to the basis
+    ! of the modes. Rotation is not really in place
     USE kinds, ONLY : DP
     IMPLICIT NONE
     ! d3 matrix, input: in cartesian basis, output: on the patterns basis
     COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
-    COMPLEX(DP),OPTIONAL,INTENT(out) :: d3out(nat3, nat3, nat3)
     INTEGER,INTENT(in)        :: nat3
     ! patterns (transposed, with respect to what we use in the d3q.x code)
     COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
@@ -566,72 +565,94 @@ MODULE fc2_interpolate
     !
     INTEGER :: a, b, c, i, j, k
     COMPLEX(DP) :: AUX
-    REAL(DP),PARAMETER :: EPS = 1.e-8_dp
+    COMPLEX(DP),PARAMETER :: Z1 = (1._dp, 0._dp)
+    COMPLEX(DP) :: u1t(nat3,nat3)
     !
     ALLOCATE(d3tmp(nat3, nat3, nat3))
-    d3tmp = (0._dp, 0._dp)
+    d3tmp = 0._dp
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
-    DO k = 1,nat3
+    u1t = TRANSPOSE(u1)
+    !
+    
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(3)
     DO c = 1,nat3
-    IF(ABS(u3(c,k))>EPS)THEN
-      !
+    DO b = 1,nat3
+    DO a = 1,nat3
+      DO k = 1,nat3
       DO j = 1,nat3
-      DO b = 1,nat3
-      IF(ABS(u2(b,j))>EPS)THEN
-        !
-        AUX = u2(b,j) * u3(c,k)
+      AUX = u2(b,j) * u3(c,k)
         DO i = 1,nat3
-        DO a = 1,nat3
             d3tmp(i, j, k) = d3tmp(i, j, k) &
-                            + u1(a,i) * AUX * d3in(a, b, c) 
+                            + u1t(i,a) * AUX * d3in(a, b, c) 
         ENDDO
-        ENDDO
-        !
-      ENDIF
       ENDDO
       ENDDO
-      !
-    ENDIF
+    ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-! !!!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c) REDUCTION(+: d3tmp) COLLAPSE(2)
-!     DO k = 1,nat3
-!     DO j = 1,nat3
-!     DO i = 1,nat3
-!       !
-!       DO c = 1,nat3
-!         IF(ABS(u3(c,k))>EPS)THEN
-!         DO b = 1,nat3
-!           IF(ABS(u2(b,j))>EPS)THEN
-!           AUX = u2(b,j) * u3(c,k)
-!           DO a = 1,nat3
-!             !
-!             d3tmp(i, j, k) = d3tmp(i, j, k) &
-!                             + u1(a,i) * AUX * d3in(a, b, c) 
-!           ENDDO
-!           ENDIF
-!         ENDDO
-!         ENDIF
-!       ENDDO
-!         !
-!     ENDDO
-!     ENDDO
-!     ENDDO
-! !!!$OMP END PARALLEL DO
-
     !
-    IF(present(d3out)) THEN
-      d3out = d3tmp
-    ELSE
-      d3in  = d3tmp
-    ENDIF
+    d3in = d3tmp
     DEALLOCATE(d3tmp)
     !
     RETURN
-  END SUBROUTINE ip_cart2pat
+  END SUBROUTINE ip_cart2patx
   !
+  
+  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+    ! Rotates D3 matrix from cartesian axis to the basis
+    ! of the modes. Rotation is not really in place
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    ! d3 matrix, input: in cartesian basis, output: on the patterns basis
+    COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
+    INTEGER,INTENT(in)        :: nat3
+    ! patterns (transposed, with respect to what we use in the d3q.x code)
+    COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
+    !
+    INTEGER :: a, b, c, i, j, k
+    COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
+    COMPLEX(DP),ALLOCATABLE :: AUX(:,:)
+    COMPLEX(DP),PARAMETER :: Z1 = (1._dp, 0._dp)
+    COMPLEX(DP) :: u1t(nat3,nat3)
+    !
+    ALLOCATE(AUX(nat3,nat3))
+    ALLOCATE(d3tmp(nat3, nat3, nat3))
+    d3tmp = 0._dp
+    !
+    u1t = TRANSPOSE(u1)
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
+    DO c = 1,nat3
+    DO b = 1,nat3
+      ! Precompute u2*u3 to save some FLOPS without 
+      ! compromising memory access order
+      DO k = 1,nat3
+      DO j = 1,nat3
+        AUX(j,k) = u2(b,j) * u3(c,k)
+      ENDDO
+      ENDDO
+      !
+      DO a = 1,nat3
+        DO k = 1,nat3
+        DO j = 1,nat3
+        DO i = 1,nat3
+              d3tmp(i, j, k) = d3tmp(i, j, k) &
+                              + u1t(i,a) * AUX(j,k) * d3in(a, b, c) 
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    !
+    d3in = d3tmp
+    DEALLOCATE(d3tmp)
+    !
+    RETURN
+    !
+    RETURN
+  END SUBROUTINE ip_cart2pat
+  
 END MODULE fc2_interpolate
-
-
