@@ -22,6 +22,7 @@ PROGRAM_import3py.o : ./PROGRAM_import3py.o
 PROGRAM_import3py.o : ./f3_bwfft.o
 PROGRAM_import3py.o : ./fc3_interp.o
 PROGRAM_import3py.o : ./input_fc.o
+PROGRAM_import3py.o : ./ph_system.o
 PROGRAM_lw.o : ../../Modules/constants.o
 PROGRAM_lw.o : ../../Modules/kind.o
 PROGRAM_lw.o : ./PROGRAM_lw.o
@@ -42,7 +43,6 @@ PROGRAM_q2r.o : ../../Modules/io_global.o
 PROGRAM_q2r.o : ../../Modules/kind.o
 PROGRAM_q2r.o : ../../Modules/mp.o
 PROGRAM_q2r.o : ../../Modules/mp_global.o
-PROGRAM_q2r.o : ../../Modules/mp_images.o
 PROGRAM_q2r.o : ../../Modules/mp_world.o
 PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat.o
 PROGRAM_q2r.o : ../../PHonon/PH/io_dyn_mat_old.o
@@ -56,8 +56,10 @@ PROGRAM_r2q.o : ../../Modules/constants.o
 PROGRAM_r2q.o : ../../Modules/kind.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
 PROGRAM_r2q.o : ./asr2.o
+PROGRAM_r2q.o : ./code_input.o
 PROGRAM_r2q.o : ./fc2_interp.o
 PROGRAM_r2q.o : ./input_fc.o
+PROGRAM_r2q.o : ./q_grids.o
 PROGRAM_sparse.o : ../../Modules/io_global.o
 PROGRAM_sparse.o : ../../Modules/kind.o
 PROGRAM_sparse.o : ../../Modules/random_numbers.o

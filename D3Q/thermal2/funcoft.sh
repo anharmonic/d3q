@@ -70,4 +70,6 @@ grep "^ *$line "  $files /dev/null |\
 	awk "{print \$1,\$$colomega,\$$colwidth,\$$colshift}"|\
 	sed -e "s/^.*_T//" -e "s/_s/  /" -e "s/[.]out:/ /"|\
 	sed -re "s/ +/\t/g"|\
-	sort -n
+	sort -k 1n -k 2n 
+
+
