@@ -344,7 +344,7 @@ MODULE thermalk_program
     h = g
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb) - initial")
-    CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+    !CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
       timer_CALL t_tkaout%stop()
     !
     DO iter = 1,niter_max
@@ -372,7 +372,7 @@ MODULE thermalk_program
       ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
       g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-      CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+      !CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
       !pref = g_mod2 / g_mod2_old
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
@@ -385,7 +385,7 @@ MODULE thermalk_program
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q
     USE constants,          ONLY : RY_TO_CMM1
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
@@ -415,8 +415,10 @@ MODULE thermalk_program
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
                             pref(:,:)
-    INTEGER,PARAMETER :: niter_max = 10000
     REAL(DP) :: tk(3,3,input%nconf)
+    LOGICAL :: conv
+    CHARACTER(len=6) :: what
+    CHARACTER(len=256) :: filename
     !
     ! For code readability:
     INTEGER :: nconf, nat3, nq
@@ -424,6 +426,7 @@ MODULE thermalk_program
     nat3  = S%nat3
     nq    = out_grid%nq
     
+        timer_CALL t_tkprec%start()
     ! make the inner grid on top of the outer one
     CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid, scatter=.true.)
     !CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
@@ -432,10 +435,13 @@ MODULE thermalk_program
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     ! Compute A_out diagonal matrix
     ALLOCATE(A_out(nconf, nat3, nq))
+        timer_CALL t_tkprec%stop()
+        timer_CALL t_tkaout%start()
     CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
     ! Compute 1/sqrt(A_out) from A_out
     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
     CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
+        timer_CALL t_tkaout%stop()
     ! Compute 1/A_out from A_out
 !     ALLOCATE(inv_A_out(nconf, nat3, nq))
 !     CALL compute_inv_A_out(A_out, inv_A_out, nconf, nat3, nq)
@@ -451,31 +457,61 @@ MODULE thermalk_program
     ALLOCATE(g_mod2_old(3, nconf) )
     ALLOCATE(      pref(3, nconf) )
     !
+    IF(ionode)THEN
+    DO it = 0,nconf
+      IF(it==0) THEN
+        filename=TRIM(input%outdir)//"/"//&
+                 TRIM(input%prefix)//".out"
+        what="# conf"
+      ELSE
+        filename=TRIM(input%outdir)//"/"//&
+                 TRIM(input%prefix)//"_T"//TRIM(write_conf(it,nconf,input%T))//&
+                  "_s"//TRIM(write_conf(it,nconf,input%sigma))//".out"
+        what="# iter"
+      ENDIF
+      OPEN(unit=10000+it, file=filename)
+      ioWRITE(10000+it, '(a)') "# Thermal conductivity from BTE"
+      ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
+      ioWRITE(10000+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
+                          "    K_x              K_y              K_z              ",&
+                          "    K_xy             K_xz             K_yz             ",&
+                          "    K_yx             K_zx             K_zy"      
+      FLUSH(10000+it)
+    ENDDO
+    ENDIF
+    !
     ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
-        timer_CALL t_tkaout%start()
+        timer_CALL t_tkprec%start()
     ! \tilde{f0} = A_out^(-1/2) b
     ! \tilde{b} = \tilde{f0}
     f = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
     qbasis%b = f
+        timer_CALL t_tkprec%stop()
     !
     tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
     !
     ! f0 = f_SMA = 1/(A_out) b
     ! g0 = Af0 - b
+        timer_CALL t_tkain%start()
     CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+        timer_CALL t_tkain%stop()
+        timer_CALL t_tkprec%start()
 !     g = A_diag_f(A_out, f, nconf, nat3, nq)
-    g = qbasis%b-g
+    g = qbasis%b - g
+    !g = g - qbasis%b
     !g = g/100._dp
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     h = g
     tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb) - initial")
-    CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
-        timer_CALL t_tkaout%stop()
+    CALL print_tk(tk, input%sigma, input%T, nconf, &
+                  "TK from 1/2(fg-fb) - initial", 10000, 0)
+    conv = check_gradmod2_tk(g_mod2, "TK gradient mod", &
+                             input%T, S%omega, nconf, nat3, nq, input%thr_tk)
+        timer_CALL t_tkprec%stop()
     !
-    DO iter = 1,niter_max
+    DO iter = 1,input%niter_max
       CALL check_graceful_termination()
       ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
       ! t = (A_in+A_out)h
@@ -495,19 +531,57 @@ MODULE thermalk_program
       !
       !tk = -\lambda 1/2(f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)")
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
       !
       ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
       g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-      CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
+      conv = check_gradmod2_tk(g_mod2, "TK gradient squared", &
+                               input%T, S%omega, nconf, nat3, nq, input%thr_tk)
+      IF(conv) THEN
+        ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") &
+                      "Convergence achieved"
+        EXIT
+      ENDIF
       !pref = g_mod2 / g_mod2_old
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = qbasis_ax(pref, h, nconf, nat3, nq) - g
         timer_CALL t_tkcg%stop()
     ENDDO
+    IF(iter>input%niter_max) THEN
+      ioWRITE (stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") &
+                    "Maximum number of iterations reached."
+    ENDIF
+
+    IF(ionode)THEN
+    DO it = 0,nconf
+      CLOSE(10000+it)
+    ENDDO
+    ENDIF
     !
-  END SUBROUTINE TK_CG_prec
+#ifdef timer_CALL
+      ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
+      CALL print_timers_header()
+      timer_CALL t_tkprec%print()
+      timer_CALL t_tkaout%print()
+      timer_CALL t_tkain%print()
+      timer_CALL t_tkcg%print()
+      ioWRITE(*,'(a)') "*** * High level components:"
+      timer_CALL t_tktld%print()
+      timer_CALL t_lwisot%print()
+      timer_CALL t_lwcasi%print()
+      timer_CALL t_lwphph%print()
+      timer_CALL t_lwchk%print()
+      ioWRITE(*,'(a)') "*** * Low level subroutines: "
+      timer_CALL t_freq%print() 
+      timer_CALL t_bose%print() 
+      timer_CALL t_sum%print() 
+      timer_CALL t_fc3int%print() 
+      timer_CALL t_fc3m2%print() 
+      timer_CALL t_fc3rot%print() 
+      timer_CALL t_mpicom%print() 
+#endif
+    END SUBROUTINE TK_CG_prec
   END MODULE thermalk_program
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 !               !               !               !               !               !               !
@@ -548,16 +622,16 @@ PROGRAM thermalk
     !
     CALL TK_SMA(tkinput, out_grid, S, fc2, fc3)
     !
-  ELSEIF(TRIM(tkinput%calculation) == "cg") THEN
-    !
-    CALL TK_CG(tkinput, out_grid, S, fc2, fc3)
-    !
-  ELSEIF(TRIM(tkinput%calculation) == "cgp") THEN
+!   ELSEIF(TRIM(tkinput%calculation) == "cg") THEN
+!     !
+!     CALL TK_CG(tkinput, out_grid, S, fc2, fc3)
+!     !
+  ELSEIF(TRIM(tkinput%calculation) == "cgp" .or. TRIM(tkinput%calculation) == "exact") THEN
     !
     CALL TK_CG_prec(tkinput, out_grid, S, fc2, fc3)
     !
   ELSE
-    CALL errore("lw", "what else to do?", 1)
+    CALL errore("tk", "Unknown calculation type: "//TRIM(tkinput%calculation), 1)
   ENDIF
   !
   CALL stop_mpi()

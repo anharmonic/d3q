@@ -123,24 +123,32 @@ MODULE variational_tk
     QPOINT_LOOP : &
     DO iq = 1,out_grid%nq
       ! bang!
+      timer_CALL t_lwphph%start()
       lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T, sigma_ry, S, in_grid, fc2, fc3)
+      timer_CALL t_lwphph%stop()
       !
       ! Compute contribution of isotopic disorder
       IF(input%isotopic_disorder) THEN
+        timer_CALL t_lwisot%start()
         lw_isotopic = isotopic_linewidth_q(out_grid%xq(:,iq), input%nconf, input%T, &
                                            sigma_ry, S, out_grid, fc2)
+        timer_CALL t_lwisot%stop()
       ENDIF
       !
       vel = basis%c(:,:,iq)
       !
       ! Compute potentially anisotropic Casimir linewidth
-      IF(input%casimir_scattering) &
+      IF(input%casimir_scattering) THEN
+        timer_CALL t_lwcasi%start()
         lw_casimir = casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, input%casimir_dir, S%nat3)
+        timer_CALL t_lwcasi%stop()
+      ENDIF
       ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
       DO it = 1,input%nconf
         lw(:,it) = lw_phph(:,it) + lw_isotopic(:,it) + lw_casimir
       ENDDO
       !
+        timer_CALL t_lwchk%start()
       CONF_LOOP : &
       DO it = 1, input%nconf
         !
@@ -171,6 +179,7 @@ MODULE variational_tk
           !ENDDO
         ENDDO MODE_LOOP
       ENDDO CONF_LOOP
+        timer_CALL t_lwchk%stop()
     ENDDO QPOINT_LOOP
     !
 !     ! Recollect among CPUs if using MPI parallelisation
@@ -199,7 +208,7 @@ MODULE variational_tk
           inv_sqrt_A(it,nu,iq) = 1/DSQRT(A(it,nu,iq))
         ELSE IF (A(it,nu,iq)<0._dp) THEN
           inv_sqrt_A(it,nu,iq) = -1/DSQRT( -A(it,nu,iq) )
-          IF(iq/=1) WRITE(*,*) "Warning: negative A_out", iq, nu, it
+          IF(iq/=1.or.(iq==0.and.nu>3)) WRITE(*,*) "Warning: negative A_out", iq, nu, it
         ELSE
           ! This hould be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
@@ -233,7 +242,7 @@ MODULE variational_tk
       DO it = 1,nconf
         IF(A(it,nu,iq)/=0._dp)THEN
           inv_A(it,nu,iq) = 1/A(it,nu,iq)
-          ! This hould be infinity, but it should only happen at Gamma for
+          ! This should be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
         ELSE
           inv_A(it,nu,iq) = 0._dp
@@ -338,9 +347,8 @@ MODULE variational_tk
   END SUBROUTINE A_times_f
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Apply the \tilde{A} = (1+A_out^{-1/2} A_in A_out^{-1/2}) matrix to a vector f,
+  ! Apply \tilde{A} = (1+A_out^{-1/2} A_in A_out^{-1/2}) matrix to a vector f,
   ! A_out^{-1/2} must be already computed and provided in input
-  ! this is left as a subroutine to underline that it is the most time consuming step.
   SUBROUTINE tilde_A_times_f(f, Af, inv_sqrt_A_out, input, basis, out_grid, in_grid, S, fc2, fc3)
     USE constants,          ONLY : RY_TO_CMM1
     USE linewidth,          ONLY : linewidth_q
@@ -373,6 +381,7 @@ MODULE variational_tk
     sigma_ry = input%sigma/RY_TO_CMM1
     !
     ! Apply the first 1/sqrt(A_out)
+    timer_CALL t_tktld%start()
     DO iq = 1,out_grid%nq
       ! bang!
       DO nu = 1,S%nat3
@@ -383,12 +392,14 @@ MODULE variational_tk
         ENDDO
       ENDDO
     ENDDO
+    timer_CALL t_tktld%stop()
 
     DO iq = 1,out_grid%nq
       ! apply A_in
-      Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T, sigma_ry, S, basis, in_grid, &
-                                    fc2, fc3, input%isotopic_disorder)
+      Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
+            sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
       ! Apply 1+ and the second 1/sqrt(A)
+      timer_CALL t_tktld%start()
       DO nu = 1,S%nat3
         DO it = 1,input%nconf
         DO ix = 1,3
@@ -396,6 +407,7 @@ MODULE variational_tk
         ENDDO
         ENDDO
       ENDDO
+      timer_CALL t_tktld%stop()
       !
     ENDDO
     !
@@ -442,7 +454,7 @@ MODULE variational_tk
     INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
     !
     REAL(DP) :: freq(S%nat3,5), bose(S%nat3,5), xq(3,5)
-    REAL(DP),PARAMETER :: epsq = 1.e-6_dp
+    REAL(DP),PARAMETER :: epsq = 1.e-12_dp
     !
     ! xq(:,1) -> xq1
     ! xq(:,2) -> xq2
@@ -780,7 +792,7 @@ MODULE variational_tk
   END FUNCTION calc_tk_gf
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_tk(tk, sigma, T, nconf, name)
+  SUBROUTINE print_tk(tk, sigma, T, nconf, name, unit0, iter)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: tk(3,3,nconf)
@@ -788,42 +800,84 @@ MODULE variational_tk
     REAL(DP),INTENT(in) :: T(nconf)
     INTEGER,INTENT(in) :: nconf
     CHARACTER(len=*),INTENT(in) :: name
+    INTEGER,OPTIONAL,INTENT(in) :: unit0, iter
     !
     INTEGER :: it
+    IF(present(unit0) .and. .not. present(iter)) CALL errore("print_tk", "wrong args",1)
+
+    ! print to screen
     ioWRITE(stdout,'(2x,a)') name
+    IF(present(unit0)) REWIND(unit0)
     DO it = 1,nconf
       ioWRITE(stdout,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
-      tk(1,1,it)*RY_TO_WATTMM1KM1, &
-      tk(2,2,it)*RY_TO_WATTMM1KM1, &
-      tk(3,3,it)*RY_TO_WATTMM1KM1, &
-      tk(1,2,it)*RY_TO_WATTMM1KM1, &
-      tk(1,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,1,it)*RY_TO_WATTMM1KM1, &
-      tk(3,2,it)*RY_TO_WATTMM1KM1
-
+        tk(1,1,it)*RY_TO_WATTMM1KM1, &
+        tk(2,2,it)*RY_TO_WATTMM1KM1, &
+        tk(3,3,it)*RY_TO_WATTMM1KM1, &
+        tk(1,2,it)*RY_TO_WATTMM1KM1, &
+        tk(1,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,2,it)*RY_TO_WATTMM1KM1
+      IF(present(unit0)) THEN
+      ioWRITE(unit0,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
+        tk(1,1,it)*RY_TO_WATTMM1KM1, &
+        tk(2,2,it)*RY_TO_WATTMM1KM1, &
+        tk(3,3,it)*RY_TO_WATTMM1KM1, &
+        tk(1,2,it)*RY_TO_WATTMM1KM1, &
+        tk(1,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,2,it)*RY_TO_WATTMM1KM1
+      ENDIF
     ENDDO
+    IF(present(unit0)) FLUSH(unit0)
+
+    !
+    IF(present(unit0))THEN
+      DO it = 1,nconf
+        ioWRITE(unit0+it,'(i6,2f10.4,3(3e17.8,3x))') iter, sigma(it), T(it), &
+        tk(1,1,it)*RY_TO_WATTMM1KM1, &
+        tk(2,2,it)*RY_TO_WATTMM1KM1, &
+        tk(3,3,it)*RY_TO_WATTMM1KM1, &
+        tk(1,2,it)*RY_TO_WATTMM1KM1, &
+        tk(1,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,3,it)*RY_TO_WATTMM1KM1, &
+        tk(2,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,1,it)*RY_TO_WATTMM1KM1, &
+        tk(3,2,it)*RY_TO_WATTMM1KM1
+        FLUSH(unit0+it)
+      ENDDO
+    ENDIF
+    
     !
   END SUBROUTINE print_tk
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_gradmod2_tk(g, name, T, Omega, nconf, nat3, nq)
+  LOGICAL FUNCTION check_gradmod2_tk(g2, name, T, Omega, nconf, nat3, nq, thr)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     IMPLICIT NONE
-    REAL(DP),INTENT(in) :: g(3,nconf)
+    REAL(DP),INTENT(in) :: g2(3,nconf)
     CHARACTER(len=*),INTENT(in) :: name
-    REAL(DP),INTENT(in) :: T(nconf)
+    REAL(DP),INTENT(in) :: T(nconf), thr
     INTEGER,INTENT(in)  :: nconf, nat3, nq
     REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
     !
+    REAL(DP) :: g(3,nconf)
     INTEGER :: it
-    ioWRITE(stdout,'(2x,a)') name
+    !
     DO it = 1,nconf
-      ioWRITE(*,'(12x,i6,3(3e17.8,3x))') it, g(:,it)*RY_TO_WATTMM1KM1*Omega/nq/T(it)**2
+      g(:,it) = g2(:,it)*RY_TO_WATTMM1KM1!*Omega/nq!/T(it)
+    ENDDO
+    ioWRITE(stdout,'(2x,a)') name
+    check_gradmod2_tk = .true.
+    DO it = 1,nconf
+      ioWRITE(*,'(12x,i6,3(3e17.8,3x))') it, g(:,it)
+      check_gradmod2_tk = check_gradmod2_tk &
+                    .and. ALL(g(:,it) < thr)
     ENDDO
     !
-  END SUBROUTINE print_gradmod2_tk
-  !
+  END FUNCTION check_gradmod2_tk
   !
 END MODULE variational_tk

@@ -235,7 +235,7 @@ MODULE mpi_thermal
 #ifdef __MPI
     nn_send = nn
     ALLOCATE(vec_send(nn_send))
-    vec_send(1:nn_send) = vec(1:nn_Send)
+    vec_send(1:nn_send) = vec(1:nn_send)
     CALL scatter_vec(nn_send, vec_send, nn_recv, vec_recv, ii)
     DEALLOCATE(vec)
     ALLOCATE(vec(nn_recv))
@@ -316,6 +316,7 @@ MODULE mpi_thermal
     IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
     ALLOCATE(vec_recv(nn_recv))
     vec_recv = vec_send
+    IF(present(ii_recv)) ii_recv = 0
 #endif
   END SUBROUTINE
 

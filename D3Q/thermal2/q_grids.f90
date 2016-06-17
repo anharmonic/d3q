@@ -361,6 +361,7 @@ MODULE q_grids
       nqfirst = nqfirst+nqdiv
       IF(idx<nqresidual) nqfirst = nqfirst+1
     ENDDO
+    grid%iq0 = nqfirst-1
     !print*, "me", my_id, nqfirst, nqme, nqresidual, nqdiv, num_procs
     !
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)

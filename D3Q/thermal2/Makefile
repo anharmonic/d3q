@@ -11,7 +11,7 @@ MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
 
 #F90FLAGS+= -opt-report=2
-F90FLAGS+=-traceback
+#F90FLAGS+=-traceback -check all
 #LDFLAGS+=-openmp
 
 EXTOBJS = ../src/libd3q.a \

@@ -75,9 +75,15 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
 #ifdef __MPI
      call mp_sum( dos_ef, inter_pool_comm )
 #endif
-     IF(dos_ef<1.d-8) WRITE(stdout,'(a,1e24.12,a)')&
-                      "WARNING! very low DOS at Fermi energy:", dos_ef, &
-                      "probably not enough k-points for this smearing! Wrong results are likely."
+  ENDIF
+  !
+  IF(dos_ef<1.d-8) THEN
+    WRITE(stdout,'(a,1e24.12,/,a,/,a)')&
+        "WARNING! very low DOS at Fermi energy:", dos_ef, &
+        "probably not enough k-points for this smearing! Or system is actually an", "insulator. Wrong results are likely: setting E_f shift to zero."
+      CALL stop_clock('set_efsh')
+      def(1:npe) = 0._dp
+      RETURN
   ENDIF
   !
   ! determines Fermi energy shift (such that each pertubation is neutral)

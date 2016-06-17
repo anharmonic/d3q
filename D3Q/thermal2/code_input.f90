@@ -57,6 +57,11 @@ MODULE code_input
     REAL(DP) :: casimir_dir(3)
     !
     INTEGER :: nk(3), nk_in(3)
+    !
+    ! only for tk:
+    REAL(DP) :: thr_tk
+    INTEGER  :: niter_max
+    !
     CHARACTER(len=6) :: grid_type
     ! for dynbubble:
     LOGICAL :: print_dynmat
@@ -126,6 +131,9 @@ MODULE code_input
     INTEGER  :: max_seconds = -1
     REAL(DP) :: max_time    = -1._dp
     !
+    REAL(DP) :: thr_tk = 1.d-2
+    INTEGER  :: niter_max = 1000
+    !
     ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, j, naux, nq1, nq2, nq3
@@ -155,6 +163,7 @@ MODULE code_input
     NAMELIST  / tkinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
+      thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
@@ -232,6 +241,9 @@ MODULE code_input
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
     input%casimir_dir        = input%casimir_dir
+    !
+    input%thr_tk = thr_tk
+    input%niter_max = niter_max
     !
     IF(ANY(nk_in<0)) nk_in = nk
     input%nk_in            = nk_in

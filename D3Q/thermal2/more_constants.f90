@@ -18,7 +18,7 @@ MODULE more_constants
   
   !
   REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
-  REAL(DP),PARAMETER :: eps_freq = 1.e-8_dp
+  REAL(DP),PARAMETER :: eps_freq = 0._dp !1.e-8_dp
 
   CONTAINS
   !

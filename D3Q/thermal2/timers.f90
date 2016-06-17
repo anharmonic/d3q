@@ -37,10 +37,13 @@ MODULE timers
 
   TYPE(nanotimer) :: t_tksma   = nanotimer("sma thermalk"), &
                      t_tksum   = nanotimer("sum of tk terms"), &
-                     t_tkaout  = nanotimer("prepare A_out and prec"), &
+                     t_tkaout  = nanotimer("prepare A_out"), &
                      t_tkain   = nanotimer("prepare and apply A_in"), &
                      t_tkcg    = nanotimer("computer CG step"), &
+                     t_tkprec  = nanotimer("precond./initialize"), &
+                     t_tktld   = nanotimer("1/sqrt(A_out)"), &
                      t_xain    = nanotimer("A_in * f (A_in given)"), &
+                     t_lwchk   = nanotimer("check A_out>0"), &
                      t_lwinout = nanotimer("lw input/output")
 
   CONTAINS
@@ -69,6 +72,9 @@ MODULE timers
     CALL t_mpicom%print()
     CALL t_readdt%print()
     CALL t_lwinout%print()
+    CALL t_tkcg%print()
+    CALL t_tkprec%print()
+    CALL t_tktld%print()
     CALL t_xain%print()
   END SUBROUTINE
   !

@@ -791,7 +791,7 @@ PROGRAM asr3
     IF(nargs>1)THEN
       CALL getarg(2, fileout)
     ELSE
-      fileout = TRIM(filein)//"_asr"
+      fileout = TRIM(filein)//".asr"
     ENDIF
     !
     IF(nargs>2)THEN

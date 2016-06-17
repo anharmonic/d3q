@@ -360,6 +360,8 @@ MODULE f3_bwfft
             mat(:,:,:, iat,jat,kat, rx_idx(iperi)) = perinorm * fc(:,:,:)
             !PRINT*, SUM(ABS(mat(:,:,:, iat,jat,kat, rx_idx(iperi)))), iat,jat,kat, rx_idx(iperi)
           ENDDO
+          !
+          !WRITE(10000,*) peri_min, MAXVAL(ABS(fc(:,:,:)))
         ELSE
           CALL errore("bwfft_d3_interp", "found no perimeters", 1)
         ENDIF
