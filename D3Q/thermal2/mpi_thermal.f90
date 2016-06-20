@@ -2,7 +2,9 @@
 MODULE mpi_thermal
   USE kinds,  ONLY : DP
   !USE timers, ONLY : t_mpicom
+#ifdef __MPI
   include "mpif.h"
+#endif
 #define __MPI_THERMAL
 #include "mpi_thermal.h"
 
@@ -48,9 +50,14 @@ MODULE mpi_thermal
 #ifdef _OPENMP
     INTEGER,EXTERNAL ::  omp_get_max_threads
 #endif
+#ifdef __MPI
     call MPI_INIT ( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, my_id, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
+#else
+    my_id = 0
+    num_procs = 1
+#endif
     ionode = (my_id == 0)
     IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
 #ifdef _OPENMP
