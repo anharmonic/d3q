@@ -44,6 +44,7 @@ MODULE input_fc
     INTEGER :: na1_, na2_, j1_, j2_
     INTEGER :: n_R, i
     !
+    ioWRITE(stdout,*) "** Reading FC2 file: ", TRIM(filename)
     unit = find_free_unit()
     OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)

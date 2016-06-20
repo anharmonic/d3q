@@ -40,7 +40,7 @@ MODULE casimir_linewidth
      !
   END FUNCTION casimir_linewidth_q
 
-  ! COmputes the Casimir linewidth from ph group velocity
+  ! Computes the Casimir linewidth from ph group velocity
   ! <<^V^\\=========================================//-//-//========//O\\//
   FUNCTION casimir_linewidth_vel(vel, l_casimir, casimir_dir, nat3) &
   RESULT(lw)
@@ -74,7 +74,7 @@ MODULE casimir_linewidth
       ENDDO
       
     ENDIF
-          !
+    !
   END FUNCTION casimir_linewidth_vel
   !
 END MODULE casimir_linewidth

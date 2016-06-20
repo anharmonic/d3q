@@ -35,6 +35,7 @@ MODULE ph_velocity
     INTEGER :: ix, nu
     REAL(DP) :: xqp(3), xqm(3), dh
     !
+    CALL errore("velocity_simple","This algorithm is wrong and should not be used",1)
     ALLOCATE(D2(S%nat3,S%nat3), w2p(S%nat3), w2m(S%nat3))
     !
     xvel = 0._dp
@@ -54,7 +55,7 @@ MODULE ph_velocity
       CALL fftinterp_mat2(xqm, S, fc, D2)
       CALL mat2_diag(S%nat3, D2, w2m)
       !
-      dh = ( xqp(ix)-xqm(ix) )
+      dh = ( xqp(ix)-xqm(ix) )*S%tpiba
       FORALL (nu = 1:S%nat3)
         xvel(ix, nu) = ( SQRT(w2p(nu))-SQRT(w2m(nu)) ) / dh
       END FORALL
@@ -143,7 +144,7 @@ MODULE ph_velocity
 !         ENDIF
 !       ENDDO
       !
-      dh = ( xqp(ix)-xqm(ix) )
+      dh = ( xqp(ix)-xqm(ix) ) *S%tpiba
       FORALL (nu = 1:S%nat3)
         xvel(ix, nu) = ( w2p(nu)-w2m(nu) ) / dh
       END FORALL

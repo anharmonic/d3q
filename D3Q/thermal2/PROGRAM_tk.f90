@@ -223,15 +223,15 @@ MODULE thermalk_program
     IF(ionode) CLOSE(10000)
     !
     ! Write to screen
-    ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, also stored in file:"
+    ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, stored to file:"
     ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
-    DO it = 1,input%nconf
-      ioWRITE(stdout,"(3x,a)") "**"
-      ioWRITE(stdout,"(a,i3,2f12.6)") "conf:", it, input%sigma(it), input%T(it)
-      ioWRITE(stdout,"(3x,3e20.6)") tk(:,1,it)*RY_TO_WATTMM1KM1
-      ioWRITE(stdout,"(3x,3e20.6)") tk(:,2,it)*RY_TO_WATTMM1KM1
-      ioWRITE(stdout,"(3x,3e20.6)") tk(:,3,it)*RY_TO_WATTMM1KM1
-    ENDDO
+    !DO it = 1,input%nconf
+    !  ioWRITE(stdout,"(3x,a)") "**"
+    !  ioWRITE(stdout,"(a,i3,2f12.6)") "conf:", it, input%sigma(it), input%T(it)
+    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,1,it)*RY_TO_WATTMM1KM1
+    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,2,it)*RY_TO_WATTMM1KM1
+    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,3,it)*RY_TO_WATTMM1KM1
+    !ENDDO
     !
 #ifdef timer_CALL
     ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()

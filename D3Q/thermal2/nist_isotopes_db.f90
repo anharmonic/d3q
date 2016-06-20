@@ -26,6 +26,7 @@
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE nist_isotopes_db
     USE kinds, ONLY : DP
+#include "mpi_thermal.h"  
     
     PUBLIC :: element, search_nist, compute_gs
     ! >>>>>>>>
@@ -151,10 +152,10 @@ MODULE nist_isotopes_db
       IF( ABS(SUM(aconc)-1._dp)>1.e-4_dp) &
         CALL errore("compute_gs", "the sum of isotope concentrations is not 100%", 3)
       !
-      WRITE(*,'(5x,2a)') "Element from input: ", aname
-      WRITE(*,'(8x,a,i3,a)') "number of isotopes:", nisot, ". Mass, concentration:"
+      ioWRITE(*,'(5x,2a)') "Element from input: ", aname
+      ioWRITE(*,'(8x,a,i3,a)') "number of isotopes:", nisot, ". Mass, concentration:"
       DO i = 1, nisot
-        WRITE(*,'(10x,2f12.6)') amass(i), aconc(i)
+        ioWRITE(*,'(10x,2f12.6)') amass(i), aconc(i)
       ENDDO
         
       gm = SUM( aconc*amass )

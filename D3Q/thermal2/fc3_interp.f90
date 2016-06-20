@@ -559,7 +559,7 @@ MODULE fc3_interpolate
     READ(unit, '(a32)') buf
     IF(buf/="sparse representation") CALL errore(sub, "cannot read this format", 1)
     !
-    ioWRITE(stdout,*) "** Reading sparse FC3 file"
+    ioWRITE(stdout,*) "** Reading sparse FC3 file ", TRIM(filename)
     CALL read_system(unit, S)
     !
     READ(unit, *) fc%nq
@@ -726,7 +726,7 @@ MODULE fc3_interpolate
     OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
     !
-    ioWRITE(stdout,*) "** Reading full grid FC3 file"
+    ioWRITE(stdout,*) "** Reading full grid FC3 file ", TRIM(filename)
     !
     CALL read_system(unit, S)
     !

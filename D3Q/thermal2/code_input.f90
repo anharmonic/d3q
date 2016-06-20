@@ -63,8 +63,9 @@ MODULE code_input
     INTEGER  :: niter_max
     !
     CHARACTER(len=6) :: grid_type
-    ! for dynbubble:
+    ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
+    LOGICAL :: print_velocity
   END TYPE code_input_type
   !
   CONTAINS
@@ -106,7 +107,8 @@ MODULE code_input
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
     LOGICAL            :: sort_shifted_freq = .false. ! sort w+l_shift
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
-    LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only dynbubble code)
+    LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
+    LOGICAL            :: print_velocity = .true.    ! print the phonon group velocity for each q (only r2q code)
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
@@ -178,7 +180,8 @@ MODULE code_input
 
     NAMELIST  / r2qinput / &
       calculation, outdir, prefix, &
-      file_mat2, asr2, nq, print_dynmat
+      file_mat2, asr2, nq, &
+      print_dynmat, print_velocity
       !
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
@@ -237,6 +240,7 @@ MODULE code_input
     input%exp_t_factor = exp_t_factor
     input%sort_shifted_freq = sort_shifted_freq
     input%print_dynmat = print_dynmat
+    input%print_velocity = print_velocity
     !
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
@@ -292,7 +296,7 @@ MODULE code_input
         CALL errore('READ_INPUT', "You must specify one of: casimir_length_{au,mu,mm}",2)
       IF(casimir_length_au>0._dp) input%casimir_length = casimir_length_au
       IF(casimir_length_mu>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+6)
-      IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+3)
+      IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mm/(BOHR_RADIUS_SI*1.d+3)
       ioWRITE(*,'(5x,a,1f12.0)') "Casimir length (bohr)", input%casimir_length
     ENDIF
     !
@@ -548,6 +552,7 @@ MODULE code_input
     !
       timer_CALL t_readdt%start()
     CALL read_fc2(input%file_mat2, S,  fc2)
+    !print*, S
     IF(present(fc3)) THEN
       fc3 => read_fc3(input%file_mat3, S3)
       !

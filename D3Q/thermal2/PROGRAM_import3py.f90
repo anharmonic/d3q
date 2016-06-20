@@ -108,7 +108,7 @@ PROGRAM import3py
   IMPLICIT NONE
   INTEGER :: narg, i
   CHARACTER(len=512) :: argv
-  CHARACTER(len=256) :: filename, fileout
+  CHARACTER(len=256) :: filename, fileout_bad, fileout_good
   TYPE(grid) :: fc, fcb
   TYPE(ph_system_info) :: S
   !
@@ -116,7 +116,8 @@ PROGRAM import3py
   TYPE(d3_list),ALLOCATABLE :: d3grid(:)
   !
   filename = "FORCE_CONSTANTS_3RD"
-  fileout  = "mat3R.3py"
+  fileout_bad   = "mat3R.tmp.3py"
+  fileout_good  = "mat3R.centered.3py"
 
   OPEN(unit=999,file="mat2R",action='READ',status='OLD')
   CALL read_system(999, S)
@@ -125,7 +126,7 @@ PROGRAM import3py
   !
   !CALL scan_3py(filename, S)
   CALL read_3py(filename, fc, S)
-  CALL fc%write(fileout, S)
+  CALL fc%write(fileout_bad, S)
   !
   nq = guess_nq(fc%n_R, fc%yR2, fc%yR3)
   WRITE(*,*) "Guessing grid size", nq
@@ -154,7 +155,7 @@ PROGRAM import3py
   CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc)
   
   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb)
-  CALL fcb%write("mat3R.3py_b", S)
+  CALL fcb%write(fileout_good, S)
   !
   !
 END PROGRAM

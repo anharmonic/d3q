@@ -17,7 +17,7 @@ MODULE ph_system
     INTEGER              :: ibrav
     CHARACTER(len=9)     :: symm_type
     REAL(DP)             :: celldm(6), at(3,3), bg(3,3)
-    REAL(DP)             :: omega
+    REAL(DP)             :: omega, alat, tpiba
     ! phonon switches (mostly unused here)
     REAL(DP)             :: epsil(3,3)
     LOGICAL              :: lrigid
@@ -94,6 +94,7 @@ MODULE ph_system
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE read_system(unit, S)
     USE more_constants, ONLY : MASS_DALTON_TO_RY
+    USE constants,      ONLY : tpi
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(out)   :: S ! = System
     INTEGER,INTENT(in) :: unit
@@ -120,6 +121,22 @@ MODULE ph_system
     ENDIF
     CALL volume(S%celldm, S%at(:,1), S%at(:,2), S%at(:,3), S%omega)
     CALL recips(S%at(:,1), S%at(:,2), S%at(:,3), S%bg(:,1), S%bg(:,2), S%bg(:,3))
+    !
+!    S%at = S%at*S%celldm(1)
+!    S%bg = tpi*S%bg/S%celldm(1)
+!    S%celldm(1) = 1._dp
+    !
+    S%alat  = S%celldm(1)
+    S%tpiba = tpi/S%alat
+    ioWRITE(*,'(5x,a,f12.6)') "alat (bohr)", S%alat
+    ioWRITE(*,'(5x,a,f12.6)') "tpiba (1/bohr)", S%tpiba
+    ioWRITE(*,'(5x,a,3f12.6,a)') "at_1 = (", S%at(:,1)," )"
+    ioWRITE(*,'(5x,a,3f12.6,a)') "at_2 = (", S%at(:,2)," )"
+    ioWRITE(*,'(5x,a,3f12.6,a)') "at_3 = (", S%at(:,3)," )"
+    ioWRITE(*,'(5x,a,3f12.6,a)') "bg_1 = (", S%bg(:,1)," )"
+    ioWRITE(*,'(5x,a,3f12.6,a)') "bg_2 = (", S%bg(:,2)," )"
+    ioWRITE(*,'(5x,a,3f12.6,a)') "bg_3 = (", S%bg(:,3)," )"
+    ioWRITE(*,'(5x,a,f12.6)') "volume (bohr^3)", S%omega
     !
     DO nt = 1, S%ntyp
       READ(unit,*,iostat=ios) dummy, S%atm(nt), S%amass(nt)
@@ -154,7 +171,7 @@ MODULE ph_system
       DO na = 1, S%nat
         READ(unit,*,iostat=ios) S%zeu(:,:,na)
 !      print*, "zeu", na, S%zeu(:,:,na)
-!        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
+        IF(ios/=0) CALL errore(sub,"reading zeu (2)", na)
 !         READ(unit,*) cdummy
       ENDDO
      
@@ -248,7 +265,7 @@ MODULE ph_system
       na = (i-1)/3 +1
       S%sqrtmm1(i) = 1._dp/SQRT(S%amass(S%ityp(na)))
     ENDDO
-    
+
   END SUBROUTINE aux_system
   
 END MODULE 
