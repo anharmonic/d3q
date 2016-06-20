@@ -291,7 +291,7 @@ SUBROUTINE setup_nscf_d3()
                     SQRT(SUM(kplusq(2)%xq**2)), &
                     SQRT(SUM(kplusq(3)%xq**2)) /) )
   !
-#ifdef __MPI
+!#ifdef __MPI
   !
   ! Divide original symmetry-opened kpoints among pools
   kunit = 1
@@ -308,11 +308,11 @@ SUBROUTINE setup_nscf_d3()
   !
   WRITE(stdout,'(7x,a,i6," (",i1,")")') "--> after including k+/-q_i (kunit):", nkstot, kunit
   !
-#else
-  !
-  nks = nkstot
-  !
-#endif
+!#else
+!  !
+!  nks = nkstot
+!  !
+!#endif
 !   IF ( lsda ) THEN
 !      !
 !      ! ... LSDA case: two different spin polarizations,
@@ -334,7 +334,10 @@ SUBROUTINE setup_nscf_d3()
      ! ... LDA case: the two spin polarizations are identical
      !
      wk = wk * degspin
-     FORALL(iq=-3:3) kplusq(iq)%wk = kplusq(iq)%wk *degspin
+     DO iq = -3,3
+       !print*, allocated(kplusq(iq)%wk)
+       kplusq(iq)%wk = kplusq(iq)%wk *degspin
+     ENDDO
      current_spin = 1
      !
      IF ( nspin /= 1 ) &
