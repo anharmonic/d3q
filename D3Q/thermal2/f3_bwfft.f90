@@ -141,7 +141,7 @@ MODULE f3_bwfft
           d3grid(iq_trip)%xq1(:) = xq(:,a)
           d3grid(iq_trip)%xq2(:) = xq(:,b)
           d3grid(iq_trip)%xq3(:) = xq(:,c)
-        ELSE
+        ELSE !IF(.false.) THEN
           iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
           countq(iq_aux) = countq(iq_aux) +1
           CALL d3_6idx_2_3idx(S%nat, d3, p3)

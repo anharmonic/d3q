@@ -15,6 +15,26 @@ MODULE thermalk_program
   !
   CONTAINS
   ! 
+  SUBROUTINE check_negative_lw(lw, nat3, nconf, name)
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: lw(nat3, nconf)
+    INTEGER,INTENT(in)  :: nat3, nconf
+    CHARACTER(len=*),INTENT(in) :: name
+    !
+    INTEGER :: i,j
+    IF(ANY(lw<0._dp))THEN
+      DO i = 1,nconf
+        DO j = 1,nat3
+          IF(lw(j,i) < 0._dp) THEN
+            WRITE(*,*) i, j, lw(j,i)
+          ENDIF
+        ENDDO
+      ENDDO
+      CALL errore(name, "negative linewidth", 1)
+    ENDIF
+    RETURN
+  END SUBROUTINE
+  !
   ! This subroutine computes the SMA thermal conducivity, it is mainly just a driver
   ! that uses other subroutines to compute th intrinsic, isotopic and casimir linewidths,
   ! than it sums everything up and takes care of input/output.
@@ -111,7 +131,7 @@ MODULE thermalk_program
         timer_CALL t_lwphph%start()
       lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T,&
                        sigma_ry, S, in_grid, fc2, fc3)
-      IF(ANY(lw<0._dp)) WRITE(stdout,'(a,99e12.4)') "Negative LW!", lw
+      CALL check_negative_lw(lw_phph, S%nat3, input%nconf, "SMA:phph")
         timer_CALL t_lwphph%stop()
       !
       ! Compute contribution of isotopic disorder
@@ -119,7 +139,7 @@ MODULE thermalk_program
           timer_CALL t_lwisot%start()
         lw_isotopic = isotopic_linewidth_q(out_grid%xq(:,iq), input%nconf, input%T, &
                                            sigma_ry, S, out_grid, fc2)
-        IF(ANY(lw_isotopic<0._dp)) WRITE(stdout,'(a,99e12.4)') "Negative LW isotopic!", lw
+        CALL check_negative_lw(lw_isotopic, S%nat3, input%nconf, "SMA:isotopic")
           timer_CALL t_lwisot%stop()
       ELSE
         lw_isotopic = 0._dp
@@ -143,7 +163,7 @@ MODULE thermalk_program
       !
         timer_CALL t_lwinout%start()
       DO it = 1, input%nconf
-        ioWRITE(1000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw(:,it)*RY_TO_CMM1
+        ioWRITE(1000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_phph(:,it)*RY_TO_CMM1
         IF(input%isotopic_disorder) THEN
           ioWRITE(2000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_isotopic(:,it)*RY_TO_CMM1
         ENDIF
@@ -214,24 +234,23 @@ MODULE thermalk_program
                         "    K_x            K_y            K_z             ",&
                         "    K_xy           K_xz           K_yz            ",&
                         "    K_yx           K_zx           K_zy       "
+    tk = tk*RY_TO_WATTMM1KM1
     DO it = 1,input%nconf
       ioWRITE(10000,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
-      tk(1,1,it)*RY_TO_WATTMM1KM1,tk(2,2,it)*RY_TO_WATTMM1KM1,tk(3,3,it)*RY_TO_WATTMM1KM1, &
-      tk(1,2,it)*RY_TO_WATTMM1KM1,tk(1,3,it)*RY_TO_WATTMM1KM1,tk(2,3,it)*RY_TO_WATTMM1KM1, &
-      tk(2,1,it)*RY_TO_WATTMM1KM1,tk(3,1,it)*RY_TO_WATTMM1KM1,tk(3,2,it)*RY_TO_WATTMM1KM1
+      tk(1,1,it),tk(2,2,it),tk(3,3,it), &
+      tk(1,2,it),tk(1,3,it),tk(2,3,it), &
+      tk(2,1,it),tk(3,1,it),tk(3,2,it)
     ENDDO
     IF(ionode) CLOSE(10000)
     !
     ! Write to screen
     ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, stored to file:"
     ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
-    !DO it = 1,input%nconf
-    !  ioWRITE(stdout,"(3x,a)") "**"
-    !  ioWRITE(stdout,"(a,i3,2f12.6)") "conf:", it, input%sigma(it), input%T(it)
-    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,1,it)*RY_TO_WATTMM1KM1
-    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,2,it)*RY_TO_WATTMM1KM1
-    !  ioWRITE(stdout,"(3x,3e20.6)") tk(:,3,it)*RY_TO_WATTMM1KM1
-    !ENDDO
+    ioWRITE(stdout,"(3x,a)") "Diagonal components (conf, sigma, T, K_x, K_y, K_z):"
+    DO it = 1,input%nconf
+      ioWRITE(stdout,"(i3,2f12.6,3e16.8)")  it, input%sigma(it), input%T(it),&
+                                      tk(1,1,it), tk(2,2,it), tk(3,3,it)
+    ENDDO
     !
 #ifdef timer_CALL
     ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
@@ -257,129 +276,6 @@ MODULE thermalk_program
     !
     !
   END SUBROUTINE TK_SMA
-  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-  SUBROUTINE TK_CG(input, out_grid, S, fc2, fc3)
-    USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
-    USE linewidth,          ONLY : linewidth_q
-    USE constants,          ONLY : RY_TO_CMM1
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
-    USE fc3_interpolate,    ONLY : forceconst3
-    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
-    USE casimir_linewidth,  ONLY : casimir_linewidth_q
-    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
-    USE code_input,         ONLY : code_input_type
-    USE q_grids,            ONLY : q_grid, q_basis, setup_grid, setup_bz_grid, &
-                                   prepare_q_basis, qbasis_dot, qbasis_ax, &
-                                   qbasis_a_over_b
-    USE variational_tk
-    IMPLICIT NONE
-    !
-    TYPE(code_input_type),INTENT(in)     :: input
-    TYPE(forceconst2_grid),INTENT(in) :: fc2
-    CLASS(forceconst3),INTENT(in)     :: fc3
-    TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid),INTENT(in)      :: out_grid
-    TYPE(q_grid)                 :: in_grid ! inner grid is MPI-scattered it is used 
-                                            ! for integrating the ph-ph scattering terms and linewidth
-    !
-    INTEGER :: ix, nu, iq, it, nu0, iter
-    !
-    TYPE(q_basis) :: qbasis
-    REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
-    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:)
-    REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
-    REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
-                            g_mod2(:,:), g_mod2_old(:,:), &
-                            pref(:,:)
-    INTEGER,PARAMETER :: niter_max = 10000
-    REAL(DP) :: tk(3,3,input%nconf)
-    !
-    ! For code readability:
-    INTEGER :: nconf, nat3, nq
-    nconf = input%nconf
-    nat3  = S%nat3
-    nq    = out_grid%nq
-    
-    ! make the inner grid on top of the outer one
-    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid, scatter=.true.)
-    !CALL in_grid%scatter()
-
-    CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
-    ! Compute A_out diagonal matrix
-    ALLOCATE(A_out(nconf, nat3, nq))
-    CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
-    ! Compute 1/sqrt(A_out) from A_out
-!     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
-!     CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
-!     ! Compute 1/A_out from A_out
-!     ALLOCATE(inv_A_out(nconf, nat3, nq))
-!     CALL compute_inv_A_out(A_out, inv_A_out, nconf, nat3, nq)
-    !
-    !
-    ! f0 = f_SMA = 1/(A_out) b
-    ALLOCATE(f(3, nconf, nat3, nq))
-    ALLOCATE(g(3, nconf, nat3, nq))
-    ALLOCATE(h(3, nconf, nat3, nq))
-    ALLOCATE(t(3, nconf, nat3, nq))
-    ALLOCATE(   g_dot_h(3, nconf) )
-    ALLOCATE(   h_dot_t(3, nconf) )
-    ALLOCATE(    g_mod2(3, nconf) )
-    ALLOCATE(g_mod2_old(3, nconf) )
-    ALLOCATE(      pref(3, nconf) )
-    !
-    ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
-      timer_CALL t_tkaout%start()
-    ! f0 = f_SMA = 1/(A_out) b
-    !f = A_diag_f(inv_A_out, qbasis%b, nconf, nat3, nq)
-    f = A_diagm1_f(A_out, qbasis%b, nconf, nat3, nq)
-    tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
-    ! g0 = Af0 - b
-    CALL A_times_f(f, g, A_out, input, qbasis, out_grid, S, fc2, fc3)
-!     g = A_diag_f(A_out, f, nconf, nat3, nq)
-    g = qbasis%b-g
-    !g = g/100._dp
-    g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-    !
-    h = g
-    tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb) - initial")
-    !CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
-      timer_CALL t_tkaout%stop()
-    !
-    DO iter = 1,niter_max
-      ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
-      ! t = (A_in+A_out)h
-        timer_CALL t_tkain%start()
-      CALL A_times_f(h, t, A_out, input, qbasis, out_grid, S, fc2, fc3)
-        timer_CALL t_tkain%stop()
-      !
-        timer_CALL t_tkcg%start()
-      ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
-      ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
-      g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
-      h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )
-      ! qbasis_b_over_a check for zero/zero, preventing NaN
-      pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
-      f = f - qbasis_ax(pref, h, nconf, nat3, nq)
-      g = g - qbasis_ax(pref, t, nconf, nat3, nq)
-      ! compute gradient explicitly:
-      !
-      !tk = -\lambda 1/2(f.g-f.b)
-      tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)")
-      !
-      ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
-      g_mod2_old = g_mod2
-      g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-      !CALL print_gradmod2_tk(g_mod2, "TK gradient mod", input%T, S%omega, nconf, nat3, nq)
-      !pref = g_mod2 / g_mod2_old
-      pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
-      h = qbasis_ax(pref, h, nconf, nat3, nq) - g
-        timer_CALL t_tkcg%stop()
-    ENDDO
-    !
-  END SUBROUTINE TK_CG
   !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
   SUBROUTINE TK_CG_prec(input, out_grid, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
@@ -410,7 +306,7 @@ MODULE thermalk_program
     !
     TYPE(q_basis) :: qbasis
     REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
-    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:), j(:,:,:,:)
     REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
@@ -427,8 +323,10 @@ MODULE thermalk_program
     nq    = out_grid%nq
     
         timer_CALL t_tkprec%start()
-    ! make the inner grid on top of the outer one
-    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid, scatter=.true.)
+    ! make the inner grid on top of the outer one, they are actually identical
+    ! but the inner one is MPI-scattered, so we need to separate onjects to hold them
+    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
+                    in_grid, scatter=.true.)
     !CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
     !CALL in_grid%scatter()
     
@@ -438,6 +336,9 @@ MODULE thermalk_program
         timer_CALL t_tkprec%stop()
         timer_CALL t_tkaout%start()
     CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+    !DO iq = 1,nq
+    !WRITE(40000, '(3f12.6,99e20.10)') out_grid%xq(:,iq), A_out(1,:,iq)/(qbasis%be(:,1,iq)*(qbasis%be(:,1,iq)+1)) *RY_TO_CMM1
+    !ENDDO
     ! Compute 1/sqrt(A_out) from A_out
     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
     CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
@@ -449,6 +350,7 @@ MODULE thermalk_program
     !
     ALLOCATE(f(3, nconf, nat3, nq))
     ALLOCATE(g(3, nconf, nat3, nq))
+!     ALLOCATE(j(3, nconf, nat3, nq))
     ALLOCATE(h(3, nconf, nat3, nq))
     ALLOCATE(t(3, nconf, nat3, nq))
     ALLOCATE(   g_dot_h(3, nconf) )
@@ -480,41 +382,45 @@ MODULE thermalk_program
     ENDDO
     ENDIF
     !
-    ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+    ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
+                          "    K_x              K_y              K_z              "  
         timer_CALL t_tkprec%start()
+    ! Go to the reduced variables:
     ! \tilde{f0} = A_out^(-1/2) b
     ! \tilde{b} = \tilde{f0}
-    f = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
-    qbasis%b = f
+    qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
+    !
+    ! f0 = f_SMA = A_out^(-1/2) b
+    f = qbasis%b
+    !
+    g = 0._dp
+    !tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+!     CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
+    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA TK", 10000, -1)
         timer_CALL t_tkprec%stop()
     !
-    tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
-    !
-    ! f0 = f_SMA = 1/(A_out) b
     ! g0 = Af0 - b
         timer_CALL t_tkain%start()
     CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
         timer_CALL t_tkain%stop()
         timer_CALL t_tkprec%start()
-!     g = A_diag_f(A_out, f, nconf, nat3, nq)
-    g = qbasis%b - g
-    !g = g - qbasis%b
-    !g = g/100._dp
+    g =  g - qbasis%b
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
-    h = g
-    tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+    h = -g
+    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
     CALL print_tk(tk, input%sigma, input%T, nconf, &
-                  "TK from 1/2(fg-fb) - initial", 10000, 0)
+                 "TK from 1/2(fg-fb) - initial", 10000, 0)
     conv = check_gradmod2_tk(g_mod2, "TK gradient mod", &
-                             input%T, S%omega, nconf, nat3, nq, input%thr_tk)
+                            input%T, S%omega, nconf, nat3, nq, input%thr_tk)
         timer_CALL t_tkprec%stop()
     !
     DO iter = 1,input%niter_max
       CALL check_graceful_termination()
-      ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
-      ! t = (A_in+A_out)h
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+      ! t = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
         timer_CALL t_tkain%start()
       CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
         timer_CALL t_tkain%stop()
@@ -524,14 +430,24 @@ MODULE thermalk_program
       ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
       g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
       h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )
-      ! qbasis_a_over_b check for zero/zero, preventing NaN
+      ! qbasis_a_over_b checks for zero/zero, preventing NaN
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
+      ! 
+      !In case you want to compute explicitly the gradient (i.e. for testing):
+!       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+!       j = j-qbasis%b
+!       WRITE(90000,'(6e12.4)') g
+!       WRITE(80000,'(6e12.4)') j
       !
-      !tk = -\lambda 1/2(f.g-f.b)
-      tk = calc_tk_gf(g, f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
+      !tk = -\lambda (f.g-f.b)
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
       CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
+!       tk = calc_tk_gf(0*g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+!       CALL print_tk(tk, input%sigma, input%T, nconf, "TK only B", 10000, iter)
+!       tk = calc_tk_gf(g, f, 0*qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+!       CALL print_tk(tk, input%sigma, input%T, nconf, "TK only G", 10000, iter)
       !
       ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
       g_mod2_old = g_mod2
@@ -539,17 +455,17 @@ MODULE thermalk_program
       conv = check_gradmod2_tk(g_mod2, "TK gradient squared", &
                                input%T, S%omega, nconf, nat3, nq, input%thr_tk)
       IF(conv) THEN
-        ioWRITE(stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") &
+        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
                       "Convergence achieved"
         EXIT
       ENDIF
       !pref = g_mod2 / g_mod2_old
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
-      h = qbasis_ax(pref, h, nconf, nat3, nq) - g
+      h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
         timer_CALL t_tkcg%stop()
     ENDDO
     IF(iter>input%niter_max) THEN
-      ioWRITE (stdout,"(3x,'\>\^\~',80('-'),'^v^v',40('-'),'=/~/o>',/,4x,a,i4)") &
+      ioWRITE (stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
                     "Maximum number of iterations reached."
     ENDIF
 
@@ -622,10 +538,6 @@ PROGRAM thermalk
     !
     CALL TK_SMA(tkinput, out_grid, S, fc2, fc3)
     !
-!   ELSEIF(TRIM(tkinput%calculation) == "cg") THEN
-!     !
-!     CALL TK_CG(tkinput, out_grid, S, fc2, fc3)
-!     !
   ELSEIF(TRIM(tkinput%calculation) == "cgp" .or. TRIM(tkinput%calculation) == "exact") THEN
     !
     CALL TK_CG_prec(tkinput, out_grid, S, fc2, fc3)

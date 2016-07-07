@@ -1,6 +1,6 @@
 # Makefile for thermal2
 
-include ../../make.sys
+include ../../make.inc
 
 STRIP = true #strip
 
@@ -13,6 +13,8 @@ IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH
 #F90FLAGS+= -opt-report=2
 #F90FLAGS+=-traceback -check all
 #LDFLAGS+=-openmp
+
+#F90FLAGS += -fltconsistency
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \

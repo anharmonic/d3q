@@ -14,7 +14,7 @@ MODULE linewidth
 
 #include "mpi_thermal.h"
   USE kinds,          ONLY : DP
-  USE more_constants, ONLY : eps_freq
+  !USE more_constants, ONLY : eps_freq
   !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
   !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
   !USE fc3_interpolate, ONLY : forceconst3
@@ -101,7 +101,8 @@ MODULE linewidth
 !/nope/!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
-        lw(:,it) = lw(:,it) + grid%w(iq)*sum_linewidth_modes( S, sigma(it), freq, bose, V3sq, nu0 )
+        lw(:,it) = lw(:,it) + grid%w(iq)&
+                          *sum_linewidth_modes(S, sigma(it), freq, bose, V3sq, nu0)
           timer_CALL t_sum%stop()
       ENDDO
       !
@@ -608,11 +609,17 @@ MODULE linewidth
     REAL(DP) :: lw(S%nat3)
     lw(:) = 0._dp
     !
-    WHERE(ABS(freq)>eps_freq)
-      freqm1 = 0.5_dp/freq
-    ELSEWHERE
-      freqm1 = 0._dp
-    ENDWHERE
+    freqm1 = 0._dp
+    DO i = 1,S%nat3
+      IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+    ENDDO
+    !WHERE(ABS(freq)>eps_freq)
+    !  freqm1 = 0.5_dp/freq
+    !ELSEWHERE
+    !  freqm1 = 0._dp
+    !ENDWHERE
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,&
 !$OMP                     freqtotm1_23,freqtotm1) &

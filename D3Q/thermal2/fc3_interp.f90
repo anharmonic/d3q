@@ -732,7 +732,6 @@ MODULE fc3_interpolate
     !
     READ(unit, *) fc%nq
     ioWRITE(stdout,*) "   Original FC3 grid:", fc%nq
-    ioWRITE(stdout,*) "   Number of R:      ", fc%n_R
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 
@@ -757,6 +756,7 @@ MODULE fc3_interpolate
                allocated(fc%yR3) .or. allocated(fc%xR3) ) &
               CALL errore(sub, 'some element are already allocated', 1)
             !
+            ioWRITE(stdout,*) "   Number of R:      ", fc%n_R
             ALLOCATE(fc%yR2(3,n_R), fc%yR3(3,n_R))
             ALLOCATE(fc%xR2(3,n_R), fc%xR3(3,n_R))
             ALLOCATE(fc%FC(3*S%nat,3*S%nat,3*S%nat,n_R))

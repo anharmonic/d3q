@@ -298,6 +298,8 @@ MODULE code_input
       IF(casimir_length_mu>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+6)
       IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mm/(BOHR_RADIUS_SI*1.d+3)
       ioWRITE(*,'(5x,a,1f12.0)') "Casimir length (bohr)", input%casimir_length
+    ELSE
+      input%casimir_length = 0._dp
     ENDIF
     !
     ! Read the configurations:

@@ -119,7 +119,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
@@ -167,7 +167,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
@@ -212,8 +212,7 @@ MODULE fc2_interpolate
     IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
   END SUBROUTINE fftinterp_mat2_safe
-
-  
+  !
   SUBROUTINE add_rgd_blk(xq, S, fc, D)
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
