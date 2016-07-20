@@ -1,0 +1,135 @@
+<d3 code_version="2.0.0b" format_version="1.0.0" date="20Jul2016" time="16:58: 4 ">
+  <lattice bravais_index="4">
+    <!--see Doc/INPUT_PW.txt for description of ibrav and lattice parameters-->
+    <bravais_parameters type="real" size="6" columns="3">
+ 4.607423480000000E+000  0.000000000000000E+000  3.000000000000000E+000 
+ 0.000000000000000E+000  0.000000000000000E+000  0.000000000000000E+000
+    </bravais_parameters>
+  </lattice>
+  <atoms
+          number_of_species="1"
+          number_of_atoms="2">
+    <!--positions are in alat units, cartesian coordinates-->
+    <atomic_positions type="real" size="6" columns="3">
+ 5.000000000000000E-001  2.886800000000000E-001  0.000000000000000E+000 
+ 5.000000000000000E-001 -2.886800000000000E-001  0.000000000000000E+000
+    </atomic_positions>
+    <atomic_types type="integer" size="2">
+         1
+         1
+    </atomic_types>
+    <species_names type="character" size="1" len="3">
+C  
+    </species_names>
+    <!--masses are in Dalton atomic mass units (i.e. mass C^12=12)-->
+    <species_masses type="real" size="1">
+ 1.201070000000000E+001
+    </species_masses>
+  </atoms>
+  <perturbation>
+    <!--in cartesian units of 2pi/alat-->
+    <q1 type="real" size="3" columns="3">
+ 0.000000000000000E+000  0.000000000000000E+000  0.000000000000000E+000
+    </q1>
+    <q2 type="real" size="3" columns="3">
+ 2.500000000000000E-001 -4.330127018921884E-001  0.000000000000000E+000
+    </q2>
+    <q3 type="real" size="3" columns="3">
+-2.500000000000000E-001  4.330127018921884E-001  0.000000000000000E+000
+    </q3>
+  </perturbation>
+  <d3matrix>
+    <!--Each block contains the 3x3x3 tensor of cartesian displacements for atoms # i,j and k-->
+    <!--i is associated with q1, j with q2 and k with q3-->
+    <!--Matrix is NOT divided by the square root of masses-->
+    <matrix type="complex" size="27" columns="3" atm_i="1" atm_j="1" atm_k="1">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="2" atm_j="1" atm_k="1">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="1" atm_j="2" atm_k="1">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="2" atm_j="2" atm_k="1">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="1" atm_j="1" atm_k="2">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="2" atm_j="1" atm_k="2">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="1" atm_j="2" atm_k="2">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+    <matrix type="complex" size="27" columns="3" atm_i="2" atm_j="2" atm_k="2">
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN 
+                    NaN,                    NaN                     NaN,                    NaN                     NaN,                    NaN
+    </matrix>
+  </d3matrix>
+</d3>
+

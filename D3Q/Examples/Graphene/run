@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export TITLE=$(bsename `pwd`) # Graphene
+export TITLE=$(basename `pwd`) # Graphene
 export ESPRESSO=$(cd ../../../; pwd)
 export EXAMPLE=$(cd ../; pwd)
 

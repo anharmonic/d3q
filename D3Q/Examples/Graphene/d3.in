@@ -2,7 +2,7 @@ d3 for graphene
 &inputd3q
    mode='full'
    prefix = 'gene',
-   fildrho = 'auto:drho_rot',
+   fildrho = 'drho_rot',
    fild3dyn = 'FILD3DYN/anh',
    ethr_ph = 1.d-9
    !offset=__OFFSET__
