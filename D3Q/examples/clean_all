@@ -1,9 +1,0 @@
-#!/bin/bash
-
-for i in MoS2 Graphene; do
-	( 
-	  cd $i
-	  rm -rf drhox_e* *out TMP* FIL* d3-*.in
-	 )
-done
-

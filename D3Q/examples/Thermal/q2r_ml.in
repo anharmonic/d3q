@@ -1,9 +1,0 @@
-&input
-      file_in0= 'FILDYN/dyn',
-      file_out='mat2R_ml',
-      nr(1)=4, nr(2)=4, nr(3)=1,
-      ! asr = .false.
-      asr = .true.
-/
-
-

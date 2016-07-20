@@ -1,7 +1,6 @@
 #!/bin/bash
 
-export TITLE=Graphene
-
+export TITLE=$(basename `pwd`)
 export ESPRESSO=$(cd ../../../; pwd)
 export EXAMPLE=$(cd ../; pwd)
 
@@ -20,7 +19,7 @@ mkdir -p $EXAMPLE/$TITLE/FILD3DYN/
 echo ================================================================
 
 bin="$ESPRESSO_BIN"
-pref="mpirun -np 4 "  # e.g. "mpirun -np 4 "
+pref=" " #"mpirun -np 4 "  # e.g. "mpirun -np 4 "
 post=" "  # e.g. "-npool 4 " 
 
 # STEP1: pw.x calculation, then ph.x calculation
