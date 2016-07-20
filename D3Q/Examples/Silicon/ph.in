@@ -2,7 +2,7 @@ Ph
  &inputph 
     prefix='silicon'
     outdir='./tmp/',
-    fildyn='FILDYN/dyn_',
+    fildyn='dyn',
     tr2_ph=1.0d-6
     trans=.true.,
     epsil=.false.,

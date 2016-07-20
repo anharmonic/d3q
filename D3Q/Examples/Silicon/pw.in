@@ -4,12 +4,12 @@
     prefix='silicon',
     tstress = .true.
     tprnfor = .true.
-    pseudo_dir = './',
+    pseudo_dir = './UPF',
     outdir='./tmp'
  /
  &system
     ibrav=  2, celldm(1) =10.20, nat=  2, ntyp= 1,
-    ecutwfc =36.0,
+    ecutwfc =24.0,
     !nosym=.true.
  /
  &electrons

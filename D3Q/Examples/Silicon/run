@@ -1,21 +1,10 @@
 #!/bin/bash
 
-rm -r *.out tmp TMP TMP3 FIL*
+rm -rf *.out tmp FILD3DYN
 
 export EXAMPLE=$(pwd)
-export ESPRESSO=$HOME/espresso
-
+export ESPRESSO=$(cd ../../../; pwd)
 export ESPRESSO_BIN=$ESPRESSO/bin
-export ESPRESSO_PSEUDO=$EXAMPLE/UPF
-export ESPRESSO_TMPDIR=$EXAMPLE/TMP
-export ESPRESSO_D3DIR=$EXAMPLE/TMP3
-export ESPRESSO_FILDRHO_DIR=$EXAMPLE/FILDRHO
-
-mkdir -p $ESPRESSO_TMPDIR
-mkdir -p $ESPRESSO_D3DIR
-mkdir -p $ESPRESSO_FILDRHO_DIR
-mkdir -p $EXAMPLE/FILDYN/
-mkdir -p $EXAMPLE/FILD3DYN/
 
 bin="$ESPRESSO_BIN"
 pref=" "  # e.g. "mpirun -np 4 "
