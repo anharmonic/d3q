@@ -53,6 +53,7 @@ SUBROUTINE run_nscf_d3(do_band)
   USE d3_restart,      ONLY : done_nscf, d3_check_restart
   USE d3matrix_io,     ONLY : d3matrix_filename
   USE kplus3q,         ONLY : kplusq
+  USE d3_control,      ONLY : d3dir
   !
   IMPLICIT NONE
   !
@@ -92,16 +93,14 @@ SUBROUTINE run_nscf_d3(do_band)
   CALL setup_nscf_d3()
   !
   IF(ionode)THEN
-    fileout = TRIM(d3matrix_filename(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq, at, 'nscf'))//'.out'
+    fileout = TRIM(d3dir)//"/"//&
+      TRIM(d3matrix_filename(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq,&
+                             at, 'nscf'))//'.out'
     WRITE(stdout, '(/,5x,a)') "--> output from 'electrons' appended to "//TRIM(fileout)
     FLUSH( stdout )
     stdout_tmp = stdout
     stdout = 900
-#ifdef __XLF
     OPEN(unit= stdout, file=TRIM(fileout), access='sequential', POSITION='append')
-#else
-    OPEN(unit= stdout, file=TRIM(fileout), access='APPEND')
-#endif
   ENDIF
   !
   ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv

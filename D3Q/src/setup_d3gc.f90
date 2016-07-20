@@ -56,12 +56,11 @@ MODULE gc_d3
     REAL(DP), ALLOCATABLE :: rho_tot_r(:,:)
     COMPLEX(DP), ALLOCATABLE :: rho_tot_g(:,:)
     REAL (DP), PARAMETER :: epsr = 1.0d-6, epsg = 1.0d-10
-
-    !
-    WRITE(stdout, '(5x,a)') "Setting up GGA 2nd derivative"
-    grho2 = 0._dp
     !
     IF ( .NOT. dft_is_gradient() ) RETURN
+
+    WRITE(stdout, '(5x,a)') "Setting up GGA 2nd derivative"
+    grho2 = 0._dp
     
     nspin0=nspin
     !

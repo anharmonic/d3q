@@ -31,18 +31,21 @@ SUBROUTINE d3_readin()
                                restart, safe_io, d3dir
   USE noncollin_module, ONLY : noncolin
   USE io_files,         ONLY : tmp_dir, prefix
-  USE io_global,        ONLY : ionode, stdout
+  USE io_global,        ONLY : ionode, stdout, ionode_id
   USE constants,        ONLY : eps8
   USE parameters,       ONLY : npk
   USE control_ph,       ONLY : tmp_dir_ph
   USE save_ph,          ONLY : tmp_dir_save
   USE nscf_d3,          ONLY : run_nscf_d3
-  USE d3_iofiles,       ONLY : fild1rho, fild2rho, fild3rho, fildrho_dir
+  USE d3_iofiles,       ONLY : fild1rho, fild2rho, fild3rho, fildrho_dir, d3_basename
   USE d3_grid,          ONLY : d3_grid_init, d3_single_point_init, d3_grid_slice
   USE d3_kgrid,         ONLY : nk1=>d3_nk1, nk2=>d3_nk2, nk3=>d3_nk3, &
                                k1=>d3_k1, k2=>d3_k2, k3=>d3_k3, &
                                degauss=>d3_degauss
   USE d3_debug,         ONLY : read_d3_debug, bcast_d3_debug
+  USE mp,               ONLY : mp_bcast
+  USE mp_world,         ONLY : world_comm
+  USE wrappers,       ONLY : f_mkdir_safe
   !
   IMPLICIT NONE
   !
@@ -52,15 +55,15 @@ SUBROUTINE d3_readin()
   INTEGER :: ios, ipol, it
   INTEGER :: first, last, step, offset
   ! counters
-  CHARACTER(len=256) :: outdir, fildrho, mode
+  CHARACTER(len=256) :: outdir, fildrho, mode, fild3dir
   CHARACTER(len=9),PARAMETER :: sub='d3_readin'
   REAL(DP),PARAMETER :: Gamma(3) = (/ 0._dp, 0._dp, 0._dp /)
   REAL(DP) :: max_time
   !
   CHARACTER(len=256),EXTERNAL :: trimcheck
-  LOGICAL,EXTERNAL :: eqvect
+  LOGICAL,EXTERNAL :: eqvect, imatches
 
-  NAMELIST / inputph / ethr_ph, amass, prefix, & ! controls, pw.x prefix
+  NAMELIST / inputd3q / ethr_ph, amass, prefix, & ! controls, pw.x prefix
        outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
        fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
        istop, mode, iverbosity, &  ! legacy, to be removed or fixed
@@ -82,15 +85,38 @@ SUBROUTINE d3_readin()
   ! .true.==> this is a recover run
   ! to stop the program at a given point
   ! variables used for testing purposes
+  NAMELIST / inputph / ethr_ph, amass, prefix, & ! controls, pw.x prefix
+       outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
+       fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
+       istop, mode, iverbosity, &  ! legacy, to be removed or fixed
+       first, last, step, offset, & ! partial grid definition
+       safe_io, restart, max_time, max_seconds, & ! restart controls (sort of)
+       print_star, print_perm, print_trev, &  ! fildrho files to write
+       nk1, nk2, nk3, k1, k2, k3, degauss
+  !
   CALL start_clock('d3_readin')
   !
-  ONLY_IONODE : &
   IF ( ionode ) THEN
      !
+     WRITE(stdout, '(5x,a)') "Waiting for input..."
      CALL input_from_file()
      !    Read the first line of the input file
      READ (5, '(a)', iostat = ios) title
-     IF(ios/=0) CALL errore (sub, 'reading title ', ABS (ios) )
+  ENDIF
+  !
+  CALL mp_bcast(ios, ionode_id, world_comm )
+  IF(ios/=0) CALL errore (sub, 'reading title ', ABS (ios) )
+  !
+  IF( imatches("&input", title) ) THEN
+    WRITE(*, '(6x,a)') "Title line not specified: using 'default'."
+    title='default'
+    IF (ionode) REWIND(5, iostat=ios)
+  ENDIF
+  CALL mp_bcast(ios, ionode_id, world_comm )
+  CALL errore('d3_readin', 'Title line missing from input.', abs(ios))
+  !
+  ONLY_IONODE : &
+  IF (ionode) THEN
      !
      !   set default values for variables in namelist
      !
@@ -120,7 +146,7 @@ SUBROUTINE d3_readin()
      step=1
      offset=0
      !
-     restart = .false.    ! true  : scan for fild3dyn files and do not recompute (grid calc only)
+     restart = .true.    ! true  : scan for fild3dyn files and do not recompute (grid calc only)
      safe_io = .false.    ! true  : close and reopen dpsi and psidHpsi files to guarantee partial restart
      print_star = .true.  ! false : do not print the star of the q triplet
      print_perm = .false. ! true  : print also inequivalent permutations of q1, q2 and q3
@@ -136,17 +162,26 @@ SUBROUTINE d3_readin()
      !
      !     reading the namelist inputph
      !
-     WRITE(stdout, '(5x,a)') "Waiting for input..."
      FLUSH( stdout )
 
-     READ (5, inputph, iostat = ios)
-     IF(ios/=0) CALL errore (sub, 'reading inputph namelist', ABS (ios) )
+     READ (5, inputd3q, iostat = ios)
+     IF(ios/=0) READ (5, inputph, iostat = ios)
+     IF(ios/=0) CALL errore (sub, 'reading inputd3q/inputph namelist', ABS (ios) )
+     WRITE(stdout,'(5x,a)') "_____________ input start _____________"
+     WRITE(stdout, inputd3q)
+     WRITE(stdout,'(5x,a)') "_____________  input end  _____________"
+     
 
      outdir= trimcheck(outdir)//"/"
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      d3dir = trimcheck(d3dir)//"/"
      IF ( TRIM( fildrho_dir ) == ' ' ) fildrho_dir=outdir
      fildrho_dir = trimcheck(fildrho_dir)//"/"
+     !
+     fild3dir = d3_basename(fild3dyn)
+     IF(fild3dir/="") THEN
+      ios = f_mkdir_safe(fild3dir)
+     ENDIF
      !    reads the q-point
      !
      d3_mode = TRIM(mode)
@@ -200,8 +235,11 @@ SUBROUTINE d3_readin()
           CALL errore (sub, 'Wrong iverbosity', 1)
 
      IF (fildrho /= ' ') THEN !CALL errore (sub, 'WARNING! This is the new code: use fild{1,2,3}rho instead of fildrho', 1)
-        IF (fildrho(1:5) /= 'auto:' .and. .not. lgamma) &
-           CALL errore(sub, 'fildrho must start with "auto:" (except for gamma-only calculation)',1)
+        IF (fildrho(1:5) /= 'auto:' .and. .not. lgamma) THEN
+!            CALL errore(sub, 'fildrho must start with "auto:" (except for gamma-only calculation)',1)
+          WRITE(stdout,*) "REMARK: automatic fildrho file names enabled"
+          fildrho = "auto:"//TRIM(fildrho)
+        ENDIF
         IF (fild1rho/=' ' .or. fild2rho/=' ' .or. fild3rho/=' ') &
           CALL errore(sub, 'you can input either fildrho or fildXrho (X=1,2,3) NOT both!', 5)
         fild1rho = fildrho

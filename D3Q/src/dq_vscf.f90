@@ -34,6 +34,7 @@ MODULE dq_vscf_module
 !     CALL dq_vscf_vecchio(nu_i, dvloc_vecchio, xq_x, iq_x, u_x)
 !     !
 !     
+!     WRITE(10001, '(2i6,3f12.6)') nu_i, iq_x, xq_x
 !     DO i=1,dfftp%nnr
 !       WRITE(10001, '(i6,2(2f12.6,4x),f12.6)') i,dvloc_nuovo(i), dvloc_vecchio(i), &
 !       ABS(dvloc_nuovo(i)-dvloc_vecchio(i))*1000
@@ -84,7 +85,8 @@ MODULE dq_vscf_module
     INTEGER :: ig, ir, mu, na, nt, is, is1
     REAL(DP) :: qg2, gtau, fac
     COMPLEX(DP) ::  guexp    
-    COMPLEX(DP), ALLOCATABLE :: drho_tot (:), rho_tot (:), dvloc_g(:)
+    COMPLEX(DP), ALLOCATABLE :: drho_tot (:), dvloc_g(:)
+    REAL(DP),ALLOCATABLE     :: rho_tot (:)
     !
     ! After 8 years, I still do not know why we need 3 spin variables
     IF (nspin/=1)      CALL errore('dq_vscf', 'nspin /= 1 not implemented', 1)
@@ -93,18 +95,10 @@ MODULE dq_vscf_module
   
     ALLOCATE ( drho_tot (dfftp%nnr) )
     ALLOCATE ( dvloc_g (dfftp%nnr) )
-    ALLOCATE ( rho_tot (dfftp%nnr) )
  
     dvloc (:) = (0.d0, 0.d0)
     CALL read_drho(drho_tot, iq_x, nu_i, with_core=.true.)
     !CALL davcio_drho (drho_tot, lrdrho, iudrho_x, nu_i, - 1)
-  
-    fac = 1.d0 / DBLE (nspin_lsda)
-    if (nlcc_any) then
-      DO is = 1, nspin_lsda
-          rho_tot(:) = rho%of_r(:, is) + fac * rho_core (:)
-      ENDDO
-    ENDIF
     !
     ! Add Exchange-Correlation contribution in real space
     dvloc(:) = drho_tot(:) * dmuxc(:,1,1)
@@ -122,17 +116,36 @@ MODULE dq_vscf_module
     ! its contribution. grho contains already the core charge
     !
     IF ( dft_is_gradient() ) THEN
-       !PRINT*, "********* dgradcorr is in"
-       CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-                      drho_tot, dfftp%nnr, nspin, nspin_gga, nl, ngm, g, alat, &
-                      dvloc)
+      ALLOCATE ( rho_tot (dfftp%nnr) )
+      fac = 1.d0 / DBLE (nspin_lsda)
+!       rho_tot = 0._dp
+      rho_tot(:) = rho%of_r(:, 1)
+      IF (nlcc_any) THEN
+            rho_tot(:) = rho_tot(:) + fac * rho_core (:)
+      ENDIF
+!        write(90100, *) size(rho_tot), size(rho_core), size(rho%of_r)
+!        DO nt = 1,8
+!         WRITE(90000, '(2i6,3f12.6)') nu_i, iq_x, xq_x
+!        ENDDO
+!        write(90000, '(e16.6)') rho_tot
+!        write(90007, '(e16.6)') rho%of_r
+!        write(90008, '(e16.6)') rho_core
+!        write(90001, '(2e16.6)') grho
+!        write(90002, '(2e16.6)') drho_tot
+!        write(90003, '(2e16.6)') dvxc_rr
+!        write(90004, '(2e16.6)') dvxc_sr
+!        write(90005, '(2e16.6)') dvxc_ss
+!        write(90006, '(2e16.6)') dvxc_s
+      CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+                    drho_tot, dfftp%nnr, nspin, nspin_gga, nl, ngm, g, alat, &
+                    dvloc)
+      DEALLOCATE(rho_tot)
     ENDIF
     !
     ! Remove the core correction, if necessary
     IF(nlcc_any)THEN
-      !CALL read_drho(drho_tot, iq_x, nu_i, with_core=.false.)
-      CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1._dp)
-      !CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1._dp)
+      CALL read_drho(drho_tot, iq_x, nu_i, with_core=.false.)
+!       CALL addcore_d3(xq_x, u_x, nu_i, d3c(iq_x)%drc, drho_tot, -1._dp)
     ENDIF
     !
     ! copy the total (up+down) delta rho in drho_tot(*,1) and go to G-space
@@ -160,6 +173,7 @@ MODULE dq_vscf_module
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !
       ! This is the derivative of the local potential, in G space
+      ! FIXME: this should be done with Miller indexes, like in addcore_d3
       DO na = 1, nat
           mu = 3 * (na - 1)
           IF ( (abs(u_x(mu+1,nu_i))) + abs(u_x(mu+2,nu_i)) + abs(u_x(mu+3,nu_i)) > 1.0d-12) THEN
@@ -188,8 +202,7 @@ MODULE dq_vscf_module
 !     ENDDO
 
 
-    DEALLOCATE (drho_tot)
-    DEALLOCATE (rho_tot)
+    DEALLOCATE (drho_tot, dvloc_g)
   
     RETURN
   END SUBROUTINE dq_vscf_nuovo
@@ -217,9 +230,9 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE d3com,       ONLY : d3c, d3v
   USE d3_iofiles,  ONLY : read_drho
   USE gc_lr,            ONLY : dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s, grho
-    USE scf,          ONLY : rho
-    USE funct,        ONLY : dft_is_gradient
-    USE noncollin_module, ONLY : nspin_gga, nspin_mag
+  USE scf,          ONLY : rho, rho_core
+  USE funct,        ONLY : dft_is_gradient
+  USE noncollin_module, ONLY : nspin_gga, nspin_mag, nspin_lsda
   !
   IMPLICIT NONE
   INTEGER,INTENT(in)     :: nu_i ! mode under consideration
@@ -235,13 +248,14 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   !         of the K_S potential
   !
   ! Local variables
-  INTEGER :: ig, mu, na, nt ! counters
-  REAL (DP) :: qg2, gtau
+  INTEGER :: ig, mu, na, nt, is ! counters
+  REAL (DP) :: qg2, gtau, fac
   ! the modulus of (q+G)^2
   ! auxiliary variable: g*tau
   COMPLEX(DP) ::  guexp   ! auxiliary variable: g*u*exp(gtau)
   COMPLEX(DP),PARAMETER :: mii = (0._dp, -1._dp)
   COMPLEX(DP),ALLOCATABLE :: aux1(:), aux2(:)
+  REAL(DP),ALLOCATABLE    :: rho_tot(:)
   !
   CALL start_clock('dq_vscf')
   !
@@ -276,7 +290,8 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
            guexp = tpiba * ( (g(1,ig) + xq_x(1)) * u_x(mu+1,nu_i) + &
                              (g(2,ig) + xq_x(2)) * u_x(mu+2,nu_i) + &
                              (g(3,ig) + xq_x(3)) * u_x(mu+3,nu_i) ) &
-                         * mii * EXP( mii * gtau)
+                         * mii * CMPLX(COS(gtau), -SIN(gtau))
+                         !EXP( mii * gtau)
            aux1 (nl(ig)) = aux1 (nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
            IF (upf(nt)%nlcc) THEN
               aux2 (nl(ig)) = aux2 (nl(ig)) + d3c(iq_x)%drc(ig,nt) * guexp
@@ -296,9 +311,30 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   !
   IF ( dft_is_gradient() ) THEN
     CALL read_drho(aux2, iq_x, nu_i, with_core=.true.)
+    ALLOCATE ( rho_tot (dfftp%nnr) )
+    fac = 1.d0 / DBLE (nspin_lsda)
+!     rho_tot = 0._dp
+    rho_tot(:) = rho%of_r(:, 1)
+    IF (nlcc_any) THEN
+          rho_tot(:) = rho_tot(:) + fac * rho_core (:)
+    ENDIF
     
-    CALL dgradcorr(rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+    CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
                    aux2, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvloc)
+!        write(80100, *) size(rho_tot), size(rho_core), size(rho%of_r)
+!        DO nt = 1,8
+!         WRITE(80000, '(2i6,3f12.6)') nu_i, iq_x, xq_x
+!        ENDDO
+!        write(80000, '(e16.6)') rho_tot
+!        write(80007, '(e16.6)') rho%of_r
+!        write(80008, '(e16.6)') rho_core
+!        write(80001, '(2e16.6)') grho
+!        write(80002, '(2e16.6)') aux2
+!        write(80003, '(2e16.6)') dvxc_rr
+!        write(80004, '(2e16.6)') dvxc_sr
+!        write(80005, '(2e16.6)') dvxc_ss
+!        write(80006, '(2e16.6)') dvxc_s
+    DEALLOCATE(rho_tot)
   ENDIF
 
   IF (doublegrid) call cinterpolate (dvloc, dvloc, - 1)

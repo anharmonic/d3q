@@ -1,6 +1,6 @@
 # Makefile for ballistic conductance (D3Q)
 
-include ../../make.sys
+include ../../make.inc
 
 STRIP = true
 

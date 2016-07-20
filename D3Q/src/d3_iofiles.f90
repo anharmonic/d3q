@@ -21,6 +21,7 @@ MODULE d3_iofiles
   PUBLIC :: setup_d3_iofiles
   ! ugly:
   PUBLIC :: tmp_dir_d3
+  PUBLIC :: d3_basename
   ! LET'S STRESS THIS (use read_drho instead):
   PRIVATE :: davcio_drho_d3
 
@@ -791,21 +792,21 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
 
   !
   !   The dummy variables
-  integer, intent (IN) :: mode
-  real(DP), intent(IN) :: xq(3)
-  complex(DP),intent(in) :: u(3*nat, 3*nat), &  ! the transformation modes patterns
+  INTEGER, INTENT(IN) :: mode
+  REAL(DP), INTENT(IN) :: xq(3)
+  COMPLEX(DP),INTENT(IN) :: u(3*nat, 3*nat), &  ! the transformation modes patterns
                             drc(ngm, ntyp)      ! contain the rhocore (without structure factor)
   
-  complex(DP), intent(INOUT) :: drhoc (dfftp%nnr)
+  COMPLEX(DP), intent(INOUT) :: drhoc (dfftp%nnr)
   COMPLEX(DP),ALLOCATABLE :: coreg (:)
-  REAL(DP),INTENT(in) :: factor
+  REAL(DP),INTENT(IN) :: factor
   ! input: rho / output: rho+core
   !
   !   Local variables
   !
-  integer :: nt, ig, mu, na
-  complex(DP) :: fact, gu, gu0, u1, u2, u3, gtau
-  complex(DP) :: eigqts(nat)
+  INTEGER :: nt, ig, mu, na
+  COMPLEX(DP) :: fact, gu, gu0, u1, u2, u3, gtau
+  COMPLEX(DP) :: eigqts(nat)
   real(DP)    :: arg
   !
   !
@@ -822,7 +823,7 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
      eigqts(na) = CMPLX( COS( arg ), -SIN( arg ) ,kind=DP)
   END DO  
   !
-     coreg(:) = (0.d0, 0.d0)
+  coreg(:) = (0.d0, 0.d0)
   do na = 1, nat
      nt = ityp (na)
      if (upf(nt)%nlcc) then
@@ -859,6 +860,27 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
 !-----------------------------------------------------------------------
 end subroutine addcore_d3
 !-----------------------------------------------------------------------
+!
+FUNCTION d3_basename(filename) RESULT(basename)
+  IMPLICIT NONE
+  CHARACTER(len=*),INTENT(in) :: filename
+  CHARACTER(len=LEN(filename)) basename
+  !
+  INTEGER :: i, l
+  l = LEN(filename)
+  basename = ""
+  IF(l<= 1) RETURN
+  DO i = l,2,-1
+    !print*, i, filename(i:i)
+    IF(filename(i:i) == "/") THEN
+      IF(filename(i-1:i-1) /= "/" ) THEN
+        basename = filename(1:i-1)
+        !print*, "basename", TRIM(basename)
+        RETURN
+      ENDIF
+    ENDIF
+  ENDDO
+END FUNCTION
 !
 !-----------------------------------------------------------------------
 END MODULE d3_iofiles

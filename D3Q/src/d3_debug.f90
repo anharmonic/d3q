@@ -71,7 +71,7 @@ SUBROUTINE read_d3_debug(u)
    READ (u, d3_debug, iostat = ios)
    !
    IF(ios == 0) THEN
-     WRITE(stdout,'(5x,a)') "WARNING:: Debug information found"
+     WRITE(stdout,'(5x,a)') "REMARK: Debug instructions found!"
      WRITE(stdout,'(5x,a)') "_____________ debug flags _____________"
      WRITE(stdout, d3_debug)
      WRITE(stdout,'(5x,a)') "_____________ debug flags _____________"

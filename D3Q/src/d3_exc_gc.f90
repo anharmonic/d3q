@@ -163,7 +163,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
                           
               ENDDO
               !
-              CALL mp_sum( aux, intra_pool_comm )
+              !CALL mp_sum( aux, intra_pool_comm )
               !
               d3dyn1(ipert,jpert,kpert) = domega * aux
               !
@@ -188,7 +188,8 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
     d3dyn1 = 0._dp
   ENDIF ONLY_FIRST_POOL
   !
-  ! Let everybody get the correct matrix (this is not really needed as only cpu 1 writes)
+  ! Let everybody get the correct matrix 
+  ! (this is not strictly needed as only cpu 1 writes)
   IF( npool > 1 ) CALL mp_bcast( d3dyn1, ionode_id, inter_pool_comm )
   !
   d3dyn = d3dyn+d3dyn1
