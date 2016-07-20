@@ -750,18 +750,19 @@ END MODULE asr3_module
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM asr3
 
-    USE kinds,          ONLY : DP
-    USE iso_c_binding,  ONLY : c_int
-    USE input_fc,       ONLY : aux_system, ph_system_info
-    USE fc3_interpolate,      ONLY : grid
-    USE io_global,      ONLY : stdout
+    USE kinds,           ONLY : DP
+    USE iso_c_binding,   ONLY : C_INT64_T
+    USE input_fc,        ONLY : aux_system, ph_system_info
+    USE fc3_interpolate, ONLY : grid
+    USE io_global,       ONLY : stdout
     USE asr3_module
+    USE more_constants,  ONLY : print_citations_linewidth
     IMPLICIT NONE
     !
     TYPE(grid)             :: fc
     TYPE(ph_system_info)   :: s
     TYPE(index_r_type)     :: idx2,idx3
-    INTEGER(kind=c_int)    :: kb
+    INTEGER(kind=C_INT64_T)    :: kb
     INTEGER,ALLOCATABLE :: idR23(:,:)
     TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
     !
@@ -812,7 +813,7 @@ PROGRAM asr3
     CALL aux_system(s)
     !
     CALL memstat(kb)
-    WRITE(stdout,*) "Reading : done. //  Mem used:", kb/1000, "Mb"
+    WRITE(stdout,*) "Reading : done. //  Mem used:", DBLE(kb)/1000._dp, "Mb"
     !
     ! ----------------------------------------------------------------------------
     CALL stable_index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
@@ -867,6 +868,8 @@ PROGRAM asr3
     CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
 
     CALL fc%write(fileout, S)
+    !
+    CALL print_citations_linewidth()
     !
 END PROGRAM asr3
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

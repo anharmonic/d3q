@@ -42,7 +42,8 @@ PROGRAM gen_sparse
     USE gen_sparse_program
     USE random_numbers, ONLY : randy
     USE wrappers,       ONLY : f_get_vm_size
-    USE mpi_thermal,    ONLY : start_mpi, stop_mpi
+    USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode
+    USE more_constants,  ONLY : print_citations_linewidth
     IMPLICIT NONE
     !
     TYPE(grid)   :: fc
@@ -160,6 +161,8 @@ PROGRAM gen_sparse
     WRITE(stdout,*) "Sparse Memory used : ", kb/1000, "Mb"
     
     CALL sfc%destroy()
+    
+    CALL print_citations_linewidth()
     
 END PROGRAM gen_sparse
 ! \/o\________\\\________________\\/\_________________________/^>

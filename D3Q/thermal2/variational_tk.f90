@@ -5,6 +5,17 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
+! This module implements equation 13 of PHYSICAL REVIEW B 88, 045430 (2013)
+! paying particular attention to having all the scattering process consistent
+! to ensure that the detailed balance condition is respected even at finite 
+! (possibily small) grids. this ensure that the CG procedure will always converge
+! and that negative termal conductivity is impossible.
+! 
+! As a side effect, we have to interpolate two D3 matrices at each step, 
+! which has a certain additional cost, but it is small price to pay for 
+! much faster convergence and reliable results.
+
+!
 MODULE variational_tk
 #include "mpi_thermal.h"
   USE kinds,           ONLY : DP
@@ -614,7 +625,7 @@ MODULE variational_tk
         !
         ! P3 is a 3*nat x 3*nat minor of the A matrix, the implicit indexes are
         ! iq0 and iq, the matrix A has dimension (3*nat*nq x 3*nat*nq)
-        ! Do not forget the minus sign!!
+        ! DO NOT FORGET THE MINUS SIGN!!
           timer_CALL t_sum%start()
         P3 =  - sum_A_in_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0 )
           timer_CALL t_sum%stop()
@@ -745,11 +756,11 @@ MODULE variational_tk
   END FUNCTION sum_A_in_modes
   !
   !
-  ! Compute thermal conductivity as -2\lambda \over { N T^2 } 1/2 ( f \dot g - f \dot b) )
-  ! g = Af-b
-  ! f.g = f.Af - b.f
-  ! 1/2 (f.g -b.f ) = 1/2 f.Af - b.f
-  FUNCTION calc_tk_gf(g, f, b, T, w, Omega, nconf, nat3, nq) RESULT(tk)
+  ! Compute thermal conductivity as 
+  !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
+  ! Also computes the variational correction to thermal conductivity:
+  !   \Delta tk = - \lambda \over { N T^2 } f \dot g 
+  FUNCTION calc_tk_gf(g, f, b, T, weight, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
     IMPLICIT NONE
@@ -759,7 +770,7 @@ MODULE variational_tk
     REAL(DP),INTENT(in) :: b(3, nconf, nat3, nq)
     REAL(DP),INTENT(in) :: T(nconf)
     INTEGER,INTENT(in)  :: nconf, nat3, nq
-    REAL(DP),INTENT(in) :: w(nq) ! integration weights (1/nq for regular grids)
+    REAL(DP),INTENT(in) :: weight(nq) ! integration weights (1/nq for regular grids)
     REAL(DP),INTENT(in) :: Omega ! cell volume
     !
     REAL(DP) :: tk(3,3,nconf)
@@ -768,21 +779,24 @@ MODULE variational_tk
     !
     !
     tk = 0._dp
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx,pref) REDUCE(+:tk)
+!$OMP DO COLLAPSE(3)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(4)
       DO nu = 1,nat3
         DO it = 1,nconf
           DO jx = 1,3
+          pref =  weight(iq)*(g(jx,it,nu,iq)-b(jx,it,nu,iq))
           DO ix = 1,3
+            !
             tk(ix,jx,it) = tk(ix,jx,it) &
-                    + w(iq)*f(ix,it,nu,iq) *(g(jx,it,nu,iq)-b(jx,it,nu,iq))
+               + f(ix,it,nu,iq) * pref
+            !
           ENDDO
           ENDDO
         ENDDO
       ENDDO
-!$OMP ENDDO
     ENDDO
+!$OMP ENDDO
 !$OMP END PARALLEL
     DO it = 1,nconf
       pref = -Omega/T(it)**2
@@ -814,13 +828,13 @@ MODULE variational_tk
         tk(1,1,it)*RY_TO_WATTMM1KM1, &
         tk(2,2,it)*RY_TO_WATTMM1KM1, &
         tk(3,3,it)*RY_TO_WATTMM1KM1!, &
-        !tk(1,2,it)*RY_TO_WATTMM1KM1, &
-        !tk(1,3,it)*RY_TO_WATTMM1KM1, &
-        !tk(2,3,it)*RY_TO_WATTMM1KM1, &
-        !tk(2,1,it)*RY_TO_WATTMM1KM1, &
-        !tk(3,1,it)*RY_TO_WATTMM1KM1, &
-        !tk(3,2,it)*RY_TO_WATTMM1KM1
-      ! on file we only write everything, but in this order: 
+!         tk(1,2,it)*RY_TO_WATTMM1KM1, &
+!         tk(1,3,it)*RY_TO_WATTMM1KM1, &
+!         tk(2,3,it)*RY_TO_WATTMM1KM1, &
+!         tk(2,1,it)*RY_TO_WATTMM1KM1, &
+!         tk(3,1,it)*RY_TO_WATTMM1KM1, &
+!         tk(3,2,it)*RY_TO_WATTMM1KM1      !
+      ! on file we write everything, but in this order: 
       !   Kxx, Kyy, Kzz, Kxy, Kxz, Kyz, Kyx, Kzx, Kzy
       IF(present(unit0)) THEN
       ioWRITE(unit0,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
@@ -836,7 +850,6 @@ MODULE variational_tk
       ENDIF
     ENDDO
     IF(present(unit0)) FLUSH(unit0)
-
     !
     IF(present(unit0))THEN
       DO it = 1,nconf
@@ -857,30 +870,138 @@ MODULE variational_tk
     !
   END SUBROUTINE print_tk
   !
+  ! Save the current state of CG minimization to file, open and close 
+  ! the files to insure consistency
   ! \/o\________\\\_________________________________________/^>
-  LOGICAL FUNCTION check_gradmod2_tk(g2, name, T, Omega, nconf, nat3, nq, thr)
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+  SUBROUTINE save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+    USE input_fc,           ONLY : ph_system_info
+    USE code_input,         ONLY : code_input_type
+    USE mpi_thermal,        ONLY : ionode
     IMPLICIT NONE
-    REAL(DP),INTENT(in) :: g2(3,nconf)
-    CHARACTER(len=*),INTENT(in) :: name
-    REAL(DP),INTENT(in) :: T(nconf), thr
+    !
+    TYPE(code_input_type),INTENT(in)  :: input
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: A_out(nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: g(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: h(3, nconf, nat3, nq)
     INTEGER,INTENT(in)  :: nconf, nat3, nq
-    REAL(DP),INTENT(in) :: Omega ! cell volume (bohr^3)
     !
-    REAL(DP) :: g(3,nconf)
-    INTEGER :: it
+    CHARACTER(len=512) :: filename
+    CHARACTER(len=9) :: cdate, ctime
+    INTEGER :: u
+    INTEGER, EXTERNAL :: find_free_unit
     !
-    DO it = 1,nconf
-      g(:,it) = g2(:,it)*RY_TO_WATTMM1KM1!*Omega/nq!/T(it)
-    ENDDO
-    ioWRITE(stdout,'(2x,a)') name
-    check_gradmod2_tk = .true.
-    DO it = 1,nconf
-      ioWRITE(*,'(12x,i6,3(3e17.8,3x))') it, g(:,it)
-      check_gradmod2_tk = check_gradmod2_tk &
-                    .and. ALL(g(:,it) < thr)
-    ENDDO
+    ! Skip restart if input%rstart is false
+    IF(.not. input%restart) RETURN
     !
-  END FUNCTION check_gradmod2_tk
+    IF (ionode) THEN
+      filename = TRIM(input%outdir)//TRIM(input%prefix)//"_restart.tk"
+      u = find_free_unit()
+      CALL date_and_tim( cdate, ctime )
+      !
+      OPEN(unit=u, file=filename, status="unknown", form="unformatted")
+        WRITE(u) cdate, ctime
+        !WRITE(u) input
+        !WRITE(u) S
+        WRITE(u) nconf, nat3, nq
+        WRITE(u) input%T, input%sigma
+        WRITE(u) A_out
+        WRITE(u) f
+        WRITE(u) g
+        WRITE(u) h
+      CLOSE(u)
+    ENDIF
+    !
+  END SUBROUTINE
+  !
+  ! Read the current state of CG minimization to file, 
+  ! check for consistency with input data
+  ! \/o\________\\\_________________________________________/^>
+  LOGICAL FUNCTION read_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+    USE input_fc,           ONLY : ph_system_info, same_system
+    USE code_input,         ONLY : code_input_type
+    USE mpi_thermal,        ONLY : ionode, mpi_broadcast
+    IMPLICIT NONE
+    !
+    TYPE(code_input_type),INTENT(in)  :: input
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(out) :: A_out(nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: f(3, nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: g(3, nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: h(3, nconf, nat3, nq)
+    INTEGER,INTENT(in)   :: nconf, nat3, nq
+    !
+    TYPE(code_input_type):: input_
+    TYPE(ph_system_info) :: S_
+    INTEGER   :: nconf_, nat3_, nq_
+    CHARACTER(len=512) :: filename
+    CHARACTER(len=9) :: cdate, ctime
+    INTEGER :: u, ios, i
+    INTEGER, EXTERNAL :: find_free_unit
+    REAL(DP) :: T_(nconf), sigma_(nconf)
+    LOGICAL :: failed
+    !
+    IF (.not. input%restart) THEN
+      ioWRITE(stdout,'(2x,a)') "Restart disabled from input: restarting from scratch."
+      read_cg_step = .false.
+      RETURN
+    ENDIF
+    !
+    filename = TRIM(input%outdir)//TRIM(input%prefix)//"_restart.tk"
+    u = find_free_unit()
+    !
+    failed = .true.
+    IF (ionode) THEN
+      OPEN(unit=u, file=filename, status="old", form="unformatted", action="read", iostat=ios)
+      DO
+        READ(u, iostat=ios) cdate, ctime
+        IF(ios/=0) EXIT
+        ioWRITE(stdout,'(2x,2a,x,a)') "Restarting from file of ", cdate, ctime
+  !       READ(u) input_
+  !       READ(u) S_
+  !       IF(.not. same_system(S,S_)) &
+  !         CALL errore("read_cg_step", "cannot restart from different system",1)
+        READ(u, iostat=ios) nconf_, nat3_, nq_
+        IF(ios/=0) EXIT
+        IF(nconf_/=nconf .or. nat3_/=nat3 .or. nq_/=nq) THEN
+          ioWRITE(stdout,'(2x,a)') "REMARK! Cannot restart from different dimensions"
+          EXIT
+        ENDIF
+        READ(u, iostat=ios) T_, sigma_
+        IF(ios/=0) EXIT
+        IF(ANY(T_/=input%T) .or. ANY(sigma_ /= input%sigma)) THEN
+          ioWRITE(stdout,'(2x,a)') "REMARK! Cannot restart from different configurations"
+          EXIT
+        ENDIF
+        READ(u, iostat=ios) A_out
+        IF(ios/=0) EXIT
+        READ(u, iostat=ios) f
+        IF(ios/=0) EXIT
+        READ(u, iostat=ios) g
+        IF(ios/=0) EXIT
+        READ(u, iostat=ios) h
+        IF(ios/=0) EXIT
+        !
+        ! If everything went right, I arrived here
+        failed = .false.
+        EXIT
+      ENDDO
+      CLOSE(u)
+    ENDIF
+    !
+    CALL mpi_broadcast(failed)
+    IF (failed) THEN
+      ioWRITE(stdout,'(2x,a)') "Could not read restart file: restarting from scratch."
+      read_cg_step = .false.
+    ELSE
+      CALL mpi_broadcast(nconf, nat3, nq, A_out)
+      CALL mpi_broadcast(3, nconf, nat3, nq, f)
+      CALL mpi_broadcast(3, nconf, nat3, nq, g)
+      CALL mpi_broadcast(3, nconf, nat3, nq, h)
+      read_cg_step = .true.
+    ENDIF
+    !
+  END FUNCTION
   !
 END MODULE variational_tk

@@ -392,13 +392,12 @@ PROGRAM linewidth
 
   USE kinds,            ONLY : DP
   USE linewidth_program
-!   USE environment,      ONLY : environment_start, environment_end
-!   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
-  USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, ph_system_info
+  USE input_fc,         ONLY : forceconst2_grid, ph_system_info
   USE q_grids,          ONLY : q_grid !, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
+  USE more_constants,   ONLY : print_citations_linewidth
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -442,8 +441,7 @@ PROGRAM linewidth
     CALL errore("lw", "what else to do?", 1)
   ENDIF
   !
-!   CALL environment_end('LW')
-!   CALL mp_world_end()
+  IF(ionode) CALL print_citations_linewidth()
   CALL stop_mpi()
  
 END PROGRAM

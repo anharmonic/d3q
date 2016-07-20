@@ -1,11 +1,11 @@
 !
-! Copyright (C) Lorenzo Paulatto, 2014
+! Written by Lorenzo Paulatto (2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
 ! Uses wsweight from PW/src
-! 
-! This file is distributed under the terms of the
-! GNU General Public License. See the file `License'
-! in the root directory of the present distribution,
-! or http://www.gnu.org/copyleft/gpl.txt .
 !
 MODULE quter_standalone
 

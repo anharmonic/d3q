@@ -316,12 +316,13 @@ PROGRAM add_bubble
   USE kinds,            ONLY : DP
   USE add_bubble_program
   USE fc3_interpolate,  ONLY : forceconst3
-  USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, &
-                               ph_system_info, same_system, read_fc2, aux_system, div_mass_fc2
+  USE input_fc,         ONLY : forceconst2_grid, read_fc2, div_mass_fc2, &
+                               ph_system_info, same_system, aux_system
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
   USE asr2_module,      ONLY : impose_asr2
+  USE more_constants,   ONLY : print_citations_linewidth
 
   IMPLICIT NONE
   !
@@ -377,6 +378,7 @@ PROGRAM add_bubble
   !
 
   CALL stop_mpi()
+  CALL print_citations_linewidth()
  
 END PROGRAM add_bubble
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

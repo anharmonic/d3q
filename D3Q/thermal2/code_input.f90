@@ -66,6 +66,8 @@ MODULE code_input
     ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
+    !
+    LOGICAL :: restart
   END TYPE code_input_type
   !
   CONTAINS
@@ -133,8 +135,10 @@ MODULE code_input
     INTEGER  :: max_seconds = -1
     REAL(DP) :: max_time    = -1._dp
     !
-    REAL(DP) :: thr_tk = 1.d-2
+    REAL(DP) :: thr_tk = 1.d-4
     INTEGER  :: niter_max = 1000
+    !
+    LOGICAL :: restart = .false.
     !
     ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
@@ -169,7 +173,7 @@ MODULE code_input
       nconf, nk, nk_in, grid_type, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
-      max_seconds, max_time
+      max_seconds, max_time, restart
 
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
@@ -248,6 +252,7 @@ MODULE code_input
     !
     input%thr_tk = thr_tk
     input%niter_max = niter_max
+    input%restart = restart
     !
     IF(ANY(nk_in<0)) nk_in = nk
     input%nk_in            = nk_in
@@ -288,6 +293,8 @@ MODULE code_input
     ! if we also want the q of the final state:
     input%q_resolved = q_resolved
     input%sigmaq  = sigmaq
+    IF(calculation == 'cgp' .and. (grid_type == 'bz' .or. grid_type == 'ws'))&
+      CALL errore('READ_INPUT', "CGP calculation isn't properly implemented with bz grids", 1)
     !
     IF(input%casimir_scattering)THEN
       IF(casimir_length_au>0._dp .and. casimir_length_mu>0._dp .and. casimir_length_mm>0._dp) &

@@ -17,7 +17,6 @@ PROGRAM r2q
   USE r2q_program
   USE input_fc,         ONLY : read_fc2, aux_system, div_mass_fc2, &
                               forceconst2_grid, ph_system_info, &
-                              print_citations_linewidth, &
                               multiply_mass_dyn, write_dyn
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grids,          ONLY : q_grid
@@ -26,6 +25,7 @@ PROGRAM r2q
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
   USE ph_velocity,      ONLY : velocity_proj
+  USE more_constants,  ONLY : print_citations_linewidth
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2

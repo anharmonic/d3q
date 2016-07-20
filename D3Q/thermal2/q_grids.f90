@@ -560,32 +560,6 @@ MODULE q_grids
     
   END SUBROUTINE prepare_q_basis
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE qbasis_x_times_y(z, x, y, nconf, nat3, nq)
-    IMPLICIT NONE
-    !
-    REAL(DP),INTENT(out):: z(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: x(3, nconf, nat3, nq)
-    REAL(DP),INTENT(in) :: y(3, nconf, nat3, nq)
-    INTEGER,INTENT(in)  :: nconf, nat3, nq
-    !
-    INTEGER  :: iq, it, ix, nu
-    !
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
-!$OMP DO COLLAPSE(4)
-    DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        z(ix,it,nu,iq) = x(ix,it,nu,iq)*y(ix,it,nu,iq)
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-    !
-  END SUBROUTINE qbasis_x_times_y
-  ! \/o\________\\\_________________________________________/^>
   FUNCTION qbasis_dot(x, y, nconf, nat3, nq) RESULT(z)
     IMPLICIT NONE
     !

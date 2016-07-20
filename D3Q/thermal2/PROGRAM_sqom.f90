@@ -446,7 +446,7 @@ PROGRAM sqom
 
   USE kinds,            ONLY : DP
   USE sqom_program
-  USE input_fc,         ONLY : print_citations_linewidth
+  USE more_constants,   ONLY : print_citations_linewidth
   USE q_grids,          ONLY : q_grid !, setup_simple_grid
   USE parameters,       ONLY : ntypx
   IMPLICIT NONE
@@ -462,7 +462,6 @@ PROGRAM sqom
   !
   REAL(DP) :: ff(ntypx)
   !
-  CALL print_citations_linewidth()
   
 !   print*, neutron_form_factor("H")
 !   print*, neutron_form_factor("D")
@@ -490,6 +489,7 @@ PROGRAM sqom
     CALL neutron_function_convolution(xq(:,i), sqominput%qq, 80._dp, S, fc2, ff, &
                                       sqominput%neutron_resolution, ne, ee, spf(:,:,i))
   ENDDO
+  CALL print_citations_linewidth()
   !
 END PROGRAM sqom
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

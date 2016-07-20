@@ -5,7 +5,6 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
-
 MODULE asr2_module
   USE kinds,    ONLY : DP
   

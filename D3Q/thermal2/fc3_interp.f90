@@ -57,13 +57,14 @@ MODULE fc3_interpolate
   END INTERFACE
   !
   ABSTRACT INTERFACE
-  SUBROUTINE fft_doubleinterp_mat3_error(fc, xq2,xq3,xq4, nat3, D)
+  SUBROUTINE fft_doubleinterp_mat3_error(fc, xq2,xq3,xq3b, nat3, D, Db)
     USE kinds,     ONLY : DP
     IMPORT forceconst3 
     CLASS(forceconst3),INTENT(in) :: fc
     INTEGER,INTENT(in)   :: nat3
-    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq4(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3, 2)
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq3b(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: Db(nat3, nat3, nat3)
   END SUBROUTINE fft_doubleinterp_mat3_error
   END INTERFACE
   !
@@ -143,7 +144,7 @@ MODULE fc3_interpolate
 #else
       procedure :: interpolate  => fftinterp_mat3_sparse
 #endif
-      procedure :: double_interpolate  => fft_doubleinterp_mat3_sparse
+      procedure :: double_interpolate  => fft_doubleinterp_mat3_sparse_prec
       procedure :: destroy      => destroy_fc3_sparse
       procedure :: read         => read_fc3_sparse
       procedure :: write        => write_fc3_sparse
@@ -397,33 +398,35 @@ MODULE fc3_interpolate
   END SUBROUTINE fftinterp_mat3_grid_flat_prec
   !
   ! \/o\________\\\______________________//\/___________________/~^>>
-  SUBROUTINE fft_doubleinterp_mat3_grid_flat(fc, xq2,xq3,xq4, nat3, D)
+  SUBROUTINE fft_doubleinterp_mat3_grid_flat(fc, xq2,xq3,xq3b, nat3, D, Db)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
     INTEGER,INTENT(in)   :: nat3
     CLASS(grid),INTENT(in) :: fc
-    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq4(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3, 2)
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq3b(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: Db(nat3, nat3, nat3)
     !
     REAL(DP) :: arg1, arg2
     COMPLEX(DP) :: phase1, phase2
     INTEGER :: i, a,b,c
     !
-    D = (0._dp, 0._dp)
+    D  = (0._dp, 0._dp)
+    Db = (0._dp, 0._dp)
     !
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(a,b,c)
     DO i = 1, fc%n_R
       arg1 = tpi *  SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
       phase1 = CMPLX(Cos(arg1),-Sin(arg1), kind=DP)
-      arg2 = tpi * SUM(-xq2(:)*fc%xR2(:,i) + xq4(:)*fc%xR3(:,i))
+      arg2 = tpi * SUM(-xq2(:)*fc%xR2(:,i) + xq3b(:)*fc%xR3(:,i))
       phase2 = CMPLX(Cos(arg2),-Sin(arg2), kind=DP)
 !$OMP DO COLLAPSE(3)
       DO c = 1,nat3
       DO b = 1,nat3
       DO a = 1,nat3
-        D(a,b,c,1) = D(a,b,c,1) + phase1 * fc%fc(a,b,c, i)
-        D(a,b,c,2) = D(a,b,c,2) + phase2 * fc%fc(a,b,c, i)
+        D(a,b,c)  = D(a,b,c)  + phase1 * fc%fc(a,b,c, i)
+        Db(a,b,c) = Db(a,b,c) + phase2 * fc%fc(a,b,c, i)
       ENDDO
       ENDDO
       ENDDO
@@ -502,39 +505,58 @@ MODULE fc3_interpolate
   END SUBROUTINE fftinterp_mat3_sparse_prec
   !
   ! \/o\________\\\______________________//\/___________________/~^>>
-  SUBROUTINE fft_doubleinterp_mat3_sparse(fc, xq2,xq3,xq4, nat3, D)
+  SUBROUTINE fft_doubleinterp_mat3_sparse_prec(fc, xq2,xq3,xq3b, nat3, D, Db)
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
     INTEGER,INTENT(in)   :: nat3
     CLASS(sparse),INTENT(in) :: fc
-    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq4(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3, 2)
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq3b(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: Db(nat3, nat3, nat3)
     !
-    REAL(DP) :: arg1,arg2
-    COMPLEX(DP) :: phase1,phase2
     INTEGER :: i,j
+    REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
+    REAL(DP) :: vargb(fc%n_R), vcosb(fc%n_R), vsinb(fc%n_R)
+    COMPLEX(DP) :: vphase(fc%n_R)
+    COMPLEX(DP) :: vphaseb(fc%n_R)
     !
-    D = (0._dp, 0._dp)
+    D  = (0._dp, 0._dp)
+    Db = (0._dp, 0._dp)
     !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg1,phase1,arg2,phase2) REDUCTION(+: D)
+    ! Pre-compute phase to use the vectorized MKL subroutines
+    FORALL(i=1:fc%n_R) varg(i)  =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+    FORALL(i=1:fc%n_R) vargb(i) =  tpi * SUM(-xq2(:)*fc%xR2(:,i) + xq3b(:)*fc%xR3(:,i))
+#if defined(__INTEL)
+    CALL vdCos(fc%n_R, varg, vcos)
+    CALL vdSin(fc%n_R, varg, vsin)
+    CALL vdCos(fc%n_R, vargb, vcosb)
+    CALL vdSin(fc%n_R, vargb, vsinb)
+#else
+    vcos = DCOS(varg)
+    vsin = DSIN(varg)
+    vcosb = DCOS(vargb)
+    vsinb = DSIN(vargb)
+#endif
+    vphase =  CMPLX( vcos, -vsin, kind=DP  )
+    vphaseb =  CMPLX( vcos, -vsin, kind=DP  )
+    !    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
     DO i = 1, fc%n_R
-      arg1 = tpi *  SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-      phase1 = CMPLX(Cos(arg1),-Sin(arg1), kind=DP)
-      arg2 = tpi * SUM(-xq2(:)*fc%xR2(:,i) + xq4(:)*fc%xR3(:,i))
-      phase2 = CMPLX(Cos(arg2),-Sin(arg2), kind=DP)
+      !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
+      !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
       DO j = 1, fc%n_terms(i)
-        D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),1) &
-      = D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),1) &
-            + phase1 * fc%dat(i)%fc(j)
-        D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),2) &
-      = D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),2) &
-            + phase2 * fc%dat(i)%fc(j)
-
+        D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+          = D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+            + vphase(i) * fc%dat(i)%fc(j)
+            
+        Db(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+          = Db(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+            + vphaseb(i) * fc%dat(i)%fc(j)
       ENDDO
     END DO
 !$OMP END PARALLEL DO
-  END SUBROUTINE fft_doubleinterp_mat3_sparse
+  END SUBROUTINE fft_doubleinterp_mat3_sparse_prec
   !
   ! \/o\________\\\______________________//\/___________________/~^>>
   SUBROUTINE read_fc3_sparse(fc, filename, S)

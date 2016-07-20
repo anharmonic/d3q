@@ -1,9 +1,7 @@
 !
 ! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
-!  Dual licenced under the CeCILL licence v 2.1
-!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
-!  and under the GPLv2 licence and following, see
-!  <http://www.gnu.org/copyleft/gpl.txt>
+! on top of the PHonon/PH/q2r.f90 from the Quantum-ESPRESSO package
+!  GPLv2 licence and following, <http://www.gnu.org/copyleft/gpl.txt>
 !
 !----------------------------------------------------------------------------
 PROGRAM q2r

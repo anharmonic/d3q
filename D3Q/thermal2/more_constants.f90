@@ -80,38 +80,32 @@ MODULE more_constants
     
   END FUNCTION write_conf
   !
-!   CHARACTER(len=6) &
-!   FUNCTION write_sigma(it,nat3,nt,sigma) RESULT(str)
-!     USE constants, ONLY : eps12
-!     IMPLICIT NONE
-!     INTEGER,INTENT(in)  :: it, nt, nat3
-!     REAL(DP),INTENT(in) :: sigma(nat3,nt)
-!     REAL(DP) :: csigma(nt)
-!     INTEGER :: jt, is
-!     LOGICAL :: same
-!     CHARACTER(len=6),EXTERNAL :: int_to_char
-! 
-!     same = .true.
-!     DO is = 1,nat3
-!       same=same.and.(ABS(sigma(1,it)-sigma(is,it))<eps12)
-!     ENDDO
-!     IF(.not.same) THEN
-!         str="X"//TRIM(int_to_char(it))//"."
-!         RETURN
-!     ENDIF
-!     !
-!     csigma = 0._dp
-!     DO jt = 1,nt
-!       same = .true.
-!       DO is = 1,nat3
-!         same=same.and.(ABS(sigma(1,jt)-sigma(is,jt))<eps12)
-!       ENDDO
-!       IF(same) csigma(jt) = sigma(1,jt)
-!     ENDDO
-!     csigma = 2*csigma
-!     str = write_temperature(it,nt,csigma)
-!     
-!   END FUNCTION
-  
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_citations_linewidth
+    USE io_global, ONLY : stdout
+    WRITE(stdout,*)
+    WRITE(stdout,'(5x,a)') &
+        " ",&
+        "For 2n+1 calculations of force constants please cite:",&
+        " 1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri",&
+        "    Phys. Rev. B 87, 214303 – Published 7 June 2013"
+    WRITE(stdout,'(5x,a)') &
+        " ",&
+        "For thermal transport calculations please cite:",&
+        " 2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri",&
+        "    Phys. Rev. B 88, 045430 – Published 17 July 2013", &
+        " 3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,", &
+        "    Nature communications 6 (2015)", &
+        " 4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,", &
+        "    Nano letters 14 (11), 6109-6114 (2014)"
+    WRITE(stdout,'(5x,a)') &
+        " ",&
+        "For spectral function calculations also cite:",&
+        " 5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,",&
+        "    Phys. Rev. B 91, 054304 (2015)"
+    WRITE(stdout,*)
+
+  END SUBROUTINE print_citations_linewidth
+  !
 END MODULE more_constants
 !

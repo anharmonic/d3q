@@ -1,4 +1,10 @@
-
+!
+! Written by Lorenzo Paulatto (2016) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
 MODULE mpi_thermal
   USE kinds,  ONLY : DP
   !USE timers, ONLY : t_mpicom
@@ -27,6 +33,14 @@ MODULE mpi_thermal
   LOGICAL :: mpi_started = .FALSE.
   INTEGER :: omp_tot_thr=1
 
+  INTERFACE mpi_broadcast
+     MODULE PROCEDURE mpi_bcast_logical
+     !
+     MODULE PROCEDURE mpi_bcast_mat
+     MODULE PROCEDURE mpi_bcast_tns
+     MODULE PROCEDURE mpi_bcast_tns4
+  END INTERFACE
+  !
   INTERFACE mpi_bsum
      MODULE PROCEDURE mpi_bsum_int
 
@@ -54,19 +68,23 @@ MODULE mpi_thermal
     call MPI_INIT ( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, my_id, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr)
+    ionode = (my_id == 0)
+    IF(ionode) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
 #else
     my_id = 0
     num_procs = 1
+    ionode = .true.
+    IF(ionode) WRITE(*,"(2x,a,i6,a)") "Running without MPI support"
 #endif
-    ionode = (my_id == 0)
-    IF(ionode .and. num_procs>1) WRITE(*,"(2x,a,i6,a)") "Using ", num_procs, " MPI processes"
+!
 #ifdef _OPENMP
     omp_tot_thr =  omp_get_max_threads()
 #else
    omp_tot_thr = 1
 #endif
     CALL mpi_bsum(omp_tot_thr)
-    IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i6,a)") "Using",  omp_tot_thr, " total MPI+OpenMP threads"
+    IF(ionode .and. omp_tot_thr>num_procs) WRITE(*,"(2x,a,i6,a)") &
+      "Using",  omp_tot_thr, " total MPI+OpenMP threads"
     mpi_started = .true.
   END SUBROUTINE
 
@@ -226,6 +244,51 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
   !
+  ! --------- ------------- --- -- -- -- - - - complex numbers follow
+  !
+  SUBROUTINE mpi_bcast_logical(logi)
+    IMPLICIT NONE
+    LOGICAL,INTENT(inout) :: logi
+#ifdef __MPI
+      !timer_CALL t_mpicom%start()
+    CALL MPI_BCAST(logi, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_mat(mm, nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: mm, nn
+    REAL(DP),INTENT(inout) :: mat(mm,nn)
+#ifdef __MPI
+      !timer_CALL t_mpicom%start()
+    CALL MPI_BCAST(mat, mm*nn, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_tns(ll, mm, nn, tns)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: ll, mm, nn
+    REAL(DP),INTENT(inout) :: tns(ll, mm,nn)
+#ifdef __MPI
+      !timer_CALL t_mpicom%start() 
+    CALL MPI_BCAST(tns, ll*mm*nn, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_tns4(ll, mm, nn, oo, tns4)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: ll, mm, nn, oo
+    REAL(DP),INTENT(inout) :: tns4(ll, mm,nn, oo)
+#ifdef __MPI
+      !timer_CALL t_mpicom%start() 
+    CALL MPI_BCAST(tns4, ll*mm*nn*oo, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+      !timer_CALL t_mpicom%stop()
+#endif
+  END SUBROUTINE
+!!
   ! Scatter in-place a vector
   SUBROUTINE scatteri_vec(nn, vec, ii)
     IMPLICIT NONE

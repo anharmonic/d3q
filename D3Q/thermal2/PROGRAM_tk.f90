@@ -1,5 +1,5 @@
 !
-! Written by Lorenzo Paulatto (2013-2016) IMPMC @ UPMC / CNRS UMR7590
+! Written by Lorenzo Paulatto (2015-2016) IMPMC @ UPMC / CNRS UMR7590
 !  Dual licenced under the CeCILL licence v 2.1
 !  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
 !  and under the GPLv2 licence and following, see
@@ -10,7 +10,7 @@ MODULE thermalk_program
 #include "mpi_thermal.h"
   USE kinds,       ONLY : DP
   USE mpi_thermal, ONLY : ionode
-  USE posix_signal,  ONLY : check_graceful_termination
+  USE posix_signal,ONLY : check_graceful_termination
   USE timers
   !
   CONTAINS
@@ -276,7 +276,7 @@ MODULE thermalk_program
     !
     !
   END SUBROUTINE TK_SMA
-  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-! 
   SUBROUTINE TK_CG_prec(input, out_grid, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q
@@ -311,12 +311,14 @@ MODULE thermalk_program
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
                             pref(:,:)
-    REAL(DP) :: tk(3,3,input%nconf)
+    REAL(DP) :: tk(3,3,input%nconf), delta_tk(3,3,input%nconf), &
+                tk_old(3,3,input%nconf), delta_tk_max
     LOGICAL :: conv
     CHARACTER(len=6) :: what
     CHARACTER(len=256) :: filename
     !
     ! For code readability:
+    LOGICAL :: restart_ok
     INTEGER :: nconf, nat3, nq
     nconf = input%nconf
     nat3  = S%nat3
@@ -331,26 +333,40 @@ MODULE thermalk_program
     !CALL in_grid%scatter()
     
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
-    ! Compute A_out diagonal matrix
+    
+    OPEN_FILES : &
+    IF(ionode)THEN
+      DO it = 0,nconf
+        IF(it==0) THEN
+          filename=TRIM(input%outdir)//"/"//&
+                  TRIM(input%prefix)//".out"
+          what="# conf"
+        ELSE
+          filename=TRIM(input%outdir)//"/"//&
+                  TRIM(input%prefix)//"_T"//TRIM(write_conf(it,nconf,input%T))//&
+                    "_s"//TRIM(write_conf(it,nconf,input%sigma))//".out"
+          what="# iter"
+        ENDIF
+        !
+        IF(input%restart) THEN
+          OPEN(unit=10000+it, file=filename, position="append")
+        ELSE
+          OPEN(unit=10000+it, file=filename)
+          ioWRITE(10000+it, '(a)') "# Thermal conductivity from BTE"
+          ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
+          ioWRITE(10000+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
+                              "    K_x              K_y              K_z              ",&
+                              "    K_xy             K_xz             K_yz             ",&
+                              "    K_yx             K_zx             K_zy"
+        ENDIF
+        FLUSH(10000+it)
+      ENDDO
+    ENDIF OPEN_FILES
+    !
     ALLOCATE(A_out(nconf, nat3, nq))
-        timer_CALL t_tkprec%stop()
-        timer_CALL t_tkaout%start()
-    CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
-    !DO iq = 1,nq
-    !WRITE(40000, '(3f12.6,99e20.10)') out_grid%xq(:,iq), A_out(1,:,iq)/(qbasis%be(:,1,iq)*(qbasis%be(:,1,iq)+1)) *RY_TO_CMM1
-    !ENDDO
-    ! Compute 1/sqrt(A_out) from A_out
     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
-    CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
-        timer_CALL t_tkaout%stop()
-    ! Compute 1/A_out from A_out
-!     ALLOCATE(inv_A_out(nconf, nat3, nq))
-!     CALL compute_inv_A_out(A_out, inv_A_out, nconf, nat3, nq)
-    !
-    !
     ALLOCATE(f(3, nconf, nat3, nq))
     ALLOCATE(g(3, nconf, nat3, nq))
-!     ALLOCATE(j(3, nconf, nat3, nq))
     ALLOCATE(h(3, nconf, nat3, nq))
     ALLOCATE(t(3, nconf, nat3, nq))
     ALLOCATE(   g_dot_h(3, nconf) )
@@ -358,116 +374,152 @@ MODULE thermalk_program
     ALLOCATE(    g_mod2(3, nconf) )
     ALLOCATE(g_mod2_old(3, nconf) )
     ALLOCATE(      pref(3, nconf) )
+      timer_CALL t_tkprec%stop()
     !
-    IF(ionode)THEN
-    DO it = 0,nconf
-      IF(it==0) THEN
-        filename=TRIM(input%outdir)//"/"//&
-                 TRIM(input%prefix)//".out"
-        what="# conf"
-      ELSE
-        filename=TRIM(input%outdir)//"/"//&
-                 TRIM(input%prefix)//"_T"//TRIM(write_conf(it,nconf,input%T))//&
-                  "_s"//TRIM(write_conf(it,nconf,input%sigma))//".out"
-        what="# iter"
-      ENDIF
-      OPEN(unit=10000+it, file=filename)
-      ioWRITE(10000+it, '(a)') "# Thermal conductivity from BTE"
-      ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      ioWRITE(10000+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
-                          "    K_x              K_y              K_z              ",&
-                          "    K_xy             K_xz             K_yz             ",&
-                          "    K_yx             K_zx             K_zy"      
-      FLUSH(10000+it)
-    ENDDO
+    ! Try if restart file can be read (will return false if input%restart is false):
+      timer_CALL t_restart%start()
+    restart_ok = read_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+      timer_CALL t_restart%stop()
+    !
+    IF(.not. restart_ok) THEN
+      ! Compute A_out diagonal matrix
+        timer_CALL t_tkaout%start()
+      CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+          timer_CALL t_tkaout%stop()
     ENDIF
+    
+    ! Compute A_out^(-1/2) and A_out^-1 from A_out
+          timer_CALL t_tkprec%start()
+    CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
+          timer_CALL t_tkprec%stop()
+    ! Go to the reduced variables:
+    ! \tilde{b} = A_out^(-1/2) b 
+    qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
+    !      
     !
     ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
-                          "    K_x              K_y              K_z              "  
-        timer_CALL t_tkprec%start()
-    ! Go to the reduced variables:
-    ! \tilde{f0} = A_out^(-1/2) b
-    ! \tilde{b} = \tilde{f0}
-    qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
+                          "    K_x              K_y              K_z              "
     !
-    ! f0 = f_SMA = A_out^(-1/2) b
-    f = qbasis%b
-    !
-    g = 0._dp
-    !tk = calc_tk_simple(f, qbasis%b, input%T, S%omega, nconf, nat3, nq)
-    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-!     CALL print_tk(tk, input%sigma, input%T, nconf, "SMA tk")
-    CALL print_tk(tk, input%sigma, input%T, nconf, "SMA TK", 10000, -1)
-        timer_CALL t_tkprec%stop()
-    !
-    ! g0 = Af0 - b
+    IF(.not. restart_ok) THEN
+      ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
+      f = qbasis%b
+      ! "tilde" label dropped from here on
+      !
+      ! Compute SMA tk = lambda f0.b
+          timer_CALL t_tkprec%start()
+      g = 0._dp
+      tk_old = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk_old, input%sigma, input%T, nconf, "SMA TK", 10000, -1)
+          timer_CALL t_tkprec%stop()
+      !
+      ! Compute g0 = Af0 - b
         timer_CALL t_tkain%start()
-    CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+      CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
         timer_CALL t_tkain%stop()
+      !
         timer_CALL t_tkprec%start()
-    g =  g - qbasis%b
+      g =  g - qbasis%b
+      !
+      ! Trivially set h0 = -g0
+      h = -g
+        timer_CALL t_tkprec%stop()
+      !
+        timer_CALL t_restart%start()
+      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+        timer_CALL t_restart%stop()
+    ENDIF
+    !
+    ! Compute initial variational tk0 =-\lambda (f0.g0-f0.b)
+    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
+    delta_tk = tk-tk_old
+    CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK - initial")
+    !
+    ! Check initial gradient
+    delta_tk_max = MAXVAL(ABS(delta_tk))
+    conv = (delta_tk_max < input%thr_tk/RY_TO_WATTMM1KM1)
+    ioWRITE(stdout,"('  Maximum value of Delta TK',1e14.4)")&
+                    delta_tk_max*RY_TO_WATTMM1KM1
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
-    h = -g
-    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, &
-                 "TK from 1/2(fg-fb) - initial", 10000, 0)
-    conv = check_gradmod2_tk(g_mod2, "TK gradient mod", &
-                            input%T, S%omega, nconf, nat3, nq, input%thr_tk)
-        timer_CALL t_tkprec%stop()
-    !
-    DO iter = 1,input%niter_max
-      CALL check_graceful_termination()
-      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
-      ! t = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
-        timer_CALL t_tkain%start()
-      CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
-        timer_CALL t_tkain%stop()
+    INSTANT_CONVERGENCE : &
+    IF(conv) THEN
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+                    "Converged at first iteration"
+    ELSE INSTANT_CONVERGENCE
+      CGP_ITERATION : &
+      DO iter = 1,input%niter_max
+        CALL check_graceful_termination()
+        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+        ! t = Ah = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
+          timer_CALL t_tkain%start()
+        CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+          timer_CALL t_tkain%stop()
+        !
+          timer_CALL t_tkcg%start()
+        ! Do a CG step:
+        ! f_(i+1) = f_i - (g_i.h_i / h_i.t_i) h_i
+        ! g_(i+1) = g_i - (g_i.h_i / h_i.t_i) t_i
+        g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )   ! g.h
+        h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )    ! h.t
+        pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
+        f = f - qbasis_ax(pref, h, nconf, nat3, nq)
+        g = g - qbasis_ax(pref, t, nconf, nat3, nq)
+        ! 
+        !In case you want to compute explicitly the gradient (i.e. for testing):
+  !       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
+  !                            out_grid, in_grid, S, fc2, fc3)
+  !       j = j-qbasis%b
+  !       WRITE(90000,'(6e12.4)') g
+  !       WRITE(80000,'(6e12.4)') j
+        !
+        tk_old = tk
+        !
+        !tk = -\lambda (f.g-f.b)
+        tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+        CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
+        ! also compute the variation of tk and check for convergence
+        delta_tk = tk-tk_old
+        CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK")
+        delta_tk_max = MAXVAL(ABS(delta_tk))
+        conv = (delta_tk_max < input%thr_tk/RY_TO_WATTMM1KM1)
+        ioWRITE(stdout,"('  Maximum value of Delta TK',1e14.4)")&
+                        delta_tk_max*RY_TO_WATTMM1KM1
+        !
+        IF(conv) THEN
+          ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+                        "Convergence achieved"
+          CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+          EXIT CGP_ITERATION
+        ENDIF
+        !
+        ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
+        g_mod2_old = g_mod2
+        g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
+        !
+        ! Compute the new conjugate gradient: 
+        ! h_(i+1) = (g_(i+1).g_(i+1) / g_i.g_i) h_i - g_(i+1)
+        pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
+        h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
+          timer_CALL t_tkcg%stop()
+        !
+        ! Store to file for restart
+          timer_CALL t_restart%start()
+        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+          timer_CALL t_restart%stop()
+        !
+      ENDDO &
+      CGP_ITERATION
       !
-        timer_CALL t_tkcg%start()
-      ! f_(i+1) = f_i - (g_i.h_i) / (h_i.t_i) h_i
-      ! g_(i+1) = g_i - (g_i.h_i) / (h_i.t_i) t_i
-      g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )
-      h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )
-      ! qbasis_a_over_b checks for zero/zero, preventing NaN
-      pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf)
-      f = f - qbasis_ax(pref, h, nconf, nat3, nq)
-      g = g - qbasis_ax(pref, t, nconf, nat3, nq)
-      ! 
-      !In case you want to compute explicitly the gradient (i.e. for testing):
-!       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
-!       j = j-qbasis%b
-!       WRITE(90000,'(6e12.4)') g
-!       WRITE(80000,'(6e12.4)') j
-      !
-      !tk = -\lambda (f.g-f.b)
-      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
-!       tk = calc_tk_gf(0*g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-!       CALL print_tk(tk, input%sigma, input%T, nconf, "TK only B", 10000, iter)
-!       tk = calc_tk_gf(g, f, 0*qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-!       CALL print_tk(tk, input%sigma, input%T, nconf, "TK only G", 10000, iter)
-      !
-      ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
-      g_mod2_old = g_mod2
-      g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-      conv = check_gradmod2_tk(g_mod2, "TK gradient squared", &
-                               input%T, S%omega, nconf, nat3, nq, input%thr_tk)
-      IF(conv) THEN
-        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
-                      "Convergence achieved"
-        EXIT
+      IF(iter>input%niter_max) THEN
+        ioWRITE (stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+                      "Maximum number of iterations reached."
       ENDIF
-      !pref = g_mod2 / g_mod2_old
-      pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
-      h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
-        timer_CALL t_tkcg%stop()
-    ENDDO
-    IF(iter>input%niter_max) THEN
-      ioWRITE (stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
-                    "Maximum number of iterations reached."
-    ENDIF
+    !
+    ENDIF &
+    INSTANT_CONVERGENCE 
 
     IF(ionode)THEN
     DO it = 0,nconf
@@ -482,6 +534,7 @@ MODULE thermalk_program
       timer_CALL t_tkaout%print()
       timer_CALL t_tkain%print()
       timer_CALL t_tkcg%print()
+      timer_CALL t_restart%print()
       ioWRITE(*,'(a)') "*** * High level components:"
       timer_CALL t_tktld%print()
       timer_CALL t_lwisot%print()
@@ -493,27 +546,28 @@ MODULE thermalk_program
       timer_CALL t_bose%print() 
       timer_CALL t_sum%print() 
       timer_CALL t_fc3int%print() 
+      timer_CALL t_fc3dint%print() 
       timer_CALL t_fc3m2%print() 
       timer_CALL t_fc3rot%print() 
       timer_CALL t_mpicom%print() 
 #endif
     END SUBROUTINE TK_CG_prec
   END MODULE thermalk_program
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-!               !               !               !               !               !               !
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!             !               !               !               !               !               !
+!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM thermalk
 
   USE kinds,            ONLY : DP
   USE thermalk_program
 !   USE environment,      ONLY : environment_start, environment_end
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
-  USE input_fc,         ONLY : print_citations_linewidth, forceconst2_grid, ph_system_info
+  USE input_fc,         ONLY : forceconst2_grid, ph_system_info
   USE q_grids,          ONLY : q_grid !, setup_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
   USE nanoclock,        ONLY : init_nanoclock
+  USE more_constants,   ONLY : print_citations_linewidth
   !
   USE posix_signal,       ONLY : set_TERMINATE_GRACEFULLY
   IMPLICIT NONE
@@ -546,9 +600,8 @@ PROGRAM thermalk
     CALL errore("tk", "Unknown calculation type: "//TRIM(tkinput%calculation), 1)
   ENDIF
   !
+  IF(ionode) CALL print_citations_linewidth()
   CALL stop_mpi()
-!   CALL environment_end('TK')
-!   CALL mp_world_end()
  
 END PROGRAM thermalk
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
