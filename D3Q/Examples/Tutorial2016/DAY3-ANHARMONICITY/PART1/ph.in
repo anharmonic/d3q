@@ -1,0 +1,25 @@
+phonons at Gamma
+ &inputph
+! You only need to rerun the phonon calculation if you
+! do not have files with the charge density variation from DAY2
+   outdir='../tmp',
+   prefix='silicon',
+
+   epsil=.true.,
+
+   ldisp=.true.
+   nq1=4,
+   nq2=4,
+   nq3=4,
+   fildyn='dyn',
+   tr2_ph=1.0d-16,
+
+! The following variables instruct the code to store a copy
+! of the charge density variation to files. The quantity is
+! also rotate to obtain a full-grid from the reduced one.
+    drho_star%open = .true.
+    drho_star%ext  = 'drho',
+    drho_star%dir  = '../../FILDRHO'
+
+ /
+

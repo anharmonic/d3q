@@ -1,0 +1,37 @@
+!
+! This is an imput file for bands.x, as you can
+! see it is much simpler than a typical pw.x
+! input.
+! 
+! All you have to specify is:
+!
+ &bands
+    prefix  = 'silicon'    ! must be the same as in the
+                           ! pw.x calculation
+                           !
+    outdir = '../tmp'      ! must be the same as in pw.x
+                           !
+    filband = 'sibands.dat'! the file where the band data
+                           ! will be stored
+!
+! Now just run this calculation, it will take a few seconds.
+! When it finished you will noticed that the file "sibands.dat"
+! will be present in the current directory.
+!
+! You can use the program plotbands.x to generate a plot, it
+! is an interactive program, so just run it and answer its
+! questions.
+! 
+! The input file will be the newly produced "sibands.dat",
+! select a energy range large enough to contain all the bands.
+! As the fermi energy you can specify the middle of the gap:
+! about 6.5eV. 
+!
+! plotband.x produces a postscript file (that you can visualize
+! with kghostview) and an xmgr file (that you can plot with xmgrace). 
+!
+! If you prefer, you can plot the file sibands.dat.gnu directly
+! using gnuplot
+! 
+ /
+

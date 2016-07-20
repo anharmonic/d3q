@@ -1,0 +1,71 @@
+ &control
+    calculation = 'scf'
+    prefix='aluminium'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,
+      celldm(1) = 7.5377,
+    ntyp= 1,
+    nat=  1,
+    ecutwfc = 25.0,
+!
+! For metals reciprocal space integration is not as easy
+! as for insulators. The reason is that some band are only
+! partially filled, generating a Fermi energy and a Fermi
+! surface (FS).
+!
+! I theory reciprocal space integration should be performed
+! on all and only the kpoint inside the FS. On the other
+! hand this is extremily slow to converge: to obtain a 
+! reliable result you shoud use millions of kpoints.
+!
+! To work aroiund this problem you can use a smearing, i.e.
+! the occupation is not sharply one inside the fermi surface
+! and zero outside, but is smoothed using some kind of
+! smearing function.
+!
+! There are different kind of smearings, each of one serve
+! a different purpose; in this example you will use a general
+! purpose  "cold smearing" formulated by Marzari and Vanderbilt.
+! The smearing is also influenced by the degauss parameter
+! which specify how soft the smearing function will be.
+!
+! The correct way to converge the system is to first fix the
+! degauss then increase the number of kpoint (as you did for
+! Silicon) until the energy converges. 
+!
+! Try to converge the energy, incresing the number of kpoints
+! for three different value of the degauss: 0.50, 0.05 and 0.01 Ry. 
+!
+    occupations = 'smearing',
+      smearing = 'marzari-vanderbilt',
+        degauss = XXX
+!
+! HINTS:
+!
+! Notice the "smearing contribution" to the total energy, printed
+! at the end of the output. It should be in the order of 1 mRy or
+! smaller.
+!
+! Also note how the number of points differs considerably from
+! X*X*X because symmetries are used to reduce them. 
+!
+! You can expect the first value to converge very fast, but deal
+! bad results, the second to converge relatively fast to an
+! acceptable result, while the smaller degauss will likely require
+! a hunderd of points to converge!
+!
+!
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Al  26.98 Al.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Al 0.00 0.00 0.00
+K_POINTS automatic
+ X X X  0 0 0
+

@@ -1,0 +1,19 @@
+This Exercises were designed for the 
+Psi-K Quantum-ESPRESSO School on Ab-Initio Thermal Transport
+that was hosted in Paris in June 2016.
+
+DAY1 : basis of DFT calculation with pw.x, testing convergence and more
+
+DAY2 : computing and interpolating phonons with ph.x, q2r.x and matdyn.x
+
+DAY3 : computing anharmonic force constants using the d3q.x code and 
+       using them to compute the phonon linewidth.
+
+DAY4 : thermal conductivity calculation in the SIngle-mode Approximation 
+       abd solving exactly the Boltzmann equation.
+
+
+In every directory you will find README files which will explain the steps
+to follow to reproduce the results.
+
+

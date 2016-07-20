@@ -1,0 +1,78 @@
+!
+! The last and more difficult quantity to converge
+! (for now!) is the number of k-points. This exercise
+! spans on three different files: this one, step 2b
+! and step 2c.
+!
+ &control
+    calculation = 'scf'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+!
+! To start, you should observe that the face-centered
+! cell with 2 Silicon atoms is equivalent to a simple
+! cubic cell with 8 atoms: to verify this fact you can
+! use xcrysden to visualize the crystal structure.
+!
+! From xcrysden navigate the menu "File" -> "Open PWscf"
+!  -> "PWscf input file"; from there open step3b.in
+! and step3a.in.
+! Cycle between the conventional cell mode and the
+! primitive cell mode in the Display Menu, when you think
+! you have understood the difference come back here to 
+! continue the exercise.
+!
+! You should have noticed that the simple cubic cell has
+! a volume 4 times larger than the face-centered one:
+! as you know it means that the brillouin zone is 4 times
+! smaller!
+!
+    ibrav=1,           ! Here we are using Face-Center Cubic (FCC) 
+      celldm(1)=10.20, ! celldm(1) is the same as before, but the 
+                       ! volume of the cell if 4 times larger, because
+                       ! of the definition of the lattice basis
+    ntyp=1,
+    nat=8,             !  8 atoms per cell
+    ecutwfc = 24.
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.50 0.50 0.00
+ Si 0.00 0.50 0.50
+ Si 0.50 0.00 0.50
+ Si 0.25 0.25 0.25
+ Si 0.75 0.75 0.25
+ Si 0.25 0.75 0.75
+ Si 0.75 0.25 0.75
+!
+! The selection of kpoints defines a sampling of the
+! Brillouin zone (BZ), each point correspond to a category
+! of Bloch wavefunctions with a certain periodicity.
+! 
+! To get started we will do a calculation with a single
+! kpoint: the Gamma point (0,0,0).
+! There are several ways to specify the kpoints, for
+! now we will use the manual method: 
+!
+K_POINTS tpiba      ! <-- unit of measure 2 pi / alat
+1                   ! nuber of kpoints
+  0.0 0.0 0.0  1.00 ! its coordinates and its weight
+
+ We will see the meaning of the weight in the next
+ step. For now just run the calculation, take note of
+ the total energy and compute the energy per atom:
+   e_atom = e_tot / nat
+
+ Then move to 2b-kpoints.in
+
+
+
+

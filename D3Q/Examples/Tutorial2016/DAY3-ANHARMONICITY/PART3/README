@@ -1,0 +1,35 @@
+In this part we will use the 2nd and 3rd order force constants to
+compute the linewidth of Silicon at Gamma and study its convergence
+with the grid used to integrate the phonon-phonon interaction.
+
+We will use the code lw.x from thermal2. The file input.LW is 
+set up to compute the linewidth at the Gamma point, at a 
+temperature of 300K using 8 values of smearing between 0.1 and 10.0
+
+Run the input file for half a dozen grid dimensions between 10x10x10
+and 50x50x50. 
+Do not forget to change the prefix to avoid overwriting files!
+
+When you are done, extract the linewidth of the acoustical band and for 
+every sigma and plot it as a function of the grid size.
+
+
+Hint: in a system with 2 atoms, the output file of the linewidth contains
+the following columns:
+1) the line number
+2) the cumulative length of the path (only useful with more than one input q-point!)
+3 -> 5) coordinates of the q-point
+6 -> 11) the phonon frequencies
+12 -> 17) the corresponding linewidths
+For our case, columns 15-16-17 contain the linewidths of acoustic phonon modes.
+
+Try:
+    awk '{print $15}' filename
+
+
+
+Finally, choose a well converged configuration and compare the results
+produced with the different sets of matrices from point 5 of part 2.
+How much does the calculation time change? Does it substantially affect
+the results?
+

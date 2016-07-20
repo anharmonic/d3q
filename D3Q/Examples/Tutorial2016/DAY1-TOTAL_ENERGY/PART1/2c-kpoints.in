@@ -1,0 +1,61 @@
+! Finally we want to do the real convergence test
+! scroll down to the K_POINTS section for the
+! instructions
+!
+ &control
+    calculation = 'scf'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,          
+       celldm(1) =10.20,
+    ntyp= 1,            
+    nat=  2,
+    ecutwfc = 24. ! This is good enough
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+!
+! Specifying the kpoints by hand, as we have done
+! up to now, is very powerful, but not really
+! convenient, furthermore it is a common cause of
+! mistakes.
+!
+! It is much more convenient to only specify the
+! number of kpoints and let the software generate
+! them. You can see the syntax below:
+!
+K_POINTS automatic
+ Nx Ny Nz   0 0 0
+
+ The first three numbers (which I have replaced with
+ Nx, Ny and Nz) specify the number of points in the 
+ three reciprocal space directions. The total number
+ of kpoints would be Nx*Ny*Nz, but it is automatically
+ reduced to minimum possible number by exploiting all
+ the symmetries.
+
+ The following three numbers (0 0 0) specify a possible
+ displacement of the kpoints by half a step in each
+ direction: we won't go in detail on this topic.
+
+ As the cell is cubic the values of Nx, Ny and Nz should
+ be equal, we will use N=Nx=Ny=Nz.
+ 
+ Check the convergence as a function of the number of
+ kpoints by gradually increasing values of N: 1,2,3,4,5 
+ You can also take note of the elapsed time, to see
+ how fast the calculation time increases with the number
+ of points. Last but not least you can see how the grid 
+ of N^3 points is reduced by symmetry, how efficient is 
+ this procedure for different grids?
+
+

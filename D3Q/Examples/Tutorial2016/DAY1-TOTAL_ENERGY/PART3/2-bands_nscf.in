@@ -1,0 +1,65 @@
+ &control
+!
+! The bands calculation is not self-consistent,
+! it means that it uses the potential and charge
+! density from a previous calculation and use it
+! to compute the desired quantity without doing
+! any iteration.
+!
+! You have to specify 'bands' as the calculation
+! type:
+!
+    calculation = 'bands'
+!
+! The prefix and the outdir must be the same of
+! the scf calculation you have done in step 4a, 
+! otherwise pw.x will not be able to find the data!
+!
+    prefix='silicon' 
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,
+       celldm(1) =10.20,
+    ntyp= 1,
+    nat=  2,
+! we add some empty bands, which are not needed for the SCF
+! calculation, but we may want to plot to see the band-gap
+    nbnd=12
+    ecutwfc = 24.
+    occupations='fixed'
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+!
+! Finally you have specify a path in the reciprocal
+! space along which the bands will be plotted. 
+! The most convenient way to do it is to manually 
+! specify the points in units of 2 pi/alat, this
+! is specified by the keyword "tpiba_b", the 4th number
+! specifies the amount of intermidiate points in each
+! path segment
+!
+K_POINTS tpiba_b
+ 5
+   0.50 0.50 0.50   50 ! "L" point
+   0.00 0.00 0.00   40 ! "Gamma" point
+   0.00 0.00 1.00   20 ! "X" point
+   0.00 0.50 1.00   40 ! "W" point
+   0.00 0.00 0.00    0 ! "Gamma" point
+
+ Now just run the calculation: as everything is
+ already set up. Notice that pw.x will not produce
+ any data file: it just prepares the necessary
+ quantities that another program, bands.x, will
+ then extract.
+ 
+ The exercises continue with the file 4b-bands.in
+

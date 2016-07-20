@@ -1,0 +1,7 @@
+#!/bin/bash
+list=$(ls lw*|awk -F"_s|.out" '{print $2}'| sort -nu)
+echo $list
+for s in $list;do
+  grep "^ *1 " lw_*_s$s.out|sed -e s/lw_// -e "s/_T/  /" -e "s/_s/  /" -e "s/.out://"|sort -k 1n \
+	> dat_$s.out
+done

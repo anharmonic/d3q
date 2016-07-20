@@ -1,0 +1,52 @@
+#!/bin/bash
+
+export TITLE=$(bsename `pwd`) # Graphene
+export ESPRESSO=$(cd ../../../; pwd)
+export EXAMPLE=$(cd ../; pwd)
+
+export ESPRESSO_BIN=$ESPRESSO/bin
+export ESPRESSO_PSEUDO=$EXAMPLE/$TITLE/UPF
+export ESPRESSO_TMPDIR=$EXAMPLE/$TITLE/TMP
+export ESPRESSO_D3DIR=$EXAMPLE/$TITLE/TMP3
+export ESPRESSO_FILDRHO_DIR=$EXAMPLE/$TITLE/FILDRHO
+
+mkdir -p $ESPRESSO_TMPDIR
+mkdir -p $ESPRESSO_D3DIR
+mkdir -p $ESPRESSO_FILDRHO_DIR
+mkdir -p $EXAMPLE/$TITLE/FILDYN/
+mkdir -p $EXAMPLE/$TITLE/FILD3DYN/
+
+echo ================================================================
+
+bin="$ESPRESSO_BIN"
+pref=" "  # e.g. "mpirun -np 4 "
+post=" "  # e.g. "-npool 4 " 
+
+# STEP1: pw.x calculation, then ph.x calculation
+echo "pw calculation"
+$pref $bin/pw.x $post -in pw.in > pw.out
+echo "ph calculation"
+$pref $bin/ph.x $post -in ph.in > ph.out
+
+echo ================================================================
+# STEP2: After the ph.x has finished, any number of d3q.x calculations can
+# 	 be run at the same time, with the same prefix and outdir, as long
+#	 as they are working on different triplets of q-point
+
+# repeat pw.x (ONLY NECESSARY IF TMP WAS CLEANED SINCE STEP1, or if you want
+# to run d3q.x with a different numbr of CPUS)
+#$pref $bin/pw.x $post -in pw.in > pw-$1.out
+
+# start d3 calculation, here we show how to use an offset to compute only a part
+# of the double-grid (step=8 is hardcoded in d3.in)
+offset=$1
+[ -z "$offset" ] && offset=0
+
+echo "starting d3 calculation with OFFSET: $offset"
+sed -e "s/__OFFSET__/$offset/" d3.in > d3-$offset.in
+$pref $bin/d3q.x $post -in d3-$offset.in > d3-$offset.out 
+echo ================================================================
+
+# cleanup:
+#rm -rf drhox_e* *out TMP* FIL* d3-*.in
+

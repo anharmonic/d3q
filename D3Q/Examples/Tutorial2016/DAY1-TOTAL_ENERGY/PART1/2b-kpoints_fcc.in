@@ -1,0 +1,64 @@
+! Now we are back to the FCC structure with 2 atoms
+! per unit cell. It means that the BZ is now 4 times
+! larger: in order to get the same results as in the
+! previous case we need 4 times as many kpoints...
+!
+ &control
+    calculation = 'scf'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,          
+       celldm(1) =10.20,
+    ntyp= 1,            
+    nat=  2,
+    ecutwfc = 24. ! This is good enough
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+!
+! It is not easy to visualize the correspondence
+! between the simple cubic BZ and the face-
+! centered BZ.
+!
+! What happens is that the single Gamma point in the
+! SC case unfolds to 4 different points in the FCC case
+! The first of these points is the SC Gamma point,
+! the other three are X point: points that are in the
+! center of a face of the BZ.
+!
+! The following cards specify exactly this situation:
+! 
+K_POINTS tpiba  
+4
+ 0.0 0.0 0.0  1.00
+ 1.0 0.0 0.0  1.00
+ 0.0 1.0 0.0  1.00
+ 0.0 0.0 1.0  1.00
+
+ Try to run this calculation, compute the energy per atom
+ and verify how it correspond exactly (at least at the
+ required precision) to the previous case.
+
+ Now try to make the calculation faster: for symmetry reasons
+ the 3 X-points are equivalent. Instead of specifying them
+ separately we can specify only one of them but using a weight
+ three times larger!
+
+ Modify the K_POINTS section accordingly and rerun the
+ calculation; verify how it deals exactly the same results as
+ before, to all significant digits.
+
+
+
+
+
+

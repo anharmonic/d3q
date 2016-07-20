@@ -1,0 +1,14 @@
+In this part we will run the calculation of the thermal conductivity with the 
+tk.x code from thermal2.
+
+This code reads the matrices of harmonic force constants (mat2R) and the 3rd 
+order anharmonic force constants (mat3R), and uses them to compute the thermal 
+conductivity.
+
+In this part we will use it to compute the thermal conductivity of silicon 
+within the single-mode relaxation time approximation.
+
+Modify now the input file for computing the thermal conductivity at different 
+Lcas: from 0.1 microm to 1 mm ( select a reasonable length step). Plot then k 
+vs L. What do you observe? What does this trend represent?
+

@@ -1,0 +1,47 @@
+!
+! Now we want to compute the band structure of
+! Silicon; in order to do so we redo a calculation
+! at the optimal volume, with a good cutoff and 
+! well converged kpointa.
+!
+ &control
+    calculation = 'scf'
+    prefix='silicon' 
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,
+       celldm(1) =10.20,
+    ntyp= 1,
+    nat=  2,
+!
+! Silicon has 4 valence (occupied) bands, for this
+! plot we also want a few conduction (empty) bands.
+! In order to generate more bands you can use the
+! "nbdn" keyword:
+!
+    nbnd=8
+!
+! Notice than using more than the minimum number
+! of bands the program will also print the highest
+! occupied and the lowest unoccupied levels:
+! the difference between them is the band gap. 
+!
+    ecutwfc = 24.
+    occupations='fixed'
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS automatic
+ 4 4 4  0 0 0
+
+ Run this calculation, than continue the exercise with
+ the file 4b-bands_nscf.in
+

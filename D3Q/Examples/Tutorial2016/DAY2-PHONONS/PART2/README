@@ -1,0 +1,28 @@
+In this part we will use the phonon code to compute all the phonons in a 4x4x4
+regualr grid of q-points. The grid is automatically reduced, using symmetry,
+to the minimum amount of inequivalent points.
+
+We will also use the "drho_star" options of phonon to save the variation of the
+charge density to files, that will be used tomorrow to compute the 3rd order
+anharmonic terms. To rune the phonon calculation use:
+
+ ph.x < ph.in
+
+We will then use the code q2r.x to compute the Fourier transform of the dynamical matrices:
+we will obtain the real-space force constants in a 4x4x4 supercell. The q2r code is 
+run as:
+  
+  q2r.x < q2r.in
+
+We will then use the code matdyn.x which uses Fourier interpolation starting from the force
+constants to obtain the dynamical matrices (and phonon frequencies) along a path
+in the brillouin zone. Verify the importance of enforcing the acoustic sum rule, try
+different methods: "none", "simple", "crystal".
+
+  matdyn.x < matdyn.in
+
+We will plot the phonon frequencies together with the experimental ones
+(stored in file "exp.dat"). You can use the gnuplot command in the file
+plot.gnu, or any other plotting tool you want.
+
+

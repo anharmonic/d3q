@@ -1,0 +1,33 @@
+phonons at Gamma
+ &inputph
+   outdir='../tmp',
+   prefix='silicon',
+
+   epsil=.true.,
+
+! This time we ask ph.x for a phonon dispersion
+! calculation over a grid of 4x4x4 q-points
+   ldisp=.true.
+   nq1=4,
+   nq2=4,
+   nq3=4,
+
+! The grid will be reduced with symmetry, each 
+! dynamical matrix will be stored in a different file
+! with the point number appended to the name
+! Each file will contain the dyn.mat at the original
+! q-point as well as the symmetry-equivalent points
+! i.e. the "star" of q.
+   fildyn='dyn',
+
+   tr2_ph=1.0d-16,
+
+! The following variables instruct the code to store a copy
+! of the charge density variation to files. The quantity is
+! also rotate to obtain a full-grid from the reduced one.
+    drho_star%open = .true.
+    drho_star%ext  = 'drho',
+    drho_star%dir  = '../../FILDRHO'
+
+ /
+

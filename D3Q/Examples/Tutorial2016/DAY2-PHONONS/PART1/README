@@ -1,0 +1,13 @@
+Here we ntroduce the phonon code.
+
+First of all we will recompute the ground state electronic
+structure with pw.x using the well-converged input from yesterday
+pw.x < pw.in
+
+Then we will compute the vibrational frequencies at Gamma:
+ ph.x < ph-Gamma.in
+this part also includes a calculation of the dielectric constant.
+
+And finally the vibrational frequencies at the X point
+ph.x < ph-X.in
+

@@ -1,0 +1,18 @@
+D3
+&inputph
+   mode='full'
+   outdir="../tmp"
+   prefix = 'silicon',
+   fildrho = 'auto:drho',
+   fildrho_dir = '../../FILDRHO'
+   fild3dyn = 'FILD3DYN/anh',
+   ethr_ph = 1.d-9
+
+   offset=0
+   step= 1
+   restart=.true.
+
+ /
+ 2 2 2
+
+

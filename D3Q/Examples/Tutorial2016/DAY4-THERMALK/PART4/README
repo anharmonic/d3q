@@ -1,0 +1,14 @@
+Using the preconditioned conjugate gradient method, we will investigate the 
+effect of scattering.
+
+Modify the sample input file to compute the thermal conductivity at four 
+temperatures: 10, 100, 300 and 1000K
+
+it is sufficient in this case for speeding up the calculation to evaluate k 
+only in 1 of the direction (check it) 
+
+How many iterations does it take for the conjugate gradient algorithm to reach 
+the solution?
+
+Plot the converged k vs T and compare it with the SMA approximation
+

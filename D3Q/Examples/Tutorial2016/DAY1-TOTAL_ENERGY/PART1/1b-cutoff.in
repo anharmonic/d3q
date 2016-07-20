@@ -1,0 +1,51 @@
+ &control
+    calculation = 'scf'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,          
+       celldm(1) =10.20,
+    ntyp= 1,            
+    nat=  2,
+!           
+! Using the suggested value for the wfc cutoff is a
+! starting point, but if you want to do some serious
+! calculation you must do a proper convergence test.
+!
+! Try to use half a dozen values for ecutwfc between 16 Ry
+! and 40 Ry, each time you will have to run the calculation
+! and take note of the total energy.
+! Using this data you can plot a graph of the energy as a
+! function of the cutoff (you can use gnuplot or xmgrace).
+!
+    ecutwfc = XXX,
+! 
+! When you have plotted the data you can estrapolate the
+! optimal cutoff: 1 mRy is usually considered a sufficient
+! convergence threshold for most calculations.
+!
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS automatic
+ 4 4 4  1 1 1
+
+ Learning some bash (the linux command prompt) scripting
+ will save you a lot of time in the future. A good starting
+ point is the Advanced Bash Script Guid from www.tldp.org 
+
+ P.S. a UNIX wizard would do it this way:
+
+ for i in $(seq 16 4 40);do
+      echo -n "$i  ";
+      sed -e "s/XXX/$i/" 1b-cutoff.in |pw.x|awk '/^!/ {print $5}';
+ done | tee ecut-conv.txt
+

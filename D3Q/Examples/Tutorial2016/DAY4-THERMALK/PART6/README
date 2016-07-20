@@ -1,0 +1,8 @@
+
+Modify the sample input file to compute the thermal conductivity at four 
+temperatures: 10, 100, 300 and 1000K with the isotopic scattering contribution.
+
+Compare it with the SMA results in part3. Are you able to tell for which 
+Temperature regions, the different phonon interactions (border, anharmonic, 
+isotopes)
+are more relevants than the others?

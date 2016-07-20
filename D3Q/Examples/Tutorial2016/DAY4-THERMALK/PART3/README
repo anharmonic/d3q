@@ -1,0 +1,6 @@
+Using the sma we will investigate the effect of scattering with isotopes
+
+Modify the sample input file to compute the thermal conductivity at four  
+temperatures: 10, 100, 300 and 1000K
+
+At which temperatures does the isosopic scattering alters k the most?

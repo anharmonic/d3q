@@ -1,0 +1,10 @@
+phonons of Si at $qpoint
+ &inputph
+  prefix='silicon',
+  outdir='../tmp',
+
+  fildyn='dyn.ph.__QPOINT__'
+  tr2_ph=1.0d-14,
+ /
+__QPOINT__
+

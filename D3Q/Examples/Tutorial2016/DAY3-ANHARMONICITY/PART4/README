@@ -1,0 +1,9 @@
+Compute the phonon linewidth along a path in the
+Brillouin Zone, see the input.LW file for details
+
+You can then plot the results with the plot.gp script 
+for gnuplot.
+
+Try to see how the reslt changes with different smearing
+and with longer/shorter range sets of matrices.
+

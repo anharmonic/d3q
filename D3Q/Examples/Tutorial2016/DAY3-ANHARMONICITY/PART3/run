@@ -1,0 +1,5 @@
+#!/bin/bash
+for NK in $(seq 2 2 36);do
+   sed -e s/NK/$NK/g input.LW |d3_lw.x -in /dev/stdin;
+done
+

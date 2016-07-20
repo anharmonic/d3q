@@ -1,0 +1,53 @@
+ &control
+    calculation = 'scf'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+! Until now we have used the experimental lattice
+! legth; even if it may see ma good idea it is
+! better to use the computed legth. The experimental
+! value correspond to a system which feel a strain,
+! this effect can alter the result of subsequent
+! calculations.
+!
+! The FCC structure is described by a single parameter
+! specified by the keyword celldm(1), it is specified.
+! in bohr atomic units.
+! Take a dozen different values between 10.00 and 10.40,
+! run a calculation for each and plot a curve of the
+! total energy as a function of celldm(1):
+    ibrav=  2,          
+       celldm(1) =XXX,
+    ntyp= 1,            
+    nat=  2,
+!
+! Now I want you to see how the total energy is not the
+! better quantity to check for the system convergence:
+! try to repeat the step above using a smaller ecutwfc,
+! such as 16 Ry or even less, use this data to plot
+! another curve and compare it with the first one:
+!
+    ecutwfc = 24., ! This is a well converged value
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS automatic
+ 4 4 4  0 0 0
+
+ You may have noticed that even if at a cutoff of 16 Ry the
+ total energy is well above the converged value, the E[celldm]
+ curve has its minimum almost exactly at the same point.
+
+ In general crystal force and stress converge slower than
+ total energy. On the other hand, energy differences can
+ converge faster than absolute energy. Phonos (day 2) can
+ be especially tricky to converge!
+

@@ -1,0 +1,6 @@
+ &input
+  fildyn='dyn',
+  zasr='simple',
+  flfrc='Silicon.444.fc'
+ /
+

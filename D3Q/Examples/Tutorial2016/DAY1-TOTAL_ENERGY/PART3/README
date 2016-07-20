@@ -1,0 +1,10 @@
+Here we will see how to compute and plot the electronic
+bands of Silicon. First we will repeat the SCF calculation with
+well converged parameters; second we will non-self consistently
+compute the electronic bands for a list of k-points tracing
+a path in the Brillouin zone.
+
+Finally, we will use the program bands.x to extract the band
+and analize their symmetry or continuity. And plot the result
+with the plotbands.x code, or using gnuplot.
+

@@ -1,0 +1,26 @@
+phonons at Gamma
+ &inputph
+!
+! Note that this file starts with a title line,
+! which is required!
+! Run this input file with the ph.x code
+   outdir='../tmp',
+   prefix='silicon',
+
+! epsil=.true. instructs the code to compute the
+! dielectric constant
+   epsil=.true.,
+! 
+! The file where the dynamical matrix will be saved:
+   fildyn='dyn.G',
+!
+! The convergence threshold, this is a completely
+! different quantity from the conv_thr of pw.x
+! much smaller values are normally used
+   tr2_ph=1.0d-16,
+! When computing a single phonon, you just
+! put its coordinates after the namelist
+! in units of 2pi/alat
+ /
+0.0 0.0 0.0
+

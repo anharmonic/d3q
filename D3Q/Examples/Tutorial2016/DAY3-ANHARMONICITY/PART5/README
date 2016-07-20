@@ -1,0 +1,18 @@
+Compute the phonon spectra function, with the full equation
+and simulate it as a superposition of Lorentzian functions,
+centered on the phonon modes.
+
+Silicon is not sufficiently anharmonic to see any difference
+between the two calculations, hence we will use pre-computed
+matrices from Palladium-hydride.
+
+See how the phonon spectral function becomes more complicated
+at higher temperature. Check which modes maintain a distinct
+identity even in the presence of strong anharmonicity to
+which atomic species do they correspond?
+
+Note that in order to have the spectral function normalized
+to the number of phonons you will have to multiply it
+by the frequency (different papers use different definitions).
+
+

@@ -1,0 +1,16 @@
+This lecture has the following plan:
+
+PART1 - The phonon code is introduced. A calculation of the vibrational 
+frequencies of Si at the gamma and X points is shown. The calculation of the 
+electronic dielectric constant is also shown. Discussion of the input variables
+and of the output variables. Description of the dynamical matrix file.
+
+PART2 - The phonon code is used to calculate the dynamical matrix at 
+a regular mesh of wave-vectors $q$ and the two codes q2r and matdyn 
+for the calculation of the interatomic force constants and of the complete
+phonon dispersions are illustrated.
+
+PART3 - The frequencies obtained by interpolation are compared with the
+frequencies obtained by the direct calculation of the dynamical matrix for
+several wavevectors $q$.
+

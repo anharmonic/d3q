@@ -1,0 +1,50 @@
+!
+! Now we will see how to compute the density of
+! states (DOS) for the aluminium bulk crystal. 
+!
+ &control
+    calculation = 'nscf'
+    prefix='aluminium'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+    verbosity="high"
+ /
+ &system
+    ibrav=  2,
+      celldm(1) = 7.5377,
+    ntyp= 1,
+    nat=  1,
+    ecutwfc = 25.0,
+    nbnd=12
+ 
+!
+! The Marzari-Vanderbilt smearing we have used 
+! before insure a faster convergence, but may
+! produce a small negative DOS at some energies.
+!
+! Instead you can use the simpler "gaussian"
+! smearing, wich take more points to converge
+! but doesn't have such artifacts.
+!
+    occupations = 'smearing'
+      smearing='gaussian'
+        degauss=0.05
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Al  26.98 Al.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Al 0.00 0.00 0.00
+!
+! In order to have a better plot we take a 
+! smaller smearing and increse the number of 
+! kpoints slightly: 
+K_POINTS automatic
+ 14 14 14  0 0 0
+
+ After running the calculation you open the file
+ 2b-dos.in for instruction on how to plot the DOS 
+
+

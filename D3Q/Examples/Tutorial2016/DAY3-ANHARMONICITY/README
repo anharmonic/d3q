@@ -1,0 +1,26 @@
+Today we will see how to run a calculation of the
+third order dynamical matrices, using the 2n+1 
+linear response and how to use these matrices
+to compute phonon-phonon interactions.
+
+PART1: how to run the d3q.x calculation, rerunning
+       pw.x and ph.x if necessary
+
+PART2: use a special version of q2r.x to compute
+       optimized force constants and write them
+       to file.
+
+       Use three tools from the D3Q/thermal2 distribution
+       to compute the 3-body force constants, apply the 
+       generalized sum rule and optimize them.
+
+PART3: compute and test the convergence of ph-ph interaction
+       with the size of the q-space grid used to integrate
+       it
+
+PART4: compute the phonon linewidth (inverse lifetime)
+       along a path in the brillouin zone
+
+PART5: compute the phonon spectra function \sigma(w) for 
+       a strongly anharmonic system (PdH)
+

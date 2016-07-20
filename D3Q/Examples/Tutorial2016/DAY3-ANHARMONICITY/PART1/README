@@ -1,0 +1,11 @@
+In this part we will run the 3rd order DFPT calculation, with the d3q.x code.
+
+This code will read drho (the variation of the charge density
+w.r.t a phonon perturbation) and use it to compute
+non-self consistently the |d psi> and the generalized third order
+dynamical "tensor" for a 2x2x2 grid of triplets. 
+
+The code can also be used to compute a single triplet, or just a
+sub-grid centered around a special point (i.e. Gamma) see the
+documentation for more information.
+

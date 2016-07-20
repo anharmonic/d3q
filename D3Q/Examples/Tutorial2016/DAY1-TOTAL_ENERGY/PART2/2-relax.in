@@ -1,0 +1,37 @@
+ &control
+! Relaxing the structure manually can be cumbersome
+! especially when a system as more than one degree
+! of freedom. The code can do it automatically using
+! a minimization algorithm, when required:
+    calculation = 'vc-relax'
+    prefix='silicon'
+    pseudo_dir = '../'
+    outdir='../tmp/'
+ /
+ &system
+    ibrav=  2,          
+       celldm(1) = 10.20,
+    ntyp= 1,            
+    nat=  2,
+    ecutwfc = 24., 
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ &ions
+ /
+ &cell
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF
+! We can break symmetry to explore the possibility
+! of lower-symmetry structures:
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.23 0.26 0.25
+K_POINTS automatic
+ 4 4 4  0 0 0
+
+! Just run the calculation and see where it converges
+! is it the same structure as before?
+

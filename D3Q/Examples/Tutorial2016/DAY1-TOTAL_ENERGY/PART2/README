@@ -1,0 +1,5 @@
+The file 1-volume.in contains an example that will 
+show you how to optimize the volume of the unit cell
+by hand; 2-relax.in will show how to let pw.x do it,
+using its internal optimisation routines.
+

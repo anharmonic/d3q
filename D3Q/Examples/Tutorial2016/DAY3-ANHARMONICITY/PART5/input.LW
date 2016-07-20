@@ -1,0 +1,22 @@
+&lwinput
+! Compute the phonon specral function
+  !calculation = 'spf full'
+  calculation = 'spf simple'
+
+  file_mat2 = 'pdh_mat2R'
+  file_mat3 = 'pdh_mat3R.asr.sparse'
+  outdir    = './'  ! where to save the data
+  asr2 = 'spread'   ! second order sum rule, analogous to "crystal"
+  nk = 25,25,25     ! size of the integration grid
+  nconf = 1         ! number of configurations sigma/temperature to read
+  nq = 1            ! number of q-points to read
+
+  ne=1000
+  de=1.
+  e0=0
+/
+ CONFIGS
+ 5.0 300
+ QPOINTS
+0.3   0.3   0.3
+

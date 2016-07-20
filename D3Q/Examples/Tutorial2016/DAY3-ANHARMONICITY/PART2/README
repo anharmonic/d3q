@@ -1,0 +1,55 @@
+In this part we will see how to compute the three-body force constants
+starting from the double-grid of q-point triplets. This procedure is a bit
+more complicated that the q2r-matdyn of phonon and much more time consuming.
+
+These tasks are performed by tiny codes that mostly do not require any input,
+but just a few command line arguments.
+
+1. we use a special internal version of q2r.x which generates the phonon
+   2-body force constants already recentered in the Wigner-Seitz cell.
+
+  Copy to this directory the dyn* files from yesterday phonon dispersion
+  calculation:
+    cp ../../DAY2-PHONONS/PART2/dyn* .
+  then process them with thermal2/q2r.x
+    ~/espresso/D3Q/thermal2/q2r.x < q2r.in
+
+   This will produce a file called "mat2R"
+
+
+2. We use the code qq2rr.x from thermal2 to compute the 3-body force constants,
+   and recenter them in the first Wigner-Seitz cell. This code needs as
+   input the list of the anharmonic dynamical matrix files:
+
+    ls ../PART2/FILD3DYN/anh* | ~/espresso/D3Q/thermal2/qq2rr.x 2 2 2 mat3R
+   
+   A file called "mat3R", containing the force constants, will be created.
+
+3. We use asr3.x to apply the sum rules in an iterative way
+  
+   Syntax:
+    ~/espresso/D3Q/thermal2/asr3.x mat3R mat3R.asr
+
+   This operation can be quite time-consuming, for this reason we
+   apply it one and for all directly on the force constants file.
+
+
+4. we use sparse.x to extract the sparse matrices, and test if this
+   makes the subsequent Fourier interpolation faster
+   
+   Syntax:
+    ~/espresso/D3Q/thermal2/sparse.x mat3R.asr mat3R.asr.sparse 0. 1000
+
+5. You can use the sparse.x code to shorten the range of the 3rd order
+   force constants, ignoring the smaller elements, i.e.:
+
+   ~/espresso/D3Q/thermal2/sparse.x mat3R.asr mat3R.asr.sparse_e4 1.e-4 1000
+
+   This will ignore all the force constants smalle that 1.e-4 Ry/bohr^3.
+   Try to generate longer and shorter range matrices and compare the
+   results in the next part.
+
+
+  
+
+

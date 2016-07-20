@@ -1,0 +1,32 @@
+! 
+! This is an example input file that you can
+! feed to dos.x in order to plot the density
+! of states for the aluminium calculation.
+!
+ &dos
+    prefix='aluminium' ! the same as before
+    outdir='../tmp/'   ! the same as before
+!
+! The output file, specified by the fildos
+! parameter, will be a 3-columns text file:
+!  * the first column is the energy 
+!  * the second the density of states
+!  * the third contains the integral of DOS
+!
+    fildos='aluminium.dos',
+!
+! The following three parameters specify the
+! minimum, the maximum and the step of the 
+! energy range in which the DOS is computed
+! (they are all in eV):
+!
+    Emin= -5.0,
+    Emax= 45.0,
+    DeltaE=0.05
+ /
+!
+! To plot the density of states you can use
+! the command line utilities gnuplot, with
+! command like this:
+!  plot 'aluminium.dos' with lines
+!

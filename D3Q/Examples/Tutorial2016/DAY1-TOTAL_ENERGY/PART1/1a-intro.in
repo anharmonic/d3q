@@ -1,0 +1,64 @@
+! This is a typical input file for pw.x you can run it typing
+! a command like ``pw.x < step1.in''.
+!
+! Lines starting with `!' are ignored, you can use them to
+! comment the file.
+!
+! The file is divided in namelists, each namelist start with
+! &namelist_name
+! and ends with a single `/'.
+!
+ &control
+! The control namelist contains some platform-specific
+! informations of no physical importance:
+    calculation = 'scf' ! for now we are only doing simple
+                        ! self-consistent calculations
+                        !
+    prefix='silicon'    ! the name of the job
+                        !
+    pseudo_dir = '../'  ! where the pseudopotentials files
+                        ! are located
+                        !
+    outdir='../tmp/'    ! the place where temporary files
+                        ! will be stored
+ /
+ &system
+! The system namelist contains a description of the 
+! physical system:
+    ibrav=  2,           !kind of bravais lattice (FCC)
+       celldm(1) =10.20, !lattice parameter (in a.u.), this is
+                         !often called "alat" or simply "a"
+    ntyp= 1,             !number of elements
+    nat=  2,             !number of atoms
+!  
+! The aim of this exercise is to study the convergence of
+! the total energy functional with respect to ecutwfc:
+    ecutwfc = XXX,
+! it is namely the wavefunctions cutoff, expressed in Rydberg
+! atomic units. It means that wavefunctions will be expandend
+! in a basis of plane waves up to the maximum energy ecutwfc.
+!
+! Choosing a good value for the cutoff is the first step to any
+! plane-wave based calculation. A good starting value can usually
+! be found at the beginning of the pseudopotential file.
+!
+! Why don't you take a look at it in ``Si.pz-rrkj.UPF''?
+! Replace XXX with the suggested value and try to run the
+! calculation.
+ /
+ &electrons
+    conv_thr =  1.0d-6
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF 
+ATOMIC_POSITIONS
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS automatic
+ 4 4 4  1 1 1
+
+
+ Additional lines at the end of the file are ignored,
+ I will use them to put some final remark, but you can skip
+ them you don't have much time.
+

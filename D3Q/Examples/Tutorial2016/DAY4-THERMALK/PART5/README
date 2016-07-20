@@ -1,0 +1,12 @@
+In this part we will compute the thermal conductivity, solving exactly the 
+Boltzmann transport equation. To solve it, we will use the preconditioned 
+conjugate gradient minimizer
+
+Modify the sample input file for computing the thermal conductivity at 
+different Lcas: from 0.1 microm to 1 mm ( select a reasonable length step). 
+
+Plot then k vs L and compare the results with the sma results obtained in 
+part2. 
+
+What do you observe? 
+

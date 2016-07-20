@@ -1,0 +1,20 @@
+In these exercises you will see how to set up an input file for the tk.x code
+to compute the thermal conductivity of bulk Silicon; either using the 
+single-mode relaxation time approximation (SMA) or solving exactly the
+linearized Boltzmann transport equation (BTE).
+
+For your convenience, the files mat2 and mat3R.asr.sparse from
+PART2 of DAY3 have already been copied to this directory.
+
+PART1: k within single-mode relaxation time approximation (k vs T)
+PART2: k within single-mode relaxation time approximation (k vs L)
+PART3: k within single-mode relaxation time approximation (Isotopes 
+         contribution in k vs T`) 
+PART4: k within Variational solution of the linearized BTE  (k vs T)... to be 
+         compared with the SMA in PART1
+PART5: k within Variational soltution of the linearized BTE (k vs L)... to be 
+         compared with the SMA in PART2
+PART6: k within Variational solution of the linearized BTE (Isotopes 
+         contribution in k vs T`)... to be compared with the SMA in PART3
+
+

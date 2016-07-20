@@ -1,0 +1,21 @@
+
+This directory contains the exmple files for the first part
+of the tutorial, this span on the following topics:
+
+1. convergence with respect to the cutoff energy
+
+2. convergence with respect to the number of special
+   points for Brillouin zone integration
+
+3. simple structural optimization: search for the 
+   optimal volume
+
+4. computing and plotting the band structure
+
+The test system is a simple Silicon crystal.
+
+To get started open the first file (1a-cutoff.in) with
+you favourite text editor (e.g. kwrite).
+
+
+

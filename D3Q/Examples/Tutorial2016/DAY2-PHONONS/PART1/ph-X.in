@@ -1,0 +1,10 @@
+phonons of silicon at X
+ &inputph
+   outdir='../tmp',
+   prefix='silicon',
+   fildyn='dyn.X',
+   tr2_ph=1.0d-16,
+ /
+0.0 0.0 1.0
+
+
