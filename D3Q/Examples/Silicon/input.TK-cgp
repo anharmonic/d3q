@@ -1,0 +1,14 @@
+&tkinput
+  calculation = 'cgp'
+  file_mat2 = 'mat2R'
+  file_mat3 = 'mat3R.asr.sparse'
+  outdir = './TK-cgp/'
+  asr2 = 'simple'
+  nk = 5,5,5
+  isotopic_disorder=.false.
+  casimir_scattering = .false.
+  nconf = 1
+ /
+CONFIGS
+10.  300.
+

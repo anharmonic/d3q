@@ -19,3 +19,26 @@ $pref $bin/ph.x $post -in ph.in > ph.out
 echo "d3 calculation"
 $pref $bin/d3q.x $post -in d3.in > d3.out 
 
+echo "computing 2-body force constants"
+$bin/d3_q2r.x < q2r.in > d3_q2r.out
+
+echo "computing 3-body force constants"
+ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 2 mat3R > d3_qq2rr.out
+
+echo "appying sum rules 3-body force constants"
+$bin/d3_asr3.x mat3R mat3R.asr 1.e-12 10000 > d3_asr3.out
+
+echo "preparing sparse representation of 3-body force constants"
+$bin/d3_sparse.x mat3R.asr mat3R.asr.sparse 0. 10000 > d3_sparse.out
+
+echo "doing linewidth dispersion calculation"
+$pref $bin/d3_lw.x -in input.LW > output.LW
+gnuplot -persist plot-lw.gp
+
+echo "doing SMA thermal conductivity calculation"
+$pref $bin/d3_tk.x -in input.TK-sma > output.TK-sma
+
+echo "doing CGP thermal conductivity calculation"
+$pref $bin/d3_tk.x -in input.TK-cgp > output.TK-cgp
+
+

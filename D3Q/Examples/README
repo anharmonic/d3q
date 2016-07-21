@@ -1,16 +1,18 @@
+Two examples about the d3 calculations, in both we compute the full double-grid 
+dispersion of  the D3 matrices:
 
-Two examples about the d3 calculations, in both we compuet the full doule-grid dispersion fo anharmonice constants:
-MoS2     : lots of comments in the input files
-Graphene : just a few comments
+Graphene : calculation of D3 matrices
+           (NOTE: very far from convergence!!)
+Silicon  : calculation of D3 matrices, force constants,
+           linewidth and thermal conductivity
 
-In the Tutorial2016 directory you will find the exercise from the
-Psi-K Quantum-ESPRESSO School on Ab-Initio Thermal Transport
-hosted in Paris in June 2016. The exercises include verbose comments
-and explanations.
+In the Tutorial2016 directory you will find the exercise from the Psi-K 
+Quantum-ESPRESSO School on Ab-Initio Thermal Transport hosted in Paris in June 
+2016. The exercises include verbose comments and explanations. 
 
-We recommend that you reproduce the exercises in the Tutorial in order
-to familiarise with the D3Q and thermal2 codes. If you are already familiar 
-with Quantum-ESPRESSO calculation you may want to skip DAY1 (total energy
+We recommend that you reproduce the exercises in the Tutorial in order  to 
+familiarize with the D3Q and thermal2 codes. If you are already familiar with 
+Quantum-ESPRESSO calculation you may want to skip DAY1 (total energy 
 calculation) and DAY2 (phonon calculation and interpolation).
 
 

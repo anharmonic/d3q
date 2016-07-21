@@ -2,21 +2,19 @@
     calculation = 'scf'
     restart_mode='from_scratch',
     prefix='silicon',
-    tstress = .true.
-    tprnfor = .true.
     pseudo_dir = './UPF',
     outdir='./tmp'
  /
  &system
-    ibrav=  2, celldm(1) =10.20, nat=  2, ntyp= 1,
+    ibrav=  2, celldm(1) =10.20
+    ntyp= 1, nat=  2,
     ecutwfc =24.0,
-    !nosym=.true.
  /
  &electrons
     conv_thr =  1.0d-12
  /
 ATOMIC_SPECIES
- Si  28.086  Si.pz-vbc.UPF
+ Si  28.086  Si.pz-rrkj.UPF
 ATOMIC_POSITIONS
  Si 0.00 0.00 0.00
  Si 0.25 0.25 0.25

@@ -8,8 +8,5 @@ d3 for silicon
    fild3dyn = 'FILD3DYN/anh',
    ethr_ph = 1.d-9
    restart=.false.
-   ! only compute the first 4 triplets
-   first = 1
-   last = 4
  /
- 3 3 3
+ 2 2 2

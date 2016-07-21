@@ -3,13 +3,13 @@ Ph
     prefix='silicon'
     outdir='./tmp/',
     fildyn='dyn',
-    tr2_ph=1.0d-6
+    tr2_ph=1.0d-16
     trans=.true.,
     epsil=.false.,
     ldisp=.true.,
-    nq1=3,
-    nq2=3,
-    nq3=3,
+    nq1=4,
+    nq2=4,
+    nq3=4,
     drho_star%open = .true.
     drho_star%ext  = 'drho',
     drho_star%dir  = 'FILDRHO'
