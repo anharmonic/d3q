@@ -1,16 +1,13 @@
 graphene for phonons
  &inputph
-  tr2_ph=1.0d-15 !20,
+  tr2_ph=1.0d-20,
   prefix='gene',
-  epsil=.false.,
-  trans=.true.,
-  zue=.false.,
-  iverbosity=1
 
   ldisp=.true.
-   nq1=4, nq2=4, nq3=1
+   nq1=2, nq2=2, nq3=1
+  ! 8x8x1 grid is recommended!
 
-  fildyn='FILDYN/dyn',
+  fildyn='dyn',
 
   fildrho='drho',
     drho_star%open = .true.

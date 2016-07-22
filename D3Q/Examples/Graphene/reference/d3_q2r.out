@@ -1,0 +1,46 @@
+
+     Program D3_Q2R v.5.4.0 (svn rev. 12569M) starts on 22Jul2016 at 11:41: 6 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+ 
+           HOST :    @host@
+           ARCH :    x86_64
+             CC :    cc
+            CPP :    cpp
+            F90 :    mpif90
+            F77 :    ifort
+         DFLAGS :    -D__INTEL -D__FFTW3 -D__MPI -D__PARA
+      BLAS LIBS :    -lmkl_intel_lp64  -lmkl_sequential -lmkl_core
+    LAPACK LIBS :    
+       FFT LIBS :    -lfftw3
+      MASS LIBS :    
+
+     Parallel version (MPI), running on     1 processors
+
+     reading grid info from file dyn0
+  reading force constants from file dyn1
+  Dielectric Tensor not found
+  nqs=            1
+         0.000000    0.000000    0.000000
+  reading force constants from file dyn2
+  nqs=            3
+         0.000000   -0.577350    0.000000
+         0.500000    0.288675    0.000000
+        -0.500000    0.288675    0.000000
+
+      q-space grid ok, #points =    4
+ seeking over          405  vectors
+ 
+     D3_Q2R       :     0.02s CPU         0.03s WALL
+
+ 
+   This run was terminated on:  11:41: 6  22Jul2016            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

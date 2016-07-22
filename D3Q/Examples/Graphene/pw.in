@@ -3,27 +3,22 @@
     prefix='gene'
     verbosity='high'
     restart_mode='from_scratch'
-    tstress=.true.
-    !wf_collect=.true.
     disk_io='low'
  /
  &system
-    !nosym=.true.
-    !noinv=.true.
-
     ibrav=  4
         celldm(1) = 4.60742348
         celldm(3) = 3.0 ! ~7A
     nat=  2,
     ntyp= 1,
-    ecutwfc= 12 ! converged: 70
+    ecutwfc=  70 ! converged: 70
     occupations = 'smearing'
-        smearing='mp' 
-        degauss=0.02
+        smearing='mv' 
+        degauss=0.25
     nspin = 1
  /
  &electrons
-    conv_thr =  1.0d-9 !2
+    conv_thr =  1.0d-12
  /
 ATOMIC_SPECIES
  C    12.0107  C.pbe-mt_fhi.UPF
@@ -32,6 +27,6 @@ ATOMIC_POSITIONS alat
  C  0.5   0.28868  0
  C  0.5  -0.28868  0
 K_POINTS  automatic
-  4 4 1  0 0 0
+  8 8 1  0 0 0
 ! converged:  32 32 1   0 0 0
 

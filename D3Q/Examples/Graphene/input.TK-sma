@@ -1,0 +1,23 @@
+&tkinput
+  calculation = 'sma'
+  file_mat2 = 'mat2R'
+  file_mat3 = 'mat3R.asr.sparse'
+  outdir = './TK-sma/'
+  asr2 = 'simple'
+  nk = 32,32,1
+  nk_in =  32,32,1
+  isotopic_disorder=.false.
+  casimir_scattering = .false.
+  nconf = 10
+ /
+CONFIGS
+50.	5.
+	10.
+	20.
+	30.
+	50.
+	70.
+	100.
+	200.
+	500.
+	1000.

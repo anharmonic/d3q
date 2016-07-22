@@ -9,18 +9,13 @@ export ESPRESSO_PSEUDO=$EXAMPLE/$TITLE/UPF
 export ESPRESSO_TMPDIR=$EXAMPLE/$TITLE/TMP
 export ESPRESSO_D3DIR=$EXAMPLE/$TITLE/TMP3
 export ESPRESSO_FILDRHO_DIR=$EXAMPLE/$TITLE/FILDRHO
-
-mkdir -p $ESPRESSO_TMPDIR
 mkdir -p $ESPRESSO_D3DIR
-mkdir -p $ESPRESSO_FILDRHO_DIR
-mkdir -p $EXAMPLE/$TITLE/FILDYN/
-mkdir -p $EXAMPLE/$TITLE/FILD3DYN/
 
 echo ================================================================
 
 bin="$ESPRESSO_BIN"
-pref=" "  # e.g. "mpirun -np 4 "
-post=" "  # e.g. "-npool 4 " 
+pref="mpirun -np 4 "  # e.g. "mpirun -np 4 "
+post="-npool 4 "  # e.g. "-npool 4 " 
 
 # STEP1: pw.x calculation, then ph.x calculation
 echo "pw calculation"
@@ -28,25 +23,32 @@ $pref $bin/pw.x $post -in pw.in > pw.out
 echo "ph calculation"
 $pref $bin/ph.x $post -in ph.in > ph.out
 
-echo ================================================================
-# STEP2: After the ph.x has finished, any number of d3q.x calculations can
-# 	 be run at the same time, with the same prefix and outdir, as long
-#	 as they are working on different triplets of q-point
-
-# repeat pw.x (ONLY NECESSARY IF TMP WAS CLEANED SINCE STEP1, or if you want
-# to run d3q.x with a different numbr of CPUS)
-#$pref $bin/pw.x $post -in pw.in > pw-$1.out
-
-# start d3 calculation, here we show how to use an offset to compute only a part
-# of the double-grid (step=8 is hardcoded in d3.in)
-offset=$1
-[ -z "$offset" ] && offset=0
-
-echo "starting d3 calculation with OFFSET: $offset"
-sed -e "s/__OFFSET__/$offset/" d3.in > d3-$offset.in
-$pref $bin/d3q.x $post -in d3-$offset.in > d3-$offset.out 
-echo ================================================================
+echo "starting d3 calculation"
+$pref $bin/d3q.x $post -in d3q.in > d3q.out 
 
 # cleanup:
 #rm -rf drhox_e* *out TMP* FIL* d3-*.in
+
+echo "computing 2-body force constants"
+$bin/d3_q2r.x < q2r.in > d3_q2r.out
+
+echo "computing 3-body force constants"
+ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 1 mat3R > d3_qq2rr.out
+
+echo "appying sum rules 3-body force constants"
+$bin/d3_asr3.x mat3R mat3R.asr 1.e-12 10000 > d3_asr3.out
+
+echo "preparing sparse representation of 3-body force constants"
+$bin/d3_sparse.x mat3R.asr mat3R.asr.sparse 0. 10000 > d3_sparse.out
+
+echo "doing linewidth dispersion calculation (path)"
+$pref $bin/d3_lw.x -in input.LW > output.LW
+gnuplot -persist plot-lw.gp
+
+echo "doing linewidth dispersion calculation (Brillouin zone)"
+$pref $bin/d3_lw.x -in input.LW-bz > output.LW-bz
+gnuplot -persist plot-bz.gp
+
+echo "doing SMA thermal conductivity calculation"
+$pref $bin/d3_tk.x -in input.TK-sma > output.TK-sma
 
