@@ -14,10 +14,6 @@ MODULE linewidth
 
 #include "mpi_thermal.h"
   USE kinds,          ONLY : DP
-  !USE more_constants, ONLY : eps_freq
-  !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
-  !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
-  !USE fc3_interpolate, ONLY : forceconst3
   USE mpi_thermal, ONLY : my_id, mpi_bsum
   USE timers
 
@@ -73,12 +69,12 @@ MODULE linewidth
       ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
-!/nope/!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         timer_CALL t_freq%stop()
       !
         timer_CALL t_fc3int%start()
@@ -94,11 +90,11 @@ MODULE linewidth
       DO it = 1,nconf
           timer_CALL t_bose%start()
         ! Compute bose-einstein occupation at q2 and q3
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
-!/nope/!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
         lw(:,it) = lw(:,it) + grid%w(iq)&
@@ -166,13 +162,13 @@ MODULE linewidth
       timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
-      timer_CALL t_freq%stop()
-!/nope/!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
+        timer_CALL t_freq%stop()
       !
         timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
@@ -187,12 +183,12 @@ MODULE linewidth
       DO it = 1,nconf
         ! Compute bose-einstein occupation at q2 and q3
           timer_CALL t_bose%start()
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
+!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
-!/nope/!$OMP END PARALLEL DO
         !
           timer_CALL t_sum%start()
         se(:,it) = se(:,it) + grid%w(iq)*sum_selfnrg_modes( S, sigma(it), T(it), freq, bose, V3sq, nu0 )
@@ -326,12 +322,12 @@ MODULE linewidth
       !
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
-!/nope/!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       !
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
@@ -341,11 +337,11 @@ MODULE linewidth
       !
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
-!/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
-!/nope/!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
         !
       ENDDO
@@ -498,11 +494,6 @@ MODULE linewidth
     !
     se(:) = (0._dp, 0._dp)
     !
-!    WHERE(ABS(freq)>eps_freq)
-!      freqm1 = 0.5_dp/freq
-!    ELSEWHERE
-!      freqm1 = 0._dp
-!    ENDWHERE
      freqm1 = 0._dp
      DO i = 1,S%nat3
        IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
@@ -564,20 +555,12 @@ MODULE linewidth
           !
           !
           se(i) = se(i) + (ctm_P + ctm_M)*freqtotm1 * V3sq(i,j,k)
-
-          !IF(freqtotm1/=0._dp)THEN
-          ! ioWRITE(30000,'(3i4,99e12.4)') k,i,j, omega_P, omega_M, T, sigma, ctm_P, ctm_M, freqtotm1, V3sq(i,j,k)
-          ! stop 1
-          !ENDIF
           !
         ENDDO
       ENDDO
     ENDDO
 !$OMP END PARALLEL DO
     !
-    !ioWRITE(30000,*) 
-    !ioWRITE(30000,*) 
-    !ioWRITE(30000,*) 
     sum_selfnrg_modes = se
     !
   END FUNCTION sum_selfnrg_modes
@@ -615,11 +598,6 @@ MODULE linewidth
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
     ENDDO
-    !WHERE(ABS(freq)>eps_freq)
-    !  freqm1 = 0.5_dp/freq
-    !ELSEWHERE
-    !  freqm1 = 0._dp
-    !ENDWHERE
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,&
 !$OMP                     freqtotm1_23,freqtotm1) &

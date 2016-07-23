@@ -229,55 +229,7 @@ MODULE q_grids
     grid%nqtot = grid%nq
     !
   END SUBROUTINE setup_bz_grid
-!   !
-!   SUBROUTINE expand_qlist(nq, xq, nq_add, xq_add)
-!     INTEGER,INTENT(inout) :: nq 
-!     INTEGER,INTENT(in) :: nq_add
-!     REAL(DP),ALLOCATABLE,INTENT(inout) :: xq(:,:)
-!     REAL(DP),INTENT(in) :: xq_add(3,nq_add)
-!     !
-!     REAL(DP),ALLOCATABLE :: xq_aux(:,:)
-!     IF(allocated(xq)) THEN
-!       ALLOCATE(xq_aux(3,nq))
-!       xq_aux = xq
-!       DEALLOCATE(xq)
-!       ALLOCATE(xq(3,nq+nq_add))
-!       xq(:, 1:nq)           = xq_aux
-!       xq(:, nq+1:nq+nq_add) = xq_add(:, 1:nq_add)
-!       !nq = nq+nq_add
-!       DEALLOCATE(xq_aux)
-!     ELSE
-!       IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
-!       ALLOCATE(xq(3,nq_add))
-!       xq = xq_add(:, 1:nq_add)
-!       !nq = nq_add
-!     ENDIF
-!     RETURN
-!   END SUBROUTINE
-!   SUBROUTINE expand_wlist(nq, w, nq_add)
-!     INTEGER,INTENT(in) :: nq 
-!     INTEGER,INTENT(in) :: nq_add
-!     REAL(DP),ALLOCATABLE,INTENT(inout) :: w(:)
-!     !
-!     REAL(DP),ALLOCATABLE :: w_aux(:)
-!     IF(allocated(w)) THEN
-!       !print*,"got", size(w), nq, nq_add 
-!       IF(size(w)/=nq) CALL errore('expand_wlist', 'wrong size', 1)
-!       ALLOCATE(w_aux(nq))
-!       w_aux(1:nq) = w(1:nq)
-!       DEALLOCATE(w)
-!       ALLOCATE(w(nq+nq_add))
-!       w(1:nq)           = w_aux
-!       w(nq+1:nq+nq_add) = 1._dp/DBLE(nq_add)
-!       DEALLOCATE(w_aux)
-!     ELSE
-!       !print*,"got", size(w), nq, nq_add 
-!       IF(nq/=0) CALL errore("expand_qlist", "i do not understand", 1)
-!       ALLOCATE(w(nq_add))
-!       w = 1._dp/DBLE(nq_add)
-!     ENDIF
-!     RETURN
-!   END SUBROUTINE
+  !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_simple_grid(bg, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
@@ -491,16 +443,6 @@ MODULE q_grids
       ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
     ENDIF
     ENDIF
-!     DO i = 1, path%nq 
-!       ioWRITE(*,"(2x,3f12.6,f15.6)") path%xq(:,i), path%w(i) ! this prints all points, one per line
-!     ENDDO
-!     ioWRITE(*,*)
-
-    ! paths are not suitable for integrals, just set them to
-    ! path length, I redo this every time even if it is 
-    !IF(allocated(path%w)) DEALLOCATE(path%w)
-    !ALLOCATE(path%w(path%nq))
-    !path%w = 0._dp 
     !
   END SUBROUTINE setup_path
   ! \/o\________\\\_________________________________________/^>
@@ -529,9 +471,12 @@ MODULE q_grids
     ALLOCATE(qbasis%w(S%nat3, qbasis%nq))
     ALLOCATE(qbasis%c(3, S%nat3, qbasis%nq))
     ALLOCATE(qbasis%be(S%nat3, qbasis%nconf, qbasis%nq))
+    ALLOCATE(qbasis%b(3,nconf,S%nat3,qbasis%nq))
     !
     ALLOCATE(U(S%nat3,S%nat3))
     
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix, U)
+!$OMP DO
     DO iq = 1,qbasis%nq
       qbasis%c(:,:,iq) = velocity_proj(S, fc2, qgrid%xq(:,iq))
       CALL  freq_phq_safe(qgrid%xq(:,iq), S, fc2, qbasis%w(:,iq), U)
@@ -539,10 +484,9 @@ MODULE q_grids
         CALL  bose_phq(T(it), S%nat3, qbasis%w(:,iq), qbasis%be(:,it,iq))
       ENDDO
     ENDDO
+!$OMP END DO
 
-    ALLOCATE(qbasis%b(3,nconf,S%nat3,qbasis%nq))
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
-!$OMP DO COLLAPSE(4)
+!$OMP DO
     DO iq = 1,qbasis%nq
     DO nu = 1,S%nat3
       DO it = 1,nconf

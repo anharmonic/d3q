@@ -3,6 +3,7 @@ PROGRAM_asr3.o : ../../Modules/kind.o
 PROGRAM_asr3.o : ./PROGRAM_asr3.o
 PROGRAM_asr3.o : ./fc3_interp.o
 PROGRAM_asr3.o : ./input_fc.o
+PROGRAM_asr3.o : ./more_constants.o
 PROGRAM_db.o : ../../Modules/constants.o
 PROGRAM_db.o : ../../Modules/kind.o
 PROGRAM_db.o : ./PROGRAM_db.o
@@ -59,6 +60,7 @@ PROGRAM_r2q.o : ./asr2.o
 PROGRAM_r2q.o : ./code_input.o
 PROGRAM_r2q.o : ./fc2_interp.o
 PROGRAM_r2q.o : ./input_fc.o
+PROGRAM_r2q.o : ./more_constants.o
 PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
 PROGRAM_sparse.o : ../../Modules/io_global.o
@@ -68,6 +70,7 @@ PROGRAM_sparse.o : ../../Modules/wrappers.o
 PROGRAM_sparse.o : ./PROGRAM_sparse.o
 PROGRAM_sparse.o : ./fc3_interp.o
 PROGRAM_sparse.o : ./input_fc.o
+PROGRAM_sparse.o : ./more_constants.o
 PROGRAM_sparse.o : ./mpi_thermal.o
 PROGRAM_sparse.o : ./nanoclock.o
 PROGRAM_sqom.o : ../../Modules/constants.o
@@ -177,6 +180,7 @@ linewidth.o : ./input_fc.o
 linewidth.o : ./mpi_thermal.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
+more_constants.o : ../../Modules/io_global.o
 more_constants.o : ../../Modules/kind.o
 mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
@@ -222,6 +226,7 @@ vector.o : ../../Modules/kind.o
 PROGRAM_db.o : 
 PROGRAM_import3py.o : 
 PROGRAM_lw.o : 
+PROGRAM_r2q.o : 
 PROGRAM_tk.o : 
 code_input.o : 
 dynbubble.o : 

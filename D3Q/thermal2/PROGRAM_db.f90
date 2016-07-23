@@ -63,7 +63,7 @@ MODULE add_bubble_program
         ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
       ENDIF
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      FLUSH(1000+it)
+      ioFLUSH(1000+it)
     ENDDO
 
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid)
@@ -140,7 +140,7 @@ MODULE add_bubble_program
         ioWRITE(1000+it,"(i6,4f12.6,2(12e20.6,5x))") iq,qpath%w(iq), qpath%xq(:,iq),& 
          freq0*RY_TO_CMM1,freq*RY_TO_CMM1
         ! 
-        FLUSH(1000+it)
+        ioFLUSH(1000+it)
         
         CALL dyn_cart2pat(dynY, S%nat3, U, +1)
         ! RAFTEST
@@ -243,7 +243,7 @@ MODULE add_bubble_program
       ioWRITE(1000+it, *) "# spectral function mode: ", input%mode
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
       ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
-      FLUSH(1000+it)
+      ioFLUSH(1000+it)
     ENDDO
     ENDIF
     !
@@ -268,7 +268,7 @@ MODULE add_bubble_program
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
                 qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1, &
                 spectralf(ie,:,it)/RY_TO_CMM1
-          FLUSH(1000+it)
+          ioFLUSH(1000+it)
         ENDDO
       ENDDO
       !

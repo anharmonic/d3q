@@ -72,6 +72,60 @@ MODULE code_input
   !
   CONTAINS
   !
+  ! FIXME: currently all CPUs read input, this should replace it eventually
+  SUBROUTINE bcast_input_type(in, ionode)
+    USE mpi_thermal,        ONLY : ionode, mpi_broadcast
+    IMPLICIT NONE
+    TYPE(code_input_type),INTENT(inout) :: in
+    LOGICAL,INTENT(in) :: ionode
+    CALL mpi_broadcast(in%calculation)
+    CALL mpi_broadcast(in%mode)
+    CALL mpi_broadcast(in%outdir)
+    CALL mpi_broadcast(in%prefix)
+    !
+    CALL mpi_broadcast(in%exp_t_factor)
+    CALL mpi_broadcast(in%sort_shifted_freq)
+    !
+    CALL mpi_broadcast(in%file_mat3)
+    CALL mpi_broadcast(in%file_mat2)
+    CALL mpi_broadcast(in%file_mat2_final)
+    CALL mpi_broadcast(in%asr2)
+    !
+    CALL mpi_broadcast(in%start_q)
+    CALL mpi_broadcast(in%nconf)
+    IF(.not. ionode) THEN
+     ALLOCATE(in%T(in%nconf), in%sigma(in%nconf))
+    ENDIF
+    CALL mpi_broadcast(in%nconf, in%T)
+    CALL mpi_broadcast(in%nconf, in%sigma)
+    
+    CALL mpi_broadcast(in%ne)
+    CALL mpi_broadcast(in%e0)
+    CALL mpi_broadcast(in%de)
+    CALL mpi_broadcast(in%e_initial)
+    CALL mpi_broadcast(3, in%q_initial)
+    CALL mpi_broadcast(in%q_resolved)
+    CALL mpi_broadcast(in%sigmaq)
+    
+    CALL mpi_broadcast(in%isotopic_disorder)
+
+    CALL mpi_broadcast(in%casimir_scattering)
+    CALL mpi_broadcast(in%casimir_length)
+    CALL mpi_broadcast(3, in%casimir_dir)
+    !
+    CALL mpi_broadcast(3, in%nk)
+    CALL mpi_broadcast(3, in%nk_in)
+    !
+    CALL mpi_broadcast(in%thr_tk)
+    CALL mpi_broadcast(in%niter_max)
+
+    CALL mpi_broadcast(in%grid_type)
+    CALL mpi_broadcast(in%print_dynmat)
+    CALL mpi_broadcast(in%print_velocity)
+    !
+    CALL mpi_broadcast(in%restart)
+  END SUBROUTINE
+  !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     !USE io_global,      ONLY : stdout
@@ -135,7 +189,7 @@ MODULE code_input
     INTEGER  :: max_seconds = -1
     REAL(DP) :: max_time    = -1._dp
     !
-    REAL(DP) :: thr_tk = 1.d-4
+    REAL(DP) :: thr_tk = 1.d-2
     INTEGER  :: niter_max = 1000
     !
     LOGICAL :: restart = .false.

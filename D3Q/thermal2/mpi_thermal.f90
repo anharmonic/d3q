@@ -36,9 +36,16 @@ MODULE mpi_thermal
   INTERFACE mpi_broadcast
      MODULE PROCEDURE mpi_bcast_logical
      !
+     MODULE PROCEDURE mpi_bcast_scl
+     MODULE PROCEDURE mpi_bcast_vec
      MODULE PROCEDURE mpi_bcast_mat
      MODULE PROCEDURE mpi_bcast_tns
      MODULE PROCEDURE mpi_bcast_tns4
+     !
+     MODULE PROCEDURE mpi_bcast_integer
+     MODULE PROCEDURE mpi_bcast_integer_vec
+     !
+     MODULE PROCEDURE mpi_bcast_character
   END INTERFACE
   !
   INTERFACE mpi_bsum
@@ -250,9 +257,49 @@ MODULE mpi_thermal
     IMPLICIT NONE
     LOGICAL,INTENT(inout) :: logi
 #ifdef __MPI
-      !timer_CALL t_mpicom%start()
     CALL MPI_BCAST(logi, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_integer(inte)
+    IMPLICIT NONE
+    INTEGER,INTENT(inout) :: inte
+#ifdef __MPI
+    CALL MPI_BCAST(inte, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_integer_vec(nn,inte)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)    :: nn
+    INTEGER,INTENT(inout) :: inte(nn)
+#ifdef __MPI
+    CALL MPI_BCAST(inte, nn, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_character(schar)
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(inout) :: schar
+#ifdef __MPI
+    CALL MPI_BCAST(schar, LEN(schar), MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_scl(scl)
+    IMPLICIT NONE
+    REAL(DP),INTENT(inout) :: scl
+#ifdef __MPI
+    CALL MPI_BCAST(scl, 1, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_vec(nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     ::  nn
+    REAL(DP),INTENT(inout) :: mat(nn)
+#ifdef __MPI
+    CALL MPI_BCAST(mat, nn, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
   !
@@ -261,9 +308,7 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: mm, nn
     REAL(DP),INTENT(inout) :: mat(mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start()
     CALL MPI_BCAST(mat, mm*nn, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !

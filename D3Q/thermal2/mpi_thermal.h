@@ -5,6 +5,7 @@ USE mpi_thermal, ONLY : ionode
 
 #define ioWRITE IF(ionode) WRITE
 #define ioREAD  IF(ionode) READ
+#define ioFLUSH IF(ionode) FLUSH
 #define timer_CALL CALL
 #define stdin  5
 #define stdout 6

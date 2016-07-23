@@ -10,9 +10,9 @@ MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
 
-#F90FLAGS+= -opt-report=2
-#F90FLAGS+=-traceback -check all
-#LDFLAGS+=-openmp
+#F90FLAGS += -check all -traceback -g
+F90FLAGS+= -p
+LDFLAGS+= -p
 
 #F90FLAGS += -fltconsistency
 
@@ -38,6 +38,7 @@ LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a
 #LDFLAGS  += -openmp #-pg -g
 
 THERMALK2_LIBS = \
+mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
@@ -51,7 +52,6 @@ input_fc.o \
 isotopes.o \
 linewidth.o \
 more_constants.o \
-mpi_thermal.o \
 nanoclock.o \
 nanosec.o \
 nist_isotopes_db.o \
@@ -67,13 +67,6 @@ variational_tk.o
 EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
 
 all : tldeps $(EXECUTABLES)
-
-mpitest.x : PROGRAM_mpitest.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_mpitest.o $(THERMALK2_LIBS) \
-	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
-	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
-
 
 tk.x : PROGRAM_tk.o $(THERMALK2_LIBS)
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(THERMALK2_LIBS) \

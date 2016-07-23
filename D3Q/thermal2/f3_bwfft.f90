@@ -234,7 +234,7 @@ MODULE f3_bwfft
     ! probably nperix = 64 is sufficient (i.e. both points in a WS cell corner, cubic)
     REAL(DP) :: peri_min, perix, perinorm
     REAL(DP),ALLOCATABLE :: farx_list(:,:,:), rx_list(:,:,:)
-    INTEGER :: nxr_list, nxr_list_old, rx_idx(nperix), iperi, nperi
+    INTEGER :: nxr_list, nxr_list_old, rx_idx(nperix), iperi, nperi, PASS
     REAL(DP),PARAMETER :: eps_peri = 1.d-5, eps_imag = 1.d-5
     ! fft aux variable
     REAL(DP) :: arg, norm
@@ -280,6 +280,8 @@ MODULE f3_bwfft
     nxr_list = 0
     norm = 1._dp/DBLE(nq_trip)
     !
+    TWO_PASS : &
+    DO PASS = 1,2
     DO kat = 1,nat
     DO jat = 1,nat
     DO iat = 1,nat
@@ -343,37 +345,35 @@ MODULE f3_bwfft
         ! in any case, return the indeces of the vectors in the list
         nxr_list_old = nxr_list
         CALL update_rlist(nperi, farx_list, nxr_list, rx_list, rx_idx)
+        IF (nperi==0) CALL errore("bwfft_d3_interp", "found no perimeters", 1)
         !IF(nperi>1) WRITE(*,'(3i3,3x,2i3,3x,i6,999i8)') iat,jat,kat, ixr,jxr, nperi, rx_idx(1:nperi)
         !
         ! Make room for new force constants, if necessary
-        IF(nxr_list>nxr_list_old)THEN
-          !PRINT*, nxr_list, nxr_list_old
-          IF(allocated(mat)) THEN
-            ALLOCATE(matx(3,3,3, nat,nat,nat, nxr_list_old))
-            matx = mat
-            DEALLOCATE(mat)
-            ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-            mat(:,:,:, :,:,:, nxr_list_old+1:nxr_list) = 0._dp
-            mat(:,:,:, :,:,:, 1:nxr_list_old) = matx(:,:,:, :,:,:, 1:nxr_list_old)
-            DEALLOCATE(matx)
-          ELSE
-            ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-            mat = 0._dp
-          ENDIF
-        ENDIF
+        !IF(nxr_list>nxr_list_old)THEN
+        !  !PRINT*, nxr_list, nxr_list_old
+        !  IF(allocated(mat)) THEN
+        !    ALLOCATE(matx(3,3,3, nat,nat,nat, nxr_list_old))
+        !    matx = mat
+        !    DEALLOCATE(mat)
+        !    ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
+        !    mat(:,:,:, :,:,:, nxr_list_old+1:nxr_list) = 0._dp
+        !    mat(:,:,:, :,:,:, 1:nxr_list_old) = matx(:,:,:, :,:,:, 1:nxr_list_old)
+        !    DEALLOCATE(matx)
+        !  ELSE
+        !    ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
+        !    mat = 0._dp
+        !  ENDIF
+        !ENDIF
         !
-        IF(nperi>0)THEN
+        IF(PASS==2)THEN
+          IF(.not.ALLOCATED(mat)) ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
           perinorm = 1._dp/REAL(nperi,kind=DP)
           !print*, perinorm * fc(:,:,:)
           DO iperi = 1, nperi
             !
             mat(:,:,:, iat,jat,kat, rx_idx(iperi)) = perinorm * fc(:,:,:)
-            !PRINT*, SUM(ABS(mat(:,:,:, iat,jat,kat, rx_idx(iperi)))), iat,jat,kat, rx_idx(iperi)
           ENDDO
           !
-          !WRITE(10000,*) peri_min, MAXVAL(ABS(fc(:,:,:)))
-        ELSE
-          CALL errore("bwfft_d3_interp", "found no perimeters", 1)
         ENDIF
         !
       ENDDO
@@ -382,6 +382,7 @@ MODULE f3_bwfft
     ENDDO
     ENDDO
     ENDDO
+    ENDDO TWO_PASS
     !
     !WRITE(998,*) mat
     !
@@ -429,7 +430,7 @@ MODULE f3_bwfft
     !
     WRITE(*,'(4x,a,es10.3)') "Sum of imaginary parts:    ", sum_imag
     WRITE(*,'(4x,a,es10.3)') "Average imaginary part:    ", avg_imag
-    WRITE(*,'(4x,a,es10.3,a,2es10.3)') "Largest imaginary fraction:", max_imag_frac, " for ", max_imag_mag
+    WRITE(*,'(4x,a,es10.3,a,2(es10.3,2x))') "Largest imaginary fraction:", max_imag_frac, " for ", max_imag_mag
     WRITE(*,'(4x,a,es10.3)') "Largest imaginary part:    ", max_imag
     !
     WHERE(ABS(fc3%fc) < 1.d-30)  fc3%fc = 0._dp
@@ -453,7 +454,7 @@ MODULE f3_bwfft
     REAL(DP),INTENT(in) :: farx_list(3,2,nperi)
     INTEGER, INTENT(inout) :: nxr_list
     REAL(DP),INTENT(inout),ALLOCATABLE :: rx_list(:,:,:) !(3,2,nxr_list)
-    INTEGER,INTENT(inout) :: rx_idx(nperi)         !(nxr_list)
+    INTEGER,INTENT(out) :: rx_idx(nperi)
     !
     INTEGER :: iperi, irx, nxr_list_new, nxr_list_out
     REAL(DP),ALLOCATABLE :: rx_aux(:,:,:) !(3,2,nxr_list)

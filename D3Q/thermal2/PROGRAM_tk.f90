@@ -99,7 +99,7 @@ MODULE thermalk_program
                                "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
       ioWRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      FLUSH(1000+it)
+      ioFLUSH(1000+it)
       !
       IF(input%isotopic_disorder) THEN
         OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
@@ -108,7 +108,7 @@ MODULE thermalk_program
                                     "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
         ioWRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
         ioWRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-        FLUSH(2000+it)
+        ioFLUSH(2000+it)
       ENDIF
     ENDDO
       IF(input%casimir_scattering) THEN
@@ -116,7 +116,7 @@ MODULE thermalk_program
                                 "lwcas."//TRIM(input%prefix)//".out")
         ioWRITE(3000, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
 !         ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-        FLUSH(3000)
+        ioFLUSH(3000)
       ENDIF
     ENDIF
     !
@@ -312,7 +312,7 @@ MODULE thermalk_program
                             g_mod2(:,:), g_mod2_old(:,:), &
                             pref(:,:)
     REAL(DP) :: tk(3,3,input%nconf), delta_tk(3,3,input%nconf), &
-                tk_old(3,3,input%nconf), delta_tk_max
+                tk_old(3,3,input%nconf)
     LOGICAL :: conv
     CHARACTER(len=6) :: what
     CHARACTER(len=256) :: filename
@@ -329,9 +329,6 @@ MODULE thermalk_program
     ! but the inner one is MPI-scattered, so we need to separate onjects to hold them
     CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
                     in_grid, scatter=.true.)
-    !CALL setup_bz_grid(S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), in_grid)
-    !CALL in_grid%scatter()
-    
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     
     OPEN_FILES : &
@@ -353,13 +350,16 @@ MODULE thermalk_program
         ELSE
           OPEN(unit=10000+it, file=filename)
           ioWRITE(10000+it, '(a)') "# Thermal conductivity from BTE"
-          ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
+          IF(it>0) THEN
+            ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, &
+                    "     T=",input%T(it), "    sigma=", input%sigma(it)
+          ENDIF
           ioWRITE(10000+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
                               "    K_x              K_y              K_z              ",&
                               "    K_xy             K_xz             K_yz             ",&
                               "    K_yx             K_zx             K_zy"
         ENDIF
-        FLUSH(10000+it)
+        ioFLUSH(10000+it)
       ENDDO
     ENDIF OPEN_FILES
     !
@@ -438,10 +438,7 @@ MODULE thermalk_program
     CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK - initial")
     !
     ! Check initial gradient
-    delta_tk_max = MAXVAL(ABS(delta_tk))
-    conv = (delta_tk_max < input%thr_tk/RY_TO_WATTMM1KM1)
-    ioWRITE(stdout,"('  Maximum value of Delta TK',1e14.4)")&
-                    delta_tk_max*RY_TO_WATTMM1KM1
+    conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     INSTANT_CONVERGENCE : &
@@ -472,8 +469,6 @@ MODULE thermalk_program
   !       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
   !                            out_grid, in_grid, S, fc2, fc3)
   !       j = j-qbasis%b
-  !       WRITE(90000,'(6e12.4)') g
-  !       WRITE(80000,'(6e12.4)') j
         !
         tk_old = tk
         !
@@ -483,10 +478,7 @@ MODULE thermalk_program
         ! also compute the variation of tk and check for convergence
         delta_tk = tk-tk_old
         CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK")
-        delta_tk_max = MAXVAL(ABS(delta_tk))
-        conv = (delta_tk_max < input%thr_tk/RY_TO_WATTMM1KM1)
-        ioWRITE(stdout,"('  Maximum value of Delta TK',1e14.4)")&
-                        delta_tk_max*RY_TO_WATTMM1KM1
+        conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
         !
         IF(conv) THEN
           ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &

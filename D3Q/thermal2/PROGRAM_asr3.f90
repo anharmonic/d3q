@@ -751,7 +751,7 @@ END MODULE asr3_module
 PROGRAM asr3
 
     USE kinds,           ONLY : DP
-    USE iso_c_binding,   ONLY : C_INT64_T
+    USE iso_c_binding,   ONLY : c_int, C_INT64_T
     USE input_fc,        ONLY : aux_system, ph_system_info
     USE fc3_interpolate, ONLY : grid
     USE io_global,       ONLY : stdout
@@ -762,7 +762,7 @@ PROGRAM asr3
     TYPE(grid)             :: fc
     TYPE(ph_system_info)   :: s
     TYPE(index_r_type)     :: idx2,idx3
-    INTEGER(kind=C_INT64_T)    :: kb
+    INTEGER(kind=c_int)    :: kb
     INTEGER,ALLOCATABLE :: idR23(:,:)
     TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
     !

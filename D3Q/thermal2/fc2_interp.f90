@@ -153,19 +153,19 @@ MODULE fc2_interpolate
 #endif
     vphase =  CMPLX( vcos, -vsin, kind=DP  )
     !
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(mu,nu)
+    ! NOTE: do not use these OMP directive, as it is MUCH more effective to
+    ! parallelize outside this subroutine!
+!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,mu,nu) REDUCTION(+:D)
+!/!$OMP DO
     DO i = 1, fc%n_R
-!       arg = tpi * SUM(xq(:)*fc%xR(:,i))
-!       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
-!$OMP DO COLLAPSE(2)
       DO mu= 1, S%nat3
       DO nu= 1, S%nat3
         D(nu,mu) = D(nu,mu) + vphase(i) * fc%fc(nu,mu, i)
       ENDDO
       ENDDO
-!$OMP END DO
     END DO
-!$OMP END PARALLEL
+!/!$OMP END DO
+!/!$OMP END PARALLEL
     !
     IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
@@ -252,8 +252,7 @@ MODULE fc2_interpolate
     
     RETURN
   END SUBROUTINE
-
-  
+  !
   ! \/o\________\\\_________________________________________/^>
   ! IN PLACE diagonalization of D
   SUBROUTINE mat2_diag_save(n, D, w2)

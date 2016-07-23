@@ -87,12 +87,9 @@ MODULE import3py_module
     INTEGER,INTENT(in) :: nR
     INTEGER,INTENT(in) :: yR2(3,nR), yR3(3,nR)
     INTEGER :: nq(3)
-    nq(1) = MAXVAL( (/ MAXVAL(ABS(yR2(1,:))),MAXVAL(ABS(yR3(1,:))), &
-                       MAXVAL(ABS(yR3(1,:)+yR3(1,:))) /) )
-    nq(2) = MAXVAL( (/ MAXVAL(ABS(yR2(2,:))),MAXVAL(ABS(yR3(2,:))), &
-                       MAXVAL(ABS(yR3(2,:)+yR3(2,:))) /) )
-    nq(3) = MAXVAL( (/ MAXVAL(ABS(yR2(3,:))),MAXVAL(ABS(yR3(3,:))), &
-                       MAXVAL(ABS(yR3(3,:)+yR3(3,:))) /) )
+    nq(1) = MAXVAL( (/ MAXVAL(ABS(yR2(1,:))),MAXVAL(ABS(yR3(1,:)))/))
+    nq(2) = MAXVAL( (/ MAXVAL(ABS(yR2(2,:))),MAXVAL(ABS(yR3(2,:)))/))
+    nq(3) = MAXVAL( (/ MAXVAL(ABS(yR2(3,:))),MAXVAL(ABS(yR3(3,:)))/))
     RETURN
   END FUNCTION
   !
@@ -128,19 +125,20 @@ PROGRAM import3py
   CALL read_3py(filename, fc, S)
   CALL fc%write(fileout_bad, S)
   !
-  nq = guess_nq(fc%n_R, fc%yR2, fc%yR3)
-  WRITE(*,*) "Guessing grid size", nq
-  !
   narg = command_argument_count()
   IF(narg>=3)THEN
     DO i = 1,3
       CALL get_command_argument(i,argv)
       READ(argv,*) nq(i)
     ENDDO
-    WRITE(*,*) "Grid size from input:", nq
+    WRITE(*,*) "Supercell size from input:", nq
   ELSE
-    WRITE(*,*) "To change the grid size by hand use syntax:"
-    WRITE(*,*) "  d3_import3py.x nqx nqy nqz"
+    nq = guess_nq(fc%n_R, fc%yR2, fc%yR3)
+    WRITE(*,*) "Guessing supercell size", nq
+    WRITE(*,*) "WARNING! SIZE GUESSED IS VERY OFTEN WRONG!!"
+    WRITE(*,*) "To proceed set the supercell size by hand, use syntax:"
+    WRITE(*,*) "  d3_import3py.x nx ny nz"
+    STOP 1
   ENDIF
   WRITE(*,*)
   

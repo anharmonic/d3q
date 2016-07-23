@@ -8,6 +8,7 @@
 MODULE r2q_program
 
  ! this space unintentionally left non-blank
+#include "mpi_thermal.h"
   
 END MODULE r2q_program
 
@@ -65,9 +66,9 @@ PROGRAM r2q
     CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
     !WRITE(*, '(a16,999f12.4)') "freq", freq*RY_TO_CMM1
     !WRITE(*, '(999f12.4)') freq*RY_TO_CMM1
-    WRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
+    ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
       i, qpath%w(i), qpath%xq(:,i), freq*RY_TO_CMM1
-    FLUSH(output_unit)
+    ioFLUSH(output_unit)
     
     IF(input%print_dynmat) THEN
       U = multiply_mass_dyn(S, U)
@@ -77,9 +78,9 @@ PROGRAM r2q
 
     IF(input%print_velocity) THEN
       vel = velocity_proj(S, fc2, qpath%xq(:,i))
-      WRITE(output_unit+1, '(i6,f12.6,3x,3f12.6,999(3e16.8,3x))') &
+      ioWRITE(output_unit+1, '(i6,f12.6,3x,3f12.6,999(3e16.8,3x))') &
         i, qpath%w(i), qpath%xq(:,i), vel*RY_TO_CMM1
-      FLUSH(output_unit+1)
+      ioFLUSH(output_unit+1)
     ENDIF
 
   ENDDO

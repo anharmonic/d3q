@@ -69,10 +69,13 @@ PROGRAM qq2rr
   CALL memstat(kb)
   WRITE(*,*) "Total memory used : ", kb/1000, "Mb"
   !
-  WRITE(*,*) "Writing FCs to file..."
-  CALL fc3%write(filename, S)
+  IF(filename /="none")THEN
+    WRITE(*,*) "Writing FCs to file..."
+    CALL fc3%write(filename, S)
+  ENDIF
   !
   WRITE(*,*) "Testing Forward FFT, with imaginary part..."
+  WRITE(*,*) "(you can stop the code with CTRL-C to avoid running tests)  "
   CALL test_fwfft_d3(nq_trip, S, d3grid, fc3)
   WRITE(*,*) "Testing Forward FFT, without imaginary part..."
   DEALLOCATE(fc3%ifc)

@@ -42,10 +42,9 @@ MODULE ph_velocity
     !
     xvel = 0._dp
     !
-! NOTE: not using OMP here because it is used in fftinterp_mat2
-!-!$OMP PARALLEL DO DEFAULT(shared) &
-!-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
-!-!$OMP             REDUCTION(+:xvel)
+!$OMP PARALLEL DO DEFAULT(shared) &
+!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
+!$OMP             REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
@@ -63,7 +62,7 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
-!-!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
     !
     velocity_simple = xvel
     !
@@ -103,9 +102,9 @@ MODULE ph_velocity
     !
 ! NOTE: the rotation U must be shared!
 ! NOTE2: not using OMP here because it is used in fftinterp_mat2
-!-!$OMP PARALLEL DO DEFAULT(shared) &
-!-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
-!-!$OMP             REDUCTION(+:xvel)
+!$OMP PARALLEL DO DEFAULT(shared) &
+!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
+!$OMP             REDUCTION(+:xvel)
     DO ix = 1,3
       xqp = xq
       xqp(ix) = xq(ix)+h
@@ -117,15 +116,6 @@ MODULE ph_velocity
       ELSEWHERE
         w2p = -DSQRT(-w2p)
       END WHERE
-      
-!       DO nu = 1,S%nat3
-!         w2p(nu) = REAL(W(nu,nu),kind=DP)
-!         IF(w2p(nu)>=0._dp) THEN
-!           w2p(nu) = SQRT(w2p(nu))
-!         ELSE
-!           w2p(nu) = -SQRT(-w2p(nu))
-!         ENDIF
-!       ENDDO
       !
       xqm = xq
       xqm(ix) = xq(ix)-h
@@ -137,14 +127,6 @@ MODULE ph_velocity
       ELSEWHERE
         w2m = -DSQRT(-w2m)
       END WHERE
-      !       DO nu = 1,S%nat3
-!         w2m(nu) = REAL(W(nu,nu),kind=DP)
-!         IF(w2m(nu)>=0._dp) THEN
-!           w2m(nu) = SQRT(w2m(nu))
-!         ELSE
-!           w2m(nu) = -SQRT(-w2m(nu))
-!         ENDIF
-!       ENDDO
       !
       dh = ( xqp(ix)-xqm(ix) ) *S%tpiba
       FORALL (nu = 1:S%nat3)
@@ -152,7 +134,7 @@ MODULE ph_velocity
       END FORALL
       !
     ENDDO
-!-!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
     !
     velocity_proj = xvel
     DEALLOCATE(D2, U, W, w2p, w2m, xvel)

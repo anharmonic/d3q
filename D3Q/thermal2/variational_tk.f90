@@ -40,9 +40,9 @@ MODULE variational_tk
     !
     INTEGER  :: iq, it, ix, nu
     !
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix)
+!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(3)
+!/!$OMP DO COLLAPSE(3)
     DO nu = 1,nat3
       DO it = 1,nconf
       DO ix = 1,3
@@ -50,9 +50,9 @@ MODULE variational_tk
       ENDDO
       ENDDO
     ENDDO
-!$OMP END DO
+!/!$OMP END DO
     ENDDO
-!$OMP END PARALLEL
+!/!$OMP END PARALLEL
     !
   END FUNCTION A_diag_f
   !
@@ -108,10 +108,11 @@ MODULE variational_tk
       ENDDO
       ENDDO
       !
-      ! Compute potentially Casimir linewidth, and get the scattering term as P^be = n(n+1) gamma^be
+      ! Compute Casimir linewidth, and get the scattering term as P^be = n(n+1) gamma^be
       IF(input%casimir_scattering) THEN
         timer_CALL t_lwcasi%start()
-        lw_casimir = casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, input%casimir_dir, S%nat3)
+        lw_casimir = casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, &
+                                            input%casimir_dir, S%nat3)
         !
         ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
         DO it = 1,input%nconf
@@ -157,7 +158,6 @@ MODULE variational_tk
     REAL(DP) :: A_out(S%nat3,nconf)
     REAL(DP) :: A_out_isot(S%nat3,nconf)
 !     REAL(DP) :: lw(S%nat3,nconf)
-    REAL(DP) :: lw_isot(S%nat3)
     REAL(DP) :: P3_isot(S%nat3,S%nat3)
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
@@ -174,8 +174,6 @@ MODULE variational_tk
     ! xq(:,5) -> -xq2
     ! And accordingly for U(:,:,i).
     ! Note that U(5) = CONJG(U(2)) and freq(5)=freq(2)
-
-
     ALLOCATE(U(S%nat3, S%nat3,5))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
@@ -201,10 +199,12 @@ MODULE variational_tk
       xq(:,3) = -xq(:,2)-xq(:,1)
       xq(:,4) =  xq(:,2)-xq(:,1)
       xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,4
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
+!$OMP END PARALLEL DO
         timer_CALL t_freq%stop()
       !
       ! Interpolate D3(q1,q2,-q1-q2)
@@ -224,8 +224,6 @@ MODULE variational_tk
         IF( ALL(ABS(xq(:,2))<epsq) ) THEN
         ! When q2 == 0, just copy over
         V3Bsq = V3sq
-        ! xq(:,5) = 0._dp
-        ! U(:,:,5) = U(:,:,2)
       ELSE
         U(:,:,5) = CONJG(U(:,:,2))
           timer_CALL t_fc3int%start()
@@ -242,22 +240,24 @@ MODULE variational_tk
       CONF_LOOP : &
       DO it = 1,nconf
           timer_CALL t_bose%start()
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,4
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
+!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
         !
           timer_CALL t_sum%start()
-        A_out(:,it) =  A_out(:,it) + grid%w(iq)*sum_A_out_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0 )
+        A_out(:,it) =  A_out(:,it) + grid%w(iq)&
+                    *sum_A_out_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0)
           timer_CALL t_sum%stop()
         !
         IF(isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
           P3_isot = sum_isotope_scattering_modes(S%nat3, S%nat, sigma(it), freq, &
                                               bose, S%ntyp, S%ityp, S%amass_variance, U)
-
-          ! I have to sum the scattering modes on the second index in order to get the
-          ! A_out diagonal matrix element
+          ! I have to sum the scattering matrix on the second index in order to get the
+          ! A_out diagonal matrix element for isotopic disorder
           DO nu = 1, S%nat3
             A_out_isot(:,it) = A_out_isot(:,it) + grid%w(iq)* P3_isot(:,nu)
           ENDDO
@@ -305,10 +305,9 @@ MODULE variational_tk
     !
     REAL(DP) :: sum_A_out_modes(nat3)
     !
-    ! _C -> scattering, _X -> cohalescence
-    REAL(DP) :: bose_a, bose_c ! final/initial state populations
-    REAL(DP) :: dom_a, dom_c   ! \delta\omega
-    REAL(DP) :: ctm_a, ctm_c   !
+    REAL(DP) :: bose_a, bose_c
+    REAL(DP) :: dom_a, dom_c
+    REAL(DP) :: ctm_a, ctm_c
     REAL(DP) :: norm_a, norm_c
     REAL(DP) :: sum_a, sum_c, sum_ac
     REAL(DP) :: freqm1(nat3,4)
@@ -375,9 +374,9 @@ MODULE variational_tk
     !
     INTEGER  :: iq, it, nu
     !
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it)
+!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it)
     DO iq = 1,nq
-!$OMP DO COLLAPSE(2)
+!/!$OMP DO COLLAPSE(2)
     DO nu = 1,nat3
       DO it = 1,nconf
         IF(A(it,nu,iq)>0._dp)THEN
@@ -389,13 +388,13 @@ MODULE variational_tk
           ! This hould be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
           inv_sqrt_A(it,nu,iq) = 0._dp
-          IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+          IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Warning: null A_out", iq, nu, it
         ENDIF
       ENDDO
     ENDDO
-!$OMP END DO
+!/!$OMP END DO
     ENDDO
-!$OMP END PARALLEL
+!/!$OMP END PARALLEL
     !
   END SUBROUTINE compute_inv_sqrt_A_out
   !
@@ -412,9 +411,9 @@ MODULE variational_tk
     !
     INTEGER  :: iq, it, nu
     !
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it)
+!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq, nu,it)
+!/!$OMP DO 
     DO iq = 1,nq
-!$OMP DO COLLAPSE(2)
     DO nu = 1,nat3
       DO it = 1,nconf
         IF(A(it,nu,iq)/=0._dp)THEN
@@ -427,9 +426,9 @@ MODULE variational_tk
         ENDIF
       ENDDO
     ENDDO
-!$OMP END DO
     ENDDO
-!$OMP END PARALLEL
+!/!$OMP END DO
+!/!$OMP END PARALLEL
     !
   END SUBROUTINE compute_inv_A_out
   !
@@ -467,10 +466,9 @@ MODULE variational_tk
     ALLOCATE(aux(3,input%nconf,S%nat3,out_grid%nq))
     sigma_ry = input%sigma/RY_TO_CMM1
     !
-    ! Apply the first 1/sqrt(A_out)
+    ! Apply A_out^(-1/2)
     timer_CALL t_tktld%start()
     DO iq = 1,out_grid%nq
-      ! bang!
       DO nu = 1,S%nat3
         DO it = 1,input%nconf
         DO ix = 1,3
@@ -485,7 +483,7 @@ MODULE variational_tk
       ! apply A_in
       Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
             sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
-      ! Apply 1+ and the second 1/sqrt(A)
+      ! Apply 1+ and the second A_^(-1/2)
       timer_CALL t_tktld%start()
       DO nu = 1,S%nat3
         DO it = 1,input%nconf
@@ -550,8 +548,6 @@ MODULE variational_tk
     ! xq(:,5) -> -xq2
     ! And accordingly for U(:,:,i).
     ! Note that U(5) = CONJG(U(2)) and freq(5)=freq(2)
-
-
     ALLOCATE(U(S%nat3, S%nat3,5))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
@@ -577,10 +573,12 @@ MODULE variational_tk
       xq(:,3) = -xq(:,2)-xq(:,1)
       xq(:,4) =  xq(:,2)-xq(:,1)
       xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,4
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
+!$OMP END PARALLEL DO
         timer_CALL t_freq%stop()
       !
       ! Interpolate D3(q1,q2,-q1-q2)
@@ -597,11 +595,9 @@ MODULE variational_tk
       ! Interpolate D3(q1,-q2, q2-q1)
       ! For this process, we send q2 -> -q2,
       ! i.e. D2(-q2,q2) -> D2(q2,-q2) = D2(-q2,q2)*
-        IF( ALL(ABS(xq(:,2))<epsq) ) THEN
+      IF( ALL(ABS(xq(:,2))<epsq) ) THEN
         ! When q2 == 0, just copy over
         V3Bsq = V3sq
-        ! xq(:,5) = 0._dp
-        ! U(:,:,5) = U(:,:,2)
       ELSE
         U(:,:,5) = CONJG(U(:,:,2))
           timer_CALL t_fc3int%start()
@@ -618,9 +614,11 @@ MODULE variational_tk
       CONF_LOOP : &
       DO it = 1,nconf
           timer_CALL t_bose%start()
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,4
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
+!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
         !
         ! P3 is a 3*nat x 3*nat minor of the A matrix, the implicit indexes are
@@ -639,7 +637,7 @@ MODULE variational_tk
         ENDIF
         !
           timer_CALL t_xain%start()
-        ! 3*nat lines of the A matrix are applied now to f to produce 3*nat elements of Af
+        ! 3*nat lines of the A_in matrix are applied now to f to produce 3*nat elements of A_in f
         DO mu = 1,S%nat3
         DO nu = 1,S%nat3
           DO ix = 1,3
@@ -708,13 +706,6 @@ MODULE variational_tk
        IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
        IF(i>=nu0(4)) freqm1(i,4) = 0.5_dp/freq(i,4)
      ENDDO
-
-    !WHERE(ABS(freq)>eps_freq)
-    !  freqm1 = 0.5_dp/freq
-    !ELSEWHERE
-    !  freqm1 = 0._dp
-    !ENDWHERE
-    !
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_b, bose_c, dom_a, dom_b, dom_c) &
 !$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_bc, sum_abc, norm_a, norm_bc) &
@@ -758,8 +749,6 @@ MODULE variational_tk
   !
   ! Compute thermal conductivity as 
   !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
-  ! Also computes the variational correction to thermal conductivity:
-  !   \Delta tk = - \lambda \over { N T^2 } f \dot g 
   FUNCTION calc_tk_gf(g, f, b, T, weight, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE timers
@@ -779,8 +768,8 @@ MODULE variational_tk
     !
     !
     tk = 0._dp
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(nu,it,ix,jx,pref) REDUCE(+:tk)
-!$OMP DO COLLAPSE(3)
+!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix,jx,pref) REDUCTION(+:tk)
+!/!$OMP DO COLLAPSE(3)
     DO iq = 1,nq
       DO nu = 1,nat3
         DO it = 1,nconf
@@ -788,26 +777,47 @@ MODULE variational_tk
           pref =  weight(iq)*(g(jx,it,nu,iq)-b(jx,it,nu,iq))
           DO ix = 1,3
             !
-            tk(ix,jx,it) = tk(ix,jx,it) &
-               + f(ix,it,nu,iq) * pref
+            tk(ix,jx,it) = tk(ix,jx,it)+ f(ix,it,nu,iq) * pref
             !
           ENDDO
           ENDDO
         ENDDO
       ENDDO
     ENDDO
-!$OMP ENDDO
-!$OMP END PARALLEL
+!/!$OMP END DO
+!/!$OMP END PARALLEL
     DO it = 1,nconf
       pref = -Omega/T(it)**2
       tk(:,:,it) = pref * tk(:,:,it)
     ENDDO
     !
   END FUNCTION calc_tk_gf
+  ! Compute thermal conductivity as 
+  !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
+  LOGICAL FUNCTION check_conv_tk(thr, nconf, delta_tk) RESULT(conv)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: thr
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: delta_tk(3,3,nconf)
+    INTEGER  :: it
+    !
+    ! Only check convergence on diagonal elements of tk, as the off
+    ! diagonal ones can take much longre to converge, and are usually 
+    ! not very interesting
+    conv = .true.
+    DO it = 1,nconf
+      conv = conv .and. ABS(delta_tk(1,1,it))*RY_TO_WATTMM1KM1 < thr
+      conv = conv .and. ABS(delta_tk(2,2,it))*RY_TO_WATTMM1KM1 < thr
+      conv = conv .and. ABS(delta_tk(3,3,it))*RY_TO_WATTMM1KM1 < thr
+    ENDDO
+    !
+  END FUNCTION check_conv_tk
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_tk(tk, sigma, T, nconf, name, unit0, iter)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE mpi_thermal, ONLY : ionode
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: tk(3,3,nconf)
     REAL(DP),INTENT(in) :: sigma(nconf)
@@ -818,7 +828,8 @@ MODULE variational_tk
     !
     INTEGER :: it
     IF(present(unit0) .and. .not. present(iter)) CALL errore("print_tk", "wrong args",1)
-
+    
+    IF(.not. ionode) RETURN
     ! print to screen
     ioWRITE(stdout,'(2x,a)') name
     IF(present(unit0)) REWIND(unit0)
@@ -866,7 +877,6 @@ MODULE variational_tk
         FLUSH(unit0+it)
       ENDDO
     ENDIF
-    
     !
   END SUBROUTINE print_tk
   !
