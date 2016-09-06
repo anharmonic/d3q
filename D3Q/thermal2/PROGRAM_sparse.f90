@@ -41,7 +41,6 @@ PROGRAM gen_sparse
     USE nanoclock,      ONLY : nanotimer, print_timers_header
     USE gen_sparse_program
     USE random_numbers, ONLY : randy
-    USE wrappers,       ONLY : f_get_vm_size
     USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode
     USE more_constants,  ONLY : print_citations_linewidth
     IMPLICIT NONE
