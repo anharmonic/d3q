@@ -337,18 +337,18 @@ MODULE linewidth_program
     IF(ionode)THEN 
     DO it = 1,input%nconf
       filename = TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                              "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+                 TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                 "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
       OPEN(unit=1000+it, file=filename)
       ioWRITE(*,*) "opening ", TRIM(filename)
       ioWRITE(1000+it, *) "# final state decompositions, mode: ", input%mode
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
-      ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
+      ioWRITE(1000+it, *) "# energy (cm^-1)         total      band1      band2    ....     "
       ioFLUSH(1000+it)
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(2x,a,3f12.6,a,1f12.6)') "Going to compute final state decomposition for", &
+    ioWRITE(*,'(2x,a,3f12.6,a,1f12.6,a)') "Going to compute final state decomposition for", &
                                 input%q_initial, "  energy:", input%e_initial, "cm^-1"
     
     !DO iq = 1,qpath%nq
@@ -365,7 +365,7 @@ MODULE linewidth_program
       !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
-          ioWRITE(1000+it, '(1f14.8,100e18.6e4)') &
+          ioWRITE(1000+it, '(1f14.8,100e18.6e3)') &
                ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
           ioFLUSH(1000+it)
         ENDDO

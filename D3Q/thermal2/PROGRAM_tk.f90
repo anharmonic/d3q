@@ -74,22 +74,20 @@ MODULE thermalk_program
     !
     REAL(DP) :: tk(3,3,input%nconf)
     REAL(DP) :: vel(3,S%nat3)
-    REAL(DP) :: dq, pref
+    REAL(DP) :: pref
     INTEGER  :: iq, it, a, b, nu
     !
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
     !
     sigma_ry = input%sigma/RY_TO_CMM1
     !
-    ! We are using the same grid size for the inner and outer grid    
-    ! this is not relly necessary in SMA, will fix later
-    ! In any case we need to use to separate grids, because the 
-    ! inner one (in_grid) is scatterd over MPI
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), in_grid, scatter=.true.)
+    ! the inner grid (in_grid) is scatterd over MPI
+    CALL setup_grid(input%grid_type, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
+                    in_grid, scatter=.true.)
     !CALL in_grid%scatter()
     !
-    ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
-    ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an outer grid of", out_grid%nq, " points"
+!     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
+!     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an outer grid of", out_grid%nq, " points"
     !
     IF(ionode)THEN
     DO it = 1,input%nconf
@@ -121,7 +119,7 @@ MODULE thermalk_program
     ENDIF
     !
     tk = 0._dp
-    dq = S%Omega/out_grid%nq
+    !dq = S%Omega/out_grid%nq
     !
       timer_CALL t_tksma%start()
     QPOINT_LOOP : &
@@ -204,7 +202,8 @@ MODULE thermalk_program
             ENDIF
           ENDIF
           !
-          pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))/input%T(it)**2 *dq /lw(nu,it)
+          pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))/input%T(it)**2 &
+                            * S%Omega * out_grid%w(iq) /lw(nu,it)
           !ioWRITE(stdout,"(3x,a,3i6,4e15.6)") "do:", iq, nu, it, pref, freq(nu), bose(nu,it), lw(nu,it)
           DO a = 1,3
           DO b = 1,3

@@ -73,11 +73,10 @@ MODULE code_input
   CONTAINS
   !
   ! FIXME: currently all CPUs read input, this should replace it eventually
-  SUBROUTINE bcast_input_type(in, ionode)
+  SUBROUTINE bcast_input_type(in)
     USE mpi_thermal,        ONLY : ionode, mpi_broadcast
     IMPLICIT NONE
     TYPE(code_input_type),INTENT(inout) :: in
-    LOGICAL,INTENT(in) :: ionode
     CALL mpi_broadcast(in%calculation)
     CALL mpi_broadcast(in%mode)
     CALL mpi_broadcast(in%outdir)

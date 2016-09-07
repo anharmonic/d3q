@@ -369,8 +369,7 @@ MODULE asr3_module
     ELSE
           CALL errore("reindex_fc3","bad direction (+1/-1)",1)
     ENDIF
-
-    
+    !
     DO iR2 = 1,idx2%nR
     DO iR3 = 1,idx3%nR
       IF(idR23(iR2,iR3)>0) THEN
@@ -381,8 +380,8 @@ MODULE asr3_module
       ENDIF
     ENDDO
     ENDDO
-    
   END SUBROUTINE reindex_fc3
+  !
   ! \/o\________\\\_________________________________________/^>
   ! symmetrize 3-body force constants wrt permutation of the indexes
   ! Note that the first R of the FC is always zero, hence we have to
@@ -394,21 +393,35 @@ MODULE asr3_module
     INTEGER,INTENT(in) :: nat
     TYPE(index_r_type) :: idx
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
-    TYPE(forceconst3_ofRR),ALLOCATABLE :: fsym(:,:)
+    !TYPE(forceconst3_ofRR),ALLOCATABLE,SAVE :: fsym(:,:)
+    TYPE(todo3_ofRR),ALLOCATABLE,SAVE       :: todo(:,:)
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
     REAL(DP) :: avg, delta
+    REAL(DP),PARAMETER :: onesixth = 0.1666666666666667_dp
     
     delta = 0._dp
 
-    ALLOCATE(fsym(idx%nR,idx%nR))
-    DO iR2 = 1,idx%nR
-    DO iR3 = 1,idx%nR
-      ALLOCATE(fsym(iR2,iR3)%F(3,3,3, nat,nat,nat))
-      fsym(iR2,iR3)%F = 0._dp
-    ENDDO
-    ENDDO
+    
+    IF(.not.allocated(todo)) THEN
+      !ALLOCATE(fsym(idx%nR,idx%nR))
+      ALLOCATE(todo(idx%nR,idx%nR))
+      DO iR2 = 1,idx%nR
+      DO iR3 = 1,idx%nR
+        !ALLOCATE(fsym(iR2,iR3)%F(3,3,3, nat,nat,nat))
+        !fsym(iR2,iR3)%F = 0._dp
+        ALLOCATE(todo(iR2,iR3)%F(3,3,3, nat,nat,nat))
+        todo(iR2,iR3)%F = .true.
+      ENDDO
+      ENDDO
+    ELSE
+      DO iR2 = 1,idx%nR
+      DO iR3 = 1,idx%nR
+        todo(iR2,iR3)%F = .true.
+      ENDDO
+      ENDDO
+    ENDIF
     !
     DO iR2 = 1,idx%nR
     R3_LOOP : &
@@ -422,7 +435,7 @@ MODULE asr3_module
       IF(iR2mR3<0 .or. iR3mR2<0) THEN
         IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
           CALL errore('impose_asr3', 'this should be zero', 1)
-        fsym(iR2,iR3)%F = 0._dp
+        !fsym(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
       !
@@ -433,18 +446,31 @@ MODULE asr3_module
         DO j = 1,nat
         DO k = 1,nat
         
-          avg = 1._dp/6._dp * ( &
-                    fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
-                  + fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
-                  + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
-                  + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
-                  + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
-                  + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
-                  )
+          IF( todo(iR2,iR3)%F(a,b,c, i,j,k) ) THEN
+            avg = onesixth * ( &
+                      fx(iR2,   iR3   )%F(a,b,c, i,j,k) &
+                    + fx(iR3,   iR2   )%F(a,c,b, i,k,j) &
+                    + fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) &
+                    + fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) &
+                    + fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) &
+                    + fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) &
+                    )
 
-          delta = delta + (fx(iR2,iR3)%F(a,b,c, i,j,k) - avg)**2
-          fsym(iR2,iR3)%F(a,b,c, i,j,k) = avg
+            delta = delta + (fx(iR2,iR3)%F(a,b,c, i,j,k) - avg)**2
+            fx(iR2,iR3)%F(a,b,c, i,j,k) = avg
+            fx(iR3,   iR2   )%F(a,c,b, i,k,j) = avg
+            fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = avg
+            fx(iR3mR2,mR2   )%F(b,c,a, j,k,i) = avg
+            fx(mR3,   iR2mR3)%F(c,a,b, k,i,j) = avg
+            fx(iR2mR3,mR3   )%F(c,b,a, k,j,i) = avg
 
+            todo(iR2,   iR3   )%F(a,b,c, i,j,k) = .false.
+            todo(iR3,   iR2   )%F(a,c,b, i,k,j) = .false.
+            todo(mR2,   iR3mR2)%F(b,a,c, j,i,k) = .false.
+            todo(iR3mR2,mR2   )%F(b,c,a, j,k,i) = .false.
+            todo(mR3,   iR2mR3)%F(c,a,b, k,i,j) = .false.
+            todo(iR2mR3,mR3   )%F(c,b,a, k,j,i) = .false.
+          ENDIF
         
         ENDDO
         ENDDO
@@ -455,13 +481,13 @@ MODULE asr3_module
     ENDDO R3_LOOP
     ENDDO
     !
-    DO iR2 = 1,idx%nR
-    DO iR3 = 1,idx%nR
-      fx(iR2,iR3)%F = fsym(iR2,iR3)%F
-      DEALLOCATE(fsym(iR2,iR3)%F)
-    ENDDO
-    ENDDO
-    DEALLOCATE(fsym)
+!     DO iR2 = 1,idx%nR
+!     DO iR3 = 1,idx%nR
+!       fx(iR2,iR3)%F = fsym(iR2,iR3)%F
+!       !DEALLOCATE(fsym(iR2,iR3)%F)
+!     ENDDO
+!     ENDDO
+    !DEALLOCATE(fsym)
     !
     delta = SQRT(delta)
 !     WRITE(*,'(75x,a,f12.6)') "ps", SQRT(delta)
@@ -638,7 +664,7 @@ MODULE asr3_module
     DEALLOCATE(fasr)
     DEALLOCATE(todo)
     !
-!     delperm = perm_symmetrize_fc3(nat,idx,fx)
+    delperm = perm_symmetrize_fc3(nat,idx,fx)
     WRITE(*,'(2x,a,i10,3e20.6)') "asr3/6", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
     iter = iter+1
     delta = SQRT(deltot)
@@ -658,16 +684,17 @@ MODULE asr3_module
     REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1, q1, r1
     !
-    TYPE(forceconst3_ofRR),ALLOCATABLE :: fasr(:,:)
+    !TYPE(forceconst3_ofRR),ALLOCATABLE,SAVE :: fasr(:,:)
     !
-    ALLOCATE(fasr(idx%nR,idx%nR))
-    DO iR2 = 1,idx%nR
-    DO iR3 = 1,idx%nR
-      ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
-      fasr(iR2,iR3)%F = 0._dp
-!       fasr(iR2,iR3)%F = fx(iR2,iR3)%F
-    ENDDO
-    ENDDO
+!     IF(.not.ALLOCATED(fasr))THEN
+!       ALLOCATE(fasr(idx%nR,idx%nR))
+!       DO iR2 = 1,idx%nR
+!       DO iR3 = 1,idx%nR
+!         ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
+!         fasr(iR2,iR3)%F = 0._dp
+!       ENDDO
+!       ENDDO
+!     ENDIF
 
     deltot = 0._dp
     delsig = 0._dp
@@ -694,23 +721,18 @@ MODULE asr3_module
           deltot = deltot + d1**2
           delsig = delsig + d1
           !
-!           fasr(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - d1
-          
-          IF(q1>eps2)THEN
-            !IF(ABS(d1) >eps .and. ABS(q1)>eps2) THEN
-            IF(ABS(q1)>eps2) THEN
-              r1 = d1/q1
-              !
-              R3_LOOPb : &
-              DO iR3 = 1,idx%nR
-              DO k = 1,nat
-                  IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
-                  fasr(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
-                                           - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-              ENDDO
-              ENDDO R3_LOOPb
-              !
-            ENDIF
+          IF(q1>0._dp) THEN
+            r1 = d1/q1
+            !
+            R3_LOOPb : &
+            DO iR3 = 1,idx%nR
+            DO k = 1,nat
+                !IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
+                fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
+                                          - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
+            ENDDO
+            ENDDO R3_LOOPb
+            !
           ENDIF
           !
         ENDDO
@@ -721,13 +743,13 @@ MODULE asr3_module
     ENDDO
     !
     !
-    DO iR2 = 1,idx%nR
-    DO iR3 = 1,idx%nR
-      fx(iR2,iR3)%F = fasr(iR2,iR3)%F
-      DEALLOCATE(fasr(iR2,iR3)%F)
-    ENDDO
-    ENDDO
-    DEALLOCATE(fasr)
+!     DO iR2 = 1,idx%nR
+!     DO iR3 = 1,idx%nR
+!       fx(iR2,iR3)%F = fasr(iR2,iR3)%F
+!       !DEALLOCATE(fasr(iR2,iR3)%F)
+!     ENDDO
+!     ENDDO
+    !DEALLOCATE(fasr)
 
     ! Re-symmetrize the matrix
     delperm = perm_symmetrize_fc3(nat,idx,fx)
@@ -849,7 +871,7 @@ PROGRAM asr3
     APPLY_ASR : &
     DO j = 1,niter_max
 !       IF(j<3)THEN
-!         IF( impose_asr3_6idx(S%nat,idx2,fx) < 1.d-6) EXIT
+!         IF( impose_asr3_6idx(S%nat,idx2,fx) < threshold) EXIT
 !       ELSE
         IF( impose_asr3_1idx(S%nat,idx2,fx) < threshold) EXIT
 !       ENDIF

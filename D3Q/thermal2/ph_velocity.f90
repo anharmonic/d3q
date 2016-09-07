@@ -101,7 +101,6 @@ MODULE ph_velocity
     xvel = 0._dp
     !
 ! NOTE: the rotation U must be shared!
-! NOTE2: not using OMP here because it is used in fftinterp_mat2
 !$OMP PARALLEL DO DEFAULT(shared) &
 !$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, W, dh) &
 !$OMP             REDUCTION(+:xvel)

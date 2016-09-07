@@ -64,6 +64,7 @@ MODULE final_state
     REAL(DP) :: sumaux(ne,S%nat3)
     INTEGER     :: iqpath
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
+    REAL(DP),ALLOCATABLE    :: xqsum(:)
     REAL(DP) :: qbarweight
     REAL(DP) :: pl,dpl
     !
@@ -75,7 +76,8 @@ MODULE final_state
     fstate_q = (0._dp, 0._dp)
     !
     IF(qresolved)THEN
-      WRITE(*,'(2x,a,3f10.4,a,f12.6)') "Q-resolved final state", xq0, " energy = ", ei*RY_TO_CMM1
+      WRITE(*,'(2x,a,3f10.4,a,f12.6,a)') "Q-resolved final state", xq0, &
+                                       " energy = ", ei*RY_TO_CMM1, "cm^-1"
       ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf))
     ENDIF
     !
@@ -102,7 +104,7 @@ MODULE final_state
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
 !/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
-          CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
+          CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
         sumaux = grid%w(iq)*sum_final_state_e( S, sigma(it), T(it), freq, bose, V3sq, ei, ne, ener )
@@ -112,9 +114,10 @@ MODULE final_state
         IF(qresolved) THEN
 !           sumaux = sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq)
           DO iqpath = 1,qpath%nq
-            !qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
-            qbarweight = f_gauss(refold_bz_mod(qpath%xq(:,iqpath),S%bg) &
-                                 -refold_bz_mod(xq(:,2), S%bg), sigmaq)
+            qbarweight = qpath%w(iqpath)*&
+              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
+!             qbarweight = qpath%w(iqpath)* f_gauss(refold_bz_mod(qpath%xq(:,iqpath),S%bg) &
+!                                                  -refold_bz_mod(xq(:,2), S%bg), sigmaq)
             xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
         ENDIF
@@ -124,28 +127,52 @@ MODULE final_state
     ENDDO
     !
     IF(qresolved)THEN
-      IF(grid%scattered)THEN
+      !IF(grid%scattered)THEN
       !CALL errore("final_state_q","grid resolved not implemented in parallel",1)
       !DO it = 1,nconf
-      !  CALL mpi_bsum(ne,S%nat3,qpath%nq, xqbar(:,:,:,it))
+      CALL mpi_bsum(ne,S%nat3,qpath%nq, nconf, xqbar)
       !ENDDO
-      ENDIF
+      !ENDIF
       !
+      ! To avoid messy graphs because many softwares do not understand 1.00-120 (i.e. 10^{-120})
+      WHERE(ABS(xqbar)<1.d-99) xqbar = 0._dp
+      ALLOCATE(xqsum(S%nat3))
+      
       unit = find_free_unit()
       DO it = 1,nconf
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qresolved_T"//TRIM(write_conf(it,nconf,T))//&
-                        "_s"//TRIM(write_conf(it,nconf,sigma))//".out")
+                        "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
+        ioWRITE(unit,'(a)') "ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           DO ie = 1,ne
-            ioWRITE(unit,'(2f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
-                            qpath%w(iqpath), xqbar(ie,:,iqpath,it)
+            ioWRITE(unit,'(5f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
+                            qpath%w(iqpath), qpath%xq(:,iqpath), &
+                            SUM(xqbar(ie,:,iqpath,it)),  xqbar(ie,:,iqpath,it)
           ENDDO
           WRITE(unit,*) 
         ENDDO
         CLOSE(unit)
+        !
+        OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
+                        "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
+                        "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
+        ioWRITE(unit,'(a)') " path_l/q_weight  q_x q_y q_z total band1 band2 ..."
+        DO iqpath = 1,qpath%nq
+          xqsum = 0._dp
+          DO nu = 1,S%nat3
+          DO ie = 1,ne
+            xqsum(nu) = xqsum(nu) + xqbar(ie,nu,iqpath,it)
+          ENDDO
+          ENDDO
+          ioWRITE(unit,'(4f12.6,100e15.5)') &
+                          qpath%w(iqpath), qpath%xq(:,iqpath), &
+                          SUM(xqsum(:)),  xqsum(:)
+        ENDDO
+        CLOSE(unit)
+        !
       ENDDO
-      DEALLOCATE(xqbar)
+      DEALLOCATE(xqbar, xqsum)
     ENDIF
     !
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf, fstate_q)

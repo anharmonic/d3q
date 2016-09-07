@@ -55,6 +55,7 @@ MODULE mpi_thermal
      MODULE PROCEDURE mpi_bsum_vec
      MODULE PROCEDURE mpi_bsum_mat
      MODULE PROCEDURE mpi_bsum_tns
+     MODULE PROCEDURE mpi_bsum_tns4
 
      MODULE PROCEDURE mpi_bsum_zscl
      MODULE PROCEDURE mpi_bsum_zvec
@@ -114,10 +115,8 @@ MODULE mpi_thermal
     LOGICAL,INTENT(inout) :: lgc
 
 #ifdef __MPI
-      !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LOR,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   SUBROUTINE mpi_all(lgc)
@@ -125,10 +124,8 @@ MODULE mpi_thermal
     LOGICAL,INTENT(inout) :: lgc
 
 #ifdef __MPI
-      !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, lgc, 1, MPI_LOGICAL, MPI_LAND,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
    END SUBROUTINE
  
@@ -137,10 +134,8 @@ MODULE mpi_thermal
     IMPLICIT NONE
     INTEGER,INTENT(inout) :: scl
 #ifdef __MPI
-      !timer_CALL t_mpicom%start()
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_INTEGER, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -148,10 +143,8 @@ MODULE mpi_thermal
     IMPLICIT NONE
     REAL(DP),INTENT(inout) :: scl
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -160,10 +153,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: nn
     REAL(DP),INTENT(inout) :: vec(nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -172,10 +163,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: mm, nn
     REAL(DP),INTENT(inout) :: mat(mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -184,22 +173,29 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: ll, mm, nn
     REAL(DP),INTENT(inout) :: tns(ll, mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns, ll*mm*nn, MPI_DOUBLE_PRECISION, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
-!!  ! --------- ------------- --- -- -- -- - - - complex numbers follow
+  !
+  SUBROUTINE mpi_bsum_tns4(ll, mm, nn, oo, tns)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: ll, mm, nn, oo
+    REAL(DP),INTENT(inout) :: tns(ll, mm,nn, oo)
+#ifdef __MPI
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns, ll*mm*nn*oo, MPI_DOUBLE_PRECISION, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  
+  !!  ! --------- ------------- --- -- -- -- - - - complex numbers follow
   SUBROUTINE mpi_bsum_zscl(scl)
     IMPLICIT NONE
     COMPLEX(DP),INTENT(inout) :: scl
 
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, scl, 1, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -208,10 +204,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: nn
     COMPLEX(DP),INTENT(inout) :: vec(nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -220,10 +214,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: mm, nn
     COMPLEX(DP),INTENT(inout) :: mat(mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, mat, mm*nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -232,10 +224,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: ll, mm, nn
     COMPLEX(DP),INTENT(inout) :: tns(ll, mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns, ll*mm*nn, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -244,10 +234,8 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: ll, mm, nn, oo
     COMPLEX(DP),INTENT(inout) :: tns4(ll, mm,nn, oo)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_ALLREDUCE(MPI_IN_PLACE, tns4, ll*mm*nn*oo, MPI_DOUBLE_COMPLEX, MPI_SUM,&
                        MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -317,9 +305,7 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: ll, mm, nn
     REAL(DP),INTENT(inout) :: tns(ll, mm,nn)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_BCAST(tns, ll*mm*nn, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
   !
@@ -328,9 +314,7 @@ MODULE mpi_thermal
     INTEGER,INTENT(in)     :: ll, mm, nn, oo
     REAL(DP),INTENT(inout) :: tns4(ll, mm,nn, oo)
 #ifdef __MPI
-      !timer_CALL t_mpicom%start() 
     CALL MPI_BCAST(tns4, ll*mm*nn*oo, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
-      !timer_CALL t_mpicom%stop()
 #endif
   END SUBROUTINE
 !!

@@ -9,12 +9,16 @@ MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
-
 #F90FLAGS += -check all -traceback -g
-F90FLAGS+= -p
-LDFLAGS+= -p
 
-#F90FLAGS += -fltconsistency
+# Remove the following line if you want to use intel compiler but not MKL 
+# vectorized vdCos and vdSin
+DFLAGS+= -D__HASVTRIG
+
+# Uncomment the following two lines to enable openmp in thermal2
+# use "-fopenmp" for gfortran and xlf compiler, "-openmp" for intel compiler
+#F90FLAGS+=-fopenmp
+#LDFLAGS+=-fopenmp
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -25,7 +29,6 @@ QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw
 
-#LIBOBJS = ../../LR_Modules/liblrmod.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 

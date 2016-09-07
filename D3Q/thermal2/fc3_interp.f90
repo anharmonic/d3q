@@ -154,6 +154,25 @@ MODULE fc3_interpolate
     MODULE PROCEDURE create_fc3_sparse
   END INTERFACE
   !
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  !
+  ! Third implementation: always return a constant (divided by the masses?)
+  TYPE,EXTENDS(forceconst3) :: constant
+    REAL(DP) :: constant = 0._dp
+    COMPLEX(DP),ALLOCATABLE :: D(:,:,:)
+    !
+    CONTAINS
+      !
+      procedure :: interpolate  => fftinterp_mat3_constant
+      procedure :: double_interpolate  => fft_doubleinterp_mat3_constant
+      procedure :: destroy      => destroy_fc3_constant
+      procedure :: read         => read_fc3_constant
+      procedure :: write        => write_fc3_constant
+      procedure :: div_mass     => div_mass_fc3_constant
+  END TYPE constant
+  INTERFACE constant
+    MODULE PROCEDURE create_fc3_constant
+  END INTERFACE
   ! \/o\________\\\_________________________________________/^>
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -185,6 +204,8 @@ MODULE fc3_interpolate
     !
     IF(buf=="sparse representation") THEN
       ALLOCATE(sparse:: fc)
+    ELSE IF(buf=="constant") THEN
+      ALLOCATE(constant::   fc)
     ELSE
       ALLOCATE(grid::   fc)
     ENDIF
@@ -201,6 +222,9 @@ MODULE fc3_interpolate
     RETURN
   END FUNCTION
   TYPE(sparse) FUNCTION create_fc3_sparse()
+    RETURN
+  END FUNCTION
+  TYPE(constant) FUNCTION create_fc3_constant()
     RETURN
   END FUNCTION
   !
@@ -350,7 +374,8 @@ MODULE fc3_interpolate
     !
     ! Pre-compute phase, use vectorized MKL subroutines if available
     FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-#if defined(__INTEL)
+#if defined(__INTEL) && defined(__HASVTRIG)
+!dir$ message "Using MKL vectorized Sin and Cos implementation, if this does not compile, remove -D__HASVTRIG from Makefile"
     CALL vdCos(fc%n_R, varg, vcos)
     CALL vdSin(fc%n_R, varg, vsin)
 #else
@@ -482,7 +507,8 @@ MODULE fc3_interpolate
     !
     ! Pre-compute phase to use the vectorized MKL subroutines
     FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-#if defined(__INTEL)
+#if defined(__INTEL) && defined(__HASVTRIG)
+!dir$ message "Using MKL vectorized Sin and Cos implementation, if this does not compile, remove -D__HASVTRIG from Makefile"
     CALL vdCos(fc%n_R, varg, vcos)
     CALL vdSin(fc%n_R, varg, vsin)
 #else
@@ -527,7 +553,8 @@ MODULE fc3_interpolate
     ! Pre-compute phase to use the vectorized MKL subroutines
     FORALL(i=1:fc%n_R) varg(i)  =  tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
     FORALL(i=1:fc%n_R) vargb(i) =  tpi * SUM(-xq2(:)*fc%xR2(:,i) + xq3b(:)*fc%xR3(:,i))
-#if defined(__INTEL)
+#if defined(__INTEL) && defined(__HASVTRIG)
+!dir$ message "Using MKL vectorized Sin and Cos implementation, if this does not compile, remove -D__HASVTRIG from Makefile"
     CALL vdCos(fc%n_R, varg, vcos)
     CALL vdSin(fc%n_R, varg, vsin)
     CALL vdCos(fc%n_R, vargb, vcosb)
@@ -932,39 +959,114 @@ MODULE fc3_interpolate
     !
   END SUBROUTINE destroy_fc3_
   !
-!   ! \/o\________\\\_________________________________________/^>
-!   SUBROUTINE fftinterp_mat3_error(fc, xq2,xq3, nat3, D)
-!     USE constants, ONLY : tpi
-!     IMPLICIT NONE
-!     INTEGER,INTENT(in)   :: nat3
-!     CLASS(forceconst3),INTENT(in) :: fc
-!     REAL(DP),INTENT(in) :: xq2(3), xq3(3)
-!     COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
-!     CALL errore("fftinterp_mat3_error", "not implemented for this class", 1)
-!     D = 0._dp
-!   END SUBROUTINE fftinterp_mat3_error
-!   ! \/o\________\\\_________________________________________/^>
-!   SUBROUTINE read_fc3_error(fc, filename, S)
-!     IMPLICIT NONE
-!     CHARACTER(len=*),INTENT(in)        :: filename
-!     TYPE(ph_system_info),INTENT(inout) :: S ! = System
-!     CLASS(forceconst3),INTENT(inout)   :: fc
-!     CALL errore("read_fc3_error", "not implemented for this class", 1)
-!   END SUBROUTINE read_fc3_error
-!   !
-!   SUBROUTINE write_fc3_error(fc, filename, S)
-!     IMPLICIT NONE
-!     CHARACTER(len=*),INTENT(in)     :: filename
-!     TYPE(ph_system_info),INTENT(in) :: S ! = System
-!     CLASS(forceconst3),INTENT(in)   :: fc
-!     CALL errore("write_fc3_error", "not implemented for this class", 1)
-!   END SUBROUTINE write_fc3_error
-!   !
-!   SUBROUTINE div_mass_fc3_error(fc, S)
-!     IMPLICIT NONE
-!     CLASS(forceconst3),INTENT(inout) :: fc
-!     TYPE(ph_system_info),INTENT(in)  :: S ! = System
-!     CALL errore("div_mass_fc3_error", "not implemented for this class", 1)
-!   END SUBROUTINE div_mass_fc3_error
-  
-END MODULE
+!       procedure :: interpolate  => fftinterp_mat3_constant
+!       procedure :: destroy      => destroy_fc3_constant
+!       procedure :: read         => read_fc3_constant
+!       procedure :: write        => write_fc3_constant
+!       procedure :: div_mass     => div_mass_fc3_constant  
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE fftinterp_mat3_constant(fc, xq2,xq3, nat3, D)
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    CLASS(constant),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    !
+    D = fc%D
+    !
+  END SUBROUTINE fftinterp_mat3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE fft_doubleinterp_mat3_constant(fc, xq2,xq3,xq3b, nat3, D, Db)
+    IMPLICIT NONE
+    !
+    INTEGER,INTENT(in)   :: nat3
+    CLASS(constant),INTENT(in) :: fc
+    REAL(DP),INTENT(in) :: xq2(3), xq3(3), xq3b(3)
+    COMPLEX(DP),INTENT(out) :: D(nat3, nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: Db(nat3, nat3, nat3)
+    D  = fc%D
+    Db = fc%D
+  END SUBROUTINE fft_doubleinterp_mat3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE div_mass_fc3_constant(fc,S)
+    USE kinds,    ONLY : DP
+    USE input_fc, ONLY : ph_system_info
+    IMPLICIT NONE
+    CLASS(constant),INTENT(inout) :: fc
+    TYPE(ph_system_info),INTENT(in) :: S
+    !
+    INTEGER :: i, j, k, i_R
+    !
+    IF(.not.ALLOCATED(S%sqrtmm1)) &
+      call errore('div_mass_fc3_grid', 'missing sqrtmm1, call aux_system first', 1)
+    
+    ALLOCATE(fc%D(S%nat3, S%nat3, S%nat3))
+    fc%D = fc%constant
+    !
+    DO k = 1, S%nat3
+    DO j = 1, S%nat3
+    DO i = 1, S%nat3
+      fc%D(i, j, k) = fc%D(i, j, k) &
+                  * S%sqrtmm1(i)*S%sqrtmm1(j)*S%sqrtmm1(k)
+    ENDDO
+    ENDDO
+    ENDDO
+    !
+  END SUBROUTINE div_mass_fc3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE destroy_fc3_constant(fc)
+    IMPLICIT NONE
+    CLASS(constant),INTENT(inout) :: fc
+    !
+    DEALLOCATE(fc%D)
+    fc%constant = 0._dp
+    !
+  END SUBROUTINE destroy_fc3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE read_fc3_constant(fc, filename, S)
+    USE input_fc, ONLY : read_system
+    USE input_fc, ONLY : ph_system_info
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in)          :: filename
+    TYPE(ph_system_info),INTENT(inout)   :: S ! = System
+    CLASS(constant),INTENT(inout) :: fc
+    INTEGER :: unit, ios
+    CHARACTER(len=17),PARAMETER :: sub = "read_fc3_constant"
+    CHARACTER(len=32) :: buf
+    INTEGER,EXTERNAL :: find_free_unit
+    !
+    unit = find_free_unit()
+    OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
+    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
+    !
+    READ(unit, '(a32)') buf
+    IF(buf/="constant") CALL errore(sub, "cannot read this format", 1)
+    !
+    ioWRITE(stdout,*) "** Reading constant FC3 file ", TRIM(filename)
+    !CALL read_system(unit, S)
+    READ(unit, *) fc%constant
+    RETURN
+    !
+  END SUBROUTINE read_fc3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+  SUBROUTINE write_fc3_constant(fc, filename, S)
+    USE input_fc, ONLY : write_system, ph_system_info
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in)          :: filename
+    TYPE(ph_system_info),INTENT(in)   :: S ! = System
+    CLASS(constant),INTENT(in) :: fc
+    CHARACTER(len=14),PARAMETER :: sub = "write_fc3_constant"
+    INTEGER :: unit, ios
+    INTEGER, EXTERNAL :: find_free_unit
+    !
+    unit = find_free_unit()
+    OPEN(unit=unit,file=filename,action='write',status='unknown',iostat=ios)
+    IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
+    !
+    WRITE(unit, '(a)') "constant"
+    !CALL write_system(unit, S)
+    WRITE(unit,*) FC%constant
+  END SUBROUTINE write_fc3_constant
+    !
+  END MODULE

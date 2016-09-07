@@ -59,15 +59,15 @@ MODULE fc2_interpolate
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_reduce(xq, nat3, fc, D)
+  SUBROUTINE fftinterp_mat2_reduce(xq, S, fc, D)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
     !
-    INTEGER,INTENT(in)   :: nat3
+    TYPE(ph_system_info),INTENT(in) :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
-    COMPLEX(DP),INTENT(out) :: D(nat3, nat3)
+    COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -83,6 +83,8 @@ MODULE fc2_interpolate
       D(:, :) = D(:, :) + phase * fc%fc(:, :, i)
     END DO
 !$OMP END PARALLEL DO
+    !
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
@@ -144,7 +146,8 @@ MODULE fc2_interpolate
     !
     ! Pre-compute phase to use the vectorized MKL subroutines
     FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq(:)*fc%xR(:,i))
-#if defined(__INTEL)
+#if defined(__INTEL) && defined(__HASVTRIG)
+!dir$ message "Using MKL vectorized Sin and Cos implementation, if this does not compile, remove -D__HASVTRIG from Makefile"
     CALL vdCos(fc%n_R, varg, vcos)
     CALL vdSin(fc%n_R, varg, vsin)
 #else
@@ -192,22 +195,22 @@ MODULE fc2_interpolate
     ! clause is often miscompiled by ifort 14 (Feb 2015)
     !
     D = (0._dp, 0._dp)
-!$OMP PARALLEL DEFAULT(none) SHARED(D,S,fc,xq) PRIVATE(i,arg,phase,D_aux)
+!/!$OMP PARALLEL DEFAULT(none) SHARED(D,S,fc,xq) PRIVATE(i,arg,phase,D_aux)
     ALLOCATE(D_aux(S%nat3,S%nat3))
     D_aux = (0._dp, 0._dp)
-!$OMP DO
+!/!$OMP DO
     DO i = 1, fc%n_R
       arg = tpi * SUM(xq(:)*fc%xR(:,i))
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
       D_aux(:, :) = D_aux(:, :) + phase * fc%fc(:, :, i)
     END DO
-!$OMP END DO
-!$OMP CRITICAL(fc_interpolate_fftinterp_mat2_10)
+!/!$OMP END DO
+!/!$OMP CRITICAL(fc_interpolate_fftinterp_mat2_10)
     D = D + D_aux
-!$OMP FLUSH(D)
-!$OMP END CRITICAL(fc_interpolate_fftinterp_mat2_10)
+!/!$OMP FLUSH(D)
+!/!$OMP END CRITICAL(fc_interpolate_fftinterp_mat2_10)
     DEALLOCATE(D_aux)
-!$OMP END PARALLEL
+!/!$OMP END PARALLEL
     !
     IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
     !
@@ -231,7 +234,7 @@ MODULE fc2_interpolate
 !     FORALL(i=1:S%nat) itau(i) = i
     !
     phi = 0._dp
-    ! Non-anal is only for q=0 and depends on the direction. Better to not use it
+    ! Non-analitical is only for q=0 and depends on the direction. Better to not use it
 !     CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
     !
     CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
