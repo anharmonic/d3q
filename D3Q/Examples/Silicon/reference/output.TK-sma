@@ -1,5 +1,5 @@
   Using      1 MPI processes
-
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -16,30 +16,38 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 
   Reading input file 'input.TK-sma'
-&TKINPUT
- CALCULATION="sma             ",
- OUTDIR="./TK-sma/                                                                                                                                                                                                                                                       ",
- PREFIX="///                                                                                                                                                                                                                                                             ",
- FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
- FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
- ASR2="simple  ",
- THR_TK=  1.0000000000000000E-004,
- NITER_MAX=       1000,
- NCONF=          1,
- NK= 3*5          ,
- NK_IN= 3*5          ,
- GRID_TYPE="simple",
- ISOTOPIC_DISORDER=F,
- CASIMIR_SCATTERING=F,
- CASIMIR_LENGTH_AU= -1.0000000000000000     ,
- CASIMIR_LENGTH_MU= -1.0000000000000000     ,
- CASIMIR_LENGTH_MM= -1.0000000000000000     ,
- CASIMIR_DIR= 3*0.0000000000000000       ,
- MAX_SECONDS=         -1,
- MAX_TIME= -1.0000000000000000     ,
- RESTART=F,
+ &TKINPUT
+ CALCULATION     = sma             ,
+ OUTDIR  = ./TK-sma/                                                                                                                 
+                                                                                                                                     
+   ,
+ PREFIX  = ///                                                                                                                       
+                                                                                                                                     
+   ,
+ FILE_MAT2       = mat2R                                                                                                             
+                                                                                                                                     
+           ,
+ FILE_MAT3       = mat3R.asr.sparse                                                                                                  
+                                                                                                                                     
+           ,
+ ASR2    = simple  ,
+ THR_TK  =  1.000000000000000E-002,
+ NITER_MAX       =        1000,
+ NCONF   =           1,
+ NK      = 3*5,
+ NK_IN   = 3*5,
+ GRID_TYPE       = simple,
+ ISOTOPIC_DISORDER       = F,
+ CASIMIR_SCATTERING      = F,
+ CASIMIR_LENGTH_AU       =  -1.00000000000000     ,
+ CASIMIR_LENGTH_MU       =  -1.00000000000000     ,
+ CASIMIR_LENGTH_MM       =  -1.00000000000000     ,
+ CASIMIR_DIR     = 3*0.000000000000000E+000  ,
+ MAX_SECONDS     =          -1,
+ MAX_TIME        =  -1.00000000000000     ,
+ RESTART = F
  /
  ** Reading FC2 file: mat2R
      alat (bohr)   10.200000
@@ -72,11 +80,9 @@
     300.0
   Smearings:   
      10.0
-
+ 
   Setup a simple grid of      125 q-points
   Setup a simple grid of      125 q-points
- Integrating over an inner grid of       125 points
- Integrating over an outer grid of       125 points
      1     0.00000000     0.00000000     0.00000000
      2    -0.20000000     0.20000000    -0.20000000
      3    -0.40000000     0.40000000    -0.40000000
@@ -206,25 +212,26 @@
    SMA thermal conductivity, stored to file:
      ./TK-sma//sma_full.5x5x5.out
    Diagonal components (conf, sigma, T, K_x, K_y, K_z):
-  1   10.000000  300.000000  0.16951495E+03  0.16993763E+03  0.16915151E+03
-   * WALL :       6.8227 s
+  1   10.000000  300.000000  0.16870579E+03  0.16870579E+03  0.16870579E+03
+   * WALL :       3.8109 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *     6451.869435 *     6451.869435 *        6451.869 *     6451.869435 *   94.564 *           1. *
+   *             sma thermalk *     3553.165695 *     3553.165695 *        3553.166 *     3553.165695 *   93.236 *           1. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        0.189902 *        0.001519 *           0.190 *        0.001519 *    0.003 *         125. *
-   *                 lw ph-ph *     6397.901423 *       51.183211 *        6397.901 *       51.183211 *   93.773 *         125. *
-   *        ph group velocity *       50.688170 *        0.405505 *          50.688 *        0.405505 *    0.743 *         125. *
-   *          lw input/output *        2.220627 *        0.017765 *           2.221 *        0.017765 *    0.033 *         125. *
-   *        mpi communication *        0.309327 *        0.002475 *           0.309 *        0.002475 *    0.005 *         125. *
-   *             read fc data *       66.784766 *       66.784766 *          66.785 *       66.784766 *    0.979 *           1. *
+   *          sum of tk terms *        0.163084 *        0.001305 *           0.163 *        0.001305 *    0.004 *         125. *
+   *                 lw ph-ph *     3523.615808 *       28.188926 *        3523.616 *       28.188926 *   92.461 *         125. *
+   *        ph group velocity *       26.365457 *        0.210924 *          26.365 *        0.210924 *    0.692 *         125. *
+   *          lw input/output *        1.684172 *        0.013473 *           1.684 *        0.013473 *    0.044 *         125. *
+   *        mpi communication *        0.196674 *        0.001573 *           0.197 *        0.001573 *    0.005 *         125. *
+   *             read fc data *       23.220613 *       23.220613 *          23.221 *       23.220613 *    0.609 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     2070.731170 *        0.131475 *        2070.731 *        0.131475 *   30.350 *       15750. *
-   *             bose distrib *       34.625709 *        0.002216 *          34.626 *        0.002216 *    0.508 *       15625. *
-   *                sum modes *      558.780187 *        0.035762 *         558.780 *        0.035762 *    8.190 *       15625. *
-   *          fc3 interpolate *     2116.751397 *        0.135472 *        2116.751 *        0.135472 *   31.025 *       15625. *
-   *           fc3 modulus sq *       12.869680 *        0.000824 *          12.870 *        0.000824 *    0.189 *       15625. *
-   *               fc3 rotate *     1542.232609 *        0.098703 *        1542.233 *        0.098703 *   22.604 *       15625. *
-
+   *         ph interp & diag *     1007.441175 *        0.063965 *        1007.441 *        0.063965 *   26.435 *       15750. *
+   *             bose distrib *       18.221607 *        0.001166 *          18.222 *        0.001166 *    0.478 *       15625. *
+   *                sum modes *      200.179780 *        0.012812 *         200.180 *        0.012812 *    5.253 *       15625. *
+   *          fc3 interpolate *      819.909045 *        0.052474 *         819.909 *        0.052474 *   21.514 *       15625. *
+   *           fc3 modulus sq *       16.178205 *        0.001035 *          16.178 *        0.001035 *    0.425 *       15625. *
+   *               fc3 rotate *     1397.602281 *        0.089447 *        1397.602 *        0.089447 *   36.673 *       15625. *
+   *         merge degenerate *       11.549610 *        0.000733 *          11.550 *        0.000733 *    0.303 *       15750. *
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -241,4 +248,4 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 

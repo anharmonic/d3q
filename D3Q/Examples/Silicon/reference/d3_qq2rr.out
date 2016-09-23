@@ -93,14 +93,15 @@
  Reading D3 matrices done
  Total memory used :            0 Mb
  Doing Backward FFT...
-    Sum of imaginary parts:     8.013E-07
-    Average imaginary part:     3.069E-11
-    Largest imaginary fraction: 4.755E-06 for -1.519E-05-7.221E-11
-    Largest imaginary part:     6.876E-10
+    Sum of imaginary parts:     7.982E-07
+    Average imaginary part:     3.057E-11
+    Largest imaginary fraction: 4.580E-06 for  1.519E-05   6.955E-11
+    Largest imaginary part:     6.617E-10
  Backward FFT done
- Total memory used :            2 Mb
+ Total memory used :            1 Mb
  Writing FCs to file...
  Testing Forward FFT, with imaginary part...
+ (you can stop the code with CTRL-C to avoid running tests)  
    BW/FW FFT fine.
  Testing Forward FFT, without imaginary part...
    BW/FW FFT fine.

@@ -1,5 +1,5 @@
 
-     Program D3_Q2R v.5.4.0 (svn rev. 12569M) starts on 22Jul2016 at 11:41: 6 
+     Program D3_Q2R v.6.beta (svn rev. 12981M) starts on 23Sep2016 at 15:33: 2 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -36,10 +36,10 @@
       q-space grid ok, #points =    4
  seeking over          405  vectors
  
-     D3_Q2R       :     0.02s CPU         0.03s WALL
+     D3_Q2R       :     0.03s CPU         0.03s WALL
 
  
-   This run was terminated on:  11:41: 6  22Jul2016            
+   This run was terminated on:  15:33: 2  23Sep2016            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

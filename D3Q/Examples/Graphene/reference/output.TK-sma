@@ -17,60 +17,6 @@
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
  
- 
-      
-     For 2n+1 calculations of force constants please cite:
-      1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
-      
-     For thermal transport calculations please cite:
-      2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
-      3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
-         Nature communications 6 (2015)
- 
-      
-     For 2n+1 calculations of force constants please cite:
-      1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
-      
-     For thermal transport calculations please cite:
-      2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
-      3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
-         Nature communications 6 (2015)
-      4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
-         Nano letters 14 (11), 6109-6114 (2014)
- 
-      
-     For 2n+1 calculations of force constants please cite:
-      1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
-      
-     For thermal transport calculations please cite:
-      2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
-      3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
-         Nature communications 6 (2015)
-      4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
-         Nano letters 14 (11), 6109-6114 (2014)
-      
-     For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
-         Phys. Rev. B 91, 054304 (2015)
- 
-      
-     For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
-         Phys. Rev. B 91, 054304 (2015)
- 
-      4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
-         Nano letters 14 (11), 6109-6114 (2014)
-      
-     For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
-         Phys. Rev. B 91, 054304 (2015)
- 
   Reading input file 'input.TK-sma'
  &TKINPUT
  CALCULATION     = sma             ,
@@ -87,7 +33,7 @@
                                                                                                                                      
            ,
  ASR2    = simple  ,
- THR_TK  =  1.000000000000000E-004,
+ THR_TK  =  1.000000000000000E-002,
  NITER_MAX       =        1000,
  NCONF   =          10,
  NK      = 2*32,           1,
@@ -140,8 +86,6 @@
  
   Setup a simple grid of     1024 q-points
   Setup a simple grid of     1024 q-points
- Integrating over an inner grid of       256 points
- Integrating over an outer grid of      1024 points
      1     0.00000000     0.00000000     0.00000000
      2     0.00000000     0.03608439     0.00000000
      3     0.00000000     0.07216878     0.00000000
@@ -1173,30 +1117,31 @@
   1   50.000000    5.000000  0.23722248E+02  0.13204749E+03  0.00000000E+00
   2   50.000000   10.000000  0.10205015E+03  0.52103164E+03  0.00000000E+00
   3   50.000000   20.000000  0.13432271E+03  0.45459377E+03  0.00000000E+00
-  4   50.000000   30.000000  0.14954751E+03  0.32272531E+03  0.00000000E+00
+  4   50.000000   30.000000  0.14954751E+03  0.32272532E+03  0.00000000E+00
   5   50.000000   50.000000  0.15137842E+03  0.20149591E+03  0.00000000E+00
-  6   50.000000   70.000000  0.13150681E+03  0.14524837E+03  0.00000000E+00
-  7   50.000000  100.000000  0.96940207E+02  0.99520027E+02  0.00000000E+00
-  8   50.000000  200.000000  0.39990030E+02  0.42481654E+02  0.00000000E+00
+  6   50.000000   70.000000  0.13150682E+03  0.14524837E+03  0.00000000E+00
+  7   50.000000  100.000000  0.96940208E+02  0.99520027E+02  0.00000000E+00
+  8   50.000000  200.000000  0.39990031E+02  0.42481654E+02  0.00000000E+00
   9   50.000000  500.000000  0.11443525E+02  0.14607008E+02  0.00000000E+00
  10   50.000000 1000.000000  0.51388456E+01  0.71436656E+01  0.00000000E+00
-   * WALL :      67.4079 s
+   * WALL :      78.5407 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *    67045.334744 *    16761.333686 *      268181.339 *    67045.334744 *   99.462 *           4. *
+   *             sma thermalk *    78107.641912 *    19526.910478 *      312430.568 *    78107.641912 *   99.449 *           4. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        3.746899 *        0.000915 *          14.988 *        0.003659 *    0.006 *        4096. *
-   *                 lw ph-ph *    66981.186182 *       16.352829 *      267924.745 *       65.411315 *   99.367 *        4096. *
-   *        ph group velocity *       34.677524 *        0.008466 *         138.710 *        0.033865 *    0.051 *        4096. *
-   *          lw input/output *       19.332528 *        0.004720 *          77.330 *        0.018879 *    0.029 *        4096. *
-   *        mpi communication *     2543.796412 *        0.621044 *       10175.186 *        2.484176 *    3.774 *        4096. *
-   *             read fc data *        1.745472 *        0.436368 *           6.982 *        1.745472 *    0.003 *           4. *
+   *          sum of tk terms *        4.154402 *        0.001014 *          16.618 *        0.004057 *    0.005 *        4096. *
+   *                 lw ph-ph *    78029.378184 *       19.050141 *      312117.513 *       76.200565 *   99.349 *        4096. *
+   *        ph group velocity *       41.143943 *        0.010045 *         164.576 *        0.040180 *    0.052 *        4096. *
+   *          lw input/output *       24.952164 *        0.006092 *          99.809 *        0.024367 *    0.032 *        4096. *
+   *        mpi communication *     4392.762130 *        1.072452 *       17571.049 *        4.289807 *    5.593 *        4096. *
+   *             read fc data *        1.974116 *        0.493529 *           7.896 *        1.974116 *    0.003 *           4. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     4022.727778 *        0.003821 *       16090.911 *        0.015286 *    5.968 *     1052672. *
-   *             bose distrib *     2867.262567 *        0.000273 *       11469.050 *        0.001094 *    4.254 *    10485760. *
-   *                sum modes *    29036.616424 *        0.002769 *      116146.466 *        0.011077 *   43.076 *    10485760. *
-   *          fc3 interpolate *     1100.296112 *        0.001049 *        4401.184 *        0.004197 *    1.632 *     1048576. *
-   *           fc3 modulus sq *      290.589383 *        0.000277 *        1162.358 *        0.001109 *    0.431 *     1048576. *
-   *               fc3 rotate *    21924.101994 *        0.020908 *       87696.408 *        0.083634 *   32.524 *     1048576. *
+   *         ph interp & diag *     4283.057823 *        0.004069 *       17132.231 *        0.016275 *    5.453 *     1052672. *
+   *             bose distrib *     3193.546305 *        0.000305 *       12774.185 *        0.001218 *    4.066 *    10485760. *
+   *                sum modes *    34549.869297 *        0.003295 *      138199.477 *        0.013180 *   43.990 *    10485760. *
+   *          fc3 interpolate *     1598.617109 *        0.001525 *        6394.468 *        0.006098 *    2.035 *     1048576. *
+   *           fc3 modulus sq *      325.674724 *        0.000311 *        1302.699 *        0.001242 *    0.415 *     1048576. *
+   *               fc3 rotate *    23551.820134 *        0.022461 *       94207.281 *        0.089843 *   29.987 *     1048576. *
+   *         merge degenerate *     2595.849200 *        0.000247 *       10383.397 *        0.000990 *    3.305 *    10489856. *
  
       
      For 2n+1 calculations of force constants please cite:

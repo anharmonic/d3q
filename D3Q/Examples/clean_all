@@ -1,9 +1,20 @@
 #!/bin/bash
 
-for i in Silicon Graphene; do
+# Clean the Example subdirectories 
+# Only clean the third level inside tutorial because the second contains mat* files
+for i in Silicon Graphene Tutorial*/DAY*/PART* ; do
 	( 
 	  cd $i
-	  rm -rf drhox_e* *out TMP* FIL* d3-*.in
+	  rm -rf drhox_e* out* *.out TK* LW* FIL* TMP* mat2* mat3* dyn* CRASH drho_e*
 	 )
 done
+
+# Re-create these directories:
+mkdir -p DAY3-ANHARMONICITY/PART1/FIL{DYN,D3DYN}
+
+# In import_FD we only delete mat3R* (not mat2R)
+(
+ cd Import_FD
+ rm -f mat3R*
+)
 

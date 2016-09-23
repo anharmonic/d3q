@@ -11,16 +11,16 @@
     Original FC3 grid:           2           2           2
     Number of R:                 0
  FC Memory used :            0 Mb
- Cutting off FCs smaller than :    0.0000000000000000      Ry/bohr^3
+ Cutting off FCs smaller than :   0.000000000000000E+000 Ry/bohr^3
  FC+Sparse Memory used :            0 Mb
  Running       10000 test configurations
- Max delta:    0.0000000000000000        0.0000000000000000     
- Avg delta:    0.0000000000000000     
- Speedup:      1.3652256287256215     
-   *         Full matrix form *     1715.185823 *        0.171519 *        1715.186 *        0.171519 *   56.981 *       10000. *
-   *       Sparse matrix form *     1256.338723 *        0.125634 *        1256.339 *        0.125634 *   41.737 *       10000. *
+ Max delta:   0.000000000000000E+000  0.000000000000000E+000
+ Avg delta:   0.000000000000000E+000
+ Speedup:      2.23680131437326     
+   *         Full matrix form *     1158.572345 *        0.115857 *        1158.572 *        0.115857 *   52.206 *       10000. *
+   *       Sparse matrix form *      517.959435 *        0.051796 *         517.959 *        0.051796 *   23.339 *       10000. *
  Sparse Memory used :            0 Mb
-
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -37,4 +37,4 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 
