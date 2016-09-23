@@ -294,7 +294,8 @@ SUBROUTINE setup_nscf_d3()
   !
   ! Divide original symmetry-opened kpoints among pools
   kunit = 1
-  CALL divide_et_impera( xk, wk, isk, lsda, nkstot, nks )
+  !CALL divide_et_impera( xk, wk, isk, lsda, nkstot, nks )
+  CALL divide_et_impera( nkstot, xk, wk, isk, nks )
   WRITE(stdout,'(5x,a)') "Total number of kpoints:"
   WRITE(stdout,'(7x,a,i6)') "--> after reducing symmetry:", nkstot
   !
