@@ -25,7 +25,8 @@ MODULE timers
                      t_lwcasi = nanotimer("lw casimir"), &
                      t_velcty = nanotimer("ph group velocity"), &
                      t_mpicom = nanotimer("mpi communication"), &
-                     t_readdt = nanotimer("read fc data")
+                     t_readdt = nanotimer("read fc data"), &
+                     t_merged = nanotimer("merge degenerate")
 
   TYPE(nanotimer) :: t_tksma   = nanotimer("sma thermalk"), &
                      t_tksum   = nanotimer("sum of tk terms"), &
@@ -70,6 +71,7 @@ MODULE timers
     CALL t_tkprec%print()
     CALL t_tktld%print()
     CALL t_xain%print()
+    CALL t_merged%print()
   END SUBROUTINE
   !
   SUBROUTINE set_time_limit(max_seconds, max_time)

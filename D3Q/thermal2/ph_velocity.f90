@@ -16,7 +16,7 @@ MODULE ph_velocity
   REAL(DP),PARAMETER :: h = 1.e-5_dp
   
   INTERFACE velocity
-    MODULE PROCEDURE velocity_var
+    MODULE PROCEDURE velocity_proj
   END INTERFACE  
   !
   PUBLIC :: velocity
@@ -83,6 +83,7 @@ MODULE ph_velocity
   ! This algorithm does not fail at band crossings
   FUNCTION velocity_proj(S,fc, xq)
     USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
+    USE merge_degenerate, ONLY : merge_degenerate_velocity
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -92,16 +93,16 @@ MODULE ph_velocity
     !
     REAL(DP),ALLOCATABLE :: xvel(:,:)
     COMPLEX(DP),ALLOCATABLE :: D2(:,:), U(:,:), W(:,:)
-    REAL(DP),ALLOCATABLE    :: w2p(:), w2m(:)
+    REAL(DP),ALLOCATABLE    :: w2p(:), w2m(:), w2(:)
     !
     INTEGER :: ix, nu
     REAL(DP) :: xqp(3), xqm(3), dh
     !
     ALLOCATE(D2(S%nat3,S%nat3), U(S%nat3,S%nat3), W(S%nat3,S%nat3), &
-             w2p(S%nat3), w2m(S%nat3), xvel(3,S%nat3))
+             w2p(S%nat3), w2m(S%nat3), w2(S%nat3), xvel(3,S%nat3))
     !
     CALL fftinterp_mat2(xq, S, fc, U)
-    CALL mat2_diag(S%nat3, U, w2p)
+    CALL mat2_diag(S%nat3, U, w2)
     !
     xvel = 0._dp
     !
@@ -140,8 +141,9 @@ MODULE ph_velocity
     ENDDO
 !$OMP END PARALLEL DO
     !
+    CALL merge_degenerate_velocity(S%nat3, xvel, w2)
     velocity_proj = xvel
-    DEALLOCATE(D2, U, W, w2p, w2m, xvel)
+    DEALLOCATE(D2, U, W, w2p, w2m, w2, xvel)
     !
   END FUNCTION velocity_proj
   ! \/o\________\\\_________________________________________/^>
@@ -157,6 +159,7 @@ MODULE ph_velocity
   ! of fourier transform
   FUNCTION velocity_var(S,fc, xq)
     USE fc2_interpolate, ONLY : fftinterp_mat2, fftinterp_dmat2, mat2_diag
+    USE merge_degenerate, ONLY : merge_degenerate_velocity
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -199,10 +202,24 @@ MODULE ph_velocity
       ENDDO
     ENDDO
     !
+    CALL merge_degenerate_velocity(S%nat3, xvel, w2)
     velocity_var = xvel
     DEALLOCATE(U, xvel)
 
   END FUNCTION velocity_var
-  
+  !
 END MODULE ph_velocity
+
+
+
+
+
+
+
+
+
+
+
+
+
 

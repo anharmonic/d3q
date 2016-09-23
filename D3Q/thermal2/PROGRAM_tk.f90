@@ -271,6 +271,7 @@ MODULE thermalk_program
     CALL t_fc3int%print()
     CALL t_fc3m2%print()
     CALL t_fc3rot%print()
+    CALL t_merged%print()
 #endif
     !
     !
@@ -521,26 +522,27 @@ MODULE thermalk_program
 #ifdef timer_CALL
       ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
       CALL print_timers_header()
-      timer_CALL t_tkprec%print()
-      timer_CALL t_tkaout%print()
-      timer_CALL t_tkain%print()
-      timer_CALL t_tkcg%print()
-      timer_CALL t_restart%print()
+      CALL t_tkprec%print()
+      CALL t_tkaout%print()
+      CALL t_tkain%print()
+      CALL t_tkcg%print()
+      CALL t_restart%print()
       ioWRITE(*,'(a)') "*** * High level components:"
-      timer_CALL t_tktld%print()
-      timer_CALL t_lwisot%print()
-      timer_CALL t_lwcasi%print()
-      timer_CALL t_lwphph%print()
-      timer_CALL t_lwchk%print()
+      CALL t_tktld%print()
+      CALL t_lwisot%print()
+      CALL t_lwcasi%print()
+      CALL t_lwphph%print()
+      CALL t_lwchk%print()
       ioWRITE(*,'(a)') "*** * Low level subroutines: "
-      timer_CALL t_freq%print() 
-      timer_CALL t_bose%print() 
-      timer_CALL t_sum%print() 
-      timer_CALL t_fc3int%print() 
-      timer_CALL t_fc3dint%print() 
-      timer_CALL t_fc3m2%print() 
-      timer_CALL t_fc3rot%print() 
-      timer_CALL t_mpicom%print() 
+      CALL t_freq%print() 
+      CALL t_bose%print() 
+      CALL t_sum%print() 
+      CALL t_fc3int%print() 
+      CALL t_fc3dint%print() 
+      CALL t_fc3m2%print() 
+      CALL t_fc3rot%print() 
+      CALL t_mpicom%print() 
+      CALL t_merged%print()
 #endif
     END SUBROUTINE TK_CG_prec
   END MODULE thermalk_program

@@ -153,17 +153,18 @@ MODULE linewidth_program
 #ifdef timer_CALL
       ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
       CALL print_timers_header()
-      timer_CALL t_lwisot%print()
-      timer_CALL t_lwcasi%print()
-      timer_CALL t_lwphph%print()
+      CALL t_lwisot%print()
+      CALL t_lwcasi%print()
+      CALL t_lwphph%print()
       ioWRITE(*,'(a)') "*** * Contributions to ph-ph linewidth time:"
-      timer_CALL t_freq%print() 
-      timer_CALL t_bose%print() 
-      timer_CALL t_sum%print() 
-      timer_CALL t_fc3int%print() 
-      timer_CALL t_fc3m2%print() 
-      timer_CALL t_fc3rot%print() 
-      timer_CALL t_mpicom%print() 
+      CALL t_freq%print() 
+      CALL t_bose%print() 
+      CALL t_sum%print() 
+      CALL t_fc3int%print() 
+      CALL t_fc3m2%print() 
+      CALL t_fc3rot%print() 
+      CALL t_mpicom%print() 
+      CALL t_merged%print()
 #endif
     !
   END SUBROUTINE LW_QBZ_LINE
@@ -289,6 +290,8 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
+    CALL print_all_timers()
+    !
     DEALLOCATE(spectralf, ener)
     !
   END SUBROUTINE SPECTR_QBZ_LINE
@@ -381,6 +384,8 @@ MODULE linewidth_program
     ENDIF
     !
     DEALLOCATE(fstate, ener)
+    !
+    CALL print_all_timers()
     !
   END SUBROUTINE FINAL_STATE_LINE
   !   

@@ -17,7 +17,6 @@ MODULE linewidth
   USE mpi_thermal, ONLY : my_id, mpi_bsum
   USE timers
 
-
   CONTAINS
 
 ! <<^V^\\=========================================//-//-//========//O\\//
@@ -376,6 +375,7 @@ MODULE linewidth
   ! \/o\________\\\_________________________________________/^>
   FUNCTION sum_selfnrg_spectre(S, sigma, freq, bose, V3sq, ne, ener, nu0)
     USE input_fc,           ONLY : ph_system_info
+    USE merge_degenerate,   ONLY : merge_degen
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
@@ -461,6 +461,7 @@ MODULE linewidth
     ENDDO
 !$OMP END PARALLEL DO
     !
+    CALL merge_degen(ne, S%nat3, spf, freq(:,1))
     sum_selfnrg_spectre = spf
     DEALLOCATE(spf)
     !
@@ -471,6 +472,7 @@ MODULE linewidth
   FUNCTION sum_selfnrg_modes(S, sigma, T, freq, bose, V3sq, nu0)
     USE input_fc,           ONLY : ph_system_info
     USE functions,          ONLY : df_bose
+    USE merge_degenerate,   ONLY : merge_degen
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma, T
@@ -561,6 +563,7 @@ MODULE linewidth
     ENDDO
 !$OMP END PARALLEL DO
     !
+    CALL merge_degen(S%nat3, se, freq(:,1))
     sum_selfnrg_modes = se
     !
   END FUNCTION sum_selfnrg_modes
@@ -571,6 +574,7 @@ MODULE linewidth
     USE functions, ONLY : f_gauss => f_gauss
     USE constants, ONLY : pi, RY_TO_CMM1
     USE input_fc,           ONLY : ph_system_info
+    USE merge_degenerate,   ONLY : merge_degen
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma
@@ -628,6 +632,7 @@ MODULE linewidth
     ENDDO
 !$OMP END PARALLEL DO
     !
+    CALL merge_degen(S%nat3, lw, freq(:,1))
     sum_linewidth_modes = lw
     !
   END FUNCTION sum_linewidth_modes
@@ -717,5 +722,6 @@ MODULE linewidth
     ENDDO
     !
   END SUBROUTINE gauss_convolution
+  !
   !
 END MODULE linewidth

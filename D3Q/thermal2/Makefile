@@ -53,6 +53,7 @@ fc3_interp.o \
 input_fc.o \
 isotopes.o \
 linewidth.o \
+merge_degenerate.o \
 more_constants.o \
 nanoclock.o \
 nanosec.o \

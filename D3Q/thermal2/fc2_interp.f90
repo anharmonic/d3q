@@ -387,7 +387,7 @@ MODULE fc2_interpolate
     CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
     ! RAF
-    U = CONJG(U)
+    !U = CONJG(U)
     ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)
     cq = xq
     CALL cryst_to_cart(1,cq,S%at,-1)
@@ -439,7 +439,7 @@ MODULE fc2_interpolate
     !
     CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
-    U = CONJG(U)
+    !U = CONJG(U)
     WHERE    (freq >  eps)
       freq = SQRT(freq)
     ELSEWHERE(freq < -eps)
@@ -475,56 +475,6 @@ MODULE fc2_interpolate
       !
   END SUBROUTINE bose_phq
   !
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE ip_cart2patx(d3in, nat3, u1, u2, u3)
-    ! Rotates D3 matrix from cartesian axis to the basis
-    ! of the modes. Rotation is not really in place
-    USE kinds, ONLY : DP
-    IMPLICIT NONE
-    ! d3 matrix, input: in cartesian basis, output: on the patterns basis
-    COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
-    INTEGER,INTENT(in)        :: nat3
-    ! patterns (transposed, with respect to what we use in the d3q.x code)
-    COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
-    !
-    COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
-    !
-    INTEGER :: a, b, c, i, j, k
-    COMPLEX(DP) :: AUX
-    COMPLEX(DP),PARAMETER :: Z1 = (1._dp, 0._dp)
-    COMPLEX(DP) :: u1t(nat3,nat3)
-    !
-    ALLOCATE(d3tmp(nat3, nat3, nat3))
-    d3tmp = 0._dp
-    !
-    u1t = TRANSPOSE(u1)
-    !
-    
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(3)
-    DO c = 1,nat3
-    DO b = 1,nat3
-    DO a = 1,nat3
-      DO k = 1,nat3
-      DO j = 1,nat3
-      AUX = u2(b,j) * u3(c,k)
-        DO i = 1,nat3
-            d3tmp(i, j, k) = d3tmp(i, j, k) &
-                            + u1t(i,a) * AUX * d3in(a, b, c) 
-        ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
-    !
-    d3in = d3tmp
-    DEALLOCATE(d3tmp)
-    !
-    RETURN
-  END SUBROUTINE ip_cart2patx
-  !
-  
   SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
     ! Rotates D3 matrix from cartesian axis to the basis
     ! of the modes. Rotation is not really in place
@@ -546,7 +496,7 @@ MODULE fc2_interpolate
     ALLOCATE(d3tmp(nat3, nat3, nat3))
     d3tmp = 0._dp
     !
-    u1t = TRANSPOSE(u1)
+    u1t = TRANSPOSE(CONJG(u1))
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
     DO c = 1,nat3
@@ -555,7 +505,7 @@ MODULE fc2_interpolate
       ! compromising memory access order
       DO k = 1,nat3
       DO j = 1,nat3
-        AUX(j,k) = u2(b,j) * u3(c,k)
+        AUX(j,k) = CONJG(u2(b,j) * u3(c,k))
       ENDDO
       ENDDO
       !

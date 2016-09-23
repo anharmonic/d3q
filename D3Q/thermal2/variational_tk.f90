@@ -139,6 +139,7 @@ MODULE variational_tk
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_bsum
+    USE merge_degenerate,   ONLY : merge_degen
     USE timers
     IMPLICIT NONE
     !
@@ -280,6 +281,7 @@ MODULE variational_tk
     CALL check_graceful_termination
     !
     A_out_q = A_out + A_out_isot
+    CALL merge_degen(nconf, S%nat3, A_out_q, freq(:,1))
     !
     DEALLOCATE(U, V3sq, V3Bsq, D3)
     !
@@ -292,8 +294,9 @@ MODULE variational_tk
   ! processes instead of mixed scattering-cohalescence. This trick ensures
   ! that everything is positive definite.
   FUNCTION sum_A_out_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
-    USE functions, ONLY : f_gauss => f_gauss
-    USE constants, ONLY : pi, RY_TO_CMM1
+    USE functions,        ONLY : f_gauss => f_gauss
+    USE constants,        ONLY : pi, RY_TO_CMM1
+    !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
@@ -357,6 +360,7 @@ MODULE variational_tk
 !$OMP END DO
 !$OMP END PARALLEL
     !
+    !CALL merge_degen(nat3, sum_A_out, freq(:,1))
     sum_A_out_modes = sum_A_out
     !
   END FUNCTION sum_A_out_modes
@@ -511,6 +515,7 @@ MODULE variational_tk
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_bsum
+    USE merge_degenerate,   ONLY : merge_degen
     USE timers
     !USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
@@ -660,7 +665,8 @@ MODULE variational_tk
         timer_CALL t_mpicom%stop()
     ENDIF
     !
-    CALL check_graceful_termination
+    CALL merge_degen(3,nconf, S%nat3, Af_q, freq(:,1))
+    !CALL check_graceful_termination
     A_in_times_f_q = Af_q
     !
     DEALLOCATE(U, V3sq, V3Bsq, D3)
@@ -674,8 +680,8 @@ MODULE variational_tk
   ! processes instead of mixed scattering-cohalescence. This trick ensures
   ! that everything is positive definite.
   FUNCTION sum_A_in_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
-    USE functions, ONLY : f_gauss => f_gauss
-    USE constants, ONLY : pi, RY_TO_CMM1
+    USE functions,        ONLY : f_gauss => f_gauss
+    USE constants,        ONLY : pi, RY_TO_CMM1
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
@@ -803,7 +809,7 @@ MODULE variational_tk
     INTEGER  :: it
     !
     ! Only check convergence on diagonal elements of tk, as the off
-    ! diagonal ones can take much longre to converge, and are usually 
+    ! diagonal ones can take much longer to converge, and are usually 
     ! not very interesting
     conv = .true.
     DO it = 1,nconf
