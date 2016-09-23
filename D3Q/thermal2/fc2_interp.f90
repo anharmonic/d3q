@@ -55,6 +55,13 @@ MODULE fc2_interpolate
 !    MODULE PROCEDURE fftinterp_mat2_safe    ! do not use dummy variable in OMP clauses
   END INTERFACE
 
+  ! Only one version of the routine to interpolate the derivative of D
+  ! is available, if you need the other one, write it..
+  ! (i.e. the code will not work if __PRECOMPUTE_PHASES is undefined)
+  INTERFACE fftinterp_dmat2
+    MODULE PROCEDURE fftinterp_dmat2_flat_mkl   
+  END INTERFACE
+
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
@@ -362,7 +369,7 @@ MODULE fc2_interpolate
   ! Auxiliary subroutines follow:
   !
   ! Interpolate dynamical matrice at q and diagonalize it, 
-  ! put acoustic gamma frequencies at exactl zero, 
+  ! put acoustic gamma frequencies at exactly zero, 
   ! STOP if we get any negative frequencies
   SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
@@ -395,25 +402,6 @@ MODULE fc2_interpolate
       WRITE(*,"('freq = ',12f12.6)") freq
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
     ENDIF
-    !
-!     DO i = 1,S%nat3
-!       IF(freq(i)<-1.d-8)THEN
-!         WRITE(*,"('xq = ',3f12.6)") xq
-!         WRITE(*,"('freq^2 = ',12f12.6)") freq
-!         CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
-!       ELSEIF(freq(i)<0._dp)THEN
-!         freq(i) = 0._dp
-!         U(:,i) = 0._dp
-!       ENDIF
-!     ENDDO
-    !
-!     IF(ANY(freq<-1.e-8_dp)) THEN
-!       WRITE(*,"('xq = ',3f12.6)") xq
-!       WRITE(*,"('freq = ',12f12.6)") freq
-!       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
-!     ELSE IF(ANY(freq<0._dp)) THEN
-!       WHERE(freq<0._dp) freq = -freq
-!     ENDIF
     !
     freq = SQRT(freq)
     !
@@ -486,69 +474,6 @@ MODULE fc2_interpolate
     ENDWHERE
       !
   END SUBROUTINE bose_phq
-  !
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE dyn_cart2pat(d2in, nat3, u, dir, d2out)
-    !   Rotates third derivative of the dynamical basis from cartesian axis
-    !   to the basis of the modes. Rotation is not really in place
-    USE kinds, ONLY : DP
-    IMPLICIT NONE
-    ! d2 matrix, input: in cartesian basis, output: on the patterns basis
-    COMPLEX(DP),INTENT(inout) :: d2in(nat3, nat3)
-    COMPLEX(DP),OPTIONAL,INTENT(out) :: d2out(nat3, nat3)
-    INTEGER,INTENT(in)        :: nat3
-    ! patterns (transposed, with respect to what we use in the d3q.x code)
-    INTEGER,INTENT(IN)        :: dir  ! +1 -> cart2pat, -1 -> pat2car
-    COMPLEX(DP),INTENT(in)    :: u(nat3, nat3)
-    !
-    COMPLEX(DP),ALLOCATABLE  :: d2tmp(:,:)
-    COMPLEX(DP),ALLOCATABLE  :: u_fw(:,:), u_bw(:,:)
-    !
-    INTEGER :: a, b, i, j
-    COMPLEX(DP) :: AUX
-    REAL(DP),PARAMETER :: EPS = 1.e-8_dp
-    !
-    ALLOCATE(d2tmp(nat3, nat3))
-    ALLOCATE(u_fw(nat3, nat3))
-    ALLOCATE(u_bw(nat3, nat3))
-    d2tmp = (0._dp, 0._dp)
-    !
-    !STOP "untested"
-    !
-    IF(dir==+1)THEN
-      u_bw = u
-      u_fw = CONJG(u)
-    ELSEIF(dir==-1)THEN
-      u_bw = TRANSPOSE(CONJG(u))
-      u_fw = TRANSPOSE(u)
-!       u_fw = CONJG(u)
-!       u_bw = u
-    ELSE
-      CALL errore("dyn_cart2pat", "wrong action",1)
-    ENDIF
-
-    DO j = 1,nat3
-    DO b = 1,nat3
-      !
-      DO i = 1,nat3
-      DO a = 1,nat3
-          d2tmp(i, j) = d2tmp(i, j) &
-                          + u_fw(a,i) * d2in(a, b) * u_bw(b,j)
-      ENDDO
-      ENDDO
-      !
-    ENDDO
-    ENDDO    
-    !
-    IF(present(d2out)) THEN
-      d2out = d2tmp
-    ELSE
-      d2in  = d2tmp
-    ENDIF
-    DEALLOCATE(d2tmp, u_fw, u_bw)
-    RETURN
-  END SUBROUTINE dyn_cart2pat
-  
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE ip_cart2patx(d3in, nat3, u1, u2, u3)
@@ -655,5 +580,53 @@ MODULE fc2_interpolate
     !
     RETURN
   END SUBROUTINE ip_cart2pat
-  
+  !
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute the derivative of the Dynamical matrix D by 
+  ! FT of force constants fc * iR
+  SUBROUTINE fftinterp_dmat2_flat_mkl(xq, S, fc, dD)
+    USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    USE constants, ONLY : tpi
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq(3)
+    TYPE(ph_system_info),INTENT(in) :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    COMPLEX(DP),INTENT(out) :: dD(S%nat3, S%nat3,3)
+    !
+    INTEGER :: i, mu,nu, alpha
+    REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
+    COMPLEX(DP) :: vphase(fc%n_R), fac
+    !
+    dD = (0._dp, 0._dp)
+    !
+    ! Pre-compute phase to use the vectorized MKL subroutines
+    FORALL(i=1:fc%n_R) varg(i) =  tpi * SUM(xq(:)*fc%xR(:,i))
+#if defined(__INTEL) && defined(__HASVTRIG)
+!dir$ message "Using MKL vectorized Sin and Cos implementation, if this does not compile, remove -D__HASVTRIG from Makefile"
+    CALL vdCos(fc%n_R, varg, vcos)
+    CALL vdSin(fc%n_R, varg, vsin)
+#else
+    vcos = DCOS(varg)
+    vsin = DSIN(varg)
+#endif
+    vphase =  CMPLX( vcos, -vsin, kind=DP  )
+    !
+    ! NOTE: do not use these OMP directive, as it is MUCH more effective to
+    ! parallelize outside this subroutine!
+    DO i = 1, fc%n_R
+      DO alpha = 1,3
+        fac = vphase(i)*CMPLX(0._dp, -fc%xR(alpha,i)*S%alat)
+        DO mu= 1, S%nat3
+        DO nu= 1, S%nat3
+          dD(nu,mu,alpha) = dD(nu,mu,alpha)+ fac * fc%fc(nu,mu, i)
+        ENDDO
+        ENDDO
+      ENDDO
+    END DO
+    !
+    !IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    !
+  END SUBROUTINE fftinterp_dmat2_flat_mkl
+  !
 END MODULE fc2_interpolate

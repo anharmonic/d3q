@@ -19,7 +19,7 @@ MODULE casimir_linewidth
   RESULT(lw)
     !
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
-    USE ph_velocity, ONLY : velocity_proj
+    USE ph_velocity, ONLY : velocity
     !
     IMPLICIT NONE
     !
@@ -34,7 +34,7 @@ MODULE casimir_linewidth
     ! FUNCTION RESULT:
     REAL(DP) :: lw(S%nat3)
     !
-    vel = velocity_proj(S, fc2, xq0)
+    vel = velocity(S, fc2, xq0)
     lw = casimir_linewidth_vel(vel, l_casimir, casimir_dir, S%nat3)
      !
   END FUNCTION casimir_linewidth_q

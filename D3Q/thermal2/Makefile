@@ -45,7 +45,6 @@ mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
-dynbubble.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -67,7 +66,7 @@ timers.o \
 variational_tk.o
 #vector.o
 
-EXECUTABLES = lw.x tk.x db.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
+EXECUTABLES = lw.x tk.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
 
 all : tldeps $(EXECUTABLES)
 

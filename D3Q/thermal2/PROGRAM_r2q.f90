@@ -25,8 +25,8 @@ PROGRAM r2q
   USE fc2_interpolate,  ONLY : freq_phq
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
-  USE ph_velocity,      ONLY : velocity_proj
-  USE more_constants,  ONLY : print_citations_linewidth
+  USE ph_velocity,      ONLY : velocity
+  USE more_constants,   ONLY : print_citations_linewidth
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -77,7 +77,7 @@ PROGRAM r2q
     ENDIF
 
     IF(input%print_velocity) THEN
-      vel = velocity_proj(S, fc2, qpath%xq(:,i))
+      vel = velocity(S, fc2, qpath%xq(:,i))
       ioWRITE(output_unit+1, '(i6,f12.6,3x,3f12.6,999(3e16.8,3x))') &
         i, qpath%w(i), qpath%xq(:,i), vel*RY_TO_CMM1
       ioFLUSH(output_unit+1)

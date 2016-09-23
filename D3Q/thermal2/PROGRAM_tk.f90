@@ -52,7 +52,7 @@ MODULE thermalk_program
     USE input_fc,           ONLY : ph_system_info
     USE code_input,         ONLY : code_input_type
     USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
-    USE ph_velocity,        ONLY : velocity_proj
+    USE ph_velocity,        ONLY : velocity
     USE timers
     IMPLICIT NONE
     !
@@ -146,7 +146,7 @@ MODULE thermalk_program
       !
         timer_CALL t_velcty%start() 
       ! Velocity
-      vel = velocity_proj(S, fc2, out_grid%xq(:,iq))
+      vel = velocity(S, fc2, out_grid%xq(:,iq))
       CALL  freq_phq_safe(out_grid%xq(:,iq), S, fc2, freq, U)
         timer_CALL t_velcty%stop() 
       !

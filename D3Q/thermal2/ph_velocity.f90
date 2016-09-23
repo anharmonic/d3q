@@ -14,8 +14,13 @@ MODULE ph_velocity
                        
   PRIVATE
   REAL(DP),PARAMETER :: h = 1.e-5_dp
-         
-  PUBLIC :: velocity_simple, velocity_proj, velocity_var
+  
+  INTERFACE velocity
+    MODULE PROCEDURE velocity_var
+  END INTERFACE  
+  !
+  PUBLIC :: velocity
+  !_simple, velocity_proj, velocity_var
          
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -148,24 +153,56 @@ MODULE ph_velocity
     rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
   END FUNCTION
   ! \/o\________\\\_________________________________________/^>
-  ! As in Fugallo et. al. PRB 
-  SUBROUTINE velocity_var(S,fc, xq, xvel)
-    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
+  ! Compute the derivative of the dynamical matrix using properties
+  ! of fourier transform
+  FUNCTION velocity_var(S,fc, xq)
+    USE fc2_interpolate, ONLY : fftinterp_mat2, fftinterp_dmat2, mat2_diag
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
-    REAL(DP),INTENT(out) :: xvel(3, S%nat3)
+    ! FUNCTION RESULT:
+    REAL(DP) :: velocity_var(3,S%nat3)
     !
-    COMPLEX(DP),ALLOCATABLE :: D2(:,:)
+    REAL(DP),ALLOCATABLE :: xvel(:,:)
+    COMPLEX(DP),ALLOCATABLE :: U(:,:), rD(:,:), dD(:,:,:)
     REAL(DP),ALLOCATABLE    :: w2(:)
-
-    ALLOCATE(D2(S%nat3,S%nat3), w2(S%nat3))
+    INTEGER :: ix, nu
+    !
+    ALLOCATE(U(S%nat3,S%nat3), rD(S%nat3,S%nat3), w2(S%nat3), &
+             xvel(3,S%nat3), dD(S%nat3,S%nat3,3))
+    !
+    ! We need to get and diagonalize the dyn.mat. at q to get its eigenvectors
+    ! (aka the rotation U that makes it diagonal)
+    CALL fftinterp_mat2(xq, S, fc, U)
+    CALL mat2_diag(S%nat3, U, w2)
+    !
+    ! The next call gives us the derivative of the dynamical matrix
+    CALL fftinterp_dmat2(xq, S, fc, dD)
+    !
     xvel = 0._dp
-    CALL errore('velocity_var', 'velocity_var not implemented', 1)
-    DEALLOCATE(D2,w2)
+    !
+    DO ix = 1,3
+      ! Instead of diagonalizing dD, we rotate it with the same patterns as D
+      rD = rotate_d2(S%nat3, dD(:,:,ix), U)
+      ! The diagonal terms are the derivatives of the SQUARE of the frequencies
+      ! to get the derivatives of the frequencies, we need to multiply by
+      ! 1/(2 \omega)
+      DO nu = 1, S%nat3
+      IF(ABS(w2(nu)) > 0._dp)THEN
+        xvel(ix,nu) = 0.5_dp*REAL(rD(nu,nu),kind=dp)/DSQRT(w2(nu))
+      ELSE
+        ! we set at zero velocity at Gamma for the acoustic branches
+        ! (it is not well defined anyway)
+        xvel(ix,nu) = 0._dp
+      ENDIF
+      ENDDO
+    ENDDO
+    !
+    velocity_var = xvel
+    DEALLOCATE(U, xvel)
 
-  END SUBROUTINE velocity_var
+  END FUNCTION velocity_var
   
 END MODULE ph_velocity
 

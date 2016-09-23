@@ -448,7 +448,7 @@ MODULE q_grids
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE prepare_q_basis(qgrid, qbasis, nconf, T, S, fc2)
     USE fc2_interpolate,    ONLY : freq_phq_safe, bose_phq
-    USE ph_velocity,        ONLY : velocity_proj
+    USE ph_velocity,        ONLY : velocity
     USE input_fc,           ONLY : ph_system_info, forceconst2_grid
     IMPLICIT NONE
     TYPE(q_grid),INTENT(in)   :: qgrid
@@ -478,7 +478,7 @@ MODULE q_grids
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix, U)
 !$OMP DO
     DO iq = 1,qbasis%nq
-      qbasis%c(:,:,iq) = velocity_proj(S, fc2, qgrid%xq(:,iq))
+      qbasis%c(:,:,iq) = velocity(S, fc2, qgrid%xq(:,iq))
       CALL  freq_phq_safe(qgrid%xq(:,iq), S, fc2, qbasis%w(:,iq), U)
       DO it = 1, nconf
         CALL  bose_phq(T(it), S%nat3, qbasis%w(:,iq), qbasis%be(:,it,iq))
