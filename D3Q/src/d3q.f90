@@ -327,7 +327,7 @@ program d3q
         CALL dpsi1dv2dpsi3(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
         jp = d3perms(ip)%shuffle_from
-        CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+        CALL d3_shuffle_equiv(nat, d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
                               d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
                               d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
       ENDIF
@@ -359,7 +359,7 @@ program d3q
         CALL dpsi1dpsi2dv3(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
       ELSE
         jp = d3perms(ip)%shuffle_from
-        CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+        CALL d3_shuffle_equiv(nat, d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
                               d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
                               d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
       ENDIF
@@ -400,7 +400,7 @@ program d3q
         ELSE
           !print*, "doing shuffle"
           jp         = d3perms(ip)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
+          CALL d3_shuffle_equiv(nat, d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
                                 d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &
                                 d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
@@ -485,7 +485,7 @@ program d3q
           CALL d3_valence_ijk(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
           jp = d3perms(ip)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+          CALL d3_shuffle_equiv(nat, d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
                                 d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
                                 d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
@@ -512,7 +512,7 @@ program d3q
             d3(ip)%dyn = d3(jp)%dyn
           ELSE
             jp         = d3perms(ip)%shuffle_from
-            CALL d3_shuffle_equiv(d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
+            CALL d3_shuffle_equiv(nat, d3perms(jp)%i, d3perms(jp)%j, d3perms(jp)%k, &
                                   d3perms(ip)%i, d3perms(ip)%j, d3perms(ip)%k, &
                                   d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
           ENDIF
@@ -583,7 +583,7 @@ program d3q
           CALL d3_exc_gc(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
           jp = d3perms(ip)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+          CALL d3_shuffle_equiv(nat, d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
                                 d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
                                 d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF
@@ -644,7 +644,7 @@ program d3q
           CALL d3_nlcc_123(d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, d3(ip)%dyn)
         ELSE
           jp = d3perms(ip)%shuffle_from
-          CALL d3_shuffle_equiv(d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
+          CALL d3_shuffle_equiv(nat, d3perms(jp)%i,d3perms(jp)%j,d3perms(jp)%k, &
                                 d3perms(ip)%i,d3perms(ip)%j,d3perms(ip)%k, &
                                 d3perms(ip)%shuffle_conjg, d3(jp)%dyn, d3(ip)%dyn)
         ENDIF

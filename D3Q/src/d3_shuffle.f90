@@ -44,7 +44,14 @@ MODULE d3_shuffle
   END TYPE
   TYPE(perturbation_permutation) :: d3perms(nperms)
   !
-CONTAINS
+ CONTAINS
+! 
+! NOTE about the shuffle global and equiv:
+! call d3_shuffle_global(nat, i1,i2,i3, j1,j2,j3,..) 
+!   is equivalent to
+! call d3_shuffle_equiv(nat, j1,j2,j3, i1,i2,i3,..) 
+! And, contrary to what one may think, exchanging the is with the js 
+! gives a different result.
 !
 !-----------------------------------------------------------------------
 SUBROUTINE d3_reset_permutations()
@@ -180,7 +187,7 @@ END SUBROUTINE d3_check_permutations
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_shuffle_global(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
+SUBROUTINE d3_shuffle_global(nat, i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   !-----------------------------------------------------------------------
   ! WARNING! what you want to do may be done by d3_shuffle_equiv! READ THE DESCRIPTION:
   !
@@ -193,14 +200,14 @@ SUBROUTINE d3_shuffle_global(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   ! of q1,q2,q3.
   !
   USE kinds,      ONLY : DP
-  USE ions_base,  ONLY : nat
+  !USE ions_base,  ONLY : nat
   USE io_global,  ONLY : stdout
   !
   IMPLICIT NONE
   !
-  INTEGER,INTENT(in) :: i1,i2,i3,  j1,j2,j3
+  INTEGER,INTENT(in) :: nat, i1,i2,i3,  j1,j2,j3
   LOGICAL,INTENT(in) :: conjugate
-  COMPLEX(DP),INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat)
+  COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat)
   COMPLEX(DP),OPTIONAL,INTENT(inout) :: d3dyn_out( 3*nat, 3*nat, 3*nat)
   !
   INTEGER,VOLATILE,TARGET  :: idx(3)
@@ -252,7 +259,7 @@ END SUBROUTINE d3_shuffle_global
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
+SUBROUTINE d3_shuffle_equiv(nat, i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   !-----------------------------------------------------------------------
   ! Ugly and complicated reshuffling routine.
   !
@@ -269,12 +276,12 @@ SUBROUTINE d3_shuffle_equiv(i1,i2,i3, j1,j2,j3, conjugate, d3dyn, d3dyn_out)
   ! the sign is -).
   !
   USE kinds,      ONLY : DP
-  USE ions_base,  ONLY : nat
+ ! USE ions_base,  ONLY : nat
   USE io_global,  ONLY : stdout
   !
   IMPLICIT NONE
   !
-  INTEGER,INTENT(in) :: i1,i2,i3,  j1,j2,j3
+  INTEGER,INTENT(in) :: nat, i1,i2,i3,  j1,j2,j3
   LOGICAL,INTENT(in) :: conjugate
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat)
   COMPLEX(DP),OPTIONAL,INTENT(inout) :: d3dyn_out( 3*nat, 3*nat, 3*nat)
@@ -408,6 +415,98 @@ FUNCTION d3_shuffle_star(i,j,k, nqst, sxq, at, time_rev)
   RETURN
   !-----------------------------------------------------------------------
 END FUNCTION d3_shuffle_star
+!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+SUBROUTINE d3_shuffle_stupid(nat, j1,j2,j3, conjugate, d3dyn)
+  !-----------------------------------------------------------------------
+  !
+  USE kinds,      ONLY : DP
+  !USE ions_base,  ONLY : nat
+  USE io_global,  ONLY : stdout
+  !
+  IMPLICIT NONE
+  !
+  INTEGER,INTENT(in) :: nat, j1,j2,j3
+  LOGICAL,INTENT(in) :: conjugate
+  COMPLEX(DP),INTENT(inout) :: d3dyn( 3*nat, 3*nat, 3*nat)
+  !
+  INTEGER :: idx1, idx2, idx3
+  COMPLEX(DP),ALLOCATABLE :: d3aux( :,:,: )
+  CHARACTER(len=16),PARAMETER :: sub='d3_shuffle_stupid'
+
+  ALLOCATE(d3aux(3*nat,3*nat,3*nat))
+  
+  IF(j1==1.and.j2==2.and.j3==3)THEN
+    d3aux = d3dyn
+  ELSE &
+  IF(j1==1.and.j2==3.and.j3==2)THEN
+    DO idx1 = 1,3*nat
+    DO idx2 = 1,3*nat
+    DO idx3 = 1,3*nat
+      !d3aux(idx1, idx2, idx3) = d3dyn(idx1,idx3,idx2)
+      d3aux(idx1, idx3, idx2) = d3dyn(idx1,idx2,idx3)
+    ENDDO
+    ENDDO
+    ENDDO
+  ELSE &
+  IF(j1==2.and.j2==1.and.j3==3)THEN
+    DO idx1 = 1,3*nat
+    DO idx2 = 1,3*nat
+    DO idx3 = 1,3*nat
+      !d3aux(idx1, idx2, idx3) = d3dyn(idx2,idx1,idx3)
+      d3aux(idx2, idx1, idx3) = d3dyn(idx1,idx2,idx3)
+    ENDDO
+    ENDDO
+    ENDDO
+  ELSE &
+  IF(j1==2.and.j2==3.and.j3==1)THEN
+    DO idx1 = 1,3*nat
+    DO idx2 = 1,3*nat
+    DO idx3 = 1,3*nat
+      !d3aux(idx1, idx2, idx3) = d3dyn(idx2,idx3,idx1)
+      d3aux(idx2, idx3, idx1) = d3dyn(idx1,idx2,idx3)
+    ENDDO
+    ENDDO
+    ENDDO
+  ELSE &
+  IF(j1==3.and.j2==1.and.j3==2)THEN
+    DO idx1 = 1,3*nat
+    DO idx2 = 1,3*nat
+    DO idx3 = 1,3*nat
+      !d3aux(idx1, idx2, idx3) = d3dyn(idx3,idx1,idx2)
+      d3aux(idx3, idx1, idx2) = d3dyn(idx1,idx2,idx3)
+    ENDDO
+    ENDDO
+    ENDDO
+  ELSE &
+  IF(j1==3.and.j2==2.and.j3==1)THEN
+    DO idx1 = 1,3*nat
+    DO idx2 = 1,3*nat
+    DO idx3 = 1,3*nat
+      !d3aux(idx1, idx2, idx3) = d3dyn(idx3,idx2,idx1)
+      d3aux(idx3, idx2, idx1) = d3dyn(idx1,idx2,idx3)
+    ENDDO
+    ENDDO
+    ENDDO
+  ELSE
+    CALL errore(sub, "unexpected permutation",1)
+  ENDIF
+  !
+  IF(conjugate) d3aux = CONJG(d3aux)
+  !
+  d3dyn = d3aux
+  
+!   IF(present(d3dyn_out)) THEN
+!     d3dyn_out = d3aux
+!   ELSE
+!     d3dyn = d3aux
+!   ENDIF
+  !
+  DEALLOCATE(d3aux)
+  !
+  RETURN
+  !-----------------------------------------------------------------------
+END SUBROUTINE d3_shuffle_stupid
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------

@@ -192,7 +192,7 @@ SUBROUTINE dbgwrite_d3dyn (d3dyn_x, filename, isw)
   READ(order,*,iostat=ios) i1,i2,i3
   IF(ios==0.and.(i1/=1.and.i2/=2.and.i3/=3)) THEN
     WRITE(*,"(7x,'< Reordering D3 matrix from',3i2,' to 1 2 3')") i1,i2,i3
-    CALL d3_shuffle_global( 1,2,3, i1,i2,i3, .false., d3dyn_shuffled )
+    CALL d3_shuffle_global(nat,  1,2,3, i1,i2,i3, .false., d3dyn_shuffled )
   ENDIF
   !
   aux = d3dyn_shuffled

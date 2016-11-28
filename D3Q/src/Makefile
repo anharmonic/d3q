@@ -43,6 +43,7 @@ drho_add_phase.o \
 dvdpsi.o \
 efermi_shift.o \
 gen_dpdvp.o \
+h_psiq.o \
 incdrhoscf2.o \
 print_clock_d3.o \
 qstar_d3.o \
@@ -74,6 +75,8 @@ d3q.x : libd3q.a $(D3QOBJS) $(PWOBJS) $(PHOBJS) $(QEMODS) $(LIBOBJS)
 		libd3q.a $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP) $@
 	- ( cd ../../bin ; ln -fs ../D3Q/src/d3q.x . )
+
+d3q-libs : libd3q.a
 
 libd3q.a : $(D3QLIBS)
 	$(AR) $(ARFLAGS) $@ $?

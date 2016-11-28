@@ -148,7 +148,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
         !
         ! Repack the matrix, shuffle it and repack it again
         CALL d3_6idx_2_3idx(nat, p3dyn, d3perm)
-        CALL d3_shuffle_global( 1,2,3, i,j,k, .false., d3perm )
+        CALL d3_shuffle_global(nat,  1,2,3, i,j,k, .false., d3perm )
         CALL d3_3idx_2_6idx(nat, d3perm, p3perm)
         !
         ! Report

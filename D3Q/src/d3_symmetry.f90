@@ -355,21 +355,21 @@ SUBROUTINE d3_symmetrize(d3dyn, xq1,xq2,xq3, s, invs, rtau, irt, irgq, &
   IF (kplusq(1)%lgamma) THEN
     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 2,3"
     d3tmp = d3dyn                                         !copy
-    CALL d3_shuffle_global( 1,2,3, 1,3,2, .true., d3tmp ) !shuffle and c.c.
+    CALL d3_shuffle_global(nat,  1,2,3, 1,3,2, .true., d3tmp ) !shuffle and c.c.
     d3dyn = d3tmp+d3dyn                                   !add
     d3dyn = 0.5_dp * d3dyn                                !average
   ENDIF
   IF (kplusq(2)%lgamma) THEN
     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,3"
     d3tmp = d3dyn
-    CALL d3_shuffle_global( 1,2,3, 3,2,1, .true., d3tmp )
+    CALL d3_shuffle_global(nat,  1,2,3, 3,2,1, .true., d3tmp )
     d3dyn = d3tmp+d3dyn
     d3dyn = 0.5_dp * d3dyn
   ENDIF
   IF (kplusq(3)%lgamma) THEN
     WRITE(stdout,'(7x,a)') "* imposing hermiticity on idx 1,2"
     d3tmp = d3dyn
-    CALL d3_shuffle_global( 1,2,3, 2,1,3, .true., d3tmp )
+    CALL d3_shuffle_global(nat,  1,2,3, 2,1,3, .true., d3tmp )
     d3dyn = d3tmp+d3dyn
     d3dyn = 0.5_dp * d3dyn
   ENDIF
