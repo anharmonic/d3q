@@ -49,7 +49,7 @@ MODULE f3_bwfft
   SUBROUTINE read_d3_matrices(nq, nq_trip, S, d3grid)
     USE kinds,       ONLY : DP
     USE d3matrix_io, ONLY : read_d3dyn_xml
-    USE d3_shuffle,  ONLY : nperms, d3perms_order2, d3_shuffle_global, d3_shuffle_equiv
+    USE d3_shuffle !,  ONLY : nperms, d3perms_order2, d3_shuffle_global, d3_shuffle_equiv
     USE d3_basis,    ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE parameters,  ONLY : ntypx
     USE input_fc,    ONLY : ph_system_info, same_system, aux_system
@@ -60,8 +60,11 @@ MODULE f3_bwfft
     TYPE(d3_list),INTENT(inout) ::  d3grid(nq_trip)
 
     REAL(DP) :: xq(3,3)
-    COMPLEX(DP),ALLOCATABLE   :: d3(:,:,:, :,:,:), p3(:,:,:)
-    INTEGER :: i,j,k, a,b,c, ios, ntyp, iperm, iq_trip, nxr_list, nxr_list_old, iq_aux
+    COMPLEX(DP),ALLOCATABLE   :: d3(:,:,:, :,:,:), &
+                                 d3_shuffled(:,:,:,:,:,:), &
+                                 p3(:,:,:)
+    INTEGER :: i,j,k, a,b,c, ios, ntyp, iperm, iq_trip, &
+               nxr_list, nxr_list_old, iq_aux
     LOGICAL :: first, skip
     INTEGER,ALLOCATABLE :: found(:,:,:,:,:,:)
     INTEGER :: countq(nq_trip)
@@ -83,70 +86,62 @@ MODULE f3_bwfft
 
       IF(first)THEN
         first=.false.
-        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, nat=S%nat, atm=S%atm, ntyp=S%ntyp, &
-                            ityp=S%ityp, ibrav=S%ibrav, celldm=S%celldm, at=S%at, amass=S%amass,&
-                            tau=S%tau, seek=.false.)
+        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
+                            nat=S%nat, atm=S%atm, ntyp=S%ntyp, &
+                            ityp=S%ityp, ibrav=S%ibrav, celldm=S%celldm, at=S%at,&
+                            amass=S%amass, tau=S%tau, seek=.false.)
         CALL aux_system(S)
         CALL latgen( S%ibrav, S%celldm, S%at(:,1), S%at(:,2), S%at(:,3), S%omega )
         S%at=S%at/S%celldm(1)
         CALL recips(S%at(:,1), S%at(:,2), S%at(:,3), S%bg(:,1), S%bg(:,2), S%bg(:,3))
         ALLOCATE(p3(S%nat3, S%nat3, S%nat3))
+        ALLOCATE(d3_shuffled(3,3,3, S%nat, S%nat, S%nat))
         !
-          !WRITE(*,*), 100, TRIM(filename)
       ELSE
-        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, nat=Sx%nat, atm=Sx%atm, ntyp=Sx%ntyp, &
-                            ityp=Sx%ityp, ibrav=Sx%ibrav, celldm=Sx%celldm, at=Sx%at, amass=Sx%amass,&
-                            tau=Sx%tau, seek=.false.)
+        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
+                            nat=Sx%nat, atm=Sx%atm, ntyp=Sx%ntyp, &
+                            ityp=Sx%ityp, ibrav=Sx%ibrav, celldm=Sx%celldm, at=Sx%at,&
+                            amass=Sx%amass,tau=Sx%tau, seek=.false.)
         CALL latgen( Sx%ibrav, Sx%celldm, Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%omega )
         Sx%at=Sx%at/Sx%celldm(1)
         CALL recips(Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%bg(:,1), Sx%bg(:,2), Sx%bg(:,3))
         IF(.not.same_system(S,Sx)) CALL errore("qq2rr", "not same system "//TRIM(filename), 1)
-          !WRITE(*,*), 200, TRIM(filename)
       ENDIF
       PERM_LOOP : &
       DO iperm = 1,nperms
         a = d3perms_order2(1,iperm)
         b = d3perms_order2(2,iperm)
         c = d3perms_order2(3,iperm)
-          !WRITE(*,*), 300+iperm, TRIM(filename)
         !
-        ! Check if the points are in the grid:
+        ! Check if the points are in the grid (this allows one to select a sub-grid):
         iqb = check_in_grid(nq, xq(:,b), S%at, skip)
-          !WRITE(*,*), 310+iperm, TRIM(filename)
         IF(skip) CYCLE PERM_LOOP
+        !
         iqc = check_in_grid(nq, xq(:,c), S%at, skip)
-          !WRITE(*,*), 320+iperm, TRIM(filename)
         IF(skip) CYCLE PERM_LOOP
         !
         ! Add this point to the grid, if an equivalent was not already added
         IF(found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3)) < 0) THEN
           iq_trip = iq_trip + 1
-          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,i6  )') iq_trip, "xq ", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
-            a,b,c, TRIM(filename),iperm
           found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3)) = iq_trip
           countq(iq_trip) = 1
           !
+          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,i6  )') &
+            iq_trip, "xq ", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
+            a,b,c, TRIM(filename),iperm
+          !
           ! Repack the matrix, shuffle it and repack it again
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
-          CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-          CALL d3_3idx_2_6idx(S%nat, p3, d3)
-          !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
-          !CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
+          CALL d3_shuffle_global(S%nat, 1,2,3, a,b,c, .false., p3)
+          !
+!           write(4999,*) iperm
+!           write(4999,'(i6,3(3f8.4,3x))') iq_trip, xq(:,a), xq(:,b), xq(:,c)
+!           write(4999,'(3(2f10.4,3x))') 1.d+4*p3
+          !
+          CALL d3_3idx_2_6idx(S%nat, p3, d3_shuffled)
           !
           ALLOCATE(d3grid(iq_trip)%d(3,3,3, S%nat,S%nat,S%nat))
-          d3grid(iq_trip)%d   = d3
-          !
-          !  Recenter xq2 and xq3 in the first unit cell (it makes no difference really)
-!           xq_shift(:,2) = (iqb-1)/DBLE(nq)
-!           xq_shift(:,3) = (iqc-1)/DBLE(nq)
-!           iqa = check_in_grid(nq, xq(:,a), S%at, skip)
-!           xq_shift(:,1) = (iqa-1)/DBLE(nq)
-!           
-!           !xq_shift(:,1) = -(xq_shift(:,2)+xq_shift(:,3))
-!           CALL cryst_to_cart(3, xq_shift, S%bg, +1)
-!           d3grid(iq_trip)%xq1(:) = xq_shift(:,1)
-!           d3grid(iq_trip)%xq2(:) = xq_shift(:,2)
-!           d3grid(iq_trip)%xq3(:) = xq_shift(:,3)
+          d3grid(iq_trip)%d   = d3_shuffled
           !
           d3grid(iq_trip)%xq1(:) = xq(:,a)
           d3grid(iq_trip)%xq2(:) = xq(:,b)
@@ -155,30 +150,9 @@ MODULE f3_bwfft
           iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
           countq(iq_aux) = countq(iq_aux) +1
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
-          CALL d3_shuffle_global( 1,2,3, a,b,c, .false., p3)
-          CALL d3_3idx_2_6idx(S%nat, p3, d3)
-          !CALL zero_d3dyn_XXX(d3, S%nat, 1.d-4)
-          !WHERE(ABS(d3)<1.d-8) d3 = 0._dp
-          !
-          thresh = MAXVAL(ABS(d3grid(iq_aux)%d - d3))
-          IF(thresh>1.d-6)THEN
-            !WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,1e12.3)') &
-            !iq_aux, "warning sym/=perm !", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
-            !a,b,c, TRIM(filename), thresh
-            !IF(iq_trip>10)then
-!             print*, iq_aux, iq_trip
-!             print*, d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:) 
-!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-!                                  d3, S%nat, 1001)
-!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-!                                  d3grid(iq_aux)%d, S%nat, 1002)
-!             CALL write_d3dyn_XXX(d3grid(iq_aux)%xq1(:),d3grid(iq_aux)%xq2(:) ,d3grid(iq_aux)%xq3(:), &
-!                                  d3-d3grid(iq_aux)%d, S%nat, 1003)
-!            stop 666
-!             !endif
-         ENDIF
-          d3grid(iq_aux)%d   = d3 + d3grid(iq_aux)%d
-          
+          CALL d3_shuffle_global(S%nat, 1,2,3, a,b,c, .false., p3)
+          CALL d3_3idx_2_6idx(S%nat, p3, d3_shuffled)
+          d3grid(iq_aux)%d   = d3grid(iq_aux)%d + d3_shuffled
         ENDIF
       ENDDO &
       PERM_LOOP
@@ -186,8 +160,9 @@ MODULE f3_bwfft
     ENDDO
     
     DO iq_aux = 1,nq_trip
-      !print*, iq_aux, countq(iq_aux)
-      d3grid(iq_aux)%d = d3grid(iq_aux)%d/countq(iq_aux)
+      IF(countq(iq_aux)>1)THEN
+        d3grid(iq_aux)%d = d3grid(iq_aux)%d/countq(iq_aux)
+      ENDIF
     ENDDO
     
     IF(first) CALL errore("read_d3_matrices","I found nothing to read",1)
@@ -195,7 +170,7 @@ MODULE f3_bwfft
     
     IF(ANY(found<0)) THEN
       WRITE(*,*) "Expecting:", nq_trip, "triplets, found:", iq_trip
-      WRITE(*,*) "List of missing ones follow:"
+      WRITE(*,*) "List of missing ones follows:"
       DO c = 1, nq(3)
       DO b = 1, nq(2)
       DO a = 1, nq(1)
@@ -227,10 +202,10 @@ MODULE f3_bwfft
     !
     INTEGER :: i,j,k, iq, ifar, jfar, nxr, ixr, jxr, iat, jat, kat, irx
     REAL(DP),ALLOCATABLE :: xr(:,:), sc_xr(:,:)
-    REAL(DP) :: d1(3), d2(3), d3(3), &
+    REAL(DP) :: d1(3), d2(3), d3(3), p1(3), p2(3), p3(3), p0(3), &
                 xtau1(3), xtau2(3), xtau3(3)
     ! recentering of the Fcs 
-    INTEGER,PARAMETER :: far = 2, nfar = (2*far+1)**3, nperix=8**2
+    INTEGER,PARAMETER :: far = 2, nfar = (2*far+1)**3, nperix=128 !8**2
     ! probably nperix = 64 is sufficient (i.e. both points in a WS cell corner, cubic)
     REAL(DP) :: peri_min, perix, perinorm
     REAL(DP),ALLOCATABLE :: farx_list(:,:,:), rx_list(:,:,:)
@@ -272,6 +247,9 @@ MODULE f3_bwfft
     ENDDO
     IF(ixr/=nxr) CALL errore("bwfft_d3_interp", "something wrong nxr", 1)
     ! xr + sc_xr is a super-cell equivalent copy of xr, for any sc_xr
+    DO iq = 1, nq_trip
+    WRITE(10005, *) d3grid(iq)%xq2, d3grid(iq)%xq3
+    ENDDO
     !
     ! For every xr2 and xr3 picked from xr we form the triangle 0-xr2-xr3 and 
     ! for any of the super-cell equivalent copies we take the one with the 
@@ -282,106 +260,110 @@ MODULE f3_bwfft
     !
     TWO_PASS : &
     DO PASS = 1,2
-    DO kat = 1,nat
-    DO jat = 1,nat
-    DO iat = 1,nat
-      !
-      xtau1 = tau(:,iat)
-      xtau2 = tau(:,jat)
-      xtau3 = tau(:,kat)
-      !
-      DO jxr = 1, nxr
-      DO ixr = 1, nxr
+      IF(PASS==2)THEN
+        WRITE(*,*) "Found", nxr_list, "possible couples of R2,R3"
+        nxr_list_old = nxr_list ! keep track of this to be sure it does not change anymore
+        ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
+      ENDIF
+      DO kat = 1,nat
+      DO jat = 1,nat
+      DO iat = 1,nat
         !
-        fc = (0._dp, 0._dp)
-        DO iq = 1, nq_trip
-          arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
-          phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
-          fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
-!           write(1999,'(2f12.7,4x,4(3f8.4,3x))') &
-!             phase, d3grid(iq)%xq2,d3grid(iq)%xq3, xr(:,ixr), xr(:,jxr)
-        ENDDO
-        !if(iat/=jat) then
-!           write(999,*)
-!           write(999,'(99i6)') iat,jat,kat,ixr,jxr
-!           write(999,'(3(2f10.4,3x))') fc
-        !  stop 10
-        !endif
-        !stop 10
+        xtau1 = tau(:,iat)
+        xtau2 = tau(:,jat)
+        xtau3 = tau(:,kat)
         !
-        ! Look among the super-cell equivalent tripets of R points for the one(s)
-        ! with the shortest perimeter
-        nperi = 0
-        peri_min = 0._dp ! it is set on first loop
-        DO jfar = 1,nfar
-        DO ifar = 1,nfar
+        DO jxr = 1, nxr
+        DO ixr = 1, nxr
           !
-          d1 =                           xtau1 - (xtau2+xr(:,ixr)+sc_xr(:,ifar))
-          d2 = (xtau2+xr(:,ixr)+sc_xr(:,ifar)) - (xtau3+xr(:,jxr)+sc_xr(:,jfar))
-          d3 = (xtau3+xr(:,jxr)+sc_xr(:,jfar)) -  xtau1 
-          !perix = SUM(ABS(d1)) + SUM(ABS(d2)) + SUM(ABS(d3))
-          perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
-          !perix = DSQRT(NORM2(d1) + NORM2(d2) + NORM2(d3))
-          !
-          IF (perix < peri_min-eps_peri .or. nperi==0 ) THEN
-            nperi = 1
-            farx_list = 0._dp
-            farx_list(:,1,nperi) = xr(:,ixr)+sc_xr(:,ifar)
-            farx_list(:,2,nperi) = xr(:,jxr)+sc_xr(:,jfar)
-            peri_min = perix
-          ELSE IF ( ABS(perix-peri_min) <= eps_peri ) THEN
-            nperi = nperi + 1
-            IF(nperi > nperix) CALL errore("bwfft_d3_interp", "nperix is too small, please report to developers", 1)
-            farx_list(:,1,nperi) = xr(:,ixr)+sc_xr(:,ifar)
-            farx_list(:,2,nperi) = xr(:,jxr)+sc_xr(:,jfar)
-            !peri_min = perix
+          ! On first pass, only count the perimeters
+          IF (PASS==2) THEN
+            fc = (0._dp, 0._dp)
+            write(3999,'(a)') "============================================="
+            DO iq = 1, nq_trip
+              arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
+              phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
+              fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
+!           write(1999,'(i6,2f12.7,4x,4(3f8.4,3x))') &
+!             nq_trip, phase, d3grid(iq)%xq2, d3grid(iq)%xq3, xr(:,ixr), xr(:,jxr)
+              IF(ixr==1 .and. jxr==1)THEN
+              write(3999,'(3i6)') iat,jat,kat
+              write(3999,'(i6,2(3f8.4,3x))') iq, d3grid(iq)%xq2, d3grid(iq)%xq3
+              write(3999,'(3(2f10.4,3x))') 1.d+4*d3grid(iq)%d(:,:,:,iat,jat,kat)
+              ENDIF
+            ENDDO
+!             IF(kat+jat+iat==3*nat) STOP 10
+!             if(jat/=kat)then
+!               write(999,*)
+!               write(999,'(99i6)') iat,jat,kat, ixr,jxr
+!               write(999,'(3(2f10.4,3x))') 10000*fc
+!               !stop 10
+!             endif
           ENDIF
           !
-          !
-        ENDDO
-        ENDDO
-        !
-        ! Add the 2*nperi vectors from farx list to rx_list, if they are not already in the list
-        ! in any case, return the indeces of the vectors in the list
-        nxr_list_old = nxr_list
-        CALL update_rlist(nperi, farx_list, nxr_list, rx_list, rx_idx)
-        IF (nperi==0) CALL errore("bwfft_d3_interp", "found no perimeters", 1)
-        !IF(nperi>1) WRITE(*,'(3i3,3x,2i3,3x,i6,999i8)') iat,jat,kat, ixr,jxr, nperi, rx_idx(1:nperi)
-        !
-        ! Make room for new force constants, if necessary
-        !IF(nxr_list>nxr_list_old)THEN
-        !  !PRINT*, nxr_list, nxr_list_old
-        !  IF(allocated(mat)) THEN
-        !    ALLOCATE(matx(3,3,3, nat,nat,nat, nxr_list_old))
-        !    matx = mat
-        !    DEALLOCATE(mat)
-        !    ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-        !    mat(:,:,:, :,:,:, nxr_list_old+1:nxr_list) = 0._dp
-        !    mat(:,:,:, :,:,:, 1:nxr_list_old) = matx(:,:,:, :,:,:, 1:nxr_list_old)
-        !    DEALLOCATE(matx)
-        !  ELSE
-        !    ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-        !    mat = 0._dp
-        !  ENDIF
-        !ENDIF
-        !
-        IF(PASS==2)THEN
-          IF(.not.ALLOCATED(mat)) ALLOCATE(mat(3,3,3, nat,nat,nat, nxr_list))
-          perinorm = 1._dp/REAL(nperi,kind=DP)
-          !print*, perinorm * fc(:,:,:)
-          DO iperi = 1, nperi
+          ! Look among the super-cell equivalent tripets of R points for the one(s)
+          ! with the shortest perimeter
+          nperi = 0
+          peri_min = 0._dp ! it is set on first loop
+          DO jfar = 1,nfar
+          DO ifar = 1,nfar
             !
-            mat(:,:,:, iat,jat,kat, rx_idx(iperi)) = perinorm * fc(:,:,:)
+            p1 = xtau1
+            p2 = xtau2+xr(:,ixr)+sc_xr(:,ifar)
+            p3 = xtau3+xr(:,jxr)+sc_xr(:,jfar)
+            d1 = p1 - p2
+            d2 = p2 - p3
+            d3 = p3 - p1
+            !
+!             p0 = (p1+p2+p3)/3._dp
+!             d1 = p0 - p1
+!             d2 = p0 - p2
+!             d3 = p0 - p3
+            !
+            perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
+!             perix = DSQRT(SUM(d1**2) + SUM(d2**2) + SUM(d3**2))
+            !
+            IF (perix < peri_min-eps_peri .or. nperi==0 ) THEN
+              nperi = 1
+              farx_list = 0._dp
+              farx_list(:,1,nperi) = xr(:,ixr)+sc_xr(:,ifar)
+              farx_list(:,2,nperi) = xr(:,jxr)+sc_xr(:,jfar)
+              peri_min = perix
+            ELSE IF ( ABS(perix-peri_min) <= eps_peri ) THEN
+              nperi = nperi + 1
+              IF(nperi > nperix) CALL errore("bwfft_d3_interp", "nperix is too small, please report to developers", 1)
+              farx_list(:,1,nperi) = xr(:,ixr)+sc_xr(:,ifar)
+              farx_list(:,2,nperi) = xr(:,jxr)+sc_xr(:,jfar)
+              peri_min = (peri_min*(nperi-1)+perix)/DBLE(nperi)
+            ENDIF
+            !
+          ENDDO
           ENDDO
           !
-        ENDIF
+          IF (nperi==0) CALL errore("bwfft_d3_interp", "found no perimeters", 1)
+          ! Add the 2*nperi vectors from farx list to rx_list, if they are 
+          ! not already in the list in any case, return the indeces 
+          ! of the vectors in the list
+          CALL update_rlist(nperi, farx_list, nxr_list, rx_list, rx_idx)
+          !
+          IF(PASS==2)THEN
+            IF(nxr_list > nxr_list_old) CALL errore("bwfft_d3_interp", &
+                                              "unexpected new triangle", 1)
+            perinorm = 1._dp/REAL(nperi,kind=DP)
+            !print*, perinorm * fc(:,:,:)
+            DO iperi = 1, nperi
+              !
+              mat(:,:,:, iat,jat,kat, rx_idx(iperi)) = perinorm * fc(:,:,:)
+            ENDDO
+            !
+          ENDIF
+          !
+        ENDDO
+        ENDDO
         !
       ENDDO
       ENDDO
-      !
-    ENDDO
-    ENDDO
-    ENDDO
+      ENDDO
     ENDDO TWO_PASS
     !
     !WRITE(998,*) mat
@@ -433,8 +415,8 @@ MODULE f3_bwfft
     WRITE(*,'(4x,a,es10.3,a,2(es10.3,2x))') "Largest imaginary fraction:", max_imag_frac, " for ", max_imag_mag
     WRITE(*,'(4x,a,es10.3)') "Largest imaginary part:    ", max_imag
     !
-    WHERE(ABS(fc3%fc) < 1.d-30)  fc3%fc = 0._dp
-    WHERE(ABS(fc3%ifc) < 1.d-30) fc3%ifc = 0._dp
+!     WHERE(ABS(fc3%fc) < 1.d-30)  fc3%fc = 0._dp
+!     WHERE(ABS(fc3%ifc) < 1.d-30) fc3%ifc = 0._dp
     !
     !
     ALLOCATE(fc3%yR2(3,nxr_list), fc3%yR3(3,nxr_list))
