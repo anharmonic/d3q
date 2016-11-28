@@ -13,7 +13,7 @@
 MODULE linewidth
 
 #include "mpi_thermal.h"
-  USE kinds,          ONLY : DP
+  USE kinds,       ONLY : DP
   USE mpi_thermal, ONLY : my_id, mpi_bsum
   USE timers
 
@@ -105,6 +105,7 @@ MODULE linewidth
     !
       timer_CALL t_mpicom%start()
     IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,lw)
+
       timer_CALL t_mpicom%stop()
     linewidth_q = -0.5_dp * lw
     !

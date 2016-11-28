@@ -185,7 +185,8 @@ MODULE final_state
   ! Sum the self energy at the provided ener(ne) input energies
   ! \/o\________\\\_________________________________________/^>
   FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, ei, ne, ener)
-    USE functions, ONLY : f_gauss, df_bose
+    USE functions,        ONLY : f_gauss, df_bose
+    USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
@@ -299,6 +300,8 @@ MODULE final_state
       ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+    !
+    CALL merge_degen(ne, S%nat3, fsdf, freq(:,1))
     !
     !sum_final_state_e = -DIMAG(fsdf)
     sum_final_state_e = REAL(fsdf)

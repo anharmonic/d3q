@@ -199,10 +199,10 @@ MODULE fc3_interpolate
     unit = find_free_unit()
     OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
     IF(ios/=0) CALL errore("read_fc3","opening '"//TRIM(filename)//"'", 1)
-    READ(unit, '(a32)') buf
+    READ(unit, *) buf
     CLOSE(unit)
     !
-    IF(buf=="sparse representation") THEN
+    IF(buf=="sparse") THEN
       ALLOCATE(sparse:: fc)
     ELSE IF(buf=="constant") THEN
       ALLOCATE(constant::   fc)
@@ -598,6 +598,8 @@ MODULE fc3_interpolate
     INTEGER :: unit, ios
     INTEGER, EXTERNAL :: find_free_unit
     CHARACTER(len=32) :: buf
+    CHARACTER(len=6) :: dummy
+    REAL(DP) :: factor
     !
     INTEGER :: i, j
     !
@@ -606,7 +608,10 @@ MODULE fc3_interpolate
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
     !
     READ(unit, '(a32)') buf
-    IF(buf/="sparse representation") CALL errore(sub, "cannot read this format", 1)
+    IF(buf(1:6)/="sparse") CALL errore(sub, "cannot read this format", 1)
+    READ(buf, *, iostat=ios) dummy, factor
+    IF(ios/=0) factor = 1._dp
+    IF(factor/=1._dp .and. ionode) WRITE(stdout, *) "WARNING! rescaling D3", factor
     !
     ioWRITE(stdout,*) "** Reading sparse FC3 file ", TRIM(filename)
     CALL read_system(unit, S)
@@ -632,6 +637,7 @@ MODULE fc3_interpolate
       DO j = 1, fc%n_terms(i)
         READ(unit,*) fc%dat(i)%idx(:,j), fc%dat(i)%fc(j)
       ENDDO
+      fc%dat(i)%fc = fc%dat(i)%fc*factor
     ENDDO
     !
     CLOSE(unit)

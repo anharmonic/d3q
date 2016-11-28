@@ -27,7 +27,7 @@ EXTOBJS = ../src/libd3q.a \
 
 QEMODS = ../../Modules/libqemod.a
 
-TLDEPS= bindir mods libs pw
+TLDEPS= bindir mods libs pw-lib lrmods ph
 
 LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
@@ -40,7 +40,7 @@ LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a
 #F90FLAGS += -openmp 
 #LDFLAGS  += -openmp #-pg -g
 
-THERMALK2_LIBS = \
+THERMALK2_OBJS = \
 mpi_thermal.o \
 asr2.o \
 casimir.o \
@@ -65,76 +65,83 @@ q_grids.o \
 quter.o \
 timers.o \
 variational_tk.o
-#vector.o
 
 EXECUTABLES = lw.x tk.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
 
-all : tldeps $(EXECUTABLES)
+all : tldeps d3q-libs thermal2-libs $(EXECUTABLES)
 
-tk.x : PROGRAM_tk.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o $(THERMALK2_LIBS) \
+tk.x : PROGRAM_tk.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-lw.x : PROGRAM_lw.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o $(THERMALK2_LIBS) \
+lw.x : PROGRAM_lw.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-db.x : PROGRAM_db.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o $(THERMALK2_LIBS) \
+db.x : PROGRAM_db.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-r2q.x : PROGRAM_r2q.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o $(THERMALK2_LIBS) \
+r2q.x : PROGRAM_r2q.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-sparse.x : PROGRAM_sparse.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o $(THERMALK2_LIBS) \
+sparse.x : PROGRAM_sparse.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-sqom.x : PROGRAM_sqom.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o $(THERMALK2_LIBS) \
+sqom.x : PROGRAM_sqom.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-q2r.x : PROGRAM_q2r.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o $(THERMALK2_LIBS) \
+q2r.x : PROGRAM_q2r.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-qq2rr.x : PROGRAM_qq2rr.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o $(THERMALK2_LIBS) \
+qq2rr.x : PROGRAM_qq2rr.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-asr3.x : PROGRAM_asr3.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o $(THERMALK2_LIBS) \
+asr3.x : PROGRAM_asr3.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-import3py.x : PROGRAM_import3py.o $(THERMALK2_LIBS)
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_import3py.o $(THERMALK2_LIBS) \
+import3py.x : PROGRAM_import3py.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_import3py.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
+d3q-libs :
+	( cd ../src/; make libd3q.a)
 
+thermal2-libs : libthermal2.a
 
-d3q :
-	( cd ../; make src)
+libthermal2.a : $(THERMALK2_OBJS)
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+#d3q :
+#	( cd ../; make src)
+
 tldeps:
 	test -n "$(TLDEPS)" && ( cd ../.. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :
 

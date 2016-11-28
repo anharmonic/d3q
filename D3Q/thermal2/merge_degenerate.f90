@@ -8,13 +8,16 @@
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE merge_degenerate
   USE kinds,      ONLY : DP
-  USE constants, ONLY : RY_TO_CMM1
-  USE timers,    ONLY : t_merged
+  USE constants,  ONLY : RY_TO_CMM1
+  USE timers,     ONLY : t_merged
 #include "mpi_thermal.h"
   IMPLICIT NONE
   !
   PRIVATE
-  REAL(DP),PARAMETER :: eps_freq = (1.e-6_dp/RY_TO_CMM1)
+  ! Consider two bands degenerate when they differ by less than 10^-3 cm^-1
+  REAL(DP),PARAMETER :: eps_freq = (1.e-3_dp/RY_TO_CMM1)
+  LOGICAL,PARAMETER :: disable_merge = .false.
+  LOGICAL,PARAMETER :: disable_merge_vel = .false.
   !
   PUBLIC :: merge_degen, merge_degenerate_velocity
   !
@@ -41,6 +44,7 @@ MODULE merge_degenerate
     INTEGER :: i,j,k
     REAL(DP) :: avg_lw
     
+    IF(disable_merge) RETURN
     timer_CALL t_merged%start()
     j=0
     DO i = 1, nat3-1
@@ -49,6 +53,7 @@ MODULE merge_degenerate
         ! Find how many modes are degenerate with this one
         DO j = i+1,nat3
           ! As soon as you find one that is not degenerate, stop seeking
+          !print*,i,j,ABS(w(i)-w(j))*RY_TO_CMM1,eps_freq
           IF(ABS(w(i)-w(j))>eps_freq) EXIT
         ENDDO
         ! Go back to the highest degenerate one
@@ -56,6 +61,7 @@ MODULE merge_degenerate
         j=j-1
         ! Average the lw over the degenerate modes
         IF(j>i)THEN
+          !print*, i,j
           avg_lw = SUM(lw(i:j))
           lw(i:j) = avg_lw/(j-i+1)
         ENDIF
@@ -75,6 +81,7 @@ MODULE merge_degenerate
     !
     INTEGER :: i,j,k
     COMPLEX(DP) :: avg_lw
+    IF(disable_merge) RETURN
     timer_CALL t_merged%start()
     j=0
     DO i = 1, nat3-1
@@ -110,6 +117,7 @@ MODULE merge_degenerate
     !
     INTEGER :: i,j,k
     REAL(DP) :: avg_vec(ndim)
+    IF(disable_merge) RETURN
     timer_CALL t_merged%start()
     j=0
     DO i = 1, nat3-1
@@ -143,6 +151,7 @@ MODULE merge_degenerate
     REAL(DP),INTENT(in)       :: w(nat3)
     INTEGER :: i,j,k
     COMPLEX(DP) :: avg_vec(ndim)
+    IF(disable_merge) RETURN
     timer_CALL t_merged%start()
     j=0
     DO i = 1, nat3-1
@@ -176,6 +185,7 @@ MODULE merge_degenerate
     REAL(DP),INTENT(in)     :: w(nat3)
     INTEGER :: i,j,k
     REAL(DP) :: avg_mat(ndim,mdim)
+    IF(disable_merge) RETURN
     timer_CALL t_merged%start()
     j=0
     DO i = 1, nat3-1
@@ -215,6 +225,7 @@ MODULE merge_degenerate
     
     ! NOTE: checking |a^2-b^2| < epsilon^2 is a completely different
     !       thing than checking |a-b| < epsilon
+    IF(disable_merge_vel) RETURN
     timer_CALL t_merged%start()
     w= DSQRT(ABS(w2))
     j=0

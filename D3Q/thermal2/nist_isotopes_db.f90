@@ -164,7 +164,7 @@ MODULE nist_isotopes_db
     ELSE NISOT_IF
       
       elem = search_nist(aname)
-      WRITE(*,'(5x,2a)') "Found in NIST: ", elem%aname
+      ioWRITE(*,'(5x,2a)') "Found in NIST: ", elem%aname
     
       IF(anum>0)THEN
         !
@@ -194,15 +194,15 @@ MODULE nist_isotopes_db
         gm = SUM( aconc_*amass_ )
         gs = SUM( aconc_*(amass_-gm)**2 ) / gm**2
         !
-        WRITE(*,'(8x,a,i3,a)') "number of natural isotopes:", elem%nisot, ". Mass, concentration:"
+        ioWRITE(*,'(8x,a,i3,a)') "number of natural isotopes:", elem%nisot, ". Mass, concentration:"
         DO i = 1, elem%nisot
-          WRITE(*,'(10x,2f12.6)') amass_(i), aconc_(i)
+          ioWRITE(*,'(10x,2f12.6)') amass_(i), aconc_(i)
         ENDDO
       ENDIF
     ENDIF &
     NISOT_IF
     !
-    WRITE(*,'(8x,a,2f12.6)')  "average mass, relative standard dev.:", gm, gs
+    ioWRITE(*,'(8x,a,2f12.6)')  "average mass, relative standard dev.:", gm, gs
 
   END SUBROUTINE compute_gs
   ! \/o\________\\\_________________________________________/^>

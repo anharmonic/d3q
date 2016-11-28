@@ -28,8 +28,9 @@ for dir in $dirs; do
     if test -d $DIR
     then
 	cd $DIR
-       
-	$TOPDIR/moduledep.sh $DEPENDS > make.depend
+
+	ls *.f90|grep -v mpi_thermal.f90|sed -e 's/.f90/.o : mpi_thermal.o/' > make.depend       
+	$TOPDIR/moduledep.sh $DEPENDS >> make.depend
 	$TOPDIR/includedep.sh $DEPENDS >> make.depend
 
         # handle special cases

@@ -19,7 +19,6 @@ MODULE linewidth_program
 #include "mpi_thermal.h"
   !
   CONTAINS
-  ! Test subroutine: compute phonon frequencies along a line and save them to unit 666  
   SUBROUTINE LW_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
@@ -107,8 +106,10 @@ MODULE linewidth_program
           ELSE
             lsx = lsx + w2
           ENDIF
+          IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
+          
           ioFLUSH(1000+it)
         ENDDO
       ELSE IF (TRIM(input%mode) == "real" .or. TRIM(input%mode) == "imag") THEN
@@ -217,7 +218,7 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: qpath
     !
-    INTEGER :: iq, it, ie
+    INTEGER :: iq, it, ie, newfile
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf)
     REAL(DP)   :: sigma_ry(input%nconf)
@@ -226,6 +227,7 @@ MODULE linewidth_program
     !
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
+    CHARACTER(len=6), EXTERNAL :: int_to_char
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
@@ -237,6 +239,7 @@ MODULE linewidth_program
     sigma_ry = input%sigma/RY_TO_CMM1
     !
     IF(ionode)THEN
+    newfile=0
     DO it = 1,input%nconf
       OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                               TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
@@ -255,6 +258,14 @@ MODULE linewidth_program
       ioWRITE(*,'(i6,3f12.6,5x,6f12.6,100(/,47x,6f12.6))') iq, qpath%xq(:,iq), w2*RY_TO_CMM1
       !
       DO it = 1,input%nconf
+        IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) THEN
+          CLOSE(1000+it)
+          newfile = newfile+1
+          OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
+            TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+            "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
+            "_p"//TRIM(int_to_char(newfile))//".out")       
+        ENDIF
         ioWRITE(1000+it, *)
         ioWRITE(1000+it, '(a,i6,3f15.8,5x,100(/,"#",6f12.6))') "#  xq",  iq, qpath%xq(:,iq), w2*RY_TO_CMM1
       ENDDO
@@ -276,7 +287,9 @@ MODULE linewidth_program
           !ioWRITE(1000+it, '(2f14.8,100e14.6)') &
           !        qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2        
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
-                qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1, spectralf(ie,:,it)/RY_TO_CMM1
+                qpath%w(iq), ener(ie)*RY_TO_CMM1, &
+                SUM(spectralf(ie,:,it))/RY_TO_CMM1, &
+                spectralf(ie,:,it)/RY_TO_CMM1
           ioFLUSH(1000+it)
         ENDDO
       ENDDO

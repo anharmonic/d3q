@@ -1,9 +1,59 @@
+PROGRAM_asr3.o : mpi_thermal.o
+PROGRAM_db.o : mpi_thermal.o
+PROGRAM_import3py.o : mpi_thermal.o
+PROGRAM_lw.o : mpi_thermal.o
+PROGRAM_q2r.o : mpi_thermal.o
+PROGRAM_qq2rr.o : mpi_thermal.o
+PROGRAM_r2q.o : mpi_thermal.o
+PROGRAM_sparse.o : mpi_thermal.o
+PROGRAM_sqom.o : mpi_thermal.o
+PROGRAM_tk.o : mpi_thermal.o
+asr2.o : mpi_thermal.o
+casimir.o : mpi_thermal.o
+code_input.o : mpi_thermal.o
+dynbubble.o : mpi_thermal.o
+f3_bwfft.o : mpi_thermal.o
+fc2_interp.o : mpi_thermal.o
+fc3_interp.o : mpi_thermal.o
+final_state.o : mpi_thermal.o
+functions.o : mpi_thermal.o
+input_fc.o : mpi_thermal.o
+isotopes.o : mpi_thermal.o
+linewidth.o : mpi_thermal.o
+merge_degenerate.o : mpi_thermal.o
+more_constants.o : mpi_thermal.o
+nanoclock.o : mpi_thermal.o
+nist_isotopes_db.o : mpi_thermal.o
+ph_system.o : mpi_thermal.o
+ph_velocity.o : mpi_thermal.o
+posix_signal.o : mpi_thermal.o
+q_grids.o : mpi_thermal.o
+quter.o : mpi_thermal.o
+quter_standalone.o : mpi_thermal.o
+timers.o : mpi_thermal.o
+variational_tk.o : mpi_thermal.o
+vector.o : mpi_thermal.o
 PROGRAM_asr3.o : ../../Modules/io_global.o
 PROGRAM_asr3.o : ../../Modules/kind.o
 PROGRAM_asr3.o : ./PROGRAM_asr3.o
+PROGRAM_asr3.o : ./PROGRAM_import3py.o
+PROGRAM_asr3.o : ./f3_bwfft.o
 PROGRAM_asr3.o : ./fc3_interp.o
 PROGRAM_asr3.o : ./input_fc.o
 PROGRAM_asr3.o : ./more_constants.o
+PROGRAM_db.o : ../../Modules/constants.o
+PROGRAM_db.o : ../../Modules/kind.o
+PROGRAM_db.o : ./PROGRAM_db.o
+PROGRAM_db.o : ./asr2.o
+PROGRAM_db.o : ./code_input.o
+PROGRAM_db.o : ./dynbubble.o
+PROGRAM_db.o : ./fc2_interp.o
+PROGRAM_db.o : ./fc3_interp.o
+PROGRAM_db.o : ./input_fc.o
+PROGRAM_db.o : ./linewidth.o
+PROGRAM_db.o : ./more_constants.o
+PROGRAM_db.o : ./mpi_thermal.o
+PROGRAM_db.o : ./q_grids.o
 PROGRAM_import3py.o : ../../Modules/constants.o
 PROGRAM_import3py.o : ../../Modules/kind.o
 PROGRAM_import3py.o : ./PROGRAM_import3py.o
@@ -42,12 +92,15 @@ PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
 PROGRAM_r2q.o : ../../Modules/constants.o
 PROGRAM_r2q.o : ../../Modules/kind.o
+PROGRAM_r2q.o : ../../Modules/random_numbers.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
 PROGRAM_r2q.o : ./asr2.o
 PROGRAM_r2q.o : ./code_input.o
 PROGRAM_r2q.o : ./fc2_interp.o
+PROGRAM_r2q.o : ./functions.o
 PROGRAM_r2q.o : ./input_fc.o
 PROGRAM_r2q.o : ./more_constants.o
+PROGRAM_r2q.o : ./mpi_thermal.o
 PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
 PROGRAM_sparse.o : ../../Modules/io_global.o
@@ -60,16 +113,17 @@ PROGRAM_sparse.o : ./more_constants.o
 PROGRAM_sparse.o : ./mpi_thermal.o
 PROGRAM_sparse.o : ./nanoclock.o
 PROGRAM_sqom.o : ../../Modules/constants.o
-PROGRAM_sqom.o : ../../Modules/io_global.o
 PROGRAM_sqom.o : ../../Modules/kind.o
 PROGRAM_sqom.o : ../../Modules/parameters.o
 PROGRAM_sqom.o : ../../Modules/wrappers.o
 PROGRAM_sqom.o : ./PROGRAM_sqom.o
 PROGRAM_sqom.o : ./asr2.o
+PROGRAM_sqom.o : ./code_input.o
 PROGRAM_sqom.o : ./fc2_interp.o
 PROGRAM_sqom.o : ./functions.o
 PROGRAM_sqom.o : ./input_fc.o
 PROGRAM_sqom.o : ./more_constants.o
+PROGRAM_sqom.o : ./mpi_thermal.o
 PROGRAM_sqom.o : ./q_grids.o
 PROGRAM_tk.o : ../../Modules/constants.o
 PROGRAM_tk.o : ../../Modules/kind.o
@@ -105,6 +159,16 @@ code_input.o : ./mpi_thermal.o
 code_input.o : ./nist_isotopes_db.o
 code_input.o : ./q_grids.o
 code_input.o : ./timers.o
+dynbubble.o : ../../Modules/constants.o
+dynbubble.o : ../../Modules/kind.o
+dynbubble.o : ./fc2_interp.o
+dynbubble.o : ./fc3_interp.o
+dynbubble.o : ./functions.o
+dynbubble.o : ./input_fc.o
+dynbubble.o : ./more_constants.o
+dynbubble.o : ./mpi_thermal.o
+dynbubble.o : ./q_grids.o
+dynbubble.o : ./timers.o
 f3_bwfft.o : ../../D3Q/src/d3_basis.o
 f3_bwfft.o : ../../D3Q/src/d3_shuffle.o
 f3_bwfft.o : ../../D3Q/src/d3matrix_io.o
@@ -131,6 +195,7 @@ final_state.o : ./fc3_interp.o
 final_state.o : ./functions.o
 final_state.o : ./input_fc.o
 final_state.o : ./linewidth.o
+final_state.o : ./merge_degenerate.o
 final_state.o : ./more_constants.o
 final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
@@ -153,12 +218,13 @@ linewidth.o : ./fc2_interp.o
 linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
 linewidth.o : ./input_fc.o
+linewidth.o : ./merge_degenerate.o
 linewidth.o : ./mpi_thermal.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 merge_degenerate.o : ../../Modules/constants.o
 merge_degenerate.o : ../../Modules/kind.o
-more_constants.o : ../../Modules/io_global.o
+merge_degenerate.o : ./timers.o
 more_constants.o : ../../Modules/kind.o
 mpi_thermal.o : ../../Modules/kind.o
 nanoclock.o : ../../Modules/kind.o
@@ -175,6 +241,7 @@ ph_velocity.o : ./merge_degenerate.o
 posix_signal.o : ./mpi_thermal.o
 posix_signal.o : ./timers.o
 q_grids.o : ../../Modules/kind.o
+q_grids.o : ../../Modules/random_numbers.o
 q_grids.o : ./fc2_interp.o
 q_grids.o : ./input_fc.o
 q_grids.o : ./mpi_thermal.o
@@ -196,22 +263,28 @@ variational_tk.o : ./functions.o
 variational_tk.o : ./input_fc.o
 variational_tk.o : ./isotopes.o
 variational_tk.o : ./linewidth.o
+variational_tk.o : ./merge_degenerate.o
 variational_tk.o : ./more_constants.o
 variational_tk.o : ./mpi_thermal.o
 variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 vector.o : ../../Modules/kind.o
+PROGRAM_db.o : 
 PROGRAM_import3py.o : 
 PROGRAM_lw.o : 
 PROGRAM_r2q.o : 
+PROGRAM_sqom.o : 
 PROGRAM_tk.o : 
 code_input.o : 
+dynbubble.o : 
 fc2_interp.o : 
 fc3_interp.o : 
 final_state.o : 
 input_fc.o : 
 linewidth.o : 
+merge_degenerate.o : 
+more_constants.o : 
 mpi_thermal.o : 
 nanoclock.o : 
 nist_isotopes_db.o : 

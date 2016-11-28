@@ -80,14 +80,16 @@ MODULE q_grids
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0, scatter)
     USE input_fc, ONLY : ph_system_info
+    USE random_numbers,   ONLY : randy
     IMPLICIT NONE
-    CHARACTER(len=6),INTENT(in)     :: grid_type
+    CHARACTER(len=*),INTENT(in)     :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     LOGICAL,OPTIONAL,INTENT(in) :: scatter
     !
+    REAL(DP) :: xq_random(3)
     LOGICAL  :: do_scatter
     do_scatter = .false.
     IF(present(scatter)) do_scatter = scatter
@@ -99,6 +101,16 @@ MODULE q_grids
       ELSE
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
+      ENDIF
+    ELSE IF(grid_type=="random")THEN
+      xq_random  = (/ randy(), randy(), randy() /)
+      ioWRITE(stdout, "(3x,a,3f12.6)") "Random grid shift", xq_random
+      IF(.not.do_scatter)THEN
+        ! If the grid is not mpi-scattered I use the simple subroutine
+        CALL setup_simple_grid(bg, n1,n2,n3, grid, xq_random)
+      ELSE
+        ! otherwise, I use this subroutine instead, which directly scatters over MPI:
+        CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq_random)
       ENDIF
     ELSE IF (grid_type=="ws" .or. grid_type=="bz")THEN
       ! This grid has to be generated in its entirety and then scatterd, 
@@ -355,8 +367,13 @@ MODULE q_grids
   END SUBROUTINE setup_scattered_grid
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Create a line of nq q-point from xqi to xqf, the list is appended
-  ! to the grid, weights are improperly used as path length
+  ! Create a line of nq q-point from the last point in the path end xqi 
+  ! weights are improperly used as path length
+  ! SPECIAL: 
+  ! 1. If the new point xqi is equivalent to the last point in the line, the path
+  ! length is not incremented (only works if nq_new == 1)
+  ! 2. If nq_new is -1 the new point is added to the line and the path length 
+  ! is reset to zero, also lw.x will print an empy line in the output
   SUBROUTINE setup_path(xqi, nq_new, path, at)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
@@ -373,8 +390,8 @@ MODULE q_grids
     !
     IF(nq_new==0) RETURN
     IF(nq_new>1 .and. path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 1)
+    IF(nq_new<-1) CALL errore("setup_path", "nq_new must be >= -1",1)
     !
-    equiv = .false.
     ADD_TO_PATH : &
     IF(path%nq >0)THEN
       ALLOCATE(auxq(3,path%nq),auxw(path%nq))
@@ -384,7 +401,7 @@ MODULE q_grids
       ! If xqi is the same as the last point in the list, 
       ! do not add this distance to the path length
       nq_old = path%nq
-      path%nq = path%nq + nq_new
+      path%nq = path%nq + ABS(nq_new)
       !
       ALLOCATE(path%xq(3,path%nq),path%w(path%nq))
       path%xq(:,1:nq_old) = auxq(:,1:nq_old)
@@ -400,6 +417,9 @@ MODULE q_grids
     ENDIF &
     ADD_TO_PATH
     !
+    !
+    !
+    equiv = .false.
     COMPUTE_NEW_PATH : &
     IF(nq_new>1)THEN
       dq = (xqi-path%xq(:,nq_old))/(nq_new)
@@ -430,6 +450,7 @@ MODULE q_grids
         ELSE
           path%w(nq_old+1) = path%w(nq_old)+dql
         ENDIF
+        IF(nq_new==-1) path%w(nq_old+1) = 0._dp
       ENDIF
       !
       !
@@ -439,7 +460,7 @@ MODULE q_grids
     ! 
     IF(nq_old>1)THEN
     IF(SUM( ( (path%xq(:,nq_old-1) - path%xq(:,nq_old)) &
-              -(path%xq(:,nq_old) - path%xq(:,nq_old+1)))**2 ) > 1.d-6 ) THEN
+             -(path%xq(:,nq_old) - path%xq(:,nq_old+1)))**2 ) > 1.d-6 ) THEN
       ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
     ENDIF
     ENDIF

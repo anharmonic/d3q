@@ -8,6 +8,7 @@
 
 MODULE more_constants
   USE kinds, ONLY : DP
+#include "mpi_thermal.h"
   REAL(DP),PARAMETER :: RY_TO_JOULE =  0.5* 4.35974394e-18
   REAL(DP),PARAMETER :: RY_TO_SECOND = 2* 2.418884326505e-17
   REAL(DP),PARAMETER :: RY_TO_METER = 5.2917721092e-11
@@ -82,14 +83,13 @@ MODULE more_constants
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_citations_linewidth
-    USE io_global, ONLY : stdout
-    WRITE(stdout,*)
-    WRITE(stdout,'(5x,a)') &
+    ioWRITE(stdout,*)
+    ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For 2n+1 calculations of force constants please cite:",&
         " 1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri",&
         "    Phys. Rev. B 87, 214303 – Published 7 June 2013"
-    WRITE(stdout,'(5x,a)') &
+    ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For thermal transport calculations please cite:",&
         " 2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri",&
@@ -98,12 +98,12 @@ MODULE more_constants
         "    Nature communications 6 (2015)", &
         " 4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,", &
         "    Nano letters 14 (11), 6109-6114 (2014)"
-    WRITE(stdout,'(5x,a)') &
+    ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For spectral function calculations also cite:",&
         " 5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,",&
         "    Phys. Rev. B 91, 054304 (2015)"
-    WRITE(stdout,*)
+    ioWRITE(stdout,*)
 
   END SUBROUTINE print_citations_linewidth
   !

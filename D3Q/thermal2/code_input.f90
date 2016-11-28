@@ -214,7 +214,8 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, start_q, nq, nk, grid_type, &
-      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq, exp_t_factor, sort_shifted_freq, &
+      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq,&
+      exp_t_factor, sort_shifted_freq, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time
@@ -238,6 +239,8 @@ MODULE code_input
     NAMELIST  / r2qinput / &
       calculation, outdir, prefix, &
       file_mat2, asr2, nq, &
+      ne, de, e0, &
+      nk, nconf, grid_type, &
       print_dynmat, print_velocity
       !
     input_file="input."//TRIM(code)
@@ -269,9 +272,11 @@ MODULE code_input
       READ(input_unit, r2qinput)
       ioWRITE(*, r2qinput)
       ! Not reading nk, nconf and configs in the R2Q case
-      nk=1
-      nconf=1
-      configs_ok = .true.
+      IF(ANY(nk<0)) nk=1
+      IF(nconf<0)THEN
+        nconf=1
+        configs_ok = .true.
+      ENDIF
     ELSE
        CALL errore('READ_INPUT', 'Wrong code', 1)
     ENDIF
@@ -638,7 +643,7 @@ MODULE code_input
   !
   SUBROUTINE parse_command_line(input_file)
     IMPLICIT NONE
-    CHARACTER(len=512),INTENT(inout) :: input_file ! left unchanged if "-in XXXX" not found
+    CHARACTER(len=*),INTENT(inout) :: input_file ! left unchanged if "-in XXXX" not found
     INTEGER :: count, i, ierr
     CHARACTER(len=512) :: argv
     count = command_argument_count()

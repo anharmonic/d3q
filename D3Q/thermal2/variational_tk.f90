@@ -271,6 +271,9 @@ MODULE variational_tk
     ENDDO &
     QPOINT_INNER_LOOP
     !
+    CALL merge_degen(nconf, S%nat3, A_out, freq(:,1))
+    A_out = A_out + A_out_isot
+    !
     ! Recollect over MPI processes if necessary
     IF(grid%scattered) THEN
         timer_CALL t_mpicom%start()
@@ -278,10 +281,10 @@ MODULE variational_tk
         timer_CALL t_mpicom%stop()
     ENDIF
     !
-    CALL check_graceful_termination
+    ! Assign to output variable (better not to pass it to mpi)
+    A_out_q = A_out
     !
-    A_out_q = A_out + A_out_isot
-    CALL merge_degen(nconf, S%nat3, A_out_q, freq(:,1))
+    CALL check_graceful_termination
     !
     DEALLOCATE(U, V3sq, V3Bsq, D3)
     !
@@ -296,7 +299,6 @@ MODULE variational_tk
   FUNCTION sum_A_out_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
     USE functions,        ONLY : f_gauss => f_gauss
     USE constants,        ONLY : pi, RY_TO_CMM1
-    !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
@@ -360,6 +362,7 @@ MODULE variational_tk
 !$OMP END DO
 !$OMP END PARALLEL
     !
+    ! Merge degenerate is done outside this function for better efficiency
     !CALL merge_degen(nat3, sum_A_out, freq(:,1))
     sum_A_out_modes = sum_A_out
     !
@@ -747,6 +750,10 @@ MODULE variational_tk
     ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
+    !
+    ! Merge_degenerate is done outside this function because
+    ! it works better when applied to A*f instead than on A
+    !CALL merge_degen(nat3, nat3, p, freq(:,1))
     !
     sum_A_in_modes = p
     !
