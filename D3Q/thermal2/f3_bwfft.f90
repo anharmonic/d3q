@@ -279,26 +279,11 @@ MODULE f3_bwfft
           ! On first pass, only count the perimeters
           IF (PASS==2) THEN
             fc = (0._dp, 0._dp)
-            write(3999,'(a)') "============================================="
             DO iq = 1, nq_trip
               arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
               phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
               fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
-!           write(1999,'(i6,2f12.7,4x,4(3f8.4,3x))') &
-!             nq_trip, phase, d3grid(iq)%xq2, d3grid(iq)%xq3, xr(:,ixr), xr(:,jxr)
-              IF(ixr==1 .and. jxr==1)THEN
-              write(3999,'(3i6)') iat,jat,kat
-              write(3999,'(i6,2(3f8.4,3x))') iq, d3grid(iq)%xq2, d3grid(iq)%xq3
-              write(3999,'(3(2f10.4,3x))') 1.d+4*d3grid(iq)%d(:,:,:,iat,jat,kat)
-              ENDIF
             ENDDO
-!             IF(kat+jat+iat==3*nat) STOP 10
-!             if(jat/=kat)then
-!               write(999,*)
-!               write(999,'(99i6)') iat,jat,kat, ixr,jxr
-!               write(999,'(3(2f10.4,3x))') 10000*fc
-!               !stop 10
-!             endif
           ENDIF
           !
           ! Look among the super-cell equivalent tripets of R points for the one(s)

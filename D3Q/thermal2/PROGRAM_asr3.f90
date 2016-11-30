@@ -614,9 +614,10 @@ MODULE asr3_module
     ENDDO
     ENDDO
     !
-    fact = 1._dp/16._dp !DBLE(idx%nR*nat)
+    fact = 1._dp/DBLE(2*2*2 *2) !DBLE(idx%nR*nat)
     !
     DO iR2 = 1,idx%nR
+    print*, 100*iR2/DBLE(idx%nR), "%"
     DO iR3 = 1,idx%nR
     iR   = idx%iRe0
     iRp  = iR2
@@ -691,92 +692,6 @@ MODULE asr3_module
     delta = 0._dp
     !
   END FUNCTION impose_asr3_mauri  
-  !
-  ! \/o\________\\\_________________________________________/^>
-  ! Imposes sum rule on the first index of the FCs
-  REAL(DP) FUNCTION impose_asr3_2idx(nat,idx,fx) RESULT(delta)
-    IMPLICIT NONE
-    !
-    INTEGER,INTENT(in) :: nat
-    TYPE(index_r_type) :: idx
-    TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
-    !
-    INTEGER :: iR2,iR3, a,b,c, i,j,k
-    REAL(DP):: deltot, delsig, delperm
-    REAL(DP):: d1, q1, r1
-    !
-    deltot = 0._dp
-    delsig = 0._dp
-    DO iR2 = 1,idx%nR
-      !
-      DO j = 1,nat
-      DO i = 1,nat
-        DO c = 1,3
-        DO b = 1,3
-        DO a = 1,3
-          !
-          ! The sum is on one R (it does not matter which)
-          ! and the first atom index
-          d1 = 0._dp
-          q1 = 0._dp
-          R3_LOOP : &
-          DO iR3 = 1,idx%nR
-          DO k = 1,nat
-              d1 = d1+fx(iR2, iR3 )%F(a,b,c, i,j,k)
-              q1 = q1+fx(iR2, iR3 )%F(a,b,c, i,j,k)**2
-          ENDDO
-          ENDDO R3_LOOP
-          !
-          deltot = deltot + d1**2
-          delsig = delsig + d1
-          
-          !
-!           IF(q1>0._dp) THEN
-            r1 = d1/6._dp
-            fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,j) - r1
-            !fx(iR2,idx%iRe0)%F(a,b,c, i,j,i) = fx(iR2,idx%iRe0)%F(a,b,c, i,j,i) - r1
-            !
-
-            !             R3_LOOPb : &
-!             DO iR3 = 1,idx%nR
-!             DO k = 1,nat
-!                 !IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
-!                 fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
-!                                           - r1 * fx(iR2,iR3)%F(a,b,c, i,j,k)**2
-!             ENDDO
-!             ENDDO R3_LOOPb
-            !
-!           ENDIF
-          !
-        ENDDO
-        ENDDO
-        ENDDO
-      ENDDO
-      ENDDO
-    ENDDO
-    !
-    !
-!     DO iR2 = 1,idx%nR
-!     DO iR3 = 1,idx%nR
-!       fx(iR2,iR3)%F = fasr(iR2,iR3)%F
-!       !DEALLOCATE(fasr(iR2,iR3)%F)
-!     ENDDO
-!     ENDDO
-    !DEALLOCATE(fasr)
-
-    ! Re-symmetrize the matrix
-    delperm = perm_symmetrize_fc3(nat,idx,fx)
-    !
-    IF(iter==1) THEN
-    WRITE(*,'(2x,a)') "Minimization started: create a file named 'STOP' to stop."
-    WRITE(*,'(2x,a,a10,3a20)')   "asr3", "iter", "SQRT(deltot)", "SQRT(ABS(deltot-delsig**2))", "delperm"
-    ENDIF
-    WRITE(*,'(2x,a,i10,3e20.6)') "asr3", iter, SQRT(deltot), SQRT(ABS(deltot-delsig**2)), delperm
-    iter = iter+1
-    delta = SQRT(deltot)
-    !
-    !
-  END FUNCTION impose_asr3_2idx
   ! \/o\________\\\_________________________________________/^>
   !
   INTEGER PURE FUNCTION d(i,j)
@@ -903,24 +818,22 @@ PROGRAM asr3
 !   CALL upindex_fcx(S%nat, idx_wrap, fx, up)
 !   WRITE(stdout,*) "Upscale reindex : done. //  Mem used:", kb/1000, "Mb"
 ! 
-!   threshold = impose_asr3_mauri(S%nat,idx_wrap,fx)
-!   WRITE(1001, *) "============================================="
-!   WRITE(1002, *) "============================================="
-!   CALL upindex_fcx(S%nat, idx_wrap, fx, up)
+!!  threshold = impose_asr3_mauri(S%nat,idx2,fx)
 
-    APPLY_ASR : &
-    DO j = 1,niter_max
-      IF( impose_asr3_1idx(S%nat,idx2,fx) < threshold) EXIT
-      
-      OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
-      IF(ios==0) THEN
-        CLOSE(100,status="DELETE")
-        EXIT APPLY_ASR 
-      ENDIF
-    ENDDO APPLY_ASR 
-!     !
-  CALL memstat(kb)
-  WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
+
+     APPLY_ASR : &
+     DO j = 1,niter_max
+       IF( impose_asr3_1idx(S%nat,idx2,fx) < threshold) EXIT
+       
+       OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
+       IF(ios==0) THEN
+         CLOSE(100,status="DELETE")
+         EXIT APPLY_ASR 
+       ENDIF
+     ENDDO APPLY_ASR 
+     !
+   CALL memstat(kb)
+   WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
   ! ----------------------------------------------------------------------------
   !
   CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)

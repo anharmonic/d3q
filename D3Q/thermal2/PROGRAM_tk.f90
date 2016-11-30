@@ -43,7 +43,7 @@ MODULE thermalk_program
   ! but we keep it for didactical purposes
   SUBROUTINE TK_SMA(input, out_grid, S, fc2, fc3)
     USE linewidth,          ONLY : linewidth_q
-    USE constants,          ONLY : RY_TO_CMM1
+    USE constants,          ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
     USE q_grids,            ONLY : q_grid, setup_grid !, setup_bz_grid
     USE fc3_interpolate,    ONLY : forceconst3
@@ -202,8 +202,9 @@ MODULE thermalk_program
             ENDIF
           ENDIF
           !
-          pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))/input%T(it)**2 &
-                            * S%Omega * out_grid%w(iq) /lw(nu,it)
+          pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
+                             /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY)&
+                             *out_grid%w(iq) /lw(nu,it) 
           !ioWRITE(stdout,"(3x,a,3i6,4e15.6)") "do:", iq, nu, it, pref, freq(nu), bose(nu,it), lw(nu,it)
           DO a = 1,3
           DO b = 1,3

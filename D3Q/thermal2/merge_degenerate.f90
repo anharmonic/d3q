@@ -12,6 +12,9 @@ MODULE merge_degenerate
   USE timers,     ONLY : t_merged
 #include "mpi_thermal.h"
   IMPLICIT NONE
+  ! 
+  !NOTE: pay attention that the number of modes must be the rightmost dimension
+  !      of the array you wish to simmetrize! (or you will have to do a loop) 
   !
   PRIVATE
   ! Consider two bands degenerate when they differ by less than 10^-3 cm^-1
@@ -28,7 +31,6 @@ MODULE merge_degenerate
     MODULE PROCEDURE merge_degenerate_cmplx_vec
     MODULE PROCEDURE merge_degenerate_real_mat
   END INTERFACE
-  !
   !
   CONTAINS
 

@@ -156,6 +156,7 @@ MODULE variational_tk
     !
     ! FUNCTION RESULT:
     REAL(DP) :: A_out_q(S%nat3,nconf)
+    !
     REAL(DP) :: A_out(S%nat3,nconf)
     REAL(DP) :: A_out_isot(S%nat3,nconf)
 !     REAL(DP) :: lw(S%nat3,nconf)
@@ -271,7 +272,6 @@ MODULE variational_tk
     ENDDO &
     QPOINT_INNER_LOOP
     !
-    CALL merge_degen(nconf, S%nat3, A_out, freq(:,1))
     A_out = A_out + A_out_isot
     !
     ! Recollect over MPI processes if necessary
@@ -280,6 +280,9 @@ MODULE variational_tk
       CALL mpi_bsum(S%nat3, nconf, A_out)
         timer_CALL t_mpicom%stop()
     ENDIF
+    DO it = 1, nconf
+      CALL merge_degen(S%nat3, A_out(:,it), freq(:,1))
+    ENDDO
     !
     ! Assign to output variable (better not to pass it to mpi)
     A_out_q = A_out
@@ -764,6 +767,7 @@ MODULE variational_tk
   !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
   FUNCTION calc_tk_gf(g, f, b, T, weight, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE constants,          ONLY : K_BOLTZMANN_RY
     USE timers
     IMPLICIT NONE
     !
@@ -800,7 +804,7 @@ MODULE variational_tk
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     DO it = 1,nconf
-      pref = -Omega/T(it)**2
+      pref = -1/(Omega * T(it)**2 * K_BOLTZMANN_RY)
       tk(:,:,it) = pref * tk(:,:,it)
     ENDDO
     !

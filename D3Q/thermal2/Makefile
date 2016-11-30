@@ -10,6 +10,9 @@ MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
 #F90FLAGS += -check all -traceback -g
+# For profiling
+#F90FLAGS += -p
+#LDFLAGS += -p
 
 # Remove the following line if you want to use intel compiler but not MKL 
 # vectorized vdCos and vdSin

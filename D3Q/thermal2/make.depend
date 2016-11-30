@@ -1,3 +1,4 @@
+PROGRAM_asr3.BAK.o : mpi_thermal.o
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
 PROGRAM_import3py.o : mpi_thermal.o
@@ -33,9 +34,17 @@ quter_standalone.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
 vector.o : mpi_thermal.o
+PROGRAM_asr3.BAK.o : ../../Modules/io_global.o
+PROGRAM_asr3.BAK.o : ../../Modules/kind.o
+PROGRAM_asr3.BAK.o : ./PROGRAM_asr3.BAK.o
+PROGRAM_asr3.BAK.o : ./PROGRAM_import3py.o
+PROGRAM_asr3.BAK.o : ./f3_bwfft.o
+PROGRAM_asr3.BAK.o : ./fc3_interp.o
+PROGRAM_asr3.BAK.o : ./input_fc.o
+PROGRAM_asr3.BAK.o : ./more_constants.o
 PROGRAM_asr3.o : ../../Modules/io_global.o
 PROGRAM_asr3.o : ../../Modules/kind.o
-PROGRAM_asr3.o : ./PROGRAM_asr3.o
+PROGRAM_asr3.o : ./PROGRAM_asr3.BAK.o
 PROGRAM_asr3.o : ./PROGRAM_import3py.o
 PROGRAM_asr3.o : ./f3_bwfft.o
 PROGRAM_asr3.o : ./fc3_interp.o

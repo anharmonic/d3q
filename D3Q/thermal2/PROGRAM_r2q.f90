@@ -102,7 +102,7 @@ PROGRAM r2q
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
-  USE fc2_interpolate,  ONLY : freq_phq
+  USE fc2_interpolate,  ONLY : freq_phq, fftinterp_mat2
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
   USE ph_velocity,      ONLY : velocity
@@ -118,8 +118,8 @@ PROGRAM r2q
   !
   REAL(DP) :: xq(3)
   REAL(DP),ALLOCATABLE :: freq(:), vel(:,:)
-  COMPLEX(DP),ALLOCATABLE :: U(:,:)
-  INTEGER :: i, output_unit=10000
+  COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
+  INTEGER :: i, output_unit=10000, nu
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
   CALL print_citations_linewidth()
@@ -135,6 +135,7 @@ PROGRAM r2q
   ELSE
     ALLOCATE(freq(S%nat3))
     ALLOCATE(U(S%nat3,S%nat3))
+    IF(input%print_dynmat) ALLOCATE(D(S%nat3,S%nat3))
 
     filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//".out"
     OPEN(unit=output_unit, file=filename)
@@ -147,16 +148,18 @@ PROGRAM r2q
     !
     DO i = 1,qpath%nq
       CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
-      !WRITE(*, '(a16,999f12.4)') "freq", freq*RY_TO_CMM1
-      !WRITE(*, '(999f12.4)') freq*RY_TO_CMM1
       ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
         i, qpath%w(i), qpath%xq(:,i), freq*RY_TO_CMM1
       ioFLUSH(output_unit)
       
       IF(input%print_dynmat) THEN
-        U = multiply_mass_dyn(S, U)
+        CALL fftinterp_mat2(qpath%xq(:,i), S, fc2, D)
+        D = multiply_mass_dyn(S, D)
         filename = TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_dyn"//TRIM(int_to_char(i))
         CALL write_dyn(filename, qpath%xq(:,i), U, S)
+!         DO nu = 1,S%nat3
+!           WRITE(stdout, '(99(2f10.4,2x))') U(:,nu)
+!         ENDDO
       ENDIF
 
       IF(input%print_velocity) THEN
@@ -170,6 +173,7 @@ PROGRAM r2q
     !
     CLOSE(output_unit)
     DEALLOCATE(freq, U)
+    IF(input%print_dynmat) DEALLOCATE(D)
     IF(input%print_velocity) THEN
       CLOSE(output_unit+1)
       DEALLOCATE(vel)
