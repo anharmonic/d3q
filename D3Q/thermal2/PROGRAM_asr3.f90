@@ -498,7 +498,7 @@ MODULE asr3_module
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1, q1, r1
-    REAL(DP),PARAMETER :: pow = 1._dp
+    REAL(DP),PARAMETER :: pow = 2._dp
     REAL(DP),PARAMETER :: invpow = 1._dp/pow
     !
     !TYPE(forceconst3_ofRR),ALLOCATABLE,SAVE :: fasr(:,:)
