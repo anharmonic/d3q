@@ -146,8 +146,8 @@ MODULE final_state
         ioWRITE(unit,'(a)') "ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           DO ie = 1,ne
-            ioWRITE(unit,'(5f12.6,100e15.5)') ener(ie)*RY_TO_CMM1, &
-                            qpath%w(iqpath), qpath%xq(:,iqpath), &
+            ioWRITE(unit,'(5f12.6,100e15.5)') qpath%w(iqpath), &
+                            ener(ie)*RY_TO_CMM1, qpath%xq(:,iqpath), &
                             SUM(xqbar(ie,:,iqpath,it)),  xqbar(ie,:,iqpath,it)
           ENDDO
           WRITE(unit,*) 
@@ -303,8 +303,8 @@ MODULE final_state
     !
     CALL merge_degen(ne, S%nat3, fsdf, freq(:,1))
     !
-    !sum_final_state_e = -DIMAG(fsdf)
-    sum_final_state_e = REAL(fsdf)
+    sum_final_state_e = -DIMAG(fsdf)
+    !sum_final_state_e = REAL(fsdf)
     DEALLOCATE(fsdf)
     !
   END FUNCTION sum_final_state_e
