@@ -811,7 +811,7 @@ MODULE fc3_interpolate
                allocated(fc%yR3) .or. allocated(fc%xR3) ) &
               CALL errore(sub, 'some element are already allocated', 1)
             !
-            ioWRITE(stdout,*) "   Number of R:      ", fc%n_R
+            ioWRITE(stdout,*) "   Number of R:      ", n_R
             ALLOCATE(fc%yR2(3,n_R), fc%yR3(3,n_R))
             ALLOCATE(fc%xR2(3,n_R), fc%xR3(3,n_R))
             ALLOCATE(fc%FC(3*S%nat,3*S%nat,3*S%nat,n_R))
