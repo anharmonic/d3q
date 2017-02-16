@@ -327,9 +327,9 @@ MODULE thermalk_program
     
         timer_CALL t_tkprec%start()
     ! make the inner grid on top of the outer one, they are actually identical
-    ! but the inner one is MPI-scattered, so we need to separate onjects to hold them
+    ! but the inner one is MPI-scattered, so we need two separate objects to store them
     CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
-                    in_grid, scatter=.true.)
+                    in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     
     OPEN_FILES : &
