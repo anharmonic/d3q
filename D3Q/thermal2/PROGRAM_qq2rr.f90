@@ -24,7 +24,7 @@ PROGRAM qq2rr
   TYPE(ph_system_info) :: S
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
-  INTEGER :: narg, i, j
+  INTEGER :: narg, i, j, far
   CHARACTER(len=512) :: argv, filename
 
   narg = command_argument_count()
@@ -38,6 +38,12 @@ PROGRAM qq2rr
     ELSE
       filename="mat3R"
     ENDIF
+    IF(narg>=5)THEN
+      CALL get_command_argument(5,argv)
+      READ(argv, *) far
+    ELSE
+      far = 2
+    ENDIF
   ELSE
       WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [FILENAME]"
       WRITE(*,*) ""
@@ -46,6 +52,7 @@ PROGRAM qq2rr
       STOP 1
   ENDIF
   WRITE(*,*) "Reading grid", nq
+  WRITE(*,*) "Number of neighbours to check for BZ", far
   
   nq_grid = nq(1)*nq(2)*nq(3)
   nq_trip = nq_grid**2
@@ -63,7 +70,7 @@ PROGRAM qq2rr
 !   ENDDO
   !
   WRITE(*,*) "Doing Backward FFT..."
-  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3)
+  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3, far)
   fc3%nq = nq
   WRITE(*,*) "Backward FFT done"
   CALL memstat(kb)
