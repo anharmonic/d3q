@@ -433,9 +433,9 @@ MODULE asr3_module
       iR3mR2 = idx%idRmR(iR3,iR2)
       !
       IF(iR2mR3<0 .or. iR3mR2<0) THEN
-        IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
-          CALL errore('impose_asr3', 'this should be zero', 1)
-!         fx(iR2,iR3)%F = 0._dp
+!         IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
+!           CALL errore('impose_asr3', 'this should be zero', 1)
+        fx(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
       !
@@ -482,24 +482,24 @@ MODULE asr3_module
     ENDDO
     !
     !
-    delta = SQRT(delta)
+    delta = DSQRT(delta)
     !
   END FUNCTION perm_symmetrize_fc3
   !
   ! \/o\________\\\_________________________________________/^>
   ! Imposes sum rule on the first index of the FCs
-  REAL(DP) FUNCTION impose_asr3_1idx(nat,idx,fx) RESULT(delta)
+  REAL(DP) FUNCTION impose_asr3_1idx(nat,idx,fx,pow) RESULT(delta)
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
     TYPE(index_r_type) :: idx
     TYPE(forceconst3_ofRR),INTENT(inout) :: fx(idx%nR,idx%nR)
+    REAL(DP),INTENT(in) :: pow
     !
     INTEGER :: iR2,iR3, a,b,c, i,j,k
     REAL(DP):: deltot, delsig, delperm
     REAL(DP):: d1, q1, r1
-    REAL(DP),PARAMETER :: pow = 2._dp
-    REAL(DP),PARAMETER :: invpow = 1._dp/pow
+    REAL(DP) :: invpow
     !
     !TYPE(forceconst3_ofRR),ALLOCATABLE,SAVE :: fasr(:,:)
     !
@@ -512,6 +512,7 @@ MODULE asr3_module
 !       ENDDO
 !       ENDDO
 !     ENDIF
+    invpow = 1._dp/pow
 
     deltot = 0._dp
     delsig = 0._dp
@@ -735,6 +736,7 @@ PROGRAM asr3
   INTEGER,INTRINSIC :: iargc
   CHARACTER(len=256) :: self, filein, fileout, aux
   INTEGER :: nargs, niter_max
+  REAL(DP) :: pow
   !
   TYPE(grid) :: fcb
   INTEGER :: nq(3), nq_trip
@@ -763,19 +765,34 @@ PROGRAM asr3
     fileout = TRIM(filein)//".asr"
   ENDIF
   !
+  IF(TRIM(fileout)==TRIM(filein)) &
+    CALL errore("asr3","filein and fileout are the same, I refuse to do that",1)
+  !
   IF(nargs>2)THEN
     CALL getarg(3, aux)
+    READ(aux, *) pow
+  ELSE
+    pow = 2._dp
+  ENDIF
+  !
+  IF(nargs>3)THEN
+    CALL getarg(4, aux)
     READ(aux, *) threshold
   ELSE
     threshold = 1.d-12
   ENDIF
   !
-  IF(nargs>3)THEN
-    CALL getarg(4, aux)
+  IF(nargs>4)THEN
+    CALL getarg(5, aux)
     READ(aux, *) niter_max
   ELSE
     niter_max = INT(1e+4)
   ENDIF
+  WRITE(stdout,*) " --- PARAMETERS : ---"
+  WRITE(stdout,*) " power     ", pow
+  WRITE(stdout,*) " threshold ", threshold
+  WRITE(stdout,*) " niter_max ", niter_max
+  WRITE(stdout,*) " --- ------------ ---"
   ! ----------------------------------------------------------------------------
   CALL fc%read(filein, S)
   CALL aux_system(s)
@@ -823,7 +840,7 @@ PROGRAM asr3
 
      APPLY_ASR : &
      DO j = 1,niter_max
-       IF( impose_asr3_1idx(S%nat,idx2,fx) < threshold) EXIT
+       IF( impose_asr3_1idx(S%nat,idx2,fx,pow) < threshold) EXIT
        
        OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
        IF(ios==0) THEN
