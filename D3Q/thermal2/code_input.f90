@@ -477,7 +477,7 @@ MODULE code_input
           ENDIF
         ENDDO
         ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
-        ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Smearings:   ", input%sigma
+        ioWRITE(*,'(2x,a,/,100(8f9.3,/))') "Smearings:   ", input%sigma
         ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("ISOTOPES")
