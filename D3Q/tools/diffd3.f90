@@ -90,7 +90,7 @@ PROGRAM read3
   ENDDO
   ENDDO
 !  WRITE(*,'(a,f12.6,f10.4)') "maxdiff:", maxdiff*1.d+6, maxperc
-  WRITE(*,'(a,f12.6,f10.4)') "maxdiff:", maxdiff, maxperc
+  WRITE(*,'(a,f15.9,f10.4)') "maxdiff:", maxdiff, maxperc
 
 !   fname='anh'
 !   !
