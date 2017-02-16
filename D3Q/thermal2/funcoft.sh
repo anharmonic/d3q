@@ -9,7 +9,9 @@ This script collects the linewidth/shifts of a certain point q
 among all the files give in input and print on stdout a list
 of linewidths/shifts as function of T and sigma.
 Syntax:
+
  $0 point mode file [file2 [file3...]] 
+
  point:	 index of the point to collect among the files
  mode:	 number of the phonon mode 1...3*nat
  file1..n: list of files produced by lw.x
