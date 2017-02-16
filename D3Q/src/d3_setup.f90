@@ -123,6 +123,8 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   USE d3_iofiles,       ONLY : fildrho_q, tmp_dir_d3, fildrho_dir
   USE mp,               ONLY : mp_bcast, mp_barrier
   USE mp_world,         ONLY : world_comm
+  USE noncollin_module, ONLY : m_loc
+  USE extfield,         ONLY : monopole
   !
   IMPLICIT NONE
   !
@@ -157,7 +159,8 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   magnetic_sym = .false.
   !CALL find_sym ( nat, tau, ityp, dfftp%nr1, dfftp%nr2, dfftp%nr3, .FALSE., &
   !                magnetic_sym, mdum, .FALSE.)
-  CALL find_sym ( nat, tau, ityp, dfftp%nr1, dfftp%nr2, dfftp%nr3, magnetic_sym, mdum )
+  !CALL find_sym ( nat, tau, ityp, dfftp%nr1, dfftp%nr2, dfftp%nr3, magnetic_sym, mdum )
+  CALL find_sym ( nat, tau, ityp, magnetic_sym, m_loc, monopole )
   sym(:)      = .false.
   sym(1:nsym) = .true.
   !
