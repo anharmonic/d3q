@@ -19,6 +19,8 @@ MODULE q_grids
     INTEGER :: nqtot = 0
     LOGICAL :: scattered = .false.
     INTEGER :: iq0 = 0
+    LOGICAL :: shifted = .false.
+    REAL(DP) :: xq0(3) = 0._dp ! the shift applied to the grid (if shifted)
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
     CONTAINS
@@ -88,11 +90,18 @@ MODULE q_grids
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     LOGICAL,OPTIONAL,INTENT(in) :: scatter
+    INTEGER :: ipol
     !
-    REAL(DP) :: xq_random(3)
     LOGICAL  :: do_scatter
     do_scatter = .false.
     IF(present(scatter)) do_scatter = scatter
+    IF(present(xq0)) THEN
+      IF(SUM(ABS(xq0))>0._dp) THEN
+        grid%xq0 = xq0
+        grid%shifted = .true.
+        ioWRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
+      ENDIF
+    ENDIF
     !
     IF(grid_type=="simple" .or. grid_type=="grid")THEN
       IF(.not.do_scatter)THEN
@@ -103,14 +112,25 @@ MODULE q_grids
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
       ENDIF
     ELSE IF(grid_type=="random")THEN
-      xq_random  = (/ randy(), randy(), randy() /)
-      ioWRITE(stdout, "(3x,a,3f12.6)") "Random grid shift", xq_random
+      IF(.not.present(xq0))THEN
+        ! Do not add a random shift in the direction where 
+        ! only on point is requested
+        grid%xq0 = 0._dp
+        IF(n1>1) grid%xq0(1) = randy()
+        IF(n2>1) grid%xq0(2) = randy()
+        IF(n3>1) grid%xq0(3) = randy()
+        grid%shifted = .true.
+        ioWRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
+      ELSE
+        ioWRITE(stdout, "(2x,a,3f12.6)") "(Random shift request ignored)"
+      ENDIF
+      !
       IF(.not.do_scatter)THEN
         ! If the grid is not mpi-scattered I use the simple subroutine
-        CALL setup_simple_grid(bg, n1,n2,n3, grid, xq_random)
+        CALL setup_simple_grid(bg, n1,n2,n3, grid, grid%xq0)
       ELSE
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
-        CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq_random)
+        CALL setup_scattered_grid(bg, n1,n2,n3, grid, grid%xq0)
       ENDIF
     ELSE IF (grid_type=="ws" .or. grid_type=="bz")THEN
       ! This grid has to be generated in its entirety and then scatterd, 
@@ -423,18 +443,18 @@ MODULE q_grids
     COMPUTE_NEW_PATH : &
     IF(nq_new>1)THEN
       dq = (xqi-path%xq(:,nq_old))/(nq_new)
-      dql = SQRT(SUM(dq**2))
+      dql = DSQRT(SUM(dq**2))
       ! build the actual path
       DO i = nq_old+1, path%nq
         path%xq(:,i) = path%xq(:,nq_old) + dq * (i-nq_old)
-        IF(i>1) path%w(i) = path%w(i-1) + SQRT(SUM(dq**2))
+        IF(i>1) path%w(i) = path%w(i-1) + DSQRT(SUM(dq**2))
       ENDDO
     ELSE &
     COMPUTE_NEW_PATH
       IF(nq_old>0)THEN
         dq = xqi-path%xq(:,nq_old)
         ! compute path length before taking it to crystal axes
-        dql = SQRT(SUM(dq**2))
+        dql = DSQRT(SUM(dq**2))
         ! if cell vectors are available, we can check for periodic image equivalence
         IF(present(at)) THEN
           CALL cryst_to_cart(1,dq,at,-1)
@@ -466,6 +486,9 @@ MODULE q_grids
     ENDIF
     !
   END SUBROUTINE setup_path
+  ! Prepare a derived type that contains phonon frequencies, group velocities
+  ! Bose-Einstein distribution for the input grid and configurations.
+  ! Also allocate the space to store the perturbed phonon population "b"
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE prepare_q_basis(qgrid, qbasis, nconf, T, S, fc2)
     USE fc2_interpolate,    ONLY : freq_phq_safe, bose_phq
