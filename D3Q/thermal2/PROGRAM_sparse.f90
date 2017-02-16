@@ -89,8 +89,9 @@ PROGRAM gen_sparse
       fileout = TRIM(filein)//".sparse"
     ENDIF
 
-    
-    
+    IF(TRIM(fileout)==TRIM(filein)) &
+      CALL errore("gen_sparse","filein and fileout are the same, I refuse to do that",1)
+
     CALL fc%read(filein, S)
     CALL aux_system(S)
     CALL memstat(kb)
