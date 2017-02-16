@@ -254,7 +254,6 @@ PROGRAM q2r
             matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
             gridq(:,nqtot)      = q(:,nq)
             WRITE(stdout,"(5x,3f12.6)") gridq(:,nqtot)
-              
         END DO
         IF (xmldyn) DEALLOCATE(phiq)
      END DO &
@@ -288,8 +287,8 @@ PROGRAM q2r
 !     INTEGER :: nat3, nat32, nat33     
      ALLOCATE(S%tau(3,nat), S%ityp(nat), S%zeu(3,3,nat))
      S%ntyp  = ntyp
-     S%amass = amass
-     S%atm   = atm
+     S%amass(1:ntyp) = amass(1:ntyp)
+     S%atm(1:ntyp)   = atm(1:ntyp)
      S%nat   = nat
      S%tau   = tau
      
@@ -812,7 +811,7 @@ subroutine set_zasr ( zasr, nr1,nr2,nr3, nat, ibrav, tau, zeu)
       zeu_new(:,:,:)=zeu_new(:,:,:) - zeu_w(:,:,:)
       call sp_zeu(zeu_w,zeu_w,nat,norm2)
       write(stdout,'("Norm of the difference between old and new effective ", &
-           &  "charges: " , F25.20)') SQRT(norm2)
+           &  "charges: " , F25.20)') DSQRT(norm2)
       !
       ! Check projection
       !
