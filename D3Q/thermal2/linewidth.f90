@@ -342,7 +342,7 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, ABS(sigma(it)), freq, bose, V3sq, ne, ener, nu0 )
         !
       ENDDO
       !
@@ -355,7 +355,11 @@ MODULE linewidth
       DO i = 1,S%nat3
         DO ie = 1, ne
           gamma =  -DIMAG(selfnrg(ie,i,it))
-          delta =   DBLE(selfnrg(ie,i,it))
+          IF(sigma(it)>0._dp) THEN
+            delta =   DBLE(selfnrg(ie,i,it))
+          ELSE
+            delta = 0._dp
+          ENDIF
           omega = freq(i,1)
           denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
                    + 4*omega**2 *gamma**2 
