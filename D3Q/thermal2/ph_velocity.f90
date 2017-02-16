@@ -13,67 +13,34 @@ MODULE ph_velocity
                        ph_system_info
                        
   PRIVATE
-  REAL(DP),PARAMETER :: h = 1.e-5_dp
+  REAL(DP),PARAMETER :: h = 1.e-7_dp
   
-  INTERFACE velocity
-    MODULE PROCEDURE velocity_proj
-  END INTERFACE  
+!  INTERFACE velocity
+!    MODULE PROCEDURE velocity_proj
+!  END INTERFACE  
   !
   PUBLIC :: velocity
   !_simple, velocity_proj, velocity_var
          
   CONTAINS
-  ! \/o\________\\\_________________________________________/^>
-  ! Compute ph group velocity by simple straightforward finite difference
-  ! This algorithm can fail at band crossings
-  FUNCTION velocity_simple(S,fc, xq)
-    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
+  FUNCTION velocity(S,fc, xq)
+    USE fc2_interpolate, ONLY : fftinterp_mat2, fftinterp_dmat2, mat2_diag
+    USE merge_degenerate, ONLY : merge_degenerate_velocity
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
-    ! FUNCTION RESULT:
-    REAL(DP) :: velocity_simple(3,S%nat3)
+    REAL(DP) :: velocity(3,S%nat3)
     !
-    REAL(DP) :: xvel(3,S%nat3)
-    COMPLEX(DP),ALLOCATABLE :: D2(:,:)
-    REAL(DP),ALLOCATABLE    :: w2p(:), w2m(:)
-    !
-    INTEGER :: ix, nu
-    REAL(DP) :: xqp(3), xqm(3), dh
-    !
-    CALL errore("velocity_simple","This algorithm is wrong and should not be used",1)
-    ALLOCATE(D2(S%nat3,S%nat3), w2p(S%nat3), w2m(S%nat3))
-    !
-    xvel = 0._dp
-    !
-!$OMP PARALLEL DO DEFAULT(shared) &
-!$OMP             PRIVATE(ix, nu, xqp, xqm, w2p, w2m, D2, dh) &
-!$OMP             REDUCTION(+:xvel)
-    DO ix = 1,3
-      xqp = xq
-      xqp(ix) = xq(ix)+h
-      CALL fftinterp_mat2(xqp, S, fc, D2)
-      CALL mat2_diag(S%nat3, D2, w2p)
-      !
-      xqm = xq
-      xqm(ix) = xq(ix)-h
-      CALL fftinterp_mat2(xqm, S, fc, D2)
-      CALL mat2_diag(S%nat3, D2, w2m)
-      !
-      dh = ( xqp(ix)-xqm(ix) )*S%tpiba
-      FORALL (nu = 1:S%nat3)
-        xvel(ix, nu) = ( SQRT(w2p(nu))-SQRT(w2m(nu)) ) / dh
-      END FORALL
-      !
-    ENDDO
-!$OMP END PARALLEL DO
-    !
-    velocity_simple = xvel
-    !
-    DEALLOCATE(D2,w2p, w2m)
-
-  END FUNCTION velocity_simple
+    ! If we have effective charges, use finite differences derivation
+    IF(S%lrigid)THEN
+      velocity = velocity_proj(S,fc, xq) 
+    ELSE
+    ! Otherwise, use the property of Fourier transform to get dD2/dq = \sum_R R e(iqR) F_R
+      velocity = velocity_var(S,fc, xq) 
+    ENDIF
+  END FUNCTION 
+  !
   ! \/o\________\\\_________________________________________/^>
   ! Compute ph group velocity by diagonalizing D2 at q:
   !     D u_i = w^2_i u_i ; U = (u_1 u_2 .. u_2*nat)
@@ -193,7 +160,7 @@ MODULE ph_velocity
       ! 1/(2 \omega)
       DO nu = 1, S%nat3
       IF(ABS(w2(nu)) > 0._dp)THEN
-        xvel(ix,nu) = 0.5_dp*REAL(rD(nu,nu),kind=dp)/DSQRT(w2(nu))
+        xvel(ix,nu) = 0.5_dp*REAL(rD(nu,nu),kind=dp)/SIGN(DSQRT(ABS(w2(nu))),w2(nu))
       ELSE
         ! we set at zero velocity at Gamma for the acoustic branches
         ! (it is not well defined anyway)
