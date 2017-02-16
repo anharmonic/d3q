@@ -70,7 +70,7 @@ PROGRAM read3
     DO k = 1,3
       DO j = 1,3
         DO i = 1,3
-          write(iudyn, '(3(2i3),2e24.12)') &
+          write(iudyn, '(3(2i3),2e28.15)') &
                 i,a, j,b, k,c, &
                 p3(i,j,k,a,b,c)
         ENDDO
