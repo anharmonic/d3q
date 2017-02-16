@@ -31,7 +31,7 @@ MODULE import3py_module
     CHARACTER (LEN=6), EXTERNAL :: int_to_char
     REAL(DP),PARAMETER :: F_FACTOR= 1._dp/RYTOEV/ANGSTROM_AU**3
     !
-    !n_R = NINT(SQRT(DBLE(n_R)))
+    !n_R = NINT(DSQRT(DBLE(n_R)))
     !IF(n_R**2/=n_R) CALL errore(sub, "problem with R and n_R", 1)
     
     u = find_free_unit()
@@ -152,7 +152,7 @@ PROGRAM import3py
   ALLOCATE(d3grid(nq_trip))
   CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc)
   
-  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb)
+  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, 2)
   CALL fcb%write(fileout_good, S)
   !
   !
