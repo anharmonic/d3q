@@ -34,7 +34,7 @@ MODULE r2q_program
     COMPLEX(DP) :: U(S%nat3, S%nat3)
     !
     REAL(DP) :: xq0(3) = (/ 0._dp, 0._dp, 0._dp /)
-    REAL(DP) :: xq_random(3)
+    !REAL(DP) :: xq_random(3)
     !
     REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), xq_j(3), xq_k(3)
     REAL(DP) :: sigma_ry
@@ -51,7 +51,7 @@ MODULE r2q_program
     jd_C = 0._dp
     jd_X = 0._dp
 
-    xq_random  = (/ randy(), randy(), randy() /)
+    !xq_random  = (/ randy(), randy(), randy() /)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
                 qgrid, scatter=.false.)
     
@@ -90,6 +90,58 @@ MODULE r2q_program
     !
   END SUBROUTINE
 
+  SUBROUTINE rms(input, S, fc)
+    USE code_input,       ONLY : code_input_type
+    USE kinds,            ONLY : DP
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    USE q_grids,          ONLY : q_grid, setup_grid
+    !USE constants,        ONLY : RY_TO_CMM1, pi
+    USE functions,        ONLY : f_wtoa !f_bose, f_gauss
+    USE fc2_interpolate,  ONLY : freq_phq_safe, set_nu0
+    !USE random_numbers,   ONLY : randy
+    IMPLICIT NONE
+    TYPE(code_input_type) :: input
+    TYPE(ph_system_info)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    !
+    TYPE(q_grid)  :: qgrid
+    REAL(DP) :: freqj(S%nat3), aq(S%nat3), arms(S%nat3), xq_j(3)
+    COMPLEX(DP) :: U(S%nat3, S%nat3)
+    INTEGER :: jq, ia, nu, mu, mu0
+    
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+                qgrid, scatter=.false.)
+    !
+    arms = 0._dp
+    DO jq = 1, qgrid%nq
+      xq_j = qgrid%xq(:,jq)
+      CALL freq_phq_safe(xq_j, S, fc, freqj, U)
+      
+      !bosej(:) = f_bose(freqj, input%T(1))
+      
+      aq(:) = f_wtoa(freqj, input%T(1))
+      
+      mu0  = set_nu0(xq_j, S%at)
+      
+      DO ia = 1, S%nat
+        nu = (ia-1)*3 + 1
+        DO mu = mu0, S%nat3
+          
+          arms(ia) = arms(ia) + aq(mu)**2 &
+                       *DBLE(SUM(U(nu:nu+2,mu)*CONJG(U(nu:nu+2,mu)))) &
+                              /S%amass(S%ityp(ia)) * qgrid%w(jq)
+        ENDDO
+      ENDDO
+    ENDDO
+    !
+    WRITE(*,'(a)') "  atm    sqrt(rms) [bohr]"
+    DO ia = 1, S%nat
+      WRITE(*,'(i3,x,a3,2f12.6)') ia, S%atm(S%ityp(ia)),&
+                                  DSQRT(arms(ia))
+    ENDDO
+    
+  END SUBROUTINE rms
+  !
 END MODULE r2q_program
 
 PROGRAM r2q 
@@ -125,13 +177,15 @@ PROGRAM r2q
   CALL print_citations_linewidth()
   !  
   CALL READ_INPUT("R2Q", input, qpath, S, fc2)
-!   CALL read_fc2(file_mat2, S,  fc2)
-!   CALL aux_system(S)
-!   IF(asr2) CALL impose_asr2("simple",S%nat, fc2)
-!   CALL div_mass_fc2(S, fc2)
+  !
+  IF(input%nconf>1) THEN
+    CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
+  ENDIF
 
   IF( input%calculation=="jdos") THEN
     CALL joint_dos(input,S,fc2)
+  ELSE IF ( input%calculation=="rms") THEN
+    CALL rms(input, S, fc2)
   ELSE
     ALLOCATE(freq(S%nat3))
     ALLOCATE(U(S%nat3,S%nat3))
