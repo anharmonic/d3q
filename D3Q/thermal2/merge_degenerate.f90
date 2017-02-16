@@ -202,6 +202,7 @@ MODULE merge_degenerate
             avg_mat = avg_mat + mat(:,:,k)
           ENDDO
           avg_mat = avg_mat/(j-i+1)
+!          ioWRITE(stdout,*) "merging", avg_mat(1,1), mat(1,1,i:j)
           DO k = i,j
             mat(:,:,k) = avg_mat 
           ENDDO
