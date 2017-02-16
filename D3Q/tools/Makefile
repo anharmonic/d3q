@@ -1,6 +1,6 @@
 # Makefile for tools
 
-include ../../make.sys
+include ../../make.inc
 
 STRIP = strip
 
