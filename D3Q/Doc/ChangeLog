@@ -1,0 +1,34 @@
+v 1.0.7
+* nasty bug in d3_tk.x, CGP calculation, wrong prefactor!
+* added calculation of JDOS and RMS of atomic displacements to d3_r2q.x
+* better threatmenet of LO-TO along paths
+* support for random grids improved (should work in SMA)
+
+v 1.0.6
+* nasty bug in d3_qq2rr.x where the 3rd order matrix would not be read correctly has been fixed: PLEASE REGENERATE THE FORCE CONSTANT FILES!!
+
+v 1.0.5
+* tiny fix on the previous version (symmetrization removed for scattering modes as it is not necessary and does not respect detailed balance, i.e. possible funny results with small grids)
+* fixed a bug when using MPI parallelism and isotopes (isotopes would be ignored on CPUs after the first one)
+
+v 1.0.4
+* one important change: quantities (linewidth, self-energy, scattering matrices, velocities) pertaining to degenerate phonon modes are now averaged out. This prevents broken symmetry when doing thermal conductivity calculations.
+
+v 1.0.3
+* fixed a case where a fuction result was used in an openmp reduce clause, causing segmentation fault on some intel compilers
+* removed a mention of a non-existing unused subroutine, causing some compilers to rightfully complain
+* not using vdCos and vdSin with intel compiler made easier (remove -D__HASVTRIG from thermal2/Makefile)
+* openmp no more enable by default (it was actually unintended )
+
+v 1.0.2
+* fixed old style namelist in tutorial example input file (and fixed code to still read those)
+
+v 1.0.1
+* remove line from PROGRAM_sparse.f90 that prevented compilation (thanks S. Appalakondaiah for reporting)
+* calculation of 3-body force constant now done in two passess (100x times faster)
+* 3d order acoustic sum rule now imposed in-place (faster and much lower memory usage)
+
+v 1.0
+everything!
+
+
