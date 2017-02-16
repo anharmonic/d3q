@@ -76,7 +76,7 @@ MODULE add_bubble_program
       U = dyn0
       !ioWRITE(*, "(6(2f12.6,4x))") multiply_mass_dyn(S, U)
       CALL mat2_diag(S%nat3, U, freq0)
-      freq0 = SIGN(SQRT(ABS(freq0)), freq0)
+      freq0 = SIGN(DSQRT(ABS(freq0)), freq0)
       ioWRITE(*,"(6f20.12)") freq0*RY_TO_CMM1
       ioWRITE(*,*)
 
@@ -135,7 +135,7 @@ MODULE add_bubble_program
         !
         dynY = dynX
         CALL mat2_diag(S%nat3, dynX, freq)
-        freq = SIGN(SQRT(ABS(freq)), freq)
+        freq = SIGN(DSQRT(ABS(freq)), freq)
         !
         ioWRITE(1000+it,"(i6,4f12.6,2(12e20.6,5x))") iq,qpath%w(iq), qpath%xq(:,iq),& 
          freq0*RY_TO_CMM1,freq*RY_TO_CMM1
@@ -152,7 +152,7 @@ MODULE add_bubble_program
         !END DO
         !       
         FORALL(nu=1:S%nat3) freqY(nu) = dynY(nu,nu)
-        freqY = SIGN(SQRT(ABS(freqY)), freqY)
+        freqY = SIGN(DSQRT(ABS(freqY)), freqY)
         ! RAF
         call Bubble_sort(freqY)
         dynX = dyn(:,:,it)
