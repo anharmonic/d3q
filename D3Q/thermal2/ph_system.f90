@@ -270,7 +270,7 @@ MODULE ph_system
     ALLOCATE(S%sqrtmm1(S%nat3))
     DO i = 1,S%nat3
       na = (i-1)/3 +1
-      S%sqrtmm1(i) = 1._dp/SQRT(S%amass(S%ityp(na)))
+      S%sqrtmm1(i) = 1._dp/DSQRT(S%amass(S%ityp(na)))
     ENDDO
 
   END SUBROUTINE aux_system

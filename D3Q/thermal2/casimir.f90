@@ -69,9 +69,8 @@ MODULE casimir_linewidth
     ELSE
       inv_lcas = 1/ l_casimir
       DO nu = 1,nat3
-          lw(nu) = inv_lcas * SQRT(SUM(vel(:,nu)**2))
+          lw(nu) = inv_lcas * DSQRT(SUM(vel(:,nu)**2))
       ENDDO
-      
     ENDIF
     !
   END FUNCTION casimir_linewidth_vel
