@@ -58,8 +58,9 @@ MODULE isotopes_linewidth
       !
       DO it = 1,nconf
         !
-        lw(:,it) = lw(:,it) + sum_isotope_linewidth_modes( S%nat3, S%nat, sigma(it), freq, &
-                                                           S%ntyp, S%ityp, S%amass_variance, U )
+        lw(:,it) = lw(:,it) + sum_isotope_linewidth_modes(          &
+                                S%nat3, S%nat, sigma(it), freq,     &
+                                S%ntyp, S%ityp, S%amass_variance, U )
         !
       ENDDO
       !
@@ -101,6 +102,7 @@ MODULE isotopes_linewidth
         freq_f = freq(i,1)*freq(j,2) * f_gauss(freq(i,1)-freq(j,2), sigma)
         !
         !IF(freq_f > 1.d-8)THEN
+        sum_zz2 = 0._dp
         nu = 0
         DO ia = 1,nat
           it = ityp(ia)
@@ -111,7 +113,9 @@ MODULE isotopes_linewidth
             sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
             !
           ENDDO
-          sum_zz2 = gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
+          sum_zz2 = sum_zz2 + gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
+!           WRITE(*,'(2e12.3,3x,1e12.3,1f12.6,4e12.3)') sum_zz, sum_zz2, gs2(it), freq_f, &
+!           freq(i,1),freq(j,2), f_gauss(freq(i,1)-freq(j,2), sigma), 
         ENDDO
         !ENDIF
         !
@@ -159,6 +163,7 @@ MODULE isotopes_linewidth
         !
         !IF(freq_f > 1.d-8)THEN
         nu = 0
+        sum_zz2 = 0._dp
         DO ia = 1,nat
           it = ityp(ia)
           !
@@ -169,7 +174,7 @@ MODULE isotopes_linewidth
             sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
             !
           ENDDO
-          sum_zz2 = gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
+          sum_zz2 = sum_zz2 + gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
         ENDDO
         !ENDIF
         !
