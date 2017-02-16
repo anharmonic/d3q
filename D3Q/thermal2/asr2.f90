@@ -51,6 +51,7 @@ MODULE asr2_module
             fc%FC(mu,nu,iR) = fc%FC(mu,nu,iR) - delta*fc%FC(mu,nu,iR)**2/norm
           ENDDO
         ELSEIF(method=="spread")THEN
+          CALL errore("impose_asr2", "spread asr is buggy/wrong"//TRIM(method), 1)
           norm = 0._dp
           DO j = 1,nat
           mu = 3*(j-1)+b
