@@ -330,7 +330,7 @@ MODULE sqom_program
                          +xqq(3)*zz(idx+3,nu) )
 !           cscal2 = 1._dp
           ! \sum F_{ia} exp(\pi i q \dot \tau) 2 \pi q \dot zz^{ia}_nu / sqrt(M_{ia})
-          csum = csum+ff(S%ityp(ia))*EXP(cscal)* cscal2 !/SQRT(S%amass(S%ityp(ia)))
+          csum = csum+ff(S%ityp(ia))*EXP(cscal)* cscal2 !/DSQRT(S%amass(S%ityp(ia)))
       ENDDO
       G(nu) = ABS(csum)**2
     ENDDO
