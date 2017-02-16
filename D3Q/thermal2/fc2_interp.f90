@@ -66,7 +66,7 @@ MODULE fc2_interpolate
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_reduce(xq, S, fc, D)
+  SUBROUTINE fftinterp_mat2_reduce(xq, S, fc, D, xq_hat)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -75,6 +75,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -91,14 +92,14 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL DO
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_flat(xq, S, fc, D)
+  SUBROUTINE fftinterp_mat2_flat(xq, S, fc, D, xq_hat)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -107,6 +108,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -128,14 +130,14 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_flat_mkl(xq, S, fc, D)
+  SUBROUTINE fftinterp_mat2_flat_mkl(xq, S, fc, D, xq_hat)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -144,6 +146,7 @@ MODULE fc2_interpolate
     TYPE(ph_system_info),INTENT(in) :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
     !
     INTEGER :: i, mu,nu
     REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
@@ -177,13 +180,13 @@ MODULE fc2_interpolate
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc (safe version, for OpenMP)
-  SUBROUTINE fftinterp_mat2_safe(xq, S, fc, D)
+  SUBROUTINE fftinterp_mat2_safe(xq, S, fc, D, xq_hat)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -192,6 +195,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -219,33 +223,50 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_safe
   !
-  SUBROUTINE add_rgd_blk(xq, S, fc, D)
+  SUBROUTINE add_rgd_blk(xq, S, fc, D, xq_hat)
+    USE random_numbers,   ONLY : randy
+    IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(inout) :: D(S%nat3, S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
     !
     COMPLEX(DP) :: phi(3,3,S%nat,S%nat)
     INTEGER :: nu,mu,i,j,ia,ja
-!     INTEGER :: itau(S%nat)
     !
-!     REAL(DP) :: qhat(3), qnorm
+    INTEGER :: itau(S%nat)
+    REAL(DP) :: qhat(3), qnorm
     !
-!     qnorm = SQRT(SUM(xq**2))
-!     IF(qnorm==0._dp) qnorm = 1._dp
-!     qhat = xq/qnorm
-!     FORALL(i=1:S%nat) itau(i) = i
     !
     phi = 0._dp
-    ! Non-analitical is only for q=0 and depends on the direction. Better to not use it
-!     CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+    ! Non-analitical is only for q=0 and depends on the direction.
+    ! I'm setting it to a random direction (this can mess up line plots in some special
+    ! cases where LO-TO split is direction-dependent)
+    IF(ALL(ABS(xq)<1.d-12))THEN
+      IF(present(xq_hat)) THEN
+        qhat = xq_hat
+        !print*, "hatting with", qhat
+      ELSE
+        qhat = 0._dp
+        IF(fc%nq(1)>1) qhat(1) = randy() ! if only one q-point, do not set the versor this way
+        IF(fc%nq(2)>1) qhat(2) = randy()
+        IF(fc%nq(3)>1) qhat(3) = randy()
+      ENDIF
+      qnorm = DSQRT(SUM(qhat**2))
+      IF(qnorm>0._dp) qhat = qhat/qnorm
+      FORALL(i=1:S%nat) itau(i) = i
+      !
+      !CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+    ENDIF
     !
     CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
                   S%tau,S%epsil,S%zeu,S%bg,S%omega,+1.d0)
+                  
     DO ja = 1,S%nat
     DO ia = 1,S%nat
       DO j = 1,3
@@ -399,11 +420,11 @@ MODULE fc2_interpolate
     
     IF(ANY(freq<0._dp)) THEN
       WRITE(*,"('xq = ',3f12.6)") xq
-      WRITE(*,"('freq = ',12f12.6)") freq
+      WRITE(*,"('freq = ',12e12.4)") freq
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
     ENDIF
     !
-    freq = SQRT(freq)
+    freq = DSQRT(freq)
     !
   END SUBROUTINE freq_phq_safe
   !
@@ -441,14 +462,57 @@ MODULE fc2_interpolate
     CALL mat2_diag(S%nat3, U, freq)
     !U = CONJG(U)
     WHERE    (freq >  eps)
-      freq = SQRT(freq)
+      freq = DSQRT(freq)
     ELSEWHERE(freq < -eps)
-      freq = -SQRT(-freq)
+      freq = -DSQRT(-freq)
     ELSEWHERE ! i.e. freq=0
       freq = 0._dp
     ENDWHERE
       !
   END SUBROUTINE freq_phq
+  !
+  !
+  ! Interpolate a point in a path, keep in account LO-TO at Gamma
+  SUBROUTINE freq_phq_path(nq, iq, xq, S, fc2, freq, U)
+    USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    IMPLICIT NONE
+    INTEGER,INTENT(in)                :: nq, iq
+    REAL(DP),INTENT(in)               :: xq(3,nq)
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    REAL(DP),INTENT(out)              :: freq(S%nat3)
+    COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
+    REAL(DP),PARAMETER :: eps = 0._dp 
+    REAL(DP) :: xq_hat(3)
+    !
+    ! Check for exactly Gamma, even a tiny displacement works already
+    IF(ALL(ABS(xq(:,iq))< 1.d-12 ))THEN
+      IF(iq==1) THEN
+        xq_hat = xq(:,2)-xq(:,1)
+      ELSE
+        xq_hat = xq(:,iq) - xq(:,iq-1)
+      ENDIF
+    ELSE
+      xq_hat = 0._dp
+    ENDIF
+    !
+    ! WARNING: dirty hack!
+    ! Instead of computing the non-analitical contribution (which seemed to be missing some
+    ! pieace that I did not manage to track down) I'm computing the frequencies at 
+    ! a tiny displacement out of Gamma
+    CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
+    !
+    CALL mat2_diag(S%nat3, U, freq)
+    !U = CONJG(U)
+    WHERE    (freq >  eps)
+      freq = DSQRT(freq)
+    ELSEWHERE(freq < -eps)
+      freq = -DSQRT(-freq)
+    ELSEWHERE ! i.e. freq=0
+      freq = 0._dp
+    ENDWHERE
+      !
+  END SUBROUTINE freq_phq_path
   !
   ! Compute Bose-Einstein distribution of freq
   PURE SUBROUTINE bose_phq(T, nat3, freq, bose)
@@ -475,6 +539,69 @@ MODULE fc2_interpolate
       !
   END SUBROUTINE bose_phq
   !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE dyn_cart2pat(d2in, nat3, u, dir, d2out)
+    !   Rotates third derivative of the dynamical basis from cartesian axis
+    !   to the basis of the modes. Rotation is not really in place
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    ! d2 matrix, input: in cartesian basis, output: on the patterns basis
+    COMPLEX(DP),INTENT(inout) :: d2in(nat3, nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(out) :: d2out(nat3, nat3)
+    INTEGER,INTENT(in)        :: nat3
+    ! patterns (transposed, with respect to what we use in the d3q.x code)
+    INTEGER,INTENT(IN)        :: dir  ! +1 -> cart2pat, -1 -> pat2car
+    COMPLEX(DP),INTENT(in)    :: u(nat3, nat3)
+    !
+    COMPLEX(DP),ALLOCATABLE  :: d2tmp(:,:)
+    COMPLEX(DP),ALLOCATABLE  :: u_fw(:,:), u_bw(:,:)
+    !
+    INTEGER :: a, b, i, j
+    COMPLEX(DP) :: AUX
+    REAL(DP),PARAMETER :: EPS = 1.e-8_dp
+    !
+    ALLOCATE(d2tmp(nat3, nat3))
+    ALLOCATE(u_fw(nat3, nat3))
+    ALLOCATE(u_bw(nat3, nat3))
+    d2tmp = (0._dp, 0._dp)
+    !
+    !STOP "untested"
+    !
+    IF(dir==+1)THEN
+      u_bw = u
+      u_fw = CONJG(u)
+    ELSEIF(dir==-1)THEN
+      u_bw = TRANSPOSE(CONJG(u))
+      u_fw = TRANSPOSE(u)
+!       u_fw = CONJG(u)
+!       u_bw = u
+    ELSE
+      CALL errore("dyn_cart2pat", "wrong action",1)
+    ENDIF
+
+    DO j = 1,nat3
+    DO b = 1,nat3
+      !
+      DO i = 1,nat3
+      DO a = 1,nat3
+          d2tmp(i, j) = d2tmp(i, j) &
+                          + u_fw(a,i) * d2in(a, b) * u_bw(b,j)
+      ENDDO
+      ENDDO
+      !
+    ENDDO
+    ENDDO    
+    !
+    IF(present(d2out)) THEN
+      d2out = d2tmp
+    ELSE
+      d2in  = d2tmp
+    ENDIF
+    DEALLOCATE(d2tmp, u_fw, u_bw)
+    RETURN
+  END SUBROUTINE dyn_cart2pat
+  !
+  ! \/o\________\\\_________________________________________/^>
   SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
     ! Rotates D3 matrix from cartesian axis to the basis
     ! of the modes. Rotation is not really in place
