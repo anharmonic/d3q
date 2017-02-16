@@ -153,6 +153,9 @@ MODULE f3_bwfft
           CALL d3_shuffle_global(S%nat, 1,2,3, a,b,c, .false., p3)
           CALL d3_3idx_2_6idx(S%nat, p3, d3_shuffled)
           d3grid(iq_aux)%d   = d3grid(iq_aux)%d + d3_shuffled
+          WRITE(*,'(i6,3x,a,3(3f10.4,3x),2(3i3,3x),3i2,3x,a,2i6  )') &
+            iq_trip, "xq'", xq(:,a), xq(:,b), xq(:,c), iqb, iqc, &
+            a,b,c, TRIM(filename),iperm, countq(iq_aux)
         ENDIF
       ENDDO &
       PERM_LOOP
@@ -190,7 +193,7 @@ MODULE f3_bwfft
   END SUBROUTINE
   !
   ! \/o\________\\\________________\\/\_________________________/^>
-  SUBROUTINE bwfft_d3_interp(nq, nq_trip, nat, tau, at, bg, d3grid, fc3)
+  SUBROUTINE bwfft_d3_interp(nq, nq_trip, nat, tau, at, bg, d3grid, fc3, far)
     USE constants,        ONLY : tpi
     USE fc3_interpolate,  ONLY : grid
     USE d3_basis,         ONLY : d3_6idx_2_3idx
@@ -199,13 +202,15 @@ MODULE f3_bwfft
     REAL(DP),INTENT(in) :: tau(3,nat), at(3,3), bg(3,3)
     TYPE(d3_list),INTENT(in) ::  d3grid(nq_trip)
     TYPE(grid),INTENT(inout) :: fc3
+    INTEGER,INTENT(in) :: far
     !
     INTEGER :: i,j,k, iq, ifar, jfar, nxr, ixr, jxr, iat, jat, kat, irx
     REAL(DP),ALLOCATABLE :: xr(:,:), sc_xr(:,:)
     REAL(DP) :: d1(3), d2(3), d3(3), p1(3), p2(3), p3(3), p0(3), &
                 xtau1(3), xtau2(3), xtau3(3)
     ! recentering of the Fcs 
-    INTEGER,PARAMETER :: far = 2, nfar = (2*far+1)**3, nperix=128 !8**2
+    INTEGER :: nfar
+    INTEGER, PARAMETER :: nperix=128 !8**2
     ! probably nperix = 64 is sufficient (i.e. both points in a WS cell corner, cubic)
     REAL(DP) :: peri_min, perix, perinorm
     REAL(DP),ALLOCATABLE :: farx_list(:,:,:), rx_list(:,:,:)
@@ -220,6 +225,7 @@ MODULE f3_bwfft
     COMPLEX(DP) :: max_imag_mag
     INTEGER  :: count_imag
     !
+    nfar = (2*far+1)**3
     ! Generate a super-grid composed of nq(1) x nq(2) x nq(3) supercells of the unit cell
     ALLOCATE(sc_xr(3,nfar))
     ifar = 0
@@ -247,9 +253,6 @@ MODULE f3_bwfft
     ENDDO
     IF(ixr/=nxr) CALL errore("bwfft_d3_interp", "something wrong nxr", 1)
     ! xr + sc_xr is a super-cell equivalent copy of xr, for any sc_xr
-    DO iq = 1, nq_trip
-    WRITE(10005, *) d3grid(iq)%xq2, d3grid(iq)%xq3
-    ENDDO
     !
     ! For every xr2 and xr3 picked from xr we form the triangle 0-xr2-xr3 and 
     ! for any of the super-cell equivalent copies we take the one with the 
@@ -286,7 +289,7 @@ MODULE f3_bwfft
             ENDDO
           ENDIF
           !
-          ! Look among the super-cell equivalent tripets of R points for the one(s)
+          ! Look among the super-cell equivalent triplets of R points for the one(s)
           ! with the shortest perimeter
           nperi = 0
           peri_min = 0._dp ! it is set on first loop
@@ -299,14 +302,14 @@ MODULE f3_bwfft
             d1 = p1 - p2
             d2 = p2 - p3
             d3 = p3 - p1
+            perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
             !
 !             p0 = (p1+p2+p3)/3._dp
 !             d1 = p0 - p1
 !             d2 = p0 - p2
 !             d3 = p0 - p3
-            !
-            perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
-!             perix = DSQRT(SUM(d1**2) + SUM(d2**2) + SUM(d3**2))
+!             perix = SUM((/ SUM(d1**2), SUM(d2**2), SUM(d3**2) /))
+!             perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
             !
             IF (perix < peri_min-eps_peri .or. nperi==0 ) THEN
               nperi = 1
@@ -316,7 +319,7 @@ MODULE f3_bwfft
               peri_min = perix
             ELSE IF ( ABS(perix-peri_min) <= eps_peri ) THEN
               nperi = nperi + 1
-              IF(nperi > nperix) CALL errore("bwfft_d3_interp", "nperix is too small, please report to developers", 1)
+              IF(nperi > nperix) CALL errore("bwfft_d3_interp", "nperix is too small", 1)
               farx_list(:,1,nperi) = xr(:,ixr)+sc_xr(:,ifar)
               farx_list(:,2,nperi) = xr(:,jxr)+sc_xr(:,jfar)
               peri_min = (peri_min*(nperi-1)+perix)/DBLE(nperi)
@@ -326,6 +329,21 @@ MODULE f3_bwfft
           ENDDO
           !
           IF (nperi==0) CALL errore("bwfft_d3_interp", "found no perimeters", 1)
+!           IF (nperi>1 .and. PASS==1)THEN
+!             WRITE(*,*)
+!             d1 = xr(:,ixr)
+!             CALL cryst_to_cart(1, d1, bg, -1)
+!             d2 = xr(:,jxr)
+!             CALL cryst_to_cart(1, d2, bg, -1)
+!             WRITE(*,'(2(3i3,3x))') NINT(d1), NINT(d2)
+!             DO iperi = 1, nperi
+!               d1 = farx_list(:,1,iperi)
+!               CALL cryst_to_cart(1, d1, bg, -1)
+!               d2 = farx_list(:,2,iperi)
+!               CALL cryst_to_cart(1, d2, bg, -1)
+!               WRITE(*,'(2(3i3,3x))') NINT(d1), NINT(d2)
+!             ENDDO
+!           ENDIF
           ! Add the 2*nperi vectors from farx list to rx_list, if they are 
           ! not already in the list in any case, return the indeces 
           ! of the vectors in the list
@@ -481,19 +499,21 @@ MODULE f3_bwfft
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
+    USE d3matrix_io,      ONLY : write_d3dyn_xml
     IMPLICIT NONE
     INTEGER :: nq_trip
     TYPE(d3_list),INTENT(in) :: d3grid(nq_trip)
     TYPE(grid),INTENT(in)    :: fc3
     TYPE(ph_system_info),INTENT(in) :: S
     
-    COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
+    COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:), D3_6idx(:,:,:,:,:,:)
     REAL(DP) :: rmaxi, imaxi
     INTEGER :: iq
     LOGICAL :: found
     
     found = .false.
     ALLOCATE(D3(S%nat3,S%nat3,S%nat3))
+    ALLOCATE(D3_6idx(3,3,3, S%nat,S%nat,S%nat))
     ALLOCATE(P3(S%nat3,S%nat3,S%nat3))
     DO iq = 1, nq_trip
       !CALL fc3%interpolate(d3grid(iq)%xq2_true, d3grid(iq)%xq3_true, S%nat3, D3)
@@ -509,6 +529,12 @@ MODULE f3_bwfft
         found = .true.
         WRITE(*,'("    Imag:",i8,3(3f12.4,3x),es20.8)') iq, d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, imaxi
       ENDIF
+      IF(rmaxi>1.d-8 .or. imaxi>1.d-8)THEN
+        CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
+        CALL write_d3dyn_xml("diff", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
+                            D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
+                            S%tau, S%atm, S%amass)
+      ENDIF
     ENDDO
     !
     IF(found) THEN
@@ -516,6 +542,8 @@ MODULE f3_bwfft
     ELSE
       WRITE(*,*) "  BW/FW FFT fine."
     ENDIF
+    !
+    DEALLOCATE(D3,P3,D3_6idx)
 
   END SUBROUTINE test_fwfft_d3
   ! \/o\________\\\________________\\/\_________________________/^>

@@ -48,6 +48,7 @@ mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
+dynbubble.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -69,7 +70,7 @@ quter.o \
 timers.o \
 variational_tk.o
 
-EXECUTABLES = lw.x tk.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x
+EXECUTABLES = lw.x tk.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x recenter.x
 
 all : tldeps d3q-libs thermal2-libs $(EXECUTABLES)
 
@@ -129,6 +130,12 @@ asr3.x : PROGRAM_asr3.o tldeps d3q-libs thermal2-libs
 
 import3py.x : PROGRAM_import3py.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_import3py.o libthermal2.a \
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	$(STRIP)  $@
+	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+
+recenter.x : PROGRAM_recenter.o tldeps d3q-libs thermal2-libs
+	$(LD) $(LDFLAGS) -o $@ PROGRAM_recenter.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
