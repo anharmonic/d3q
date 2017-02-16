@@ -13,8 +13,8 @@ MODULE functions
   USE constants, ONLY : pi
   IMPLICIT NONE
   
-  REAL(DP),PARAMETER :: one_over_sqrt_2_pi = 1._dp / SQRT( 2*pi)
-  REAL(DP),PARAMETER :: one_over_sqrt_pi = 1._dp / SQRT(pi)
+  REAL(DP),PARAMETER :: one_over_sqrt_2_pi = 1._dp / DSQRT( 2*pi)
+  REAL(DP),PARAMETER :: one_over_sqrt_pi = 1._dp / DSQRT(pi)
   REAL(DP),PARAMETER :: one_over_pi = 1._dp / pi
 
   CONTAINS
@@ -99,6 +99,18 @@ MODULE functions
     df_bose = -Tm1 * expf / (expf-1)**2
   END FUNCTION
   !
+  ! Returns the average length of the thermal oscillation for
+  ! and harmonic mode at temperature T and energy x
+  REAL(DP) ELEMENTAL & ! <`\.......''..','
+  FUNCTION f_wtoa(x,T)
+    USE constants, ONLY : K_BOLTZMANN_RY
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: x,T
+    REAL(DP) :: Tm1
+    Tm1 = 1/(T*K_BOLTZMANN_RY)
+    f_wtoa = DSQRT(0.5_dp /x /DTANH(0.5_dp * x*Tm1))
+  END FUNCTION
+  !
   ! Find the periodic copy of xq that's inside the Brillouin zone of lattice bg
   ! Does not keep in account possible degeneracies (i.e. xq on the BZ border)
   FUNCTION refold_bz(xq, bg)
@@ -148,7 +160,7 @@ MODULE functions
     ENDDO
     ENDDO
     ENDDO
-    refold_bz_mod = SQRT(xpmodmin)
+    refold_bz_mod = DSQRT(xpmodmin)
   END FUNCTION
 
   SUBROUTINE invzmat (n, a)
