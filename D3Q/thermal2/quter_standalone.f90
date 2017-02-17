@@ -241,7 +241,7 @@ MODULE quter_standalone
             DO iiq=1,nqt
               !   
               arg=tpi*SUM(gridq(:,iiq)*Rbig(:,iR)) 
-              aus = aus + DCMPLX(cos(arg),sin(arg))*matq(j1,j2,na1,na2,iiq)
+              aus = aus + CMPLX(cos(arg),sin(arg),kind=DP)*matq(j1,j2,na1,na2,iiq)
               !
             END DO
             !

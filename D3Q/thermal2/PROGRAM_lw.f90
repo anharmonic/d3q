@@ -117,7 +117,7 @@ MODULE linewidth_program
           timer_CALL t_lwcasi%stop()
         ENDIF
         DO it = 1,input%nconf
-          lsx = ls(:,it) - CMPLX(0._dp, lw(:,it))
+          lsx = ls(:,it) - CMPLX(0._dp, lw(:,it),kind=DP)
           IF(input%sort_shifted_freq) THEN
             CALL resort_w_ls(S%nat3, w2, lsx)
           ELSE

@@ -529,12 +529,12 @@ MODULE f3_bwfft
         found = .true.
         WRITE(*,'("    Imag:",i8,3(3f12.4,3x),es20.8)') iq, d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, imaxi
       ENDIF
-      IF(rmaxi>1.d-8 .or. imaxi>1.d-8)THEN
-        CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
-        CALL write_d3dyn_xml("diff", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
-                            D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
-                            S%tau, S%atm, S%amass)
-      ENDIF
+!       IF(rmaxi>1.d-6 .or. imaxi>1.d-6)THEN
+!         CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
+!         CALL write_d3dyn_xml("diff", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
+!                             D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
+!                             S%tau, S%atm, S%amass)
+!       ENDIF
     ENDDO
     !
     IF(found) THEN

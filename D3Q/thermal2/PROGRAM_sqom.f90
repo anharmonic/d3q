@@ -62,7 +62,7 @@ MODULE sqom_program
     ! Input variable, and defaul values:
     CHARACTER(len=16)   :: calculation = "neutron"
     CHARACTER(len=256)  :: outdir = "./" 
-    CHARACTER(len=256)  :: postfix = INVALID, aux
+    CHARACTER(len=256)  :: postfix = INVALID    ! add to the name of the first file to create out file
     CHARACTER(len=256)  :: file_mat2  = INVALID ! no default
     !CHARACTER(len=256)  :: e_file(:)     = INVALID ! default: don't use it
     REAL(DP)            :: qq(3)       = 0._dp

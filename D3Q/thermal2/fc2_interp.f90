@@ -693,7 +693,7 @@ MODULE fc2_interpolate
     ! parallelize outside this subroutine!
     DO i = 1, fc%n_R
       DO alpha = 1,3
-        fac = vphase(i)*CMPLX(0._dp, -fc%xR(alpha,i)*S%alat)
+        fac = vphase(i)*CMPLX(0._dp, -fc%xR(alpha,i)*S%alat,kind=DP)
         DO mu= 1, S%nat3
         DO nu= 1, S%nat3
           dD(nu,mu,alpha) = dD(nu,mu,alpha)+ fac * fc%fc(nu,mu, i)

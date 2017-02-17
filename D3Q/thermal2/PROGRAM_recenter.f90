@@ -40,7 +40,13 @@ PROGRAM recenter
     ENDDO
     WRITE(*,*) "Output supercell size:", nq
   ELSE
-    STOP 1
+      WRITE(*,*) "Syntax: d3_qq2rr.x NQX NQY NQZ [NFAR] [mat3R.INPUT] [mat3R.OUTPUT]"
+      WRITE(*,*) ""
+      WRITE(*,*) "Reads force constants from mat3R.INPUT, interpolate them on a grid"
+      WRITE(*,*) "of NQX x NQY x NQZ points, recenter them on a Wigner-Seitz cell "
+      WRITE(*,*) "constructed up to NFAR unit cells and save the result in mat3R.OUTPUT"
+      WRITE(*,*) ""
+      STOP 1
   ENDIF
   !
   IF(narg>=4)THEN

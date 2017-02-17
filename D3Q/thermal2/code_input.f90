@@ -245,6 +245,7 @@ MODULE code_input
       !
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
+    !
     IF(TRIM(input_file)=="-")THEN
       ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
       input_unit = 5
@@ -271,11 +272,17 @@ MODULE code_input
       calculation="freq"
       READ(input_unit, r2qinput)
       ioWRITE(*, r2qinput)
-      ! Not reading nk, nconf and configs in the R2Q case
-      IF(ANY(nk<0)) nk=1
-      IF(nconf<0)THEN
-        nconf=1
-        configs_ok = .true.
+      IF(calculation=="freq")THEN
+        ! Do not read, nconf and configs in the R2Q-freq case
+        IF(ANY(nk<=0)) nk=1
+        IF(nconf<=0)THEN
+          nconf=1
+          configs_ok = .true.
+        ENDIF
+      ELSEIF(calculation=="rms".or.calculation=="jdos")THEN
+        ! Do not read, QPOINTS in the R2Q-rms and jdos case
+        IF(nq<=0) nq = 1
+        qpoints_ok = .true.
       ENDIF
     ELSE
        CALL errore('READ_INPUT', 'Wrong code', 1)
