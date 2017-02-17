@@ -398,10 +398,10 @@ MODULE f3_bwfft
       DO k = 1, 3*nat
       DO j = 1, 3*nat
       DO i = 1, 3*nat
-        IF(ABS(REAL(fcx(i,j,k)))>eps_imag)THEN
+        IF(ABS(DBLE(fcx(i,j,k)))>eps_imag)THEN
           count_imag = count_imag + 1
-          IF(ABS(DIMAG(fcx(i,j,k))/REAL(fcx(i,j,k))) > max_imag_frac) THEN
-            max_imag_frac = ABS(DIMAG(fcx(i,j,k))/REAL(fcx(i,j,k)))
+          IF(ABS(DIMAG(fcx(i,j,k))/DBLE(fcx(i,j,k))) > max_imag_frac) THEN
+            max_imag_frac = ABS(DIMAG(fcx(i,j,k))/DBLE(fcx(i,j,k)))
             max_imag_mag  = fcx(i,j,k)
           ENDIF
         ENDIF
