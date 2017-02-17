@@ -76,7 +76,7 @@ SUBROUTINE rotate_and_add_d3(phi, phi2, nat, isym, s, invs, irt, rtau, sxq)
                              sxq(ipol,3) * rtau(ipol, isym, nb) ) * tpi
            ENDDO
            !
-           phase = CMPLX(cos(arg),-sin(arg))
+           phase = CMPLX(cos(arg),-sin(arg), kind=DP)
            DO m = 1, 3
               DO i = 1, 3
                  DO j = 1, 3

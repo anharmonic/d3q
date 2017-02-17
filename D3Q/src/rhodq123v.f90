@@ -66,7 +66,7 @@ SUBROUTINE rhodq123v(d3dyn)
   !
   d3dynwrk = (0._dp, 0._dp)
   !
-  FORALL(ir=1:dfftp%nnr) rhog(ir) = CMPLX(rho%of_r(ir, 1), 0._dp)
+  FORALL(ir=1:dfftp%nnr) rhog(ir) = CMPLX(rho%of_r(ir, 1), 0._dp, kind=DP)
   !
   CALL fwfft('Dense', rhog, dfftp)
   !

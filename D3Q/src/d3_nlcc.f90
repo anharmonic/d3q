@@ -65,7 +65,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   !
   ALLOCATE(vxc_g(dfftp%nnr))
   !
-  FORALL(ig=1:dfftp%nnr) vxc_g(ig) = CMPLX(vxc(ig),0._dp)
+  FORALL(ig=1:dfftp%nnr) vxc_g(ig) = CMPLX(vxc(ig),0._dp,kind=DP)
   DEALLOCATE(vxc)
   !
   CALL fwfft('Dense', vxc_g, dfftp)
@@ -76,7 +76,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
      DO ig = 1, ngm
         arg = - tpi * SUM(g(:,ig)*tau(:,na))
 !         arg = - tpi * (g(1,ig)*tau(1,na)+g(2,ig)*tau(2,na)+g(3,ig)*tau(3,na))  !SUM(g(:,ig)*tau(:,na))
-        expf = CMPLX(COS(arg), SIN(arg))
+        expf = CMPLX(COS(arg), SIN(arg),kind=DP)
         drc_exp(ig, na) = expf * d3c(0)%drc(ig, nta)
      ENDDO
   ENDDO

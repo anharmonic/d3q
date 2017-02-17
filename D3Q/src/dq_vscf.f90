@@ -183,8 +183,7 @@ MODULE dq_vscf_module
                 guexp = tpiba * ( (g(1,ig) + xq_x(1)) * u_x(mu+1,nu_i) + &
                                   (g(2,ig) + xq_x(2)) * u_x(mu+2,nu_i) + &
                                   (g(3,ig) + xq_x(3)) * u_x(mu+3,nu_i) ) &
-                     * CMPLX(0.d0,-1.d0) * CMPLX(cos(gtau),-sin(gtau))
-                        !* CMPLX(SIN(gtau),-COS(gtau))
+                     * CMPLX(0.d0,-1.d0) * CMPLX(cos(gtau),-sin(gtau),kind=DP)
                 dvloc_g(nl(ig)) = dvloc_g(nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
             ENDDO
           ENDIF
@@ -290,7 +289,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
            guexp = tpiba * ( (g(1,ig) + xq_x(1)) * u_x(mu+1,nu_i) + &
                              (g(2,ig) + xq_x(2)) * u_x(mu+2,nu_i) + &
                              (g(3,ig) + xq_x(3)) * u_x(mu+3,nu_i) ) &
-                         * mii * CMPLX(COS(gtau), -SIN(gtau))
+                         * mii * CMPLX(COS(gtau), -SIN(gtau),kind=DP)
                          !EXP( mii * gtau)
            aux1 (nl(ig)) = aux1 (nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
            IF (upf(nt)%nlcc) THEN

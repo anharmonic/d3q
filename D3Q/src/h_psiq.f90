@@ -197,7 +197,7 @@ SUBROUTINE h_psiq_gamma()
     !
     ! Here we apply the kinetic energy (k+G)^2 psi
     !
-    IF(gstart==2) psi(1,:)=cmplx(real(psi(1,:),dp),0.0d0,dp)
+    IF(gstart==2) psi(1,:)=cmplx(real(psi(1,:),dp),0.0d0,kind=DP)
     !
     DO ibnd=1,m
 
