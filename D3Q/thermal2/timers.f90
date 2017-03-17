@@ -39,6 +39,10 @@ MODULE timers
                      t_lwchk   = nanotimer("check A_out>0"), &
                      t_lwinout = nanotimer("lw input/output"), &
                      t_restart = nanotimer("restart data i/o")
+  TYPE(nanotimer) :: t_asr3a = nanotimer("asr3 iteration"), &
+                     t_asr3s = nanotimer("asr3 symmetrize"), &
+                     t_asr3io = nanotimer("asr3 in/output"), &
+                     t_asr3idx = nanotimer("asr3 index")
 
   CONTAINS
   SUBROUTINE print_all_timers()

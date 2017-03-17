@@ -390,6 +390,7 @@ MODULE asr3_module
   ! use translational symmetry, i.e.:
   ! F^3(R2,0,R3| b,a,c | j,i,k )  --> F^3(0,-R2,R3-R2| b,a,c | j,i,k )
   FUNCTION perm_symmetrize_fc3(nat,idx,fx) RESULT(delta)
+    USE timers, ONLY : t_asr3s
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
@@ -402,10 +403,10 @@ MODULE asr3_module
     INTEGER :: mR2, mR3, iR2mR3, iR3mR2
     REAL(DP) :: avg, delta
     REAL(DP),PARAMETER :: onesixth = 1._dp/6._dp !0.1666666666666667_dp
-    
+
+    CALL t_asr3s%start()
     delta = 0._dp
 
-    
     IF(.not.allocated(todo)) THEN
       !ALLOCATE(fsym(idx%nR,idx%nR))
       ALLOCATE(todo(idx%nR,idx%nR))
@@ -439,6 +440,7 @@ MODULE asr3_module
         CYCLE R3_LOOP
       ENDIF
       !
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(a,b,c,i,j,k,delta,avg) COLLAPSE(6)
       DO a = 1,3
       DO b = 1,3
       DO c = 1,3
@@ -478,17 +480,20 @@ MODULE asr3_module
       ENDDO
       ENDDO
       ENDDO
-    ENDDO R3_LOOP
+!$OMP END PARALLEL DO
+      ENDDO R3_LOOP
     ENDDO
     !
-    !
     delta = DSQRT(delta)
+    !
+    CALL t_asr3s%stop()
     !
   END FUNCTION perm_symmetrize_fc3
   !
   ! \/o\________\\\_________________________________________/^>
   ! Imposes sum rule on the first index of the FCs
   REAL(DP) FUNCTION impose_asr3_1idx(nat,idx,fx,pow) RESULT(delta)
+    USE timers, ONLY : t_asr3a
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
@@ -501,17 +506,8 @@ MODULE asr3_module
     REAL(DP):: d1, q1, r1
     REAL(DP) :: invpow
     !
-    !TYPE(forceconst3_ofRR),ALLOCATABLE,SAVE :: fasr(:,:)
+    CALL t_asr3a%start()
     !
-!     IF(.not.ALLOCATED(fasr))THEN
-!       ALLOCATE(fasr(idx%nR,idx%nR))
-!       DO iR2 = 1,idx%nR
-!       DO iR3 = 1,idx%nR
-!         ALLOCATE(fasr(iR2,iR3)%F(3,3,3, nat,nat,nat))
-!         fasr(iR2,iR3)%F = 0._dp
-!       ENDDO
-!       ENDDO
-!     ENDIF
     invpow = 1._dp/pow
 
     deltot = 0._dp
@@ -528,6 +524,7 @@ MODULE asr3_module
           ! and the first atom index
           d1 = 0._dp
           q1 = 0._dp
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(k,iR3) REDUCTION(+:d1,q1) COLLAPSE(2)
           R3_LOOP : &
           DO iR3 = 1,idx%nR
           DO k = 1,nat
@@ -535,6 +532,7 @@ MODULE asr3_module
               q1 = q1+ABS(fx(iR2, iR3 )%F(a,b,c, i,j,k))**pow
           ENDDO
           ENDDO R3_LOOP
+!$OMP END PARALLEL DO
           !
           deltot = deltot + ABS(d1)**pow
           delsig = delsig + d1
@@ -542,14 +540,15 @@ MODULE asr3_module
           IF(q1>0._dp) THEN
             r1 = d1/q1
             !
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(k,iR3) COLLAPSE(2)
             R3_LOOPb : &
             DO iR3 = 1,idx%nR
             DO k = 1,nat
-                !IF( ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))>eps0 ) &
                 fx(iR2,iR3)%F(a,b,c, i,j,k) = fx(iR2,iR3)%F(a,b,c, i,j,k) &
                                           - r1 * ABS(fx(iR2,iR3)%F(a,b,c, i,j,k))**pow
             ENDDO
             ENDDO R3_LOOPb
+!$OMP END PARALLEL DO
             !
           ENDIF
           !
@@ -560,15 +559,8 @@ MODULE asr3_module
       ENDDO
     ENDDO
     !
+    CALL t_asr3a%stop()
     !
-!     DO iR2 = 1,idx%nR
-!     DO iR3 = 1,idx%nR
-!       fx(iR2,iR3)%F = fasr(iR2,iR3)%F
-!       !DEALLOCATE(fasr(iR2,iR3)%F)
-!     ENDDO
-!     ENDDO
-    !DEALLOCATE(fasr)
-
     ! Re-symmetrize the matrix
     delperm = perm_symmetrize_fc3(nat,idx,fx)
     !
@@ -719,8 +711,9 @@ PROGRAM asr3
   USE io_global,       ONLY : stdout
   USE asr3_module
   USE more_constants,  ONLY : print_citations_linewidth
-  USE import3py_module
-  USE f3_bwfft
+!  USE import3py_module
+!  USE f3_bwfft
+  USE timers
   IMPLICIT NONE
   !
   TYPE(grid)             :: fc
@@ -740,8 +733,8 @@ PROGRAM asr3
   !
   TYPE(grid) :: fcb
   INTEGER :: nq(3), nq_trip
-  TYPE(d3_list),ALLOCATABLE :: d3grid(:)
-  REAL(DP),ALLOCATABLE :: up(:,:,:,:,:,:)
+  !TYPE(d3_list),ALLOCATABLE :: d3grid(:)
+  !REAL(DP),ALLOCATABLE :: up(:,:,:,:,:,:)
 
   nargs = iargc()
   !
@@ -770,37 +763,41 @@ PROGRAM asr3
   !
   IF(nargs>2)THEN
     CALL getarg(3, aux)
-    READ(aux, *) pow
-  ELSE
-    pow = 2._dp
-  ENDIF
-  !
-  IF(nargs>3)THEN
-    CALL getarg(4, aux)
     READ(aux, *) threshold
   ELSE
     threshold = 1.d-12
   ENDIF
   !
-  IF(nargs>4)THEN
-    CALL getarg(5, aux)
+  IF(nargs>3)THEN
+    CALL getarg(4, aux)
     READ(aux, *) niter_max
   ELSE
     niter_max = INT(1e+4)
   ENDIF
+  !
+  IF(nargs>4)THEN
+    CALL getarg(5, aux)
+    READ(aux, *) pow
+  ELSE
+    pow = 2._dp
+  ENDIF
+  !
   WRITE(stdout,*) " --- PARAMETERS : ---"
   WRITE(stdout,*) " power     ", pow
   WRITE(stdout,*) " threshold ", threshold
   WRITE(stdout,*) " niter_max ", niter_max
   WRITE(stdout,*) " --- ------------ ---"
   ! ----------------------------------------------------------------------------
+    CALL t_asr3io%start()
   CALL fc%read(filein, S)
   CALL aux_system(s)
+    CALL t_asr3io%stop()
   !
   CALL memstat(kb)
   WRITE(stdout,*) "Reading : done. //  Mem used:", DBLE(kb)/1000._dp, "Mb"
   !
   ! ----------------------------------------------------------------------------
+    CALL t_asr3idx%start()
   CALL stable_index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
                 idx2%yR, idx2%idR, idx2%iRe0, idx2%idmR, idx2%idRmR, .false.)
   !
@@ -829,6 +826,7 @@ PROGRAM asr3
   ALLOCATE(fx(idx2%nR, idx3%nR))
 
   CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,+1)
+    CALL t_asr3idx%stop()
   CALL memstat(kb)
   WRITE(stdout,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
 
@@ -853,19 +851,22 @@ PROGRAM asr3
    WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
   ! ----------------------------------------------------------------------------
   !
+    CALL t_asr3idx%start()
   CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,-1)
+    CALL t_asr3idx%stop()
 
+    CALL t_asr3io%start()
   CALL fc%write(fileout, S)
-  
-!   nq = (/2,2,2/)
-!   nq_trip = (nq(1)*nq(2)*nq(3))**2
-!   ALLOCATE(d3grid(nq_trip))
-!   CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc)
-!   
-!   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb)
-!   CALL fcb%write("mat3R.center", S)
+    CALL t_asr3io%stop()
   !
   CALL print_citations_linewidth()
+  !
+  WRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
+  CALL print_timers_header()
+  CALL t_asr3a%print()
+  CALL t_asr3s%print()
+  CALL t_asr3io%print()
+  CALL t_asr3idx%print()
   !
 END PROGRAM asr3
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
