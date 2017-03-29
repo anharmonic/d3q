@@ -41,6 +41,7 @@ SUBROUTINE write_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   USE kinds,      ONLY : DP
   USE parameters, ONLY : ntypx
   USE d3com,      ONLY : code_version => version
+  USE io_global,  ONLY : stdout
   USE iotk_module
   !
   IMPLICIT NONE
@@ -66,6 +67,7 @@ SUBROUTINE write_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   CHARACTER(LEN=9)  :: cdate, ctime
 
   filename = d3matrix_filename(xq1, xq2, xq3, at, basename)
+  WRITE(stdout,"(5x,' -->',a)") TRIM(filename)
   !
   CALL iotk_free_unit(u)
   CALL date_and_tim( cdate, ctime )
