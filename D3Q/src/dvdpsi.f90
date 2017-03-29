@@ -45,28 +45,33 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
   INTEGER :: na, mu, ig, ir, ibnd, nt, ih, jh, ijkb0, ikb, jkb
   ! the transformation modes patterns
   COMPLEX(DP),ALLOCATABLE :: aux (:), ps (:,:), wrk (:)
+  COMPLEX(DP),ALLOCATABLE :: fact_rgt(:), fact_lft(:)
   ! work space
   COMPLEX(DP),EXTERNAL:: zdotc
   !
   ALLOCATE(aux(dfftp%nnr))
-  ALLOCATE(ps(2, nbnd))
-  ALLOCATE(wrk(npwx))
   !
   ! Apply the local potential in real space, then come back to g space
   !
   DO ibnd = 1, nbnd
     aux = (0._dp, 0._dp)
     ! order correctly the plane waves in dpsi
-    FORALL(ig=1:npw_rgt) aux(nls(igk_rgt(ig))) = dpsi(ig, ibnd)
+    aux(nls(igk_rgt(1:npw_rgt))) = dpsi(1:npw_rgt, ibnd)
     ! take dpsi to real space
     CALL invfft('Wave', aux, dffts)
     ! compute vloc*dpsi in real-space (this changes the periodicity)
-    FORALL(ir=1:dffts%nnr) aux(ir) = aux (ir) * dvloc (ir)
+    aux(1:dffts%nnr) = aux(1:dffts%nnr) * dvloc(1:dffts%nnr)
     ! take vloc*dpsi back to g-space
     CALL fwfft('Wave', aux, dffts)
     ! reset the order of plane waves according to the new periodicity
-    FORALL(ig=1:npw_lft) dvpsi(ig, ibnd) = aux(nls(igk_lft(ig)))
+    dvpsi(1:npw_lft, ibnd) = aux(nls(igk_lft(1:npw_lft)))
   ENDDO
+  !
+  DEALLOCATE(aux)
+  !
+  ALLOCATE(wrk(npwx))
+  ALLOCATE(ps(2, nbnd))
+  ALLOCATE(fact_rgt(npw_rgt), fact_lft(npw_lft))
   !
   !   Now the contribution of the non local part in the KB form
   !
@@ -77,59 +82,68 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
       IF (ityp(na)==nt) THEN
         mu = 3 * (na - 1)
         !
-        IH_LOOP : DO ih = 1, nh(nt)
-          ikb = ijkb0 + ih
+        MY_MODE : &
+        IF (      ABS(u_x(mu + 1, nu_i)) > 1.0d-12 &
+              .or. ABS(u_x(mu + 2, nu_i)) > 1.0d-12 &
+              .or. ABS(u_x(mu + 3, nu_i)) > 1.0d-12 ) THEN
           !
-          JH_LOOP : DO jh = 1, nh(nt)
-          jkb = ijkb0 + jh
+          ! Pre-compute the structure factors
+          DO ig = 1, npw_rgt
+            fact_rgt(ig) = CONJG( (0._dp,1._dp)*tpiba * &
+                    (g(1, igk_rgt(ig) ) * u_x(mu+1, nu_i) + &
+                     g(2, igk_rgt(ig) ) * u_x(mu+2, nu_i) + &
+                     g(3, igk_rgt(ig) ) * u_x(mu+3, nu_i) ) )
+          ENDDO
           !
-          IF ( ABS (u_x (mu + 1, nu_i) ) + ABS (u_x (mu + 2, nu_i) ) + &
-              ABS (u_x (mu + 3, nu_i) ) > 1.0d-12 ) THEN
-            !
-            ! first term: sum_l v_l beta_l(k+q+G) \sum_G' beta^*_l(k+G') (iG'*u) psi
-            !
-            DO ig = 1, npw_rgt
-              wrk (ig) = vkb_rgt(ig,jkb) * &
-                  CONJG( (0._dp,1._dp)*tpiba * &
-                      (g(1, igk_rgt(ig) ) * u_x(mu+1, nu_i) + &
-                       g(2, igk_rgt(ig) ) * u_x(mu+2, nu_i) + &
-                       g(3, igk_rgt(ig) ) * u_x(mu+3, nu_i) ) )
-            ENDDO
-            DO ibnd = 1, nbnd
-              ps(1,ibnd) = dvan(ih,jh,nt)*ZDOTC(npw_rgt,            wrk,1, dpsi(1,ibnd), 1)
-              ps(2,ibnd) = dvan(ih,jh,nt)*ZDOTC(npw_rgt, vkb_rgt(1,jkb),1, dpsi(1,ibnd), 1)
-            ENDDO
-            !
-            ! when build is serial this call does nothing, we leave it there
-            !
-            CALL mp_sum ( ps, intra_pool_comm )
-            !
-            ! second term: sum_l E_l(-i(q+G)*u) beta_l(k+q+G)\sum_G'beta^*_l(k+G')ps
-            !
-            DO ig = 1, npw_lft
-              wrk (ig) = vkb_lft(ig,ikb) * (0._dp,-1._dp)*tpiba * &
-                  ( (g(1, igk_lft(ig) ) + xq_dv(1) ) * u_x (mu+1, nu_i) +&
+          DO ig = 1, npw_lft
+            fact_lft(ig) = (0._dp,-1._dp)*tpiba * &
+                ( (g(1, igk_lft(ig) ) + xq_dv(1) ) * u_x (mu+1, nu_i) +&
                   (g(2, igk_lft(ig) ) + xq_dv(2) ) * u_x (mu+2, nu_i) +&
                   (g(3, igk_lft(ig) ) + xq_dv(3) ) * u_x (mu+3, nu_i) )
-            ENDDO
-            !
-            DO ibnd = 1, nbnd
-              CALL ZAXPY(npw_lft,ps(1,ibnd),vkb_lft(1,ikb),1,dvpsi(1,ibnd),1)
-              CALL ZAXPY(npw_lft,ps(2,ibnd),wrk,        1,dvpsi(1,ibnd),1)
-            ENDDO
-          ENDIF
+          ENDDO
           !
-          ENDDO JH_LOOP
-        ENDDO  IH_LOOP
+          IH_LOOP : DO ih = 1, nh(nt)
+            ikb = ijkb0 + ih
+            !
+            JH_LOOP : DO jh = 1, nh(nt)
+              jkb = ijkb0 + jh
+              !
+              ! first term: sum_l v_l beta_l(k+q+G) \sum_G' beta^*_l(k+G') (iG'*u) psi
+              !
+              wrk (1:npw_rgt) = vkb_rgt(1:npw_rgt,jkb) * fact_rgt(1:npw_rgt)
+              !
+              DO ibnd = 1, nbnd
+                ps(1,ibnd) = dvan(ih,jh,nt)*ZDOTC(npw_rgt,            wrk,1, dpsi(1,ibnd), 1)
+                ps(2,ibnd) = dvan(ih,jh,nt)*ZDOTC(npw_rgt, vkb_rgt(1,jkb),1, dpsi(1,ibnd), 1)
+              ENDDO
+              !
+              ! when build is serial this call does nothing, we leave it there
+              !
+              CALL mp_sum ( ps, intra_pool_comm )
+              !
+              ! second term: sum_l E_l(-i(q+G)*u) beta_l(k+q+G)\sum_G'beta^*_l(k+G')ps
+              !
+              wrk (1:npw_lft) = vkb_lft(1:npw_lft,ikb) * fact_lft(1:npw_lft)
+              !
+              DO ibnd = 1, nbnd
+                CALL ZAXPY(npw_lft,ps(1,ibnd),vkb_lft(:,ikb),1,dvpsi(:,ibnd),1)
+                CALL ZAXPY(npw_lft,ps(2,ibnd),wrk,           1,dvpsi(:,ibnd),1)
+              ENDDO
+            !
+            ENDDO JH_LOOP
+          ENDDO  IH_LOOP
+          !
+        ENDIF MY_MODE 
         !
+        ! IMPORTANT: do not forget to increase this index:
         ijkb0 = ijkb0 + nh(nt)
         !
       END IF CORRECT_TYPE
     END DO
   END DO
-  DEALLOCATE (wrk)
-  DEALLOCATE (ps)
-  DEALLOCATE (aux)
+  !
+  DEALLOCATE(wrk, ps)
+  DEALLOCATE(fact_lft, fact_rgt)
   RETURN
 END SUBROUTINE dvdpsi
 

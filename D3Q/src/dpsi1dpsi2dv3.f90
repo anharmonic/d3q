@@ -6,6 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !
+! If enough RAM is available, pre-read all the Right dpsi in order to
+! only read them once
+#define __LOTTA_MEM
 MODULE dpsi1dpsi2dv3_module
 CONTAINS
 !
@@ -30,7 +33,14 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   COMPLEX(DP),VOLATILE,INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
   LOGICAL,INTENT(in),OPTIONAL :: order
   !
-  COMPLEX(DP),ALLOCATABLE :: dpsi_lft(:,:), dpsi_rgt(:,:), psi_dH_psi(:,:)
+#ifdef __LOTTA_MEM
+  COMPLEX(DP),ALLOCATABLE,TARGET :: dpsi_rgt_buff(:,:,:)
+  COMPLEX(DP),POINTER            :: dpsi_rgt(:,:)
+#else
+  COMPLEX(DP),ALLOCATABLE :: dpsi_rgt(:,:)
+#endif
+  COMPLEX(DP),ALLOCATABLE :: dpsi_lft(:,:), psi_dH_psi(:,:)
+  COMPLEX(DP),ALLOCATABLE :: dpsi_dpsi(:,:)
   COMPLEX(DP) :: wrk, wrk2
   COMPLEX(DP),EXTERNAL :: ZDOTC
 
@@ -59,9 +69,15 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   !
   lmetal = (degauss /= 0._dp)
   !
-  ALLOCATE( dpsi_lft(npwx, nbnd) )
+#ifdef __LOTTA_MEM
+  ALLOCATE(dpsi_rgt_buff(npwx,nbnd,3*nat))
+  NULLIFY (dpsi_rgt)
+#else
   ALLOCATE( dpsi_rgt(npwx, nbnd) )
+#endif
+  ALLOCATE( dpsi_lft(npwx, nbnd) )
   ALLOCATE( psi_dH_psi(nbnd, nbnd) )
+  ALLOCATE( dpsi_dpsi(nbnd, nbnd) )
   !ALLOCATE( igk_dummy( npwx) )
   !
   IF (lmetal) THEN
@@ -138,6 +154,13 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
       ENDDO
     ENDIF
     !
+#ifdef __LOTTA_MEM
+    DO nu_r = 1, 3*nat
+      nrec_rgt = (nu_r - 1) * nksq + ik
+      CALL davcio(dpsi_rgt_buff(:,:,nu_r), lrdwf, iu_dwfc(-iq_rgt,iq_rgt), nrec_rgt, -1)
+    ENDDO
+#endif
+    !
     LEFT_DWFC_LOOP : &
     DO nu_l = 1, 3*nat
       ! read |d_(-q_lft) psi_(k+q_lft)> (for all bands) from file:
@@ -149,12 +172,16 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
         ! read |d_(q_rgt) psi_(k-q_rgt)> (for all bands) from file
         ! or copy it from dpsi_lft if q's are equal and we're doing the same
         ! perturbation:
+#ifdef __LOTTA_MEM
+        dpsi_rgt => dpsi_rgt_buff(:,:,nu_r)
+#else
         nrec_rgt = (nu_r - 1) * nksq + ik
-         IF( kplusq(iq_lft)%lsame(-iq_rgt) .and. nu_l == nu_r ) THEN
-           dpsi_rgt = dpsi_lft
-         ELSE
+        IF( kplusq(iq_lft)%lsame(-iq_rgt) .and. nu_l == nu_r ) THEN
+          dpsi_rgt = dpsi_lft
+        ELSE
           CALL davcio(dpsi_rgt, lrdwf, iu_dwfc(-iq_rgt,iq_rgt), nrec_rgt, -1)
-         ENDIF
+        ENDIF
+#endif
         !
         ! In the metal case read some more <dpsi|dV|psi> terms
         IF (lmetal) THEN
@@ -164,6 +191,14 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
           nrec_rl = nu_l + (nu_r-1)*3*nat + (ik-1)*(3*nat)**2
           CALL davcio(ps_rl, lrdpdvp, iu_dpsi_dH_psi(iq_rgt, -iq_lft), nrec_rl, -1)
         ENDIF
+        !
+        ! precompute <dpsi|dpsi> for every band at this k-point, left and right perturbation
+        DO ibnd = 1, nbnd_occ(ik_lft) !nbnd
+        DO jbnd = 1, nbnd_occ(ik_rgt) !nbnd
+            dpsi_dpsi(jbnd,ibnd) &
+              = ZDOTC(npw_gamma, dpsi_lft(:,ibnd), 1, dpsi_rgt(:,jbnd), 1)
+        ENDDO
+        ENDDO
         !
         PSI_DH_PSI_LOOP : &
         DO nu_h = 1, 3*nat
@@ -184,13 +219,12 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
               ELSE
                  wrk = wrk - psi_dH_psi(jbnd, ibnd) * dwg(ibnd) * ps_lr(ibnd, jbnd)
                  !
-                 wrk2 = wrk2 - psi_dH_psi(jbnd, ibnd) * wg_lft(ibnd) * &
-                               ZDOTC(npw_gamma, dpsi_lft(1,ibnd), 1, dpsi_rgt(1,jbnd), 1)
+                 wrk2 = wrk2 - psi_dH_psi(jbnd, ibnd) &
+                               * wg_lft(ibnd) * dpsi_dpsi(jbnd,ibnd)
               ENDIF
             ELSE
               ! insulators:
-              wrk2 = wrk2 - psi_dH_psi(jbnd, ibnd) * &
-                     ZDOTC(npw_gamma, dpsi_lft(1,ibnd), 1, dpsi_rgt(1,jbnd), 1)
+              wrk2 = wrk2 - psi_dH_psi(jbnd, ibnd) * dpsi_dpsi(jbnd,ibnd)
             ENDIF
           ENDDO
           ENDDO
@@ -217,7 +251,13 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   d3dyn = d3dyn + d3dyn_tmp
   !
   !DEALLOCATE(igk_dummy)
+#ifdef __LOTTA_MEM
+  DEALLOCATE(dpsi_lft, dpsi_rgt_buff)
+  NULLIFY(dpsi_rgt)
+#else
   DEALLOCATE(dpsi_lft, dpsi_rgt)
+#endif
+  DEALLOCATE(dpsi_dpsi)
   IF (lmetal) THEN
      DEALLOCATE( ps_lr, ps_rl )
      DEALLOCATE(wg_lft, wg_rgt, dwg)

@@ -50,10 +50,11 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   ! description of the wavefunctions
 #ifdef __LOTTA_MEM
   COMPLEX(DP),ALLOCATABLE,TARGET :: dpsi_lft_buff(:,:,:)
+  COMPLEX(DP),ALLOCATABLE,TARGET :: dpsi_rgt_buff(:,:,:)
 #endif
   COMPLEX (DP), POINTER :: dpsi_lft (:,:), dpsi_rgt (:,:)
   INTEGER,POINTER :: igk_lft(:) =>null(), igk_rgt(:) => null()
-  INTEGER :: npw_lft, npw_rgt
+  INTEGER :: npw_lft, npw_rgt, nu_x
   ! band occupations with smearing (metals only)
   REAL(DP) :: degaussm1
   REAL(DP),ALLOCATABLE :: wga(:)
@@ -86,11 +87,13 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   !
 #ifdef __LOTTA_MEM
   ALLOCATE(dpsi_lft_buff(npwx,nbnd,3*nat))
-  NULLIFY(dpsi_lft)
+  NULLIFY (dpsi_lft)
+  ALLOCATE(dpsi_rgt_buff(npwx,nbnd,3*nat))
+  NULLIFY (dpsi_rgt)
 #else
   ALLOCATE(dpsi_lft(npwx, nbnd))
-#endif
   ALLOCATE(dpsi_rgt(npwx, nbnd))
+#endif
   ALLOCATE(dvpsi(npwx, nbnd))
   !
   ALLOCATE(dvloc(dfftp%nnr,3*nat))
@@ -163,10 +166,12 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
       ! vkb_lft => vkb_rgt : vkb_lft is automatically a copy of vkb_rgt
     ENDIF
 #ifdef __LOTTA_MEM
-    DO nu_l = 1, 3 * nat
+    DO nu_x = 1, 3 * nat
       ! pre-read "left" wavefunctions, this becomes a bottleneck for more than 3 atoms
-      nrec = (nu_l - 1) * nksq + ik
-      CALL davcio (dpsi_lft_buff(:,:,nu_l), lrdwf, iu_dwfc(0, -iq_lft), nrec, -1)
+      nrec = (nu_x - 1) * nksq + ik
+      CALL davcio (dpsi_lft_buff(:,:,nu_x), lrdwf, iu_dwfc(0, -iq_lft), nrec, -1)
+      ! pre-read "right" wavefunction, this is a bottleneck at 5 atoms
+      CALL davcio (dpsi_rgt_buff(:,:,nu_x), lrdwf, iu_dwfc(0,  iq_rgt), nrec, -1)
     ENDDO
 #endif
     !
@@ -190,8 +195,12 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
       PERT_R_LOOP : & !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
       DO nu_r = 1, 3 * nat
         ! read the "right" 1st order wavefunctions (in dpsi_rgt)
+#ifdef __LOTTA_MEM
+        dpsi_rgt => dpsi_rgt_buff(:,:,nu_r)
+#else
         nrec = (nu_r - 1) * nksq + ik
         CALL davcio (dpsi_rgt, lrdwf, iu_dwfc(0, iq_rgt), nrec, -1)
+#endif
         !
         ! compute dH|dpsi> (non local part of dH included)
         CALL dvdpsi (nu_v, patq(iq_dv)%u, kplusq(iq_dv)%xq, dvloc(:,nu_v), &
@@ -217,7 +226,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
           wrk = (0._dp, 0._dp)
           DO ibnd = 1, nbnd_occ(ik_gam)
             wrk = wrk + wga(ibnd) * &
-                  ZDOTC(npw_lft, dpsi_lft(1, ibnd), 1, dvpsi(1, ibnd), 1)
+                  ZDOTC(npw_lft, dpsi_lft(:, ibnd), 1, dvpsi(:, ibnd), 1)
           ENDDO
 #ifdef __MPI
           CALL mp_sum(wrk, intra_pool_comm)
@@ -244,12 +253,11 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   !
   ! Clean-up
   DEALLOCATE(d3dyn_tmp)
-  DEALLOCATE(dpsi_rgt)
 #ifdef __LOTTA_MEM
-  DEALLOCATE(dpsi_lft_buff)
-  NULLIFY(dpsi_lft)
+  DEALLOCATE(dpsi_lft_buff, dpsi_rgt_buff)
+  NULLIFY(dpsi_lft, dpsi_rgt)
 #else
-  DEALLOCATE(dpsi_lft)
+  DEALLOCATE(dpsi_lft, dpsi_rgt)
 #endif
   DEALLOCATE(igk_rgt, vkb_rgt)
   IF(not_lsame) &
