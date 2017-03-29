@@ -157,9 +157,6 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   ! to be the first symm_base:nrot ones. This changes several global variables in module symm_base
   modenum = 0
   magnetic_sym = .false.
-  !CALL find_sym ( nat, tau, ityp, dfftp%nr1, dfftp%nr2, dfftp%nr3, .FALSE., &
-  !                magnetic_sym, mdum, .FALSE.)
-  !CALL find_sym ( nat, tau, ityp, dfftp%nr1, dfftp%nr2, dfftp%nr3, magnetic_sym, mdum )
   CALL find_sym ( nat, tau, ityp, magnetic_sym, m_loc, monopole )
   sym(:)      = .false.
   sym(1:nsym) = .true.
