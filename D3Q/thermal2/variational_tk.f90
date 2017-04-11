@@ -407,40 +407,40 @@ MODULE variational_tk
 !/!$OMP END PARALLEL
     !
   END SUBROUTINE compute_inv_sqrt_A_out
-  !
-  ! Prepares A_out^(-1), given A_out (which is diagonal!) in input
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE compute_inv_A_out(A, inv_A, nconf, nat3, nq)
-    IMPLICIT NONE
-    !
-    REAL(DP):: f(3, nconf, nat3, nq)
-    !
-    REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
-    REAL(DP),INTENT(out) :: inv_A(nconf, nat3, nq)
-    INTEGER,INTENT(in)  :: nconf, nat3, nq
-    !
-    INTEGER  :: iq, it, nu
-    !
-!/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq, nu,it)
-!/!$OMP DO 
-    DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-        IF(A(it,nu,iq)/=0._dp)THEN
-          inv_A(it,nu,iq) = 1/A(it,nu,iq)
-          ! This should be infinity, but it should only happen at Gamma for
-          ! acoustic bands, where we can ignore it because everything is zero
-        ELSE
-          inv_A(it,nu,iq) = 0._dp
-          IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Suspicious null A_out", iq, nu, it
-        ENDIF
-      ENDDO
-    ENDDO
-    ENDDO
-!/!$OMP END DO
-!/!$OMP END PARALLEL
-    !
-  END SUBROUTINE compute_inv_A_out
+!   !
+!   ! Prepares A_out^(-1), given A_out (which is diagonal!) in input
+!   ! \/o\________\\\_________________________________________/^>
+!   SUBROUTINE compute_inv_A_out(A, inv_A, nconf, nat3, nq)
+!     IMPLICIT NONE
+!     !
+!     REAL(DP):: f(3, nconf, nat3, nq)
+!     !
+!     REAL(DP),INTENT(in) :: A(nconf, nat3, nq)
+!     REAL(DP),INTENT(out) :: inv_A(nconf, nat3, nq)
+!     INTEGER,INTENT(in)  :: nconf, nat3, nq
+!     !
+!     INTEGER  :: iq, it, nu
+!     !
+! !/!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq, nu,it)
+! !/!$OMP DO 
+!     DO iq = 1,nq
+!     DO nu = 1,nat3
+!       DO it = 1,nconf
+!         IF(A(it,nu,iq)/=0._dp)THEN
+!           inv_A(it,nu,iq) = 1/A(it,nu,iq)
+!           ! This should be infinity, but it should only happen at Gamma for
+!           ! acoustic bands, where we can ignore it because everything is zero
+!         ELSE
+!           inv_A(it,nu,iq) = 0._dp
+!           IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Suspicious null A_out", iq, nu, it
+!         ENDIF
+!       ENDDO
+!     ENDDO
+!     ENDDO
+! !/!$OMP END DO
+! !/!$OMP END PARALLEL
+!     !
+!   END SUBROUTINE compute_inv_A_out
   !
   ! \/o\________\\\_________________________________________/^>
   ! Apply \tilde{A} = (1+A_out^{-1/2} A_in A_out^{-1/2}) matrix to a vector f,
@@ -762,9 +762,10 @@ MODULE variational_tk
     !
   END FUNCTION sum_A_in_modes
   !
-  !
-  ! Compute thermal conductivity as 
-  !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
+  ! Compute thermal conductivity with the variational form of G. Fugallo et.al. as 
+  !   tk = - 2 \lambda F(f)
+  !      = - 2 \lambda ( 1/2 f.Af - b.f )
+  !      =   - \lambda ( f.g - f.b )
   FUNCTION calc_tk_gf(g, f, b, T, weight, Omega, nconf, nat3, nq) RESULT(tk)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     USE constants,          ONLY : K_BOLTZMANN_RY
@@ -809,8 +810,7 @@ MODULE variational_tk
     ENDDO
     !
   END FUNCTION calc_tk_gf
-  ! Compute thermal conductivity as 
-  !   tk = - \lambda \over { N T^2 } ( f \dot g - f \dot b) )
+  !
   LOGICAL FUNCTION check_conv_tk(thr, nconf, delta_tk) RESULT(conv)
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1
     IMPLICIT NONE
@@ -844,24 +844,27 @@ MODULE variational_tk
     INTEGER,OPTIONAL,INTENT(in) :: unit0, iter
     !
     INTEGER :: it
-    IF(present(unit0) .and. .not. present(iter)) CALL errore("print_tk", "wrong args",1)
+    IF(present(unit0) .and. .not. present(iter))&
+      CALL errore("print_tk", "wrong args",1)
     
     IF(.not. ionode) RETURN
-    ! print to screen
+    !
+    ! Rewind the main file and rewrite the header
+    IF(present(unit0)) THEN
+      REWIND(unit0)
+      ioWRITE(unit0,'(5a)') "# conf", " sigma[cmm1]   T[K]  ",&
+                            "    K_x              K_y              K_z              ",&
+                            "    K_xy             K_xz             K_yz             ",&
+                            "    K_yx             K_zx             K_zy"
+    ENDIF
+    !
     ioWRITE(stdout,'(2x,a)') name
-    IF(present(unit0)) REWIND(unit0)
     DO it = 1,nconf
       ! on screen we only write the diagonal components
       ioWRITE(stdout,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
         tk(1,1,it)*RY_TO_WATTMM1KM1, &
         tk(2,2,it)*RY_TO_WATTMM1KM1, &
-        tk(3,3,it)*RY_TO_WATTMM1KM1!, &
-!         tk(1,2,it)*RY_TO_WATTMM1KM1, &
-!         tk(1,3,it)*RY_TO_WATTMM1KM1, &
-!         tk(2,3,it)*RY_TO_WATTMM1KM1, &
-!         tk(2,1,it)*RY_TO_WATTMM1KM1, &
-!         tk(3,1,it)*RY_TO_WATTMM1KM1, &
-!         tk(3,2,it)*RY_TO_WATTMM1KM1      !
+        tk(3,3,it)*RY_TO_WATTMM1KM1
       ! on file we write everything, but in this order: 
       !   Kxx, Kyy, Kzz, Kxy, Kxz, Kyz, Kyx, Kzx, Kzy
       IF(present(unit0)) THEN
@@ -896,6 +899,80 @@ MODULE variational_tk
     ENDIF
     !
   END SUBROUTINE print_tk
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_deltatk(dtk,  sigma, T, nconf, name)
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1
+    USE mpi_thermal, ONLY : ionode
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: dtk(3,3,nconf)
+    REAL(DP),INTENT(in) :: sigma(nconf)
+    REAL(DP),INTENT(in) :: T(nconf)
+    INTEGER,INTENT(in) :: nconf
+    CHARACTER(len=*),INTENT(in) :: name
+    !
+    INTEGER :: it
+    IF(.not. ionode) RETURN
+    !
+    ioWRITE(stdout,'(2x,a)') name
+    DO it = 1,nconf
+      ! on screen we only write the diagonal components
+      ioWRITE(stdout,'(i6,2f10.4,3(3f17.7,3x))') it, sigma(it), T(it), &
+        dtk(1,1,it), &
+        dtk(2,2,it), &
+        dtk(3,3,it)
+    ENDDO
+
+    !
+  END SUBROUTINE print_deltatk
+  !
+  SUBROUTINE open_tk_files(outdir, prefix, postfix, restart, nconf, T, sigma, unit0)
+    USE more_constants,     ONLY : write_conf
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: outdir, prefix, postfix
+    LOGICAL,INTENT(in) :: restart
+    INTEGER,INTENT(in) :: nconf
+    REAL(DP),INTENT(in) :: T(nconf), sigma(nconf)
+    INTEGER,INTENT(in) :: unit0
+    !
+    INTEGER :: it
+    CHARACTER(len=512) :: filename
+    CHARACTER(len=6) :: what
+    !
+    IF(.not. ionode) RETURN
+    !
+    DO it = 0,nconf
+      IF(it==0) THEN
+        filename=TRIM(outdir)//"/"//&
+                 TRIM(prefix)// &
+                 TRIM(postfix)//".out"
+        what="# conf"
+      ELSE
+        filename=TRIM(outdir)//"/"//&
+                 TRIM(prefix)//&
+                 "_T"//TRIM(write_conf(it,nconf,T))//&
+                 "_s"//TRIM(write_conf(it,nconf,sigma))//&
+                 TRIM(postfix)//".out"
+        what="# iter"
+      ENDIF
+      !
+      IF(restart) THEN
+        OPEN(unit=unit0+it, file=filename, position="append")
+      ELSE
+        OPEN(unit=unit0+it, file=filename)
+        ioWRITE(unit0+it, '(a)') "# Thermal conductivity from BTE"
+        IF(it>0) THEN
+          ioWRITE(unit0+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, &
+                  "     T=",T(it), "    sigma=", sigma(it)
+        ENDIF
+        ioWRITE(unit0+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
+                            "    K_x              K_y              K_z              ",&
+                            "    K_xy             K_xz             K_yz             ",&
+                            "    K_yx             K_zx             K_zy"
+      ENDIF
+      ioFLUSH(unit0+it)
+    ENDDO
+  END SUBROUTINE open_tk_files
   !
   ! Save the current state of CG minimization to file, open and close 
   ! the files to insure consistency
