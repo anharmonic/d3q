@@ -1,5 +1,5 @@
 v 1.0.7
-* nasty bug in d3_tk.x, CGP calculation, wrong prefactor!
+* nasty bug in d3_tk.x, CGP calculation, wrong prefactor! Many thanks to Erpan Arkin for reporting and helping with the debug!
 * added calculation of JDOS and RMS of atomic displacements to d3_r2q.x
 * better threatmenet of LO-TO along paths
 * support for random grids improved (should work in SMA)
