@@ -84,36 +84,34 @@ MODULE thermalk_program
     ! the inner grid (in_grid) is scatterd over MPI
     CALL setup_grid(input%grid_type, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
                     in_grid, scatter=.true.)
-    !CALL in_grid%scatter()
     !
-!     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an inner grid of", in_grid%nq, " points"
-!     ioWRITE(stdout,'(1x,a,i10,a)') "Integrating over an outer grid of", out_grid%nq, " points"
-    !
+    ! Open files to store the linewidth
     IF(ionode)THEN
-    DO it = 1,input%nconf
-      OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                              "lw."//TRIM(input%prefix)//&
-                               "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-      ioWRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
-      ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      ioFLUSH(1000+it)
-      !
-      IF(input%isotopic_disorder) THEN
-        OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
-                                "lwiso."//TRIM(input%prefix)//&
-                                    "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                                    "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-        ioWRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
-        ioWRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-        ioFLUSH(2000+it)
-      ENDIF
-    ENDDO
+      DO it = 1,input%nconf
+        OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
+                                "lw."//TRIM(input%prefix)//&
+                                "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+        ioWRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
+        ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
+                                                    "    sigma=", input%sigma(it)
+        ioFLUSH(1000+it)
+        !
+        IF(input%isotopic_disorder) THEN
+          OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
+                                  "lwiso."//TRIM(input%prefix)//&
+                                      "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                      "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+          ioWRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
+          ioWRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
+                                                      "    sigma=", input%sigma(it)
+          ioFLUSH(2000+it)
+        ENDIF
+      ENDDO
       IF(input%casimir_scattering) THEN
         OPEN(unit=3000, file=TRIM(input%outdir)//"/"//&
                                 "lwcas."//TRIM(input%prefix)//".out")
         ioWRITE(3000, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
-!         ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
         ioFLUSH(3000)
       ENDIF
     ENDIF
@@ -187,7 +185,7 @@ MODULE thermalk_program
         MODE_LOOP : &
         DO nu = 1, S%nat3
           ! Check if we have zero linewidth and non-zero velocity it is a problem
-          ! lw can be NaN when T=0 and xq=0, check for lw>0 insteand, because NaN/=0 is true
+          ! lw can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
             WRITE(stdout,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it 
             lw(nu,it) = - lw(nu,it)
@@ -203,7 +201,7 @@ MODULE thermalk_program
           ENDIF
           !
           pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
-                             /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY)&
+                             /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY )&
                              *out_grid%w(iq) /lw(nu,it) 
           !ioWRITE(stdout,"(3x,a,3i6,4e15.6)") "do:", iq, nu, it, pref, freq(nu), bose(nu,it), lw(nu,it)
           DO a = 1,3
@@ -281,8 +279,8 @@ MODULE thermalk_program
   SUBROUTINE TK_CG_prec(input, out_grid, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q
-    USE constants,          ONLY : RY_TO_CMM1
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
+    !USE constants,          ONLY : RY_TO_CMM1
+     USE more_constants,     ONLY : RY_TO_WATTMM1KM1!, write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
@@ -307,7 +305,8 @@ MODULE thermalk_program
     !
     TYPE(q_basis) :: qbasis
     REAL(DP),ALLOCATABLE :: A_out(:,:,:), inv_sqrt_A_out(:,:,:), inv_A_out(:,:,:)
-    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), h(:,:,:,:), t(:,:,:,:), j(:,:,:,:)
+    REAL(DP),ALLOCATABLE :: f(:,:,:,:), g(:,:,:,:), &
+                            h(:,:,:,:), t(:,:,:,:)!, j(:,:,:,:)
     REAL(DP),ALLOCATABLE :: Af(:,:,:,:)
     REAL(DP),ALLOCATABLE :: g_dot_h(:,:), h_dot_t(:,:), &
                             g_mod2(:,:), g_mod2_old(:,:), &
@@ -315,8 +314,8 @@ MODULE thermalk_program
     REAL(DP) :: tk(3,3,input%nconf), delta_tk(3,3,input%nconf), &
                 tk_old(3,3,input%nconf)
     LOGICAL :: conv
-    CHARACTER(len=6) :: what
-    CHARACTER(len=256) :: filename
+!     CHARACTER(len=6) :: what
+!     CHARACTER(len=256) :: filename
     !
     ! For code readability:
     LOGICAL :: restart_ok
@@ -332,37 +331,9 @@ MODULE thermalk_program
                     in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
     
-    OPEN_FILES : &
-    IF(ionode)THEN
-      DO it = 0,nconf
-        IF(it==0) THEN
-          filename=TRIM(input%outdir)//"/"//&
-                  TRIM(input%prefix)//".out"
-          what="# conf"
-        ELSE
-          filename=TRIM(input%outdir)//"/"//&
-                  TRIM(input%prefix)//"_T"//TRIM(write_conf(it,nconf,input%T))//&
-                    "_s"//TRIM(write_conf(it,nconf,input%sigma))//".out"
-          what="# iter"
-        ENDIF
-        !
-        IF(input%restart) THEN
-          OPEN(unit=10000+it, file=filename, position="append")
-        ELSE
-          OPEN(unit=10000+it, file=filename)
-          ioWRITE(10000+it, '(a)') "# Thermal conductivity from BTE"
-          IF(it>0) THEN
-            ioWRITE(10000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, &
-                    "     T=",input%T(it), "    sigma=", input%sigma(it)
-          ENDIF
-          ioWRITE(10000+it,'(5a)') what, " sigma[cmm1]   T[K]  ",&
-                              "    K_x              K_y              K_z              ",&
-                              "    K_xy             K_xz             K_yz             ",&
-                              "    K_yx             K_zx             K_zy"
-        ENDIF
-        ioFLUSH(10000+it)
-      ENDDO
-    ENDIF OPEN_FILES
+    ! Open files to output the TK values:
+    CALL open_tk_files(input%outdir, input%prefix, "", &
+                       input%restart, nconf, input%T, input%sigma, 10000)
     !
     ALLOCATE(A_out(nconf, nat3, nq))
     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
@@ -410,8 +381,9 @@ MODULE thermalk_program
       ! Compute SMA tk = lambda f0.b
           timer_CALL t_tkprec%start()
       g = 0._dp
-      tk_old = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk_old, input%sigma, input%T, nconf, "SMA TK", 10000, -1)
+      !
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "SMA TK", 10000, 0)
           timer_CALL t_tkprec%stop()
       !
       ! Compute g0 = Af0 - b
@@ -432,14 +404,8 @@ MODULE thermalk_program
     ENDIF
     !
     ! Compute initial variational tk0 =-\lambda (f0.g0-f0.b)
-    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
-    tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-    CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
-    delta_tk = tk-tk_old
-    CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK - initial")
+    !ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     !
-    ! Check initial gradient
-    conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     INSTANT_CONVERGENCE : &
@@ -463,22 +429,26 @@ MODULE thermalk_program
         g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )   ! g.h
         h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )    ! h.t
         pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
+        !f_old = f
         f = f - qbasis_ax(pref, h, nconf, nat3, nq)
+        
         g = g - qbasis_ax(pref, t, nconf, nat3, nq)
         ! 
         !In case you want to compute explicitly the gradient (i.e. for testing):
+  !       ALLOCATE(j(3, nconf, nat3, nq))
   !       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
   !                            out_grid, in_grid, S, fc2, fc3)
   !       j = j-qbasis%b
         !
         tk_old = tk
-        !
         !tk = -\lambda (f.g-f.b)
         tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
         CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
         ! also compute the variation of tk and check for convergence
-        delta_tk = tk-tk_old
-        CALL print_tk(delta_tk, input%sigma, input%T, nconf, "Delta TK")
+        WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
+        ELSEWHERE ; delta_tk = 0._dp
+        END WHERE
+        CALL print_deltatk(delta_tk, input%sigma, input%T, nconf, "Delta TK (relative)")
         conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
         !
         IF(conv) THEN
