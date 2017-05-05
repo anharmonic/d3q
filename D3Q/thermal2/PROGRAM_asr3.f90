@@ -440,7 +440,8 @@ MODULE asr3_module
         CYCLE R3_LOOP
       ENDIF
       !
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(a,b,c,i,j,k,delta,avg) COLLAPSE(6)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(a,b,c,i,j,k,avg)  &
+!$OMP REDUCTION(+:delta) COLLAPSE(6) 
       DO a = 1,3
       DO b = 1,3
       DO c = 1,3
@@ -524,7 +525,7 @@ MODULE asr3_module
           ! and the first atom index
           d1 = 0._dp
           q1 = 0._dp
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(k,iR3) REDUCTION(+:d1,q1) COLLAPSE(2)
+!$OMP PARALLEL DO PRIVATE(k,iR3) REDUCTION(+:d1,q1) COLLAPSE(2)
           R3_LOOP : &
           DO iR3 = 1,idx%nR
           DO k = 1,nat
@@ -540,7 +541,7 @@ MODULE asr3_module
           IF(q1>0._dp) THEN
             r1 = d1/q1
             !
-!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(k,iR3) COLLAPSE(2)
+!$OMP PARALLEL DO PRIVATE(k,iR3) COLLAPSE(2)
             R3_LOOPb : &
             DO iR3 = 1,idx%nR
             DO k = 1,nat

@@ -9,19 +9,22 @@ MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
 
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
-#F90FLAGS += -check all -traceback -g
-# For profiling
-#F90FLAGS += -p
-#LDFLAGS += -p
 
 # Remove the following line if you want to use intel compiler but not MKL 
 # vectorized vdCos and vdSin
 DFLAGS+= -D__HASVTRIG
 
-# Uncomment the following two lines to enable openmp in thermal2
-# use "-fopenmp" for gfortran and xlf compiler, "-openmp" for intel compiler
-#F90FLAGS+=-fopenmp
-#LDFLAGS+=-fopenmp
+# lines for xlf90 on bluegene
+#F90FLAGS += -qxlf2003=polymorphic -qsmp=omp
+#F90FLAGS += -qsmp=omp
+# intel fortran, use -fopenmp on gfortran:
+#F90FLAGS += -check all -traceback -g
+F90FLAGS += -openmp 
+LDFLAGS  += -openmp #-pg -g
+
+# For profiling
+#F90FLAGS += -p
+#LDFLAGS += -p
 
 EXTOBJS = ../src/libd3q.a \
 ../../PHonon/PH/libph.a \
@@ -34,21 +37,11 @@ TLDEPS= bindir mods libs pw-lib lrmods ph
 
 LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
-
-# lines for xlf90 on bluegene
-#F90FLAGS += -qxlf2003=polymorphic -qsmp=omp
-#F90FLAGS += -qsmp=omp
-# intel fortran, use -fopenmp on gfortran:
-#F90FLAGS += -check all -traceback -g
-#F90FLAGS += -openmp 
-#LDFLAGS  += -openmp #-pg -g
-
 THERMALK2_OBJS = \
 mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
-dynbubble.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -86,11 +79,11 @@ lw.x : PROGRAM_lw.o tldeps d3q-libs thermal2-libs
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
-db.x : PROGRAM_db.o tldeps d3q-libs thermal2-libs
-	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o libthermal2.a \
-	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
-	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+#db.x : PROGRAM_db.o tldeps d3q-libs thermal2-libs
+#	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o libthermal2.a \
+#	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+#	$(STRIP)  $@
+#	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
 
 r2q.x : PROGRAM_r2q.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o libthermal2.a \
@@ -148,9 +141,6 @@ thermal2-libs : libthermal2.a
 libthermal2.a : $(THERMALK2_OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
-
-#d3q :
-#	( cd ../; make src)
 
 tldeps:
 	test -n "$(TLDEPS)" && ( cd ../.. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :

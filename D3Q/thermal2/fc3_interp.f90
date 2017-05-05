@@ -517,7 +517,8 @@ MODULE fc3_interpolate
 #endif
     vphase =  CMPLX( vcos, -vsin, kind=DP  )
     !    !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
+    !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
+    !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(D)
     DO i = 1, fc%n_R
       !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
       !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
@@ -527,7 +528,8 @@ MODULE fc3_interpolate
             + vphase(i) * fc%dat(i)%fc(j)
       ENDDO
     END DO
-!$OMP END PARALLEL DO
+    !/!$ACC END DATA
+    !$OMP END PARALLEL DO
   END SUBROUTINE fftinterp_mat3_sparse_prec
   !
   ! \/o\________\\\______________________//\/___________________/~^>>
@@ -568,10 +570,9 @@ MODULE fc3_interpolate
     vphase =  CMPLX( vcos, -vsin, kind=DP  )
     vphaseb =  CMPLX( vcos, -vsin, kind=DP  )
     !    !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
+!
+    !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: D)
     DO i = 1, fc%n_R
-      !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-      !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
       DO j = 1, fc%n_terms(i)
         D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
           = D(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
@@ -582,7 +583,7 @@ MODULE fc3_interpolate
             + vphaseb(i) * fc%dat(i)%fc(j)
       ENDDO
     END DO
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
   END SUBROUTINE fft_doubleinterp_mat3_sparse_prec
   !
   ! \/o\________\\\______________________//\/___________________/~^>>

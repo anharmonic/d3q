@@ -1,11 +1,10 @@
-PROGRAM_asr3.BAK.o : mpi_thermal.o
 PROGRAM_asr3.o : mpi_thermal.o
-PROGRAM_db.o : mpi_thermal.o
 PROGRAM_import3py.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
 PROGRAM_r2q.o : mpi_thermal.o
+PROGRAM_recenter.o : mpi_thermal.o
 PROGRAM_sparse.o : mpi_thermal.o
 PROGRAM_sqom.o : mpi_thermal.o
 PROGRAM_tk.o : mpi_thermal.o
@@ -30,39 +29,15 @@ ph_velocity.o : mpi_thermal.o
 posix_signal.o : mpi_thermal.o
 q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
-quter_standalone.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
-vector.o : mpi_thermal.o
-PROGRAM_asr3.BAK.o : ../../Modules/io_global.o
-PROGRAM_asr3.BAK.o : ../../Modules/kind.o
-PROGRAM_asr3.BAK.o : ./PROGRAM_asr3.BAK.o
-PROGRAM_asr3.BAK.o : ./PROGRAM_import3py.o
-PROGRAM_asr3.BAK.o : ./f3_bwfft.o
-PROGRAM_asr3.BAK.o : ./fc3_interp.o
-PROGRAM_asr3.BAK.o : ./input_fc.o
-PROGRAM_asr3.BAK.o : ./more_constants.o
 PROGRAM_asr3.o : ../../Modules/io_global.o
 PROGRAM_asr3.o : ../../Modules/kind.o
-PROGRAM_asr3.o : ./PROGRAM_asr3.BAK.o
-PROGRAM_asr3.o : ./PROGRAM_import3py.o
-PROGRAM_asr3.o : ./f3_bwfft.o
+PROGRAM_asr3.o : ./PROGRAM_asr3.o
 PROGRAM_asr3.o : ./fc3_interp.o
 PROGRAM_asr3.o : ./input_fc.o
 PROGRAM_asr3.o : ./more_constants.o
-PROGRAM_db.o : ../../Modules/constants.o
-PROGRAM_db.o : ../../Modules/kind.o
-PROGRAM_db.o : ./PROGRAM_db.o
-PROGRAM_db.o : ./asr2.o
-PROGRAM_db.o : ./code_input.o
-PROGRAM_db.o : ./dynbubble.o
-PROGRAM_db.o : ./fc2_interp.o
-PROGRAM_db.o : ./fc3_interp.o
-PROGRAM_db.o : ./input_fc.o
-PROGRAM_db.o : ./linewidth.o
-PROGRAM_db.o : ./more_constants.o
-PROGRAM_db.o : ./mpi_thermal.o
-PROGRAM_db.o : ./q_grids.o
+PROGRAM_asr3.o : ./timers.o
 PROGRAM_import3py.o : ../../Modules/constants.o
 PROGRAM_import3py.o : ../../Modules/kind.o
 PROGRAM_import3py.o : ./PROGRAM_import3py.o
@@ -112,6 +87,12 @@ PROGRAM_r2q.o : ./more_constants.o
 PROGRAM_r2q.o : ./mpi_thermal.o
 PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
+PROGRAM_recenter.o : ../../Modules/kind.o
+PROGRAM_recenter.o : ./PROGRAM_recenter.o
+PROGRAM_recenter.o : ./f3_bwfft.o
+PROGRAM_recenter.o : ./fc3_interp.o
+PROGRAM_recenter.o : ./input_fc.o
+PROGRAM_recenter.o : ./ph_system.o
 PROGRAM_sparse.o : ../../Modules/io_global.o
 PROGRAM_sparse.o : ../../Modules/kind.o
 PROGRAM_sparse.o : ../../Modules/random_numbers.o
@@ -189,6 +170,7 @@ f3_bwfft.o : ./fc3_interp.o
 f3_bwfft.o : ./input_fc.o
 fc2_interp.o : ../../Modules/constants.o
 fc2_interp.o : ../../Modules/kind.o
+fc2_interp.o : ../../Modules/random_numbers.o
 fc2_interp.o : ./functions.o
 fc2_interp.o : ./input_fc.o
 fc2_interp.o : ./nanoclock.o
@@ -258,8 +240,6 @@ q_grids.o : ./ph_velocity.o
 quter.o : ../../Modules/constants.o
 quter.o : ../../Modules/kind.o
 quter.o : ./input_fc.o
-quter_standalone.o : ../../Modules/constants.o
-quter_standalone.o : ../../Modules/kind.o
 timers.o : ../../Modules/kind.o
 timers.o : ./nanoclock.o
 variational_tk.o : ../../Modules/constants.o
@@ -278,11 +258,10 @@ variational_tk.o : ./mpi_thermal.o
 variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
-vector.o : ../../Modules/kind.o
-PROGRAM_db.o : 
 PROGRAM_import3py.o : 
 PROGRAM_lw.o : 
 PROGRAM_r2q.o : 
+PROGRAM_recenter.o : 
 PROGRAM_sqom.o : 
 PROGRAM_tk.o : 
 code_input.o : 

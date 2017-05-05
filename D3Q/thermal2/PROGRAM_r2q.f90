@@ -89,56 +89,7 @@ MODULE r2q_program
     ENDDO
     !
   END SUBROUTINE
-  !
-  SUBROUTINE free_h(input, S, fc)
-    USE code_input,       ONLY : code_input_type
-    USE kinds,            ONLY : DP
-    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
-    USE q_grids,          ONLY : q_grid, setup_grid
-    USE constants,        ONLY : RY_TO_CMM1
-    USE fc2_interpolate,  ONLY : freq_phq_safe, set_nu0
-    USE functions,        ONLY : f_bose
-    IMPLICIT NONE
-    TYPE(code_input_type) :: input
-    TYPE(ph_system_info)   :: S
-    TYPE(forceconst2_grid),INTENT(in) :: fc
-    !
-    TYPE(q_grid)  :: qgrid
-    REAL(DP) :: freqj(S%nat3), bosej(S%nat3), xq_j(3), f_h(input%nconf)
-    COMPLEX(DP) :: U(S%nat3, S%nat3)
-    INTEGER :: jq, it, mu,  mu0
-    
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
-                qgrid, scatter=.false.)
-    !
-    f_h = 0._dp
-    DO jq = 1, qgrid%nq
-      xq_j = qgrid%xq(:,jq)
-      CALL freq_phq_safe(xq_j, S, fc, freqj, U)
-      mu0  = set_nu0(xq_j, S%at)
-     
-      DO it = 1, input%nconf
-        bosej(:) = f_bose(freqj, input%T(it))
-      
-        DO mu = mu0, S%nat3
-          f_h(it) = f_h(it) + (0.5_dp+bosej(mu))* qgrid%w(jq) * freqj(mu)
-          IF(isnan(f_h(it))) THEN
-            print*, jq, it, mu
-            print*, bosej(mu), qgrid%w(jq), freqj(mu)
-            STOP 1
-          ENDIF
-        ENDDO
-      ENDDO
-    ENDDO
-    !
-    WRITE(*,'(a)') "     T     F_H (Ry)   F_H (cmm1)"
-    DO it = 1, input%nconf
-      WRITE(*,'(i3,x,3f12.6)') it, input%T(it), f_h(it), f_h(it)*RY_TO_CMM1
-    ENDDO
-    
-  END SUBROUTINE free_h
- 
-  ! 
+
   SUBROUTINE rms(input, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
@@ -227,16 +178,14 @@ PROGRAM r2q
   !  
   CALL READ_INPUT("R2Q", input, qpath, S, fc2)
   !
-  !IF(input%nconf>1) THEN
-  !  CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
-  !ENDIF
+  IF(input%nconf>1) THEN
+    CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
+  ENDIF
 
   IF( input%calculation=="jdos") THEN
     CALL joint_dos(input,S,fc2)
   ELSE IF ( input%calculation=="rms") THEN
     CALL rms(input, S, fc2)
-  ELSE IF ( input%calculation=="fh") THEN
-    CALL free_h(input, S, fc2)
   ELSE
     ALLOCATE(freq(S%nat3))
     ALLOCATE(U(S%nat3,S%nat3))

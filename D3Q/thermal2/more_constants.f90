@@ -88,12 +88,12 @@ MODULE more_constants
         " ",&
         "For 2n+1 calculations of force constants please cite:",&
         " 1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri",&
-        "    Phys. Rev. B 87, 214303 – Published 7 June 2013"
+        "    Phys. Rev. B 87, 214303 (2013)"
     ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For thermal transport calculations please cite:",&
         " 2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri",&
-        "    Phys. Rev. B 88, 045430 – Published 17 July 2013", &
+        "    Phys. Rev. B 88, 045430 (2013)", &
         " 3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,", &
         "    Nature communications 6 (2015)", &
         " 4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,", &
