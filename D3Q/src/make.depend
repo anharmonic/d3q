@@ -198,7 +198,6 @@ d3_setup.o : ./d3com.o
 d3_setup.o : ./set_kplus3q.o
 d3_shuffle.o : ../../Modules/constants.o
 d3_shuffle.o : ../../Modules/io_global.o
-d3_shuffle.o : ../../Modules/ions_base.o
 d3_shuffle.o : ../../Modules/kind.o
 d3_shuffle.o : ./set_kplus3q.o
 d3_symmetry.o : ../../Modules/constants.o
