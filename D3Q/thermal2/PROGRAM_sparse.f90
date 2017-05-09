@@ -60,7 +60,8 @@ PROGRAM gen_sparse
     TYPE(nanotimer) :: t_fc  = nanotimer("Full matrix form")
     TYPE(nanotimer) :: t_sfc  = nanotimer("Sparse matrix form")
     !
-    INTEGER,INTRINSIC :: iargc
+!    INTEGER,INTRINSIC :: iargc
+    INTEGER,EXTERNAL :: iargc
     CHARACTER(len=256) :: argx, filein, fileout
     INTEGER :: nargs, ntest
     REAL(DP) :: thr, delta, deltasum, deltamax

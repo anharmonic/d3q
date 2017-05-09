@@ -727,7 +727,8 @@ PROGRAM asr3
   INTEGER :: j, ios
   REAL(DP) :: delta, threshold
   ! 
-  INTEGER,INTRINSIC :: iargc
+!  INTEGER,INTRINSIC :: iargc
+  INTEGER,EXTERNAL :: iargc
   CHARACTER(len=256) :: self, filein, fileout, aux
   INTEGER :: nargs, niter_max
   REAL(DP) :: pow

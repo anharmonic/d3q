@@ -19,23 +19,27 @@ DFLAGS+= -D__HASVTRIG
 #F90FLAGS += -qsmp=omp
 # intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp 
-LDFLAGS  += -openmp #-pg -g
+#F90FLAGS += -openmp 
+#LDFLAGS  += -openmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
 #LDFLAGS += -p
 
-EXTOBJS = ../src/libd3q.a \
+F90FLAGS += -g77libs
+
+EXTOBJS = \
+../src/libd3q.a \
 ../../PHonon/PH/libph.a \
 ../../PHonon/PH/libphaux.a \
+../../LR_Modules/liblrmod.a \
 ../../PW/src/libpw.a
 
 QEMODS = ../../Modules/libqemod.a
 
 TLDEPS= bindir mods libs pw-lib lrmods ph
 
-LIBOBJS = ../../LR_Modules/liblrmod.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 THERMALK2_OBJS = \
 mpi_thermal.o \
