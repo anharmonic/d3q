@@ -134,6 +134,9 @@ SUBROUTINE d3_init
   !
   ! NOTE: allocation has to be done in advance, or in the following loop pointers
   !       could point to yet-unallocated arrays
+  ALLOCATE(d3v(-3:3))
+  ALLOCATE(d3c(-3:3))
+  !
   DO iq = -3,3
     NULLIFY(d3v(iq)%loc)
     NULLIFY(d3c(iq)%drc)

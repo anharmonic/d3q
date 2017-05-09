@@ -157,6 +157,8 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   ! to be the first symm_base:nrot ones. This changes several global variables in module symm_base
   modenum = 0
   magnetic_sym = .false.
+  ALLOCATE(m_loc(3,nat))
+  m_loc = 0._dp
   CALL find_sym ( nat, tau, ityp, magnetic_sym, m_loc, monopole )
   sym(:)      = .false.
   sym(1:nsym) = .true.
@@ -222,6 +224,8 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   CALL sgam_ph(at, bg, nsym, s, irt, tau, rtau, nat, sym2)
 
   nmodes = 3 * nat
+  !
+  ALLOCATE(patq(-3:3))
   !
   IF (modenum .ne. 0) THEN
       CALL errore(sub, 'TO BE FIXED!', 1)

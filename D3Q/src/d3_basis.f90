@@ -13,7 +13,8 @@ MODULE d3_basis
     COMPLEX(DP),ALLOCATABLE :: u(:,:)
   END TYPE d3_pattern_type
   ! One of the above for each q vector
-  TYPE(d3_pattern_type) :: patq(-3:3) ! symmetry of each q individually (the same as phonon at that q)
+!  TYPE(d3_pattern_type) :: patq(-3:3) ! symmetry of each q individually (the same as phonon at that q)
+  TYPE(d3_pattern_type),ALLOCATABLE :: patq(:) ! symmetry of each q individually (the same as phonon at that q)
   !
 CONTAINS
 !-----------------------------------------------------------------------
@@ -27,6 +28,7 @@ pure SUBROUTINE allocate_d3_pattern(nat, pattern)
   !  on the maximum number of perturbations
   !
   ALLOCATE( pattern%u(3*nat, 3*nat) )
+  pattern%u = 0._dp
   !
   RETURN
   !-----------------------------------------------------------------------

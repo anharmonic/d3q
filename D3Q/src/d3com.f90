@@ -21,12 +21,14 @@ MODULE d3_onecenter
   TYPE d3_local_potential
     REAL(DP),POINTER    :: loc(:,:) => null()
   END TYPE d3_local_potential
-  TYPE(d3_local_potential),SAVE :: d3v(-3:3)
+  !TYPE(d3_local_potential),SAVE :: d3v(-3:3)
+  TYPE(d3_local_potential),ALLOCATABLE :: d3v(:)
   !
   TYPE d3_nlcc_variation
     COMPLEX(DP),POINTER    :: drc(:,:) => null()
   END TYPE d3_nlcc_variation
-  TYPE(d3_nlcc_variation),SAVE :: d3c(-3:3)
+  !TYPE(d3_nlcc_variation),SAVE :: d3c(-3:3)
+  TYPE(d3_nlcc_variation),ALLOCATABLE :: d3c(:)
 
 END MODULE d3_onecenter
 !
