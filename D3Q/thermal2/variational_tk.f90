@@ -916,13 +916,18 @@ MODULE variational_tk
     !
     ioWRITE(stdout,'(2x,a)') name
     DO it = 1,nconf
-      ! on screen we only write the diagonal components
-      ioWRITE(stdout,'(i6,2f10.4,3(3f17.7,3x))') it, sigma(it), T(it), &
-        dtk(1,1,it), &
-        dtk(2,2,it), &
-        dtk(3,3,it)
+      IF(ALL(ABS(dtk(:,:,it))>1.d-6)) THEN
+        ioWRITE(stdout,'(i6,2f10.4,3(3f17.7,3x))') it, sigma(it), T(it), &
+          dtk(1,1,it), &
+          dtk(2,2,it), &
+          dtk(3,3,it)
+      ELSE
+        ioWRITE(stdout,'(i6,2f10.4,3(3e17.1,3x))') it, sigma(it), T(it), &
+          dtk(1,1,it), &
+          dtk(2,2,it), &
+          dtk(3,3,it)
+      ENDIF
     ENDDO
-
     !
   END SUBROUTINE print_deltatk
   !
