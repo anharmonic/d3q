@@ -408,81 +408,73 @@ MODULE thermalk_program
     !
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
-    INSTANT_CONVERGENCE : &
-    IF(conv) THEN
-      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
-                    "Converged at first iteration"
-    ELSE INSTANT_CONVERGENCE
-      CGP_ITERATION : &
-      DO iter = 1,input%niter_max
-        CALL check_graceful_termination()
-        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
-        ! t = Ah = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
-          timer_CALL t_tkain%start()
-        CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
-          timer_CALL t_tkain%stop()
-        !
-          timer_CALL t_tkcg%start()
-        ! Do a CG step:
-        ! f_(i+1) = f_i - (g_i.h_i / h_i.t_i) h_i
-        ! g_(i+1) = g_i - (g_i.h_i / h_i.t_i) t_i
-        g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )   ! g.h
-        h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )    ! h.t
-        pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
-        !f_old = f
-        f = f - qbasis_ax(pref, h, nconf, nat3, nq)
-        
-        g = g - qbasis_ax(pref, t, nconf, nat3, nq)
-        ! 
-        !In case you want to compute explicitly the gradient (i.e. for testing):
-  !       ALLOCATE(j(3, nconf, nat3, nq))
-  !       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
-  !                            out_grid, in_grid, S, fc2, fc3)
-  !       j = j-qbasis%b
-        !
-        tk_old = tk
-        !tk = -\lambda (f.g-f.b)
-        tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-        CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
-        ! also compute the variation of tk and check for convergence
-        WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
-        ELSEWHERE ; delta_tk = 0._dp
-        END WHERE
-        CALL print_deltatk(delta_tk, input%sigma, input%T, nconf, "Delta TK (relative)")
-        conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
-        !
-        IF(conv) THEN
-          ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
-                        "Convergence achieved"
-          CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
-          EXIT CGP_ITERATION
-        ENDIF
-        !
-        ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
-        g_mod2_old = g_mod2
-        g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
-        !
-        ! Compute the new conjugate gradient: 
-        ! h_(i+1) = (g_(i+1).g_(i+1) / g_i.g_i) h_i - g_(i+1)
-        pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
-        h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
-          timer_CALL t_tkcg%stop()
-        !
-        ! Store to file for restart
-          timer_CALL t_restart%start()
-        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
-          timer_CALL t_restart%stop()
-        !
-      ENDDO &
-      CGP_ITERATION
+    CGP_ITERATION : &
+    DO iter = 1,input%niter_max
+      CALL check_graceful_termination()
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
+      ! t = Ah = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
+        timer_CALL t_tkain%start()
+      CALL tilde_A_times_f(h, t, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+        timer_CALL t_tkain%stop()
       !
-      IF(iter>input%niter_max) THEN
-        ioWRITE (stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
-                      "Maximum number of iterations reached."
+        timer_CALL t_tkcg%start()
+      ! Do a CG step:
+      ! f_(i+1) = f_i - (g_i.h_i / h_i.t_i) h_i
+      ! g_(i+1) = g_i - (g_i.h_i / h_i.t_i) t_i
+      g_dot_h = qbasis_dot(g, h,  nconf, nat3, nq )   ! g.h
+      h_dot_t = qbasis_dot(h, t, nconf, nat3, nq )    ! h.t
+      pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
+      !f_old = f
+      f = f - qbasis_ax(pref, h, nconf, nat3, nq)
+      
+      g = g - qbasis_ax(pref, t, nconf, nat3, nq)
+      ! 
+      !In case you want to compute explicitly the gradient (i.e. for testing):
+!       ALLOCATE(j(3, nconf, nat3, nq))
+!       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
+!                            out_grid, in_grid, S, fc2, fc3)
+!       j = j-qbasis%b
+      !
+      tk_old = tk
+      !tk = -\lambda (f.g-f.b)
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
+      ! also compute the variation of tk and check for convergence
+      WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
+      ELSEWHERE ; delta_tk = 0._dp
+      END WHERE
+      CALL print_deltatk(delta_tk, input%sigma, input%T, nconf, "Delta TK (relative)")
+      conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
+      !
+      IF(conv) THEN
+        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+                      "Convergence achieved"
+        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+        EXIT CGP_ITERATION
       ENDIF
+      !
+      ! h_(i+1) = -g_(i+1) + (g_(i+1).g_(i+1)) / (g_i.g_i) h_i
+      g_mod2_old = g_mod2
+      g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
+      !
+      ! Compute the new conjugate gradient: 
+      ! h_(i+1) = (g_(i+1).g_(i+1) / g_i.g_i) h_i - g_(i+1)
+      pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
+      h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
+        timer_CALL t_tkcg%stop()
+      !
+      ! Store to file for restart
+        timer_CALL t_restart%start()
+      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+        timer_CALL t_restart%stop()
+      !
+    ENDDO &
+    CGP_ITERATION
     !
-    ENDIF &
-    INSTANT_CONVERGENCE 
+    IF(iter>input%niter_max) THEN
+      ioWRITE (stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+                    "Maximum number of iterations reached."
+    ENDIF
 
     IF(ionode)THEN
     DO it = 0,nconf
