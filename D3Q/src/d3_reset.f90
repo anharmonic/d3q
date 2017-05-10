@@ -40,6 +40,8 @@ SUBROUTINE d3_reset(print_clock, cleanup)
     !
   ENDDO
   !
+  DEALLOCATE(patq)
+  !
   ! From d3_init:
 !   DO iq = -3,3
 !     IF (kplusq(iq)%lstored) THEN
@@ -59,6 +61,9 @@ SUBROUTINE d3_reset(print_clock, cleanup)
     NULLIFY(d3v(iq)%loc)
     NULLIFY(d3c(iq)%drc)
   ENDDO
+  !
+  DEALLOCATE(d3v)
+  DEALLOCATE(d3c)
   !
   CALL closefild3(cleanup)
   !

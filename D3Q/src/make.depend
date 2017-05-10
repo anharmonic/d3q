@@ -53,6 +53,7 @@ d3_grid.o : ../../Modules/io_global.o
 d3_grid.o : ../../Modules/kind.o
 d3_grid.o : ../../PW/src/symm_base.o
 d3_grid.o : ./d3_shuffle.o
+d3_grid.o : ./d3matrix_io.o
 d3_grid.o : ./qstar_d3.o
 d3_h_psi.o : ../../LR_Modules/lrcom.o
 d3_h_psi.o : ../../Modules/becmod.o
@@ -245,6 +246,7 @@ d3matrix.o : ./d3matrix_io.o
 d3matrix.o : ./qstar_d3.o
 d3matrix.o : ./rotate_d3.o
 d3matrix.o : ./set_kplus3q.o
+d3matrix_io.o : ../../Modules/io_global.o
 d3matrix_io.o : ../../Modules/kind.o
 d3matrix_io.o : ../../Modules/parameters.o
 d3matrix_io.o : ../../PHonon/PH/dfile_autoname.o
