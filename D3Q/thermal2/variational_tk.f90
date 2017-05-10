@@ -916,7 +916,10 @@ MODULE variational_tk
     !
     ioWRITE(stdout,'(2x,a)') name
     DO it = 1,nconf
-      IF(ALL(ABS(dtk(:,:,it))>1.d-6)) THEN
+      IF(      ABS(dtk(1,1,it))>1.d-6 &
+         .and. ABS(dtk(2,2,it))>1.d-6 &
+         .and. ABS(dtk(3,3,it))>1.d-6 &
+        ) THEN
         ioWRITE(stdout,'(i6,2f10.4,3(3f17.7,3x))') it, sigma(it), T(it), &
           dtk(1,1,it), &
           dtk(2,2,it), &
