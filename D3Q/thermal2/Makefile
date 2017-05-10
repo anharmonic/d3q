@@ -27,6 +27,8 @@ DFLAGS+= -D__HASVTRIG
 #LDFLAGS += -p
 
 #F90FLAGS += -g77libs
+#F90FLAGS += -Mbounds -Mchkptr -Mchkstk -traceback
+
 
 EXTOBJS = \
 ../src/libd3q.a \
@@ -67,75 +69,79 @@ quter.o \
 timers.o \
 variational_tk.o
 
-EXECUTABLES = lw.x tk.x asr3.x sqom.x sparse.x q2r.x r2q.x qq2rr.x import3py.x recenter.x
+EXECUTABLES = d3_lw.x d3_tk.x d3_asr3.x d3_sqom.x d3_sparse.x d3_q2r.x d3_r2q.x d3_qq2rr.x d3_import3py.x d3_recenter.x
+
+MYNAME       = $(shell basename $(CURDIR))
+FATHERNAME   = $(shell cd ..; basename `pwd -P`)
+THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
 all : tldeps d3q-libs thermal2-libs $(EXECUTABLES)
 
-tk.x : PROGRAM_tk.o tldeps d3q-libs thermal2-libs
+d3_tk.x : PROGRAM_tk.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_tk.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-lw.x : PROGRAM_lw.o tldeps d3q-libs thermal2-libs
+d3_lw.x : PROGRAM_lw.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_lw.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
 #db.x : PROGRAM_db.o tldeps d3q-libs thermal2-libs
 #	$(LD) $(LDFLAGS) -o $@ PROGRAM_db.o libthermal2.a \
 #	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 #	$(STRIP)  $@
-#	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+#	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ d3_$@ )
 
-r2q.x : PROGRAM_r2q.o tldeps d3q-libs thermal2-libs
+d3_r2q.x : PROGRAM_r2q.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_r2q.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-sparse.x : PROGRAM_sparse.o tldeps d3q-libs thermal2-libs
+d3_sparse.x : PROGRAM_sparse.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_sparse.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-sqom.x : PROGRAM_sqom.o tldeps d3q-libs thermal2-libs
+d3_sqom.x : PROGRAM_sqom.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_sqom.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-q2r.x : PROGRAM_q2r.o tldeps d3q-libs thermal2-libs
+d3_q2r.x : PROGRAM_q2r.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_q2r.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-qq2rr.x : PROGRAM_qq2rr.o tldeps d3q-libs thermal2-libs
+d3_qq2rr.x : PROGRAM_qq2rr.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_qq2rr.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-asr3.x : PROGRAM_asr3.o tldeps d3q-libs thermal2-libs
+d3_asr3.x : PROGRAM_asr3.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_asr3.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-import3py.x : PROGRAM_import3py.o tldeps d3q-libs thermal2-libs
+d3_import3py.x : PROGRAM_import3py.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_import3py.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
-recenter.x : PROGRAM_recenter.o tldeps d3q-libs thermal2-libs
+d3_recenter.x : PROGRAM_recenter.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o $@ PROGRAM_recenter.o libthermal2.a \
 	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	$(STRIP)  $@
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/$@ d3_$@ )
+	- ( cd ../../bin ; ln -fs ../$(THELINKPLACE)/$@ $@ )
 
 d3q-libs :
 	( cd ../src/; make libd3q.a)
