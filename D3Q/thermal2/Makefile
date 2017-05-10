@@ -26,7 +26,7 @@ DFLAGS+= -D__HASVTRIG
 #F90FLAGS += -p
 #LDFLAGS += -p
 
-F90FLAGS += -g77libs
+#F90FLAGS += -g77libs
 
 EXTOBJS = \
 ../src/libd3q.a \
