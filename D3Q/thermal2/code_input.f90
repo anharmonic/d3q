@@ -67,6 +67,8 @@ MODULE code_input
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
     !
+    LOGICAL :: store_lw ! for tk-sma, save the linewidth to file
+    !
     LOGICAL :: restart
   END TYPE code_input_type
   !
@@ -121,6 +123,7 @@ MODULE code_input
     CALL mpi_broadcast(in%grid_type)
     CALL mpi_broadcast(in%print_dynmat)
     CALL mpi_broadcast(in%print_velocity)
+    CALL mpi_broadcast(in%store_lw)
     !
     CALL mpi_broadcast(in%restart)
   END SUBROUTINE
@@ -164,6 +167,7 @@ MODULE code_input
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
     LOGICAL            :: print_velocity = .true.    ! print the phonon group velocity for each q (only r2q code)
+    LOGICAL            :: store_lw = .false.         ! for tk-sma calculation, store the lw for the grid point to file
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
@@ -225,7 +229,7 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, &
-      isotopic_disorder, &
+      isotopic_disorder, store_lw, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time, restart
 
@@ -308,8 +312,9 @@ MODULE code_input
     input%grid_type = grid_type
     input%exp_t_factor = exp_t_factor
     input%sort_shifted_freq = sort_shifted_freq
-    input%print_dynmat = print_dynmat
+    input%print_dynmat   = print_dynmat
     input%print_velocity = print_velocity
+    input%store_lw       = store_lw 
     !
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
