@@ -11,10 +11,12 @@ FUNCTION d2mxc (rho)
   !-----------------------------------------------------------------------
   !
   !  second derivative of the xc potential with respect to the local density
-  !  Perdew and Zunger parameterization of the C.A. functional
+  !  Analytical for Perdew and Zunger parameterization of the C.A. functional
+  !  Numerical for any other functional
   !
   USE kinds,     ONLY : DP
   USE constants, ONLY : pi
+  USE funct,     ONLY : get_icorr, get_iexch, xc
   IMPLICIT NONE
 
   real (DP) :: rho, d2mxc
@@ -29,12 +31,12 @@ FUNCTION d2mxc (rho)
   !    (3/4/pi)^0.333
   !    (4*pi/3)^0.333
   !      (3/pi)^0.333
-  !    35.d0*b1,
-  !    76.d0*b1*b1 + 64.d0*b2
-  !    35.d0*b1*b1*b1 + 234.d0*b1*b2
-  !    140.d0*b2*b1*b1 + 176.d0*b2*b2
-  !    175.d0*b1*b2*b2
-  !    64.d0*b2*b2*b2
+  !    35*b1,
+  !    76*b1*b1 + 64*b2
+  !    35*b1*b1*b1 + 234*b1*b2
+  !    140*b2*b1*b1 + 176*b2*b2
+  !    175*b1*b2*b2
+  !    64*b2*b2*b2
 
   parameter (b1 = 1.0529d0, b2 = 0.3334d0, gc = - 0.1423d0, a = &
        0.0311d0, b = - 0.0480d0, c = 0.0020d0, d = - 0.0116d0,  &
@@ -44,22 +46,46 @@ FUNCTION d2mxc (rho)
        71.30831794516d0, tm5 = 20.4812455967d0, tm6 = 2.371792877056d0)
 
   real (DP) :: rs, x, den
+  !
+  real(DP) :: dr, varho, vx(-1:1), vc(-1:1), ex, ec
+  integer  :: i
+  !
+  ! Coefficients for finite differences second derivative, order of h**2
+!   real(DP),parameter :: m_1over12 = 0.8333333333333333e-1_dp, &
+!                         p_4over3  = 0.1333333333333333e+1_dp, &
+!                         m_5over2  = -2.5_dp
+  !real(DP),parameter ::  coeffs(-2:2) = (/ m_1over12, p_4over3, m_5over2, p_4over3, m_1over12 /)
+  real(DP),parameter :: coeffs(-1:1) = (/ 1._dp, -2._dp, 1._dp /)
 
-  rs = thofpi_3 * (1.d0 / rho) **0.3333333333333333d0
-  if (rs.ge.1.d0) then
-     x = sqrt (rs)
-     den = 1.d0 + x * b1 + b2 * x**2
-     d2mxc = - gc * (tm1 * x + tm2 * x**2 + tm3 * x**3 + tm4 * x**4 &
-          + tm5 * x**5 + tm6 * x**6) / ( (rho**2) * (den**4) * 216.d0)
+  if (get_iexch() == 1 .and. get_icorr() == 1) then
+      ! First case: analitical derivative of PZ functional
+      rs = thofpi_3 * (1._dp / rho) **0.3333333333333333d0
+      if (rs > 1._dp) then
+        x = sqrt (rs)
+        den = 1._dp + x * b1 + b2 * x**2
+        d2mxc = - gc * (tm1 * x + tm2 * x**2 + tm3 * x**3 + tm4 * x**4 &
+              + tm5 * x**5 + tm6 * x**6) / ( (rho**2) * (den**4) * 216._dp)
+      else
+        d2mxc = (9._dp * a + (6._dp * c + 8._dp * d) * rs + 8._dp * c * rs &
+              * log (rs) ) / (rho**2) / 27._dp
+
+      endif
+
+      rs = rs * fpioth_3
+      d2mxc = d2mxc + (2._dp / 9._dp * thopi_3 * rs**5)
+
+      d2mxc = 2._dp * d2mxc
   else
-     d2mxc = (9.d0 * a + (6.d0 * c + 8.d0 * d) * rs + 8.d0 * c * rs &
-          * log (rs) ) / (rho**2) / 27.d0
-
+      !     second case: numerical derivatives
+      dr = MIN(1.E-5_DP, 1.E-4_DP * ABS(rho))
+      do i = -1, 1
+        varho = rho + i*dr
+        call xc (varho, ex, ec, vx(i), vc(i))
+      enddo
+      ! recompute dr, taking in account eventual loss of precision when rho >> 1.d-6
+      dr = 0.5_dp * ((rho+dr)-(rho-dr))
+      !
+      d2mxc = SUM(coeffs * (vx+vc)) / (dr**2)
   endif
-
-  rs = rs * fpioth_3
-  d2mxc = d2mxc + (2.d0 / 9.d0 * thopi_3 * rs**5)
-
-  d2mxc = 2.d0 * d2mxc
   return
 END FUNCTION d2mxc
