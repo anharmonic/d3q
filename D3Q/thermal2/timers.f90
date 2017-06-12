@@ -32,16 +32,16 @@ MODULE timers
                      t_tksum   = nanotimer("sum of tk terms"), &
                      t_tkaout  = nanotimer("prepare A_out"), &
                      t_tkain   = nanotimer("prepare and apply A_in"), &
-                     t_tkcg    = nanotimer("computer CG step"), &
+                     t_tkcg    = nanotimer("compute CG step"), &
                      t_tkprec  = nanotimer("precond./initialize"), &
                      t_tktld   = nanotimer("1/sqrt(A_out)"), &
                      t_xain    = nanotimer("A_in * f (A_in given)"), &
                      t_lwchk   = nanotimer("check A_out>0"), &
                      t_lwinout = nanotimer("lw input/output"), &
                      t_restart = nanotimer("restart data i/o")
-  TYPE(nanotimer) :: t_asr3a = nanotimer("asr3 iteration"), &
-                     t_asr3s = nanotimer("asr3 symmetrize"), &
-                     t_asr3io = nanotimer("asr3 in/output"), &
+  TYPE(nanotimer) :: t_asr3a   = nanotimer("asr3 iteration"), &
+                     t_asr3s   = nanotimer("asr3 symmetrize"), &
+                     t_asr3io  = nanotimer("asr3 in/output"), &
                      t_asr3idx = nanotimer("asr3 index")
 
   CONTAINS
@@ -76,6 +76,11 @@ MODULE timers
     CALL t_tktld%print()
     CALL t_xain%print()
     CALL t_merged%print()
+    ! ASR timers:
+    CALL t_asr3a%print()
+    CALL t_asr3s%print()
+    CALL t_asr3io%print()
+    CALL t_asr3idx%print()
   END SUBROUTINE
   !
   SUBROUTINE set_time_limit(max_seconds, max_time)
