@@ -14,7 +14,7 @@ MODULE thermalk_program
   USE timers
   !
   CONTAINS
-  ! 
+  !
   SUBROUTINE check_negative_lw(lw, nat3, nconf, name)
     IMPLICIT NONE
     REAL(DP),INTENT(in) :: lw(nat3, nconf)
@@ -39,7 +39,7 @@ MODULE thermalk_program
   ! that uses other subroutines to compute th intrinsic, isotopic and casimir linewidths,
   ! than it sums everything up and takes care of input/output.
   !
-  ! This subroutine is obsoleted by the first iteration of the variational method, 
+  ! This subroutine is obsoleted by the first iteration of the variational method,
   ! but we keep it for didactical purposes
   SUBROUTINE TK_SMA(input, out_grid, S, fc2, fc3)
     USE linewidth,          ONLY : linewidth_q
@@ -86,7 +86,7 @@ MODULE thermalk_program
                     in_grid, scatter=.true.)
     !
     ! Open files to store the linewidth
-    IF(ionode)THEN
+    IF(ionode.and.input%store_lw)THEN
       DO it = 1,input%nconf
         OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
                                 "lw."//TRIM(input%prefix)//&
@@ -142,32 +142,34 @@ MODULE thermalk_program
       ENDIF
       !
       !
-        timer_CALL t_velcty%start() 
+        timer_CALL t_velcty%start()
       ! Velocity
       vel = velocity(S, fc2, out_grid%xq(:,iq))
       CALL  freq_phq_safe(out_grid%xq(:,iq), S, fc2, freq, U)
-        timer_CALL t_velcty%stop() 
+        timer_CALL t_velcty%stop()
       !
       ! Compute anisotropic Casimir linewidth
       IF(input%casimir_scattering) THEN
-          timer_CALL t_lwcasi%start() 
+          timer_CALL t_lwcasi%start()
         lw_casimir = casimir_linewidth_vel(vel, input%casimir_length, input%casimir_dir, S%nat3)
-          timer_CALL t_lwcasi%stop() 
+          timer_CALL t_lwcasi%stop()
       ELSE
         lw_casimir = 0._dp
       ENDIF
       !
+      IF(input%store_lw)THEN
         timer_CALL t_lwinout%start()
-      DO it = 1, input%nconf
-        ioWRITE(1000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_phph(:,it)*RY_TO_CMM1
-        IF(input%isotopic_disorder) THEN
-          ioWRITE(2000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_isotopic(:,it)*RY_TO_CMM1
+        DO it = 1, input%nconf
+          ioWRITE(1000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_phph(:,it)*RY_TO_CMM1
+          IF(input%isotopic_disorder) THEN
+            ioWRITE(2000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_isotopic(:,it)*RY_TO_CMM1
+          ENDIF
+        ENDDO
+        IF(input%casimir_scattering) THEN
+          ioWRITE(3000,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_casimir(:)*RY_TO_CMM1
         ENDIF
-      ENDDO
-      IF(input%casimir_scattering) THEN
-        ioWRITE(3000,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_casimir(:)*RY_TO_CMM1
-      ENDIF
         timer_CALL t_lwinout%stop()
+      ENDIF
       !
         timer_CALL t_tksum%start()
       ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
@@ -187,7 +189,7 @@ MODULE thermalk_program
           ! Check if we have zero linewidth and non-zero velocity it is a problem
           ! lw can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
-            WRITE(stdout,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it 
+            WRITE(stdout,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
             lw(nu,it) = - lw(nu,it)
           ENDIF
           IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
@@ -196,28 +198,28 @@ MODULE thermalk_program
               CALL errore("TK_SMA", "cannot treat this case", 1)
             ELSE
               !ioWRITE(stdout,"(3x,a,3i6)") "skip (iq,nu,it):", iq, nu, it
-              CYCLE MODE_LOOP 
+              CYCLE MODE_LOOP
             ENDIF
           ENDIF
           !
           pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
                              /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY )&
-                             *out_grid%w(iq) /lw(nu,it) 
+                             *out_grid%w(iq) /lw(nu,it)
           !ioWRITE(stdout,"(3x,a,3i6,4e15.6)") "do:", iq, nu, it, pref, freq(nu), bose(nu,it), lw(nu,it)
           DO a = 1,3
           DO b = 1,3
             tk(a,b,it) = tk(a,b,it) + pref*vel(a,nu)*vel(b,nu)
           ENDDO
           ENDDO
-        ENDDO MODE_LOOP 
+        ENDDO MODE_LOOP
         !
-      ENDDO CONF_LOOP 
+      ENDDO CONF_LOOP
         timer_CALL t_tksum%stop()
       !
     ENDDO QPOINT_LOOP
       timer_CALL t_tksma%stop()
 
-    IF(ionode)THEN      
+    IF(ionode.and.input%store_lw)THEN
     DO it = 1, input%nconf
       CLOSE(1000+it)
       IF(input%isotopic_disorder) CLOSE(2000+it)
@@ -275,7 +277,7 @@ MODULE thermalk_program
     !
     !
   END SUBROUTINE TK_SMA
-  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-! 
+  !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
   SUBROUTINE TK_CG_prec(input, out_grid, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
     USE linewidth,          ONLY : linewidth_q
@@ -300,7 +302,7 @@ MODULE thermalk_program
     !
     INTEGER :: ix, nu, iq, it, nu0, iter
     !
-    TYPE(q_grid)         :: in_grid ! inner grid is MPI-scattered it is used 
+    TYPE(q_grid)         :: in_grid ! inner grid is MPI-scattered it is used
                                     ! for integrating the ph-ph scattering terms and linewidth
     !
     TYPE(q_basis) :: qbasis
@@ -323,14 +325,14 @@ MODULE thermalk_program
     nconf = input%nconf
     nat3  = S%nat3
     nq    = out_grid%nq
-    
+
         timer_CALL t_tkprec%start()
     ! make the inner grid on top of the outer one, they are actually identical
     ! but the inner one is MPI-scattered, so we need two separate objects to store them
     CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
                     in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
-    
+
     ! Open files to output the TK values:
     CALL open_tk_files(input%outdir, input%prefix, "", &
                        input%restart, nconf, input%T, input%sigma, 10000)
@@ -359,15 +361,15 @@ MODULE thermalk_program
       CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
           timer_CALL t_tkaout%stop()
     ENDIF
-    
+
     ! Compute A_out^(-1/2) and A_out^-1 from A_out
           timer_CALL t_tkprec%start()
     CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
           timer_CALL t_tkprec%stop()
     ! Go to the reduced variables:
-    ! \tilde{b} = A_out^(-1/2) b 
+    ! \tilde{b} = A_out^(-1/2) b
     qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
-    !      
+    !
     !
     ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
@@ -426,9 +428,9 @@ MODULE thermalk_program
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
       !f_old = f
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
-      
+
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
-      ! 
+      !
       !In case you want to compute explicitly the gradient (i.e. for testing):
 !       ALLOCATE(j(3, nconf, nat3, nq))
 !       CALL tilde_A_times_f(f, j, inv_sqrt_A_out, input, qbasis, &
@@ -441,7 +443,7 @@ MODULE thermalk_program
       CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
       ! also compute the variation of tk and check for convergence
       WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
-      ELSEWHERE ; delta_tk = 0._dp
+      ELSEWHERE;        delta_tk = 0._dp
       END WHERE
       CALL print_deltatk(delta_tk, input%sigma, input%T, nconf, "Delta TK (relative)")
       conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
@@ -457,7 +459,7 @@ MODULE thermalk_program
       g_mod2_old = g_mod2
       g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
       !
-      ! Compute the new conjugate gradient: 
+      ! Compute the new conjugate gradient:
       ! h_(i+1) = (g_(i+1).g_(i+1) / g_i.g_i) h_i - g_(i+1)
       pref = qbasis_a_over_b(g_mod2, g_mod2_old, nconf)
       h = -g + qbasis_ax(pref, h, nconf, nat3, nq)
@@ -497,14 +499,14 @@ MODULE thermalk_program
       CALL t_lwphph%print()
       CALL t_lwchk%print()
       ioWRITE(*,'(a)') "*** * Low level subroutines: "
-      CALL t_freq%print() 
-      CALL t_bose%print() 
-      CALL t_sum%print() 
-      CALL t_fc3int%print() 
-      CALL t_fc3dint%print() 
-      CALL t_fc3m2%print() 
-      CALL t_fc3rot%print() 
-      CALL t_mpicom%print() 
+      CALL t_freq%print()
+      CALL t_bose%print()
+      CALL t_sum%print()
+      CALL t_fc3int%print()
+      CALL t_fc3dint%print()
+      CALL t_fc3m2%print()
+      CALL t_fc3rot%print()
+      CALL t_mpicom%print()
       CALL t_merged%print()
 #endif
     END SUBROUTINE TK_CG_prec
@@ -558,7 +560,7 @@ PROGRAM thermalk
   !
   IF(ionode) CALL print_citations_linewidth()
   CALL stop_mpi()
- 
+
 END PROGRAM thermalk
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
