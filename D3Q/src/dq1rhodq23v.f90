@@ -194,7 +194,8 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
   USE constants,    ONLY : tpi
   USE ions_base,    ONLY : nat, ityp, tau
   USE fft_base,     ONLY : dfftp
-  USE pwcom,        ONLY : ngm, g, nl, tpiba2, omega
+  USE gvect,        ONLY : ngm, g, nl
+  USE cell_base,    ONLY : tpiba2, omega
   USE mp_global,    ONLY : intra_pool_comm
   USE mp,           ONLY : mp_sum
   USE d3com,        ONLY : d3v
@@ -269,9 +270,12 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   ! perturbation at a generic q
   !
   USE ions_base,       ONLY : nat, ityp, ntyp => nsp
+  USE cell_base,       ONLY : tpiba
   USE kinds,           ONLY : DP
   USE constants,       ONLY : tpi
-  USE pwcom,           ONLY : npwx, g, lgauss, tpiba, xk, nbnd
+  USE pwcom,           ONLY : lgauss, xk
+  USE gvect,           ONLY : ngm, g
+  USE wvfct,           ONLY : nbnd, npwx
   USE uspp,            ONLY : dvan, nkb
   USE uspp_param,      ONLY : nh
   USE phcom,           ONLY : lrdwf, lrwfc, iuwfc

@@ -15,7 +15,8 @@ SUBROUTINE d3_setup_q_independent()
   !-----------------------------------------------------------------------
   USE kinds,            ONLY : DP
   USE noncollin_module, ONLY : nspin_mag
-  USE pwcom,            ONLY : lsda, nspin, doublegrid
+  USE lsda_mod,         ONLY : lsda, nspin
+  USE gvecs,            ONLY : doublegrid
   USE eqv,              ONLY : dmuxc
   USE scf,              ONLY : rho, rho_core, v, vltot, vrs, kedtau
   USE funct,            ONLY : dmxc, dmxc_spin

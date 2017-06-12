@@ -150,7 +150,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   USE ions_base,  ONLY : nat, ityp, tau
   USE kinds,      ONLY : DP
   USE constants,  ONLY : tpi
-  USE pwcom,      ONLY : ngm, g, nl
+  USE gvect,      ONLY : ngm, g, nl
   USE cell_base,  ONLY : tpiba2, omega
   USE fft_base,   ONLY : dfftp
   USE fft_interfaces, ONLY: fwfft

@@ -20,7 +20,8 @@ SUBROUTINE d3_init
   USE mp_world,      ONLY : world_comm
   USE mp,            ONLY : mp_max, mp_min
   USE ions_base,     ONLY : ntyp => nsp
-  USE pwcom,         ONLY : ngm, g, tpiba2, omega
+  USE gvect,         ONLY : ngm, g 
+  USE cell_base,     ONLY : tpiba2, omega
   USE uspp_param,    ONLY : upf
   USE atom,          ONLY : msh, rgrid
   USE uspp,          ONLY : nlcc_any

@@ -27,7 +27,8 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE kinds,          ONLY : DP
   USE constants,      ONLY : eps8, rytoev
   USE io_global,      ONLY : stdout
-  USE pwcom,          ONLY : nbnd, degauss, ngauss, et, ef, omega 
+  USE cell_base,      ONLY : omega
+  USE pwcom,          ONLY : nbnd, degauss, ngauss, et, ef
   USE fft_interfaces, ONLY : fwfft
   USE fft_base,       ONLY : dfftp
   USE gvect,          ONLY : gg, nl

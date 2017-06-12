@@ -7,6 +7,7 @@ allocate_pert_d3.o : ../../Modules/ions_base.o
 allocate_pert_d3.o : ../../Modules/kind.o
 allocate_pert_d3.o : ../../PHonon/PH/phcom.o
 d2mxc.o : ../../Modules/constants.o
+d2mxc.o : ../../Modules/funct.o
 d2mxc.o : ../../Modules/kind.o
 d3_basis.o : ../../Modules/kind.o
 d3_debug.o : ../../LR_Modules/lrcom.o
@@ -69,6 +70,7 @@ d3_h_psi.o : ../../PW/src/pwcom.o
 d3_h_psi.o : ../../PW/src/scf_mod.o
 d3_init.o : ../../LR_Modules/lrcom.o
 d3_init.o : ../../Modules/atom.o
+d3_init.o : ../../Modules/cell_base.o
 d3_init.o : ../../Modules/constants.o
 d3_init.o : ../../Modules/io_global.o
 d3_init.o : ../../Modules/ions_base.o
@@ -76,6 +78,7 @@ d3_init.o : ../../Modules/kind.o
 d3_init.o : ../../Modules/mp.o
 d3_init.o : ../../Modules/mp_global.o
 d3_init.o : ../../Modules/mp_world.o
+d3_init.o : ../../Modules/recvec.o
 d3_init.o : ../../Modules/uspp.o
 d3_init.o : ../../PW/src/pwcom.o
 d3_init.o : ./d3com.o
@@ -96,9 +99,9 @@ d3_iofiles.o : ../../Modules/mp_world.o
 d3_iofiles.o : ../../Modules/recvec.o
 d3_iofiles.o : ../../Modules/uspp.o
 d3_iofiles.o : ../../Modules/wrappers.o
+d3_iofiles.o : ../../Modules/xml_io_base.o
 d3_iofiles.o : ../../PHonon/PH/dfile_autoname.o
 d3_iofiles.o : ../../PHonon/PH/phcom.o
-d3_iofiles.o : ../../PW/src/io_rho_xml.o
 d3_iofiles.o : ../../PW/src/pwcom.o
 d3_iofiles.o : ../../PW/src/scf_mod.o
 d3_iofiles.o : ./d3_basis.o
@@ -120,7 +123,6 @@ d3_nlcc.o : ../../Modules/mp_global.o
 d3_nlcc.o : ../../Modules/mp_world.o
 d3_nlcc.o : ../../Modules/recvec.o
 d3_nlcc.o : ../../Modules/uspp.o
-d3_nlcc.o : ../../PW/src/pwcom.o
 d3_nlcc.o : ../../PW/src/scf_mod.o
 d3_nlcc.o : ./d3_basis.o
 d3_nlcc.o : ./d3_iofiles.o
@@ -187,8 +189,10 @@ d3_setup.o : ../../Modules/kind.o
 d3_setup.o : ../../Modules/mp.o
 d3_setup.o : ../../Modules/mp_world.o
 d3_setup.o : ../../Modules/noncol.o
+d3_setup.o : ../../Modules/recvec.o
 d3_setup.o : ../../Modules/uspp.o
 d3_setup.o : ../../PHonon/PH/phcom.o
+d3_setup.o : ../../PW/src/extfield.o
 d3_setup.o : ../../PW/src/pwcom.o
 d3_setup.o : ../../PW/src/scf_mod.o
 d3_setup.o : ../../PW/src/symm_base.o
@@ -322,6 +326,7 @@ dpsi1dv2dpsi3.o : ./dvdpsi.o
 dpsi1dv2dpsi3.o : ./set_kplus3q.o
 dq1rhodq23v.o : ../../FFTXlib/fft_interfaces.o
 dq1rhodq23v.o : ../../LR_Modules/lrcom.o
+dq1rhodq23v.o : ../../Modules/cell_base.o
 dq1rhodq23v.o : ../../Modules/constants.o
 dq1rhodq23v.o : ../../Modules/fft_base.o
 dq1rhodq23v.o : ../../Modules/io_global.o
@@ -329,6 +334,7 @@ dq1rhodq23v.o : ../../Modules/ions_base.o
 dq1rhodq23v.o : ../../Modules/kind.o
 dq1rhodq23v.o : ../../Modules/mp.o
 dq1rhodq23v.o : ../../Modules/mp_global.o
+dq1rhodq23v.o : ../../Modules/recvec.o
 dq1rhodq23v.o : ../../Modules/uspp.o
 dq1rhodq23v.o : ../../PHonon/PH/phcom.o
 dq1rhodq23v.o : ../../PW/src/pwcom.o
@@ -370,6 +376,7 @@ dvdpsi.o : ../../Modules/uspp.o
 dvdpsi.o : ../../PW/src/pwcom.o
 efermi_shift.o : ../../FFTXlib/fft_interfaces.o
 efermi_shift.o : ../../LR_Modules/lrcom.o
+efermi_shift.o : ../../Modules/cell_base.o
 efermi_shift.o : ../../Modules/constants.o
 efermi_shift.o : ../../Modules/fft_base.o
 efermi_shift.o : ../../Modules/io_global.o
@@ -413,6 +420,7 @@ h_psiq.o : ../../PW/src/realus.o
 h_psiq.o : ../../PW/src/scf_mod.o
 incdrhoscf2.o : ../../FFTXlib/fft_interfaces.o
 incdrhoscf2.o : ../../LR_Modules/lrcom.o
+incdrhoscf2.o : ../../Modules/cell_base.o
 incdrhoscf2.o : ../../Modules/fft_base.o
 incdrhoscf2.o : ../../Modules/kind.o
 incdrhoscf2.o : ../../Modules/recvec.o
@@ -455,6 +463,7 @@ run_nscf_d3.o : ../../Modules/mp.o
 run_nscf_d3.o : ../../Modules/mp_global.o
 run_nscf_d3.o : ../../Modules/noncol.o
 run_nscf_d3.o : ../../Modules/parameters.o
+run_nscf_d3.o : ../../Modules/recvec.o
 run_nscf_d3.o : ../../Modules/uspp.o
 run_nscf_d3.o : ../../PHonon/PH/save_ph_input.o
 run_nscf_d3.o : ../../PW/src/atomic_wfc_mod.o

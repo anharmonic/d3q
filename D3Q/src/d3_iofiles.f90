@@ -114,7 +114,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   ! to copy rho:
   USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : rho
-  USE io_rho_xml,       ONLY : write_rho
+  USE xml_io_base,      ONLY : write_rho
   USE mp_world,      ONLY : world_comm
   !
   IMPLICIT NONE
@@ -135,7 +135,8 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   CALL mp_bcast(tmp_dir_d3, ionode_id, world_comm)
   !
   CALL check_tempdir(tmp_dir_d3, exists, parallel_fs)
-  CALL write_rho( rho, nspin )
+!  CALL write_rho( rho, nspin )
+  CALL write_rho( tmp_dir, rho%of_r, nspin, 'old' )
   !
   ! Set up fildrho names must be done AFTER read_file
   !

@@ -20,7 +20,8 @@ SUBROUTINE reload_nscf_d3()
   !-----------------------------------------------------------------------
   USE io_global,        ONLY : stdout
   USE fft_base,         ONLY : dfftp
-  USE pwcom,            ONLY : nspin, doublegrid
+  USE gvecs,            ONLY : doublegrid
+  USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : v, vltot, vrs, kedtau
   !
   WRITE(stdout, '(/,5x,a)') "Loading non-scf wavefunctions from interrupted D3 calculation."
