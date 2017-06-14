@@ -114,29 +114,35 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   ! to copy rho:
   USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : rho
-  USE xml_io_base,      ONLY : write_rho
+!  USE xml_io_base,      ONLY : write_rho
+  USE io_rho_xml,       ONLY : write_scf
   USE mp_world,      ONLY : world_comm
   !
   IMPLICIT NONE
   REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
   INTEGER :: iq !, ios=-1
   CHARACTER(len=16),PARAMETER :: sub = "setup_d3_iofiles"
+  CHARACTER(len=512) :: dirname
   LOGICAL :: exists, parallel_fs
   !
   ! Generate a prefix for the D3 calculation which depends on the q point, to prevent overwrites:
-  IF(ionode)THEN
+!  IF(ionode)THEN
     tmp_dir_d3 = TRIM(d3matrix_filename(xq1, xq2, xq3, at, TRIM(d3dir)//"/D3"))//"/"
     WRITE(stdout, '(5x,a,/,7x,a)') "Temporary directory set to:", TRIM(tmp_dir_d3)
     tmp_dir = tmp_dir_d3
     wfc_dir = tmp_dir_d3
-  ENDIF
+!  ENDIF
   CALL mp_bcast(tmp_dir,    ionode_id, world_comm)
   CALL mp_bcast(wfc_dir,    ionode_id, world_comm)
   CALL mp_bcast(tmp_dir_d3, ionode_id, world_comm)
   !
   CALL check_tempdir(tmp_dir_d3, exists, parallel_fs)
-!  CALL write_rho( rho, nspin )
-  CALL write_rho( tmp_dir, rho%of_r, nspin, 'old' )
+!  CALL write_rho( rho, nspin )a
+!  dirname = TRIM( tmp_dir ) // TRIM( prefix ) // '.save/'
+!  CALL check_tempdir(dirname, exists, parallel_fs)
+!  CALL write_rho( dirname, rho%of_r, nspin )
+  CALL write_scf(rho, nspin)
+  WRITE(stdout,'(5x,a)') "SCF rho copied to D3 tmp dir"
   !
   ! Set up fildrho names must be done AFTER read_file
   !
