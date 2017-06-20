@@ -44,11 +44,16 @@ TLDEPS= bindir mods libs pw-lib lrmods ph
 
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
+SRC = $(shell ls *.f90 *.c|grep -v PROGRAM_)
+OBJ = $(shell ls *.f90 *.c|grep -v PROGRAM_|sed -e 's/\.f90$$/.o/' -e 's/\.c$$/.o/')
+print-%  : ; @echo $* = $($*)
+
 THERMALK2_OBJS = \
 mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
+cmdline_param.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -95,9 +100,10 @@ d3q-libs :
 
 thermal2-libs : libthermal2.a
 
-libthermal2.a : $(THERMALK2_OBJS)
+libthermal2.a : $(OBJ)
+#$(THERMALK2_OBJS)
 	$(AR) $(ARFLAGS) $@ $?
-	$(RANLIB) $@
+	$(RANLIB) $@ 
 
 tldeps:
 	test -n "$(TLDEPS)" && ( cd ../.. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :
