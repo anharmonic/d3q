@@ -107,6 +107,9 @@ MODULE f3_bwfft
         CALL recips(Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%bg(:,1), Sx%bg(:,2), Sx%bg(:,3))
         IF(.not.same_system(S,Sx)) CALL errore("qq2rr", "not same system "//TRIM(filename), 1)
       ENDIF
+      !
+      d3 = DCONJG(d3)
+      !
       PERM_LOOP : &
       DO iperm = 1,nperms
         a = d3perms_order2(1,iperm)
@@ -147,6 +150,10 @@ MODULE f3_bwfft
           d3grid(iq_trip)%xq2(:) = xq(:,b)
           d3grid(iq_trip)%xq3(:) = xq(:,c)
         ELSE !IF(.false.) THEN
+          ! Average out different dyn mat files that can be transformed to the
+          ! same by permutation, this has the effect to apply those symmetries
+          ! which have the effect of changing the order of the q points in the 
+          ! triplet (these symmetries are not used in the d3 code)
           iq_aux = found(iqb(1),iqb(2),iqb(3), iqc(1),iqc(2),iqc(3))
           countq(iq_aux) = countq(iq_aux) +1
           CALL d3_6idx_2_3idx(S%nat, d3, p3)
@@ -547,16 +554,21 @@ MODULE f3_bwfft
 
   END SUBROUTINE test_fwfft_d3
   ! \/o\________\\\________________\\/\_________________________/^>
-  SUBROUTINE regen_fwfft_d3(nq, nq_trip, S, d3grid, fc3)
+  ! This subroutine does a forward FFt from Force constants to a specified 
+  ! grid of \vec(nq)^2 triplets
+  !
+  SUBROUTINE regen_fwfft_d3(nq, nq_trip, S, d3grid, fc3, writed3)
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
+    USE d3matrix_io,      ONLY : write_d3dyn_xml
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3)
     INTEGER,INTENT(in) :: nq_trip
     TYPE(d3_list),INTENT(out) :: d3grid(nq_trip)
     TYPE(grid),INTENT(in)    :: fc3
     TYPE(ph_system_info),INTENT(in) :: S
+    LOGICAL,INTENT(in) :: writed3
     
     COMPLEX(DP),ALLOCATABLE :: D3(:,:,:)
     INTEGER :: iq, i1,j1,k1, i2,j2,k2
@@ -591,6 +603,11 @@ MODULE f3_bwfft
       !CALL fc3%interpolate(d3grid(iq)%xq2_true, d3grid(iq)%xq3_true, S%nat3, D3)
       CALL fc3%interpolate(d3grid(iq)%xq2, d3grid(iq)%xq3, S%nat3, D3)
       CALL d3_3idx_2_6idx(S%nat, D3, d3grid(iq)%d)
+      IF(writed3) THEN
+        CALL write_d3dyn_xml("atmp", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, &
+                              d3grid(iq)%d, S%ntyp, S%nat, S%ibrav, S%celldm, S%at,  &
+                              S%ityp, S%tau, S%atm, S%amass)
+      ENDIF
     ENDDO
 
   END SUBROUTINE regen_fwfft_d3
