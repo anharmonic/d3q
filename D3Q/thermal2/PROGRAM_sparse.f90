@@ -43,6 +43,7 @@ PROGRAM gen_sparse
     USE random_numbers, ONLY : randy
     USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode
     USE more_constants,  ONLY : print_citations_linewidth
+    USE cmdline_param_module
     IMPLICIT NONE
     !
     TYPE(grid)   :: fc
@@ -60,35 +61,31 @@ PROGRAM gen_sparse
     TYPE(nanotimer) :: t_fc  = nanotimer("Full matrix form")
     TYPE(nanotimer) :: t_sfc  = nanotimer("Sparse matrix form")
     !
-!    INTEGER,INTRINSIC :: iargc
-    INTEGER,EXTERNAL :: iargc
-    CHARACTER(len=256) :: argx, filein, fileout
-    INTEGER :: nargs, ntest
+    CHARACTER(len=256) :: filein, fileout
+    INTEGER ::  ntest
     REAL(DP) :: thr, delta, deltasum, deltamax
     !
-    nargs = iargc()
     !
-    CALL getarg(0,argx)
-    IF(nargs>0) THEN
-      CALL getarg(1, filein)
-    ELSE 
-      WRITE(*,'(a)') "Syntax: "//TRIM(argx)//" FILE_IN [FILE_OUT] [threshold] [n_test]"
-      WRITE(*,'(a)') "        FILE_IN  : input 3rd order force constants in grid form"
-      WRITE(*,'(a)') "        FILE_OUT : output force constants in sparse form; use 'none' to avoid writing FILE_OUT"
-      WRITE(*,'(a)') "                   (default: 'FILE_IN_sparse')"
-      WRITE(*,'(a)') "        threshold: force constants smaller than this times the largest FC will be ignored; "
-      WRITE(*,'(a)') "                   can make the result faster, at the expense of some precision (default: 0.d0)"
-      WRITE(*,'(a)') "        n_test   : put an integer number to test speed of grid vs. sparse over"
-      WRITE(*,'(a)') "                   interpolation of n_test random q-points (default: no test)"
-      STOP
-      !CALL errore("asr3", "missing arguments", 1)
+    CHARACTER(len=:),ALLOCATABLE :: cmdline
+
+    filein   = cmdline_param_char("i", "mat3R")
+    fileout  = cmdline_param_char("o", TRIM(filein)//".asr")
+    thr      = cmdline_param_dble("t", 0.d0)
+    ntest    = cmdline_param_int("n", -1)
+    
+    IF (cmdline_param_logical('h')) THEN
+        WRITE(*,*) "Syntax: d3_sparse.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NTESTS]"
+        WRITE(*,*) ""
+        WRITE(*,'(a)') "        FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
+        WRITE(*,'(a)') "        FILEOUT : output force constants in sparse form; use 'none' to avoid writing FILE_OUT"
+        WRITE(*,'(a)') "                  (default: 'FILEIN.sparse')"
+        WRITE(*,'(a)') "        THRESH  : force constants smaller than this times the largest FC will be ignored; "
+        WRITE(*,'(a)') "                  can make the result faster, at the expense of some precision (default: 0.d0)"
+        WRITE(*,'(a)') "        NTESTS  : put an integer number to test speed of grid vs. sparse over"
+        WRITE(*,'(a)') "                  interpolation of n_test random q-points (default: no test)"
+        STOP 1
     ENDIF
-    !
-    IF(nargs>1)THEN
-      CALL getarg(2, fileout)
-    ELSE
-      fileout = TRIM(filein)//".sparse"
-    ENDIF
+    CALL cmdline_check_exausted()
 
     IF(TRIM(fileout)==TRIM(filein)) &
       CALL errore("gen_sparse","filein and fileout are the same, I refuse to do that",1)
@@ -98,27 +95,13 @@ PROGRAM gen_sparse
     CALL memstat(kb)
     WRITE(stdout,*) "FC Memory used : ", kb/1000, "Mb"
 
-    IF(nargs>2)THEN
-      CALL getarg(3, argx)
-      READ(argx, *,iostat=i) thr
-      IF(i/=0) CALL errore("gen_sparse","bad threshold, run without arguments for help",1)
-    ELSE
-      thr = 0._dp
-    ENDIF
-    !thr = thr*MAXVAL(ABS(fc%FC))
     WRITE(stdout,*) "Cutting off FCs smaller than : ", thr, "Ry/bohr^3"
 
     CALL fc3_grid_to_sparse(S%nat, fc, sfc, thr)
     WRITE(stdout,*) "FC+Sparse Memory used : ", kb/1000, "Mb"
     IF(fileout/="none") CALL sfc%write(fileout, S)
 
-    IF(nargs>3)THEN
-      !CALL start_mpi()
-
-      CALL getarg(4, argx)
-      READ(argx, *,iostat=i) ntest
-      IF(i/=0) CALL errore("gen_sparse","bad test number, run without arguments for help",1)
-      
+    IF(ntest>0)THEN
       WRITE(*,*) "Running", ntest, "test configurations"
       
       ALLOCATE(D1(S%nat3, S%nat3, S%nat3))
@@ -155,7 +138,6 @@ PROGRAM gen_sparse
       CALL t_fc%print()
       CALL t_sfc%print()
 
-      !CALL stop_mpi()
     ENDIF
 
     CALL fc%destroy()

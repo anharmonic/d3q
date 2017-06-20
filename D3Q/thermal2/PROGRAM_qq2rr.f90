@@ -13,6 +13,7 @@ PROGRAM qq2rr
   USE iso_c_binding,   ONLY : c_int
   USE fc3_interpolate, ONLY : grid
   USE f3_bwfft,        ONLY : d3_list, read_d3_matrices, bwfft_d3_interp, test_fwfft_d3
+  USE cmdline_param_module
   
   IMPLICIT NONE
   TYPE(d3_list),ALLOCATABLE ::  d3grid(:)
@@ -24,33 +25,25 @@ PROGRAM qq2rr
   TYPE(ph_system_info) :: S
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
-  INTEGER :: narg, i, j, far
+  INTEGER :: far, ios
   CHARACTER(len=512) :: argv, filename
+  CHARACTER(len=:),ALLOCATABLE :: cmdline
 
-  narg = command_argument_count()
-  IF(narg>=3)THEN
-    DO i = 1,3
-      CALL get_command_argument(i,argv)
-      READ(argv,*) nq(i)
-    ENDDO
-    IF(narg>=4)THEN
-      CALL get_command_argument(i,filename)
-    ELSE
-      filename="mat3R"
-    ENDIF
-    IF(narg>=5)THEN
-      CALL get_command_argument(5,argv)
-      READ(argv, *) far
-    ELSE
-      far = 2
-    ENDIF
-  ELSE
-      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [FILENAME]"
+  filename = cmdline_param_char("o", "mat3R")
+  far      = cmdline_param_int("f", 2)
+  IF (cmdline_param_logical('h')) THEN
+      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR]"
       WRITE(*,*) ""
       WRITE(*,*) "Selects a grid of (NQX x NQY x NQZ) points from the anh* files"
-      WRITE(*,*) "apply the inverse Fourier transform, and saves it to FILENAME."
+      WRITE(*,*) "Apply the inverse Fourier transform, and saves it to FILEOUT (default: mat3R)."
+      WRITE(*,*) "Check for shortes perimeter up to NFAR unit cells away (default: 2)."
       STOP 1
   ENDIF
+  
+  cmdline = cmdline_residual()
+  READ(cmdline, *, iostat=ios) nq
+  IF(ios/=0) CALL errore("import3py", "missing argument use command '-h' for help",1)
+  !
   WRITE(*,*) "Reading grid", nq
   WRITE(*,*) "Number of neighbours to check for BZ", far
   
@@ -63,11 +56,6 @@ PROGRAM qq2rr
   WRITE(*,*) "Reading D3 matrices done"
   CALL memstat(kb)
   WRITE(*,*) "Total memory used : ", kb/1000, "Mb"
-  !
-!   DO i = 1,nq_trip
-!     WRITE(2999,'(2(3f8.4,3x))') d3grid(i)%xq2, d3grid(i)%xq3
-!     !WRITE(2999,*)
-!   ENDDO
   !
   WRITE(*,*) "Doing Backward FFT..."
   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3, far)

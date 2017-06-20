@@ -712,8 +712,7 @@ PROGRAM asr3
   USE io_global,       ONLY : stdout
   USE asr3_module
   USE more_constants,  ONLY : print_citations_linewidth
-!  USE import3py_module
-!  USE f3_bwfft
+  USE cmdline_param_module
   USE timers
   IMPLICIT NONE
   !
@@ -727,62 +726,38 @@ PROGRAM asr3
   INTEGER :: j, ios
   REAL(DP) :: delta, threshold
   ! 
-!  INTEGER,INTRINSIC :: iargc
-  INTEGER,EXTERNAL :: iargc
   CHARACTER(len=256) :: self, filein, fileout, aux
-  INTEGER :: nargs, niter_max
+  INTEGER :: niter_max
   REAL(DP) :: pow
   !
   TYPE(grid) :: fcb
   INTEGER :: nq(3), nq_trip
-  !TYPE(d3_list),ALLOCATABLE :: d3grid(:)
-  !REAL(DP),ALLOCATABLE :: up(:,:,:,:,:,:)
+  CHARACTER(len=:),ALLOCATABLE :: cmdline
 
-  nargs = iargc()
-  !
-  CALL getarg(0,self)
-  IF(nargs>0) THEN
-    CALL getarg(1, filein)
-  ELSE 
-    WRITE(*,*) "Syntax: "//TRIM(self)//" FILE_IN [FILE_OUT]"
-    WRITE(*,*) "        FILE_IN  : input 3rd order force constants in grid form (no sparse)"
-    WRITE(*,*) "        FILE_OUT : output force constants (default: 'FILE_IN_asr')"
-    WRITE(*,*)
-    CALL errore("asr3", "missing arguments",1)
+  filein   = cmdline_param_char("i", "mat3R")
+  fileout  = cmdline_param_char("o", TRIM(filein)//".asr")
+  threshold    = cmdline_param_dble("t", 1.d-12)
+  niter_max   = cmdline_param_int("n", 1000)
+  pow         = cmdline_param_dble("p", 2._dp)
+  IF (cmdline_param_logical('h')) THEN
+      WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NITER] [-p POWER]"
+      WRITE(*,*) ""
+      WRITE(*,'(a)') "        FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
+      WRITE(*,'(a)') "        FILEOUT : output file with with sum rule applied (default: 'FILEIN.sparse')"
+      WRITE(*,'(a)') "                  "
+      WRITE(*,'(a)') "        THRESH  : stop when residual breakage of ASR is smaller than THRESH (default: 1.d-12)"
+      WRITE(*,'(a)') "        NITER   : maximum number of iterations (default: 1000)"
+      WRITE(*,'(a)') "        POWER   : apply the correction to each matrix element proportionally to itself "
+      WRITE(*,'(a)') "                  to power POWER (default: 2), the value 1 can be more effective some times,"
+      WRITE(*,'(a)') "                  fractional numbers (e.g. 1.5) are also accepted."
+      STOP 1
   ENDIF
+  
+  CALL cmdline_check_exausted()
   !
   WRITE(*,*) "Note: create a file called 'STOP' to stop the code at next iteration and write out the result."
+  WRITE(*,*) "Use option '-h' for more help."
   WRITE(*,*)
-  !
-  IF(nargs>1)THEN
-    CALL getarg(2, fileout)
-  ELSE
-    fileout = TRIM(filein)//".asr"
-  ENDIF
-  !
-  IF(TRIM(fileout)==TRIM(filein)) &
-    CALL errore("asr3","filein and fileout are the same, I refuse to do that",1)
-  !
-  IF(nargs>2)THEN
-    CALL getarg(3, aux)
-    READ(aux, *) threshold
-  ELSE
-    threshold = 1.d-12
-  ENDIF
-  !
-  IF(nargs>3)THEN
-    CALL getarg(4, aux)
-    READ(aux, *) niter_max
-  ELSE
-    niter_max = INT(1e+4)
-  ENDIF
-  !
-  IF(nargs>4)THEN
-    CALL getarg(5, aux)
-    READ(aux, *) pow
-  ELSE
-    pow = 2._dp
-  ENDIF
   !
   WRITE(stdout,*) " --- PARAMETERS : ---"
   WRITE(stdout,*) " power     ", pow

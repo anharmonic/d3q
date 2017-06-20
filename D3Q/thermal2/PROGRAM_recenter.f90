@@ -19,9 +19,9 @@ PROGRAM recenter
   USE ph_system,       ONLY : aux_system
   USE recenter_module
   USE f3_bwfft
+  USE cmdline_param_module
   IMPLICIT NONE
-  INTEGER :: narg, i, far
-  CHARACTER(len=512) :: argv
+  INTEGER :: far, ios
   CHARACTER(len=256) :: filein, fileout
   TYPE(grid) :: fc, fcb
   TYPE(ph_system_info) :: S
@@ -29,44 +29,28 @@ PROGRAM recenter
   INTEGER :: nq(3), nq_trip
   TYPE(d3_list),ALLOCATABLE :: d3grid(:)
   !
-  !fileout  = "mat3R.centered"
+  CHARACTER(len=:),ALLOCATABLE :: cmdline
+  LOGICAL :: writed3
 
+  filein  = cmdline_param_char("i", "mat3R")
+  fileout = cmdline_param_char("o", TRIM(filein)//"_recentered")
+  far      = cmdline_param_int("f", 2)
+  writed3  = cmdline_param_logical("w")
   !
-  narg = command_argument_count()
-  IF(narg>=3)THEN
-    DO i = 1,3
-      CALL get_command_argument(i,argv)
-      READ(argv,*) nq(i)
-    ENDDO
-    WRITE(*,*) "Output supercell size:", nq
-  ELSE
-      WRITE(*,*) "Syntax: d3_qq2rr.x NQX NQY NQZ [NFAR] [mat3R.INPUT] [mat3R.OUTPUT]"
+  IF (cmdline_param_logical('h')) THEN
+      WRITE(*,*) "Syntax: d3_recenter.x NQX NQY NQZ [-i FILEIN] [-o FILEOUT] [-f NFAR] [-w]"
       WRITE(*,*) ""
-      WRITE(*,*) "Reads force constants from mat3R.INPUT, interpolate them on a grid"
-      WRITE(*,*) "of NQX x NQY x NQZ points, recenter them on a Wigner-Seitz cell "
-      WRITE(*,*) "constructed up to NFAR unit cells and save the result in mat3R.OUTPUT"
-      WRITE(*,*) ""
+      WRITE(*,*) "Reads force constants from FILEIN (default: mat3R), interpolate them on a grid"
+      WRITE(*,*) "of NQX x NQY x NQZ points, recenter them on a Wigner-Seitz cell constructed up"
+      WRITE(*,*) "to NFAR unit cells and save the result in FILEOUT (default: FILEIN_recenter)"
+      WRITE(*,*) "If '-w' is specified, write the intermediate D3 matrices to files called atmp_Q1*_Q2*_Q3* (default: don't write, lot of output!)"
+     
       STOP 1
   ENDIF
   !
-  IF(narg>=4)THEN
-    CALL get_command_argument(4,argv)
-    READ(argv,*) far
-  ELSE
-    far = 2
-  ENDIF
-  !
-  IF(narg>=5)THEN
-    CALL get_command_argument(5,filein)
-  ELSE
-    filein = 'mat3R'
-  ENDIF
-  !
-  IF(narg>=6)THEN
-    CALL get_command_argument(6,fileout)
-  ELSE
-    fileout = TRIM(filein)//"_recentered"
-  ENDIF
+  cmdline = cmdline_residual()
+  READ(cmdline, *, iostat=ios) nq
+  IF(ios/=0) CALL errore("import3py", "missing argument use command '-h' for help",1)
   !
   IF(TRIM(fileout)==TRIM(filein)) &
     CALL errore("recenter","filein and fileout are the same, I refuse to do that",1)
@@ -80,7 +64,7 @@ PROGRAM recenter
   !
   nq_trip = (nq(1)*nq(2)*nq(3))**2
   ALLOCATE(d3grid(nq_trip))
-  CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc)
+  CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc, writed3)
   
   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
   CALL fcb%write(fileout, S)

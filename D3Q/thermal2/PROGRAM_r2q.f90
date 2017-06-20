@@ -84,9 +84,11 @@ MODULE r2q_program
       !
     ENDDO
     !
+    OPEN(unit=10000, file=TRIM(input%prefix)//".jdos", status="UNKNOWN")
     DO i = 1,input%ne
       WRITE(10000,'(4e24.15)') RY_TO_CMM1*nrg(i),jd_C(i)+jd_X(i),jd_C(i),jd_X(i)
     ENDDO
+    CLOSE(10000)
     !
   END SUBROUTINE
 
