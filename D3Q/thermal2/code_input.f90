@@ -579,6 +579,8 @@ MODULE code_input
         grid_type = input%grid_type
         qpoints_ok = .true.
       ENDIF
+      !
+      ioWRITE(*,*) "--> Setting up outer grid"
       CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false.)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
