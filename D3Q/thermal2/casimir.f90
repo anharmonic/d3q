@@ -39,7 +39,8 @@ MODULE casimir_linewidth
      !
   END FUNCTION casimir_linewidth_q
 
-  ! Computes the Casimir linewidth from ph group velocity
+  ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
+  ! due to Casimir scattering with grain boundary or sample boundary
   ! <<^V^\\=========================================//-//-//========//O\\//
   FUNCTION casimir_linewidth_vel(vel, l_casimir, casimir_dir, nat3) &
   RESULT(lw)
@@ -67,7 +68,7 @@ MODULE casimir_linewidth
     !
     ! Case 2: Modulus of velocity (as in PRB 87, 214303 (2013))
     ELSE
-      inv_lcas = 1/ l_casimir
+      inv_lcas = 0.5_dp / l_casimir
       DO nu = 1,nat3
           lw(nu) = inv_lcas * DSQRT(SUM(vel(:,nu)**2))
       ENDDO

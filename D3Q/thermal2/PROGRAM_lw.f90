@@ -51,26 +51,28 @@ MODULE linewidth_program
     ! RAFTEST
     INTEGER :: nu
     !
+    ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
     !CALL grid%scatter()
     !
     IF(ionode)THEN
-    DO it = 1,input%nconf
-      filename=TRIM(input%outdir)//"/"//&
-               TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                 "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
-      OPEN(unit=1000+it, file=filename)
-      IF (TRIM(input%mode) == "full") THEN
-        ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
-      ELSE
-        ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
-      ENDIF
-      ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it), "    sigma=", input%sigma(it)
-      ioFLUSH(1000+it)
-    ENDDO
-    ! Prepare formats to write out data
-    ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
-    ioWRITE(f2,'(i6,a)') S%nat3, "e15.5,6x,"
+      DO it = 1,input%nconf
+        filename=TRIM(input%outdir)//"/"//&
+                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+        OPEN(unit=1000+it, file=filename)
+        IF (TRIM(input%mode) == "full") THEN
+          ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
+        ELSE
+          ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n)"
+        ENDIF
+        ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, &
+                         "     T=",input%T(it), "    sigma=", input%sigma(it)
+        ioFLUSH(1000+it)
+      ENDDO
+      ! Prepare formats to write out data
+      ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
+      ioWRITE(f2,'(i6,a)') S%nat3, "e15.5,6x,"
     ENDIF
     !
     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
@@ -252,6 +254,7 @@ MODULE linewidth_program
     CHARACTER(len=6), EXTERNAL :: int_to_char
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
+    ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
     !CALL grid%scatter()
     !
@@ -363,6 +366,7 @@ MODULE linewidth_program
     !
     ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
     !
+    ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
     !CALL grid%scatter()
     !

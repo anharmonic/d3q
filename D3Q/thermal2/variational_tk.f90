@@ -108,11 +108,13 @@ MODULE variational_tk
       ENDDO
       ENDDO
       !
-      ! Compute Casimir linewidth, and get the scattering term as P^be = n(n+1) gamma^be
+      ! Compute Casimir linewidth, and get the scattering term as 
+      !  P^be = n(n+1)/ tau^be = n(n+1) * 2*\gamma^be
+      ! note that casimir_linewidth_vel returns the HALF width half maximum
       IF(input%casimir_scattering) THEN
         timer_CALL t_lwcasi%start()
-        lw_casimir = casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, &
-                                            input%casimir_dir, S%nat3)
+        lw_casimir = 2*casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, &
+                                              input%casimir_dir, S%nat3)
         !
         ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
         DO it = 1,input%nconf
@@ -256,8 +258,8 @@ MODULE variational_tk
         !
         IF(isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
-          P3_isot = sum_isotope_scattering_modes(S%nat3, S%nat, sigma(it), freq, &
-                                              bose, S%ntyp, S%ityp, S%amass_variance, U)
+          P3_isot = sum_isotope_scattering_modes(S%nat3, S%nat, sigma(it), &
+                                 freq, bose, S%ntyp, S%ityp, S%amass_variance, U)
           ! I have to sum the scattering matrix on the second index in order to get the
           ! A_out diagonal matrix element for isotopic disorder
           DO nu = 1, S%nat3
@@ -301,7 +303,7 @@ MODULE variational_tk
   ! that everything is positive definite.
   FUNCTION sum_A_out_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
     USE functions,        ONLY : f_gauss => f_gauss
-    USE constants,        ONLY : pi, RY_TO_CMM1
+    USE constants,        ONLY : tpi, RY_TO_CMM1
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
@@ -350,8 +352,8 @@ MODULE variational_tk
           ctm_a = bose_a *  f_gauss(dom_a, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
           !
-          norm_a = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-          norm_c = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          norm_a = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
+          norm_c = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
           !
           sum_a = norm_a * ctm_a * V3sq(i,j,k)
           sum_c = norm_c * ctm_c * V3Bsq(i,j,k)
@@ -687,7 +689,7 @@ MODULE variational_tk
   ! that everything is positive definite.
   FUNCTION sum_A_in_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
     USE functions,        ONLY : f_gauss => f_gauss
-    USE constants,        ONLY : pi, RY_TO_CMM1
+    USE constants,        ONLY : tpi, RY_TO_CMM1
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
@@ -739,8 +741,8 @@ MODULE variational_tk
           ctm_b = bose_b *  f_gauss(dom_b, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
           !
-          norm_a  = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-          norm_bc = pi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          norm_a  = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
+          norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
           !
           sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
           sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)

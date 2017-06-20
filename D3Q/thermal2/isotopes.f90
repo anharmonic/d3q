@@ -15,6 +15,8 @@ MODULE isotopes_linewidth
   CONTAINS
   !
   ! <<^V^\\=========================================//-//-//========//O\\//
+  ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
+  ! due to isotope-isotope scattering
   FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2) &
   RESULT(lw)
     !
@@ -58,7 +60,8 @@ MODULE isotopes_linewidth
       !
       DO it = 1,nconf
         !
-        lw(:,it) = lw(:,it) + sum_isotope_linewidth_modes(          &
+        lw(:,it) = lw(:,it) &
+                  +0.5_dp * sum_isotope_linewidth_modes(            &
                                 S%nat3, S%nat, sigma(it), freq,     &
                                 S%ntyp, S%ityp, S%amass_variance, U )
         !

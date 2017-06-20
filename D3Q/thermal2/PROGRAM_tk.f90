@@ -40,12 +40,16 @@ MODULE thermalk_program
   ! than it sums everything up and takes care of input/output.
   !
   ! This subroutine is obsoleted by the first iteration of the variational method,
-  ! but we keep it for didactical purposes
+  ! but we keep it for didactical purposes. This is also faster, but it does not respect
+  ! the detailed balance exactly (negative tk is possible at low temperature)
+  !
+  ! NOTE: all the *linewidth* functions return the HALF width half maximum, here 
+  ! we multiply by 2 in order to get the full width.
   SUBROUTINE TK_SMA(input, out_grid, S, fc2, fc3)
     USE linewidth,          ONLY : linewidth_q
     USE constants,          ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
     USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
-    USE q_grids,            ONLY : q_grid, setup_grid !, setup_bz_grid
+    USE q_grids,            ONLY : q_grid, setup_grid
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     USE casimir_linewidth,  ONLY : casimir_linewidth_vel
@@ -82,6 +86,7 @@ MODULE thermalk_program
     sigma_ry = input%sigma/RY_TO_CMM1
     !
     ! the inner grid (in_grid) is scatterd over MPI
+    ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
                     in_grid, scatter=.true.)
     !
@@ -173,8 +178,9 @@ MODULE thermalk_program
       !
         timer_CALL t_tksum%start()
       ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
+      ! Also multiply by 2 in order to get the FULL width from the HALF width
       DO it = 1,input%nconf
-        lw(:,it) = lw_phph(:,it) + lw_isotopic(:,it) + lw_casimir
+        lw(:,it) = 2*(lw_phph(:,it) + lw_isotopic(:,it) + lw_casimir)
       ENDDO
       !
       CONF_LOOP : &
@@ -285,7 +291,7 @@ MODULE thermalk_program
      USE more_constants,     ONLY : RY_TO_WATTMM1KM1!, write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
-    USE casimir_linewidth,  ONLY : casimir_linewidth_q
+    !USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
     USE q_grids,            ONLY : q_grid, q_basis, setup_grid, setup_bz_grid, &
@@ -329,6 +335,7 @@ MODULE thermalk_program
         timer_CALL t_tkprec%start()
     ! make the inner grid on top of the outer one, they are actually identical
     ! but the inner one is MPI-scattered, so we need two separate objects to store them
+    ioWRITE(*,*) "--> Setting up inner grid from outer grid"
     CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
                     in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
@@ -520,7 +527,7 @@ PROGRAM thermalk
 !   USE environment,      ONLY : environment_start, environment_end
 !   USE mp_world,         ONLY : mp_world_start, mp_world_end, world_comm
   USE input_fc,         ONLY : forceconst2_grid, ph_system_info
-  USE q_grids,          ONLY : q_grid !, setup_grid
+  USE q_grids,          ONLY : q_grid
   USE fc3_interpolate,  ONLY : forceconst3
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
