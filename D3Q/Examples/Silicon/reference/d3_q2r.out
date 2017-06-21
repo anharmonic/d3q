@@ -1,5 +1,5 @@
 
-     Program D3_Q2R v.6.beta (svn rev. 12981M) starts on 23Sep2016 at 16:55: 4 
+     Program D3_Q2R v.6.1 (svn rev. 13571M) starts on 21Jun2017 at 16:13:26 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -7,18 +7,6 @@
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
- 
-           HOST :    @host@
-           ARCH :    x86_64
-             CC :    cc
-            CPP :    cpp
-            F90 :    mpif90
-            F77 :    ifort
-         DFLAGS :    -D__INTEL -D__FFTW3 -D__MPI -D__PARA
-      BLAS LIBS :    -lmkl_intel_lp64  -lmkl_sequential -lmkl_core
-    LAPACK LIBS :    
-       FFT LIBS :    -lfftw3
-      MASS LIBS :    
 
      Parallel version (MPI), running on     1 processors
 
@@ -36,7 +24,7 @@
   -1.22722   0.00000   0.00000
    0.00000  -1.22722   0.00000
    0.00000   0.00000  -1.22722
-Norm of the difference between old and new effective charges:    3.00605388012428065281
+Norm of the difference between old and new effective charges:    3.00605389324619709512
   nqs=            1
          0.000000    0.000000    0.000000
   reading force constants from file dyn2
@@ -120,10 +108,10 @@ Norm of the difference between old and new effective charges:    3.0060538801242
       q-space grid ok, #points =   64
  seeking over         4913  vectors
  
-     D3_Q2R       :     0.36s CPU         0.37s WALL
+     D3_Q2R       :     0.03s CPU         0.04s WALL
 
  
-   This run was terminated on:  16:55: 5  23Sep2016            
+   This run was terminated on:  16:13:26  21Jun2017            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

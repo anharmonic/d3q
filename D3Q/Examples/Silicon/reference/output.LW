@@ -3,11 +3,11 @@
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
@@ -86,7 +86,7 @@
   Temperatures:
     300.0
   Smearings:   
-     10.0
+   10.000
  
  Reading QPOINTS
   Path turning point:     0.866025
@@ -245,6 +245,7 @@
       0.000000    0.012500    0.025000       3.456109
       0.000000    0.000000    0.000000       3.484059
  
+ --> Setting up inner grid
   Setup a simple grid of     1000 q-points
   Going to compute   151 points (1)
      1     0.50000000     0.50000000     0.50000000
@@ -398,27 +399,27 @@
    149     0.00000000     0.02500000     0.05000000
    150     0.00000000     0.01250000     0.02500000
    151     0.00000000     0.00000000     0.00000000
-   * WALL :      32.6786 s
+   * WALL :      33.1313 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *                 lw ph-ph *    32256.244297 *      213.617512 *       32256.244 *      213.617512 *   98.708 *         151. *
+   *                 lw ph-ph *    33020.760159 *      218.680531 *       33020.760 *      218.680531 *   99.666 *         151. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     9812.577409 *        0.064919 *        9812.577 *        0.064919 *   30.028 *      151151. *
-   *             bose distrib *      178.332678 *        0.001181 *         178.333 *        0.001181 *    0.546 *      151000. *
-   *                sum modes *     1874.306004 *        0.012413 *        1874.306 *        0.012413 *    5.736 *      151000. *
-   *          fc3 interpolate *     7868.055227 *        0.052106 *        7868.055 *        0.052106 *   24.077 *      151000. *
-   *           fc3 modulus sq *      161.595972 *        0.001070 *         161.596 *        0.001070 *    0.495 *      151000. *
-   *               fc3 rotate *    11752.559666 *        0.077832 *       11752.560 *        0.077832 *   35.964 *      151000. *
-   *        mpi communication *        0.380636 *        0.002521 *           0.381 *        0.002521 *    0.001 *         151. *
-   *         merge degenerate *      108.131974 *        0.000716 *         108.132 *        0.000716 *    0.331 *      151000. *
+   *         ph interp & diag *    10006.033343 *        0.066199 *       10006.033 *        0.066199 *   30.201 *      151151. *
+   *             bose distrib *      184.329630 *        0.001221 *         184.330 *        0.001221 *    0.556 *      151000. *
+   *                sum modes *     1942.011004 *        0.012861 *        1942.011 *        0.012861 *    5.862 *      151000. *
+   *          fc3 interpolate *     8128.768414 *        0.053833 *        8128.768 *        0.053833 *   24.535 *      151000. *
+   *           fc3 modulus sq *      158.119068 *        0.001047 *         158.119 *        0.001047 *    0.477 *      151000. *
+   *               fc3 rotate *    11973.491603 *        0.079295 *       11973.492 *        0.079295 *   36.139 *      151000. *
+   *        mpi communication *        0.685436 *        0.004539 *           0.685 *        0.004539 *    0.002 *         151. *
+   *         merge degenerate *      112.561610 *        0.000745 *         112.562 *        0.000745 *    0.340 *      151000. *
  
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,

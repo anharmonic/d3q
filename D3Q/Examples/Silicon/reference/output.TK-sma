@@ -3,11 +3,11 @@
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
@@ -40,6 +40,7 @@
  NK_IN   = 3*5,
  GRID_TYPE       = simple,
  ISOTOPIC_DISORDER       = F,
+ STORE_LW        = F,
  CASIMIR_SCATTERING      = F,
  CASIMIR_LENGTH_AU       =  -1.00000000000000     ,
  CASIMIR_LENGTH_MU       =  -1.00000000000000     ,
@@ -79,9 +80,11 @@
   Temperatures:
     300.0
   Smearings:   
-     10.0
+   10.000
  
+ --> Setting up outer grid
   Setup a simple grid of      125 q-points
+ --> Setting up inner grid
   Setup a simple grid of      125 q-points
      1     0.00000000     0.00000000     0.00000000
      2    -0.20000000     0.20000000    -0.20000000
@@ -212,34 +215,33 @@
    SMA thermal conductivity, stored to file:
      ./TK-sma//sma_full.5x5x5.out
    Diagonal components (conf, sigma, T, K_x, K_y, K_z):
-  1   10.000000  300.000000  0.16870579E+03  0.16870579E+03  0.16870579E+03
-   * WALL :       3.8109 s
+  1   10.000000  300.000000  0.97108656E+02  0.97108656E+02  0.97108656E+02
+   * WALL :       4.3226 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *     3553.165695 *     3553.165695 *        3553.166 *     3553.165695 *   93.236 *           1. *
+   *             sma thermalk *     3543.103602 *     3543.103602 *        3543.104 *     3543.103602 *   81.967 *           1. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        0.163084 *        0.001305 *           0.163 *        0.001305 *    0.004 *         125. *
-   *                 lw ph-ph *     3523.615808 *       28.188926 *        3523.616 *       28.188926 *   92.461 *         125. *
-   *        ph group velocity *       26.365457 *        0.210924 *          26.365 *        0.210924 *    0.692 *         125. *
-   *          lw input/output *        1.684172 *        0.013473 *           1.684 *        0.013473 *    0.044 *         125. *
-   *        mpi communication *        0.196674 *        0.001573 *           0.197 *        0.001573 *    0.005 *         125. *
-   *             read fc data *       23.220613 *       23.220613 *          23.221 *       23.220613 *    0.609 *           1. *
+   *          sum of tk terms *        0.204004 *        0.001632 *           0.204 *        0.001632 *    0.005 *         125. *
+   *                 lw ph-ph *     3511.902936 *       28.095223 *        3511.903 *       28.095223 *   81.245 *         125. *
+   *        ph group velocity *       27.700748 *        0.221606 *          27.701 *        0.221606 *    0.641 *         125. *
+   *        mpi communication *        0.442310 *        0.003538 *           0.442 *        0.003538 *    0.010 *         125. *
+   *             read fc data *       30.860395 *       30.860395 *          30.860 *       30.860395 *    0.714 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     1007.441175 *        0.063965 *        1007.441 *        0.063965 *   26.435 *       15750. *
-   *             bose distrib *       18.221607 *        0.001166 *          18.222 *        0.001166 *    0.478 *       15625. *
-   *                sum modes *      200.179780 *        0.012812 *         200.180 *        0.012812 *    5.253 *       15625. *
-   *          fc3 interpolate *      819.909045 *        0.052474 *         819.909 *        0.052474 *   21.514 *       15625. *
-   *           fc3 modulus sq *       16.178205 *        0.001035 *          16.178 *        0.001035 *    0.425 *       15625. *
-   *               fc3 rotate *     1397.602281 *        0.089447 *        1397.602 *        0.089447 *   36.673 *       15625. *
-   *         merge degenerate *       11.549610 *        0.000733 *          11.550 *        0.000733 *    0.303 *       15750. *
+   *         ph interp & diag *     1041.387584 *        0.066120 *        1041.388 *        0.066120 *   24.092 *       15750. *
+   *             bose distrib *       18.791343 *        0.001203 *          18.791 *        0.001203 *    0.435 *       15625. *
+   *                sum modes *      204.641234 *        0.013097 *         204.641 *        0.013097 *    4.734 *       15625. *
+   *          fc3 interpolate *      850.719051 *        0.054446 *         850.719 *        0.054446 *   19.681 *       15625. *
+   *           fc3 modulus sq *       16.043732 *        0.001027 *          16.044 *        0.001027 *    0.371 *       15625. *
+   *               fc3 rotate *     1313.789853 *        0.084083 *        1313.790 *        0.084083 *   30.393 *       15625. *
+   *         merge degenerate *       11.656243 *        0.000740 *          11.656 *        0.000740 *    0.270 *       15750. *
  
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,

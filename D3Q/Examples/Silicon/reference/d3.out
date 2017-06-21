@@ -1,5 +1,5 @@
 
-     Program D3_toten v.6.beta (svn rev. 12981M) starts on 23Sep2016 at 16:53: 8 
+     Program D3_toten v.6.1 (svn rev. 13571M) starts on 21Jun2017 at 16:12: 8 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -7,24 +7,12 @@
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
- 
-           HOST :    @host@
-           ARCH :    x86_64
-             CC :    cc
-            CPP :    cpp
-            F90 :    mpif90
-            F77 :    ifort
-         DFLAGS :    -D__INTEL -D__FFTW3 -D__MPI -D__PARA
-      BLAS LIBS :    -lmkl_intel_lp64  -lmkl_sequential -lmkl_core
-    LAPACK LIBS :    
-       FFT LIBS :    -lfftw3
-      MASS LIBS :    
 
      Parallel version (MPI), running on     1 processors
-      ___  ____   __    ____  ____  ____  _  _  ___    ____  ___ 
-     / __)(_  _) /__\  (  _ \(_  _)(_  _)( \( )/ __)  (  _ \(__ )
-     \__ \  )(  /(__)\  )   /  )(   _)(_  )  (( (_-.   )(_) )(_ \
-     (___/ (__)(__)(__)(_)\_) (__) (____)(_)\_)\___/  (____/(___/
+      ___  ____   __    ____  ____  ____  _  _  ___    ____  ___  
+     / __)(_  _) /__\  (  _ \(_  _)(_  _)( \( )/ __)  (  _ \(__ ) 
+     \__ \  )(  /(__)\  )   /  )(   _)(_  )  (( (_-.   )(_) )(_ \ 
+     (___/ (__)(__)(__)(_)\_) (__) (____)(_)\_)\___/  (____/(___/ 
 
      Waiting for input...
      _____________ input start _____________
@@ -40,7 +28,7 @@
  FILDRHO_DIR     = FILDRHO                                                                                                           
                                                                                                                                      
            ,
- D3DIR   =                                                                                                                           
+ D3DIR   = /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3                                                                        
                                                                                                                                      
    ,
  FILD3DYN        = FILD3DYN/anh                                                    ,
@@ -85,14 +73,14 @@
      Checking for debug instructions.
 
      Reading data from directory:
-     ./tmp/silicon.save
+     ./tmp/silicon.save/
 
    Info: using nr1, nr2, nr3 values from input
 
    Info: using nr1, nr2, nr3 values from input
 
      IMPORTANT: XC functional enforced from input :
-     Exchange-correlation      = LDA ( 1  1  0  0 0 0)
+     Exchange-correlation      = PZ ( 1  1  0  0 0 0)
      Any further DFT definition will be discarded
      Please, verify this is what you really want
 
@@ -105,11 +93,11 @@
      Message from routine kpoint_grid:
      ATTENTION: skip check of k-points equivalence
      Looking for irreducible triplets out of       24 possibilities:
-           1:   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )
-           2:   (  0.0000  0.0000  0.0000 )   (  0.5000 -0.5000  0.5000 )   ( -0.5000  0.5000 -0.5000 )
-           3:   (  0.0000  0.0000  0.0000 )   (  0.0000 -1.0000  0.0000 )   (  0.0000  1.0000  0.0000 )
-           4:   (  0.5000 -0.5000  0.5000 )   ( -0.5000 -0.5000 -0.5000 )   (  0.0000  1.0000  0.0000 )
-           5:   (  0.0000 -1.0000  0.0000 )   (  1.0000  0.0000  0.0000 )   ( -1.0000  1.0000  0.0000 )
+           1:   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   -->_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+           2:   (  0.0000  0.0000  0.0000 )   (  0.5000 -0.5000  0.5000 )   ( -0.5000  0.5000 -0.5000 )   -->_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2
+           3:   (  0.0000  0.0000  0.0000 )   (  0.0000 -1.0000  0.0000 )   (  0.0000  1.0000  0.0000 )   -->_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2
+           4:   (  0.5000 -0.5000  0.5000 )   ( -0.5000 -0.5000 -0.5000 )   (  0.0000  1.0000  0.0000 )   -->_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2
+           5:   (  0.0000 -1.0000  0.0000 )   (  1.0000  0.0000  0.0000 )   ( -1.0000  1.0000  0.0000 )   -->_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1
      IRREDUCIBLE NUMBER OF TRIPLETS TO COMPUTE:   5
 
      ===================================================
@@ -122,7 +110,8 @@
      =    q3 = (    0.000000   0.000000   0.000000 )   =
      ===================================================
      Temporary directory set to:
-       ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+       /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho.0_0_0'
          --> drho file for q2 found as 'drho.0_0_0'
@@ -159,7 +148,11 @@
        --> after reducing symmetry:     8
        --> after including k+/-q_i (kunit):     8 (1)
 
-     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0.out
+     --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file silicon.save
 
@@ -182,9 +175,9 @@
 
      ================ openfild3 done
      u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
-     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
-     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
-     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     u:  20   recl:      4352   ext:                            wfc   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
 
      ================= d3_init start
      alpha_pv:      1.7772
@@ -202,13 +195,13 @@
      1 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :     0.61s CPU         0.61s WALL
+     D3_toten     :     0.42s CPU         0.46s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     0.61 sec    Total time:        0.61 sec
+     d3_add_rho_core   cpu time:     0.46 sec    Total time:        0.46 sec
 
      ================== add core done
 
@@ -217,8 +210,8 @@
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      0.6/      1.2 secs     av.it.  16.5
-         pert=    2     time taken/total=      0.5/      1.8 secs     av.it.  16.8
+         pert=    1     time taken/total=      0.4/      0.9 secs     av.it.  16.5
+         pert=    2     time taken/total=      0.4/      1.3 secs     av.it.  16.9
 
      Skipping P_c^G |d^q1 psi_k-q1>
        --> already done as P_c^q1 |d^q1 psi_k+q1>
@@ -272,7 +265,7 @@
        --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
 
 
-     generate_dwfc   cpu time:     1.15 sec    Total time:        1.76 sec
+     generate_dwfc   cpu time:     0.81 sec    Total time:        1.27 sec
 
      ================== nscf dpsi done =================
 
@@ -280,7 +273,7 @@
      ================== precomp start
 
      Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
-     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        1.76 sec
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        1.27 sec
 
      ================== precomp done
 
@@ -288,7 +281,7 @@
 
      Calculating the matrix elements <dpsi |dH |dpsi>
        <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
-     dpsi1dv2dpsi3 cpu time:     0.40 sec    Total time:        2.15 sec
+     dpsi1dv2dpsi3 cpu time:     0.25 sec    Total time:        1.52 sec
 
      ================== dpdvdp done
 
@@ -296,7 +289,7 @@
 
      Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
        <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
-     dpsi1dpsi2dv3 cpu time:     0.02 sec    Total time:        2.17 sec
+     dpsi1dpsi2dv3 cpu time:     0.01 sec    Total time:        1.53 sec
 
      ================== dpdpdv done
 
@@ -304,7 +297,7 @@
 
      Calculating the matrix elements <psi |d^2 v |dpsi>
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
-     drhod2v       cpu time:     0.05 sec    Total time:        2.22 sec
+     drhod2v       cpu time:     0.05 sec    Total time:        1.59 sec
 
      ================== dpd2v done
 
@@ -312,7 +305,7 @@
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.03 sec    Total time:        2.25 sec
+     d3vrho        cpu time:     0.03 sec    Total time:        1.61 sec
 
      =================== rho d3v done ==================
 
@@ -322,14 +315,14 @@
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   1.01
-     d3ionq        cpu time:     0.28 sec    Total time:        2.53 sec
+     d3ionq        cpu time:     0.08 sec    Total time:        1.69 sec
 
      ================== ewald done
 
      ================ exc contrib start
 
      Calculating the exchange-correlation contribution
-     d3_exc        cpu time:     0.02 sec    Total time:        2.54 sec
+     d3_exc        cpu time:     0.02 sec    Total time:        1.71 sec
 
      ================ exc contrib done
 
@@ -343,26 +336,27 @@
        * imposing hermiticity on idx 1,2
        * symmetrizing with 48 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.00 sec    Total time:        2.55 sec
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+     d3matrix      cpu time:     0.00 sec    Total time:        1.71 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :      2.39s CPU      2.55s WALL (       1 calls)
+     D3TOTEN      :      1.50s CPU      1.71s WALL (       1 calls)
      --> wfc and dwfc
-     nscf         :      0.24s CPU      0.24s WALL (       1 calls)
-     generate_dwf :      1.00s CPU      1.15s WALL (       1 calls)
+     nscf         :      0.19s CPU      0.22s WALL (       1 calls)
+     generate_dwf :      0.68s CPU      0.81s WALL (       1 calls)
      --> matrix elements
-     dpsi1dv2dpsi :      0.39s CPU      0.40s WALL (       1 calls)
-     dpsi1dpsi2dv :      0.01s CPU      0.01s WALL (       1 calls)
+     dpsi1dv2dpsi :      0.23s CPU      0.25s WALL (       1 calls)
+     dpsi1dpsi2dv :      0.00s CPU      0.01s WALL (       1 calls)
      dq1rhodq23v  :      0.05s CPU      0.05s WALL (       1 calls)
      rhodq123v    :      0.03s CPU      0.03s WALL (       1 calls)
-     d3ionq       :      0.28s CPU      0.28s WALL (       1 calls)
+     d3ionq       :      0.08s CPU      0.08s WALL (       1 calls)
      d3_exc       :      0.01s CPU      0.02s WALL (       1 calls)
      d3matrix     :      0.00s CPU      0.00s WALL (       1 calls)
      --> total I/O
-     davcio       :      0.02s CPU      0.02s WALL (    2852 calls)
+     davcio       :      0.01s CPU      0.01s WALL (    2428 calls)
 
      ================== cleanup done
 
@@ -376,7 +370,8 @@
      =    q3 = (   -0.500000   0.500000  -0.500000 )   =
      ===================================================
      Temporary directory set to:
-       ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+       /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho.0_0_0'
          --> drho file for q2 found as 'drho.0_0_-1o2'
@@ -416,7 +411,11 @@
        --> after reducing symmetry:    13
        --> after including k+/-q_i (kunit):    39 (3)
 
-     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2.out
+     --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file silicon.save
 
@@ -440,25 +439,25 @@
      ================ openfild3 done
      u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
      u: 302   recl:     27648   ext:                  drho.0_0_-1o2   tmp: FILDRHO/
-     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
-     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:  20   recl:      4352   ext:                            wfc   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
 
      ================= d3_init start
      alpha_pv:      1.7772
@@ -476,13 +475,13 @@
      3 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :     3.32s CPU         3.51s WALL
+     D3_toten     :     2.21s CPU         2.47s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     0.97 sec    Total time:        3.51 sec
+     d3_add_rho_core   cpu time:     0.76 sec    Total time:        2.47 sec
 
      ================== add core done
 
@@ -491,8 +490,8 @@
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      0.9/      4.4 secs     av.it.  16.8
-         pert=    2     time taken/total=      0.9/      5.3 secs     av.it.  17.2
+         pert=    1     time taken/total=      0.7/      3.1 secs     av.it.  16.8
+         pert=    2     time taken/total=      0.6/      3.8 secs     av.it.  17.2
 
      Skipping P_c^G |d^q1 psi_k-q1>
        --> already done as P_c^q1 |d^q1 psi_k+q1>
@@ -504,16 +503,16 @@
        --> already done as P_c^q1 |d^q1 psi_k+q1>
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      0.3/      5.6 secs     av.it.  16.7
-         pert=    2     time taken/total=      0.3/      5.9 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.6/      6.5 secs     av.it.  17.3
-         pert=    4     time taken/total=      0.6/      7.1 secs     av.it.  17.2
+         pert=    1     time taken/total=      0.2/      4.0 secs     av.it.  16.6
+         pert=    2     time taken/total=      0.2/      4.2 secs     av.it.  16.8
+         pert=    3     time taken/total=      0.4/      4.6 secs     av.it.  17.2
+         pert=    4     time taken/total=      0.4/      5.0 secs     av.it.  17.3
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      0.3/      7.4 secs     av.it.  16.8
-         pert=    2     time taken/total=      0.3/      7.7 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.6/      8.4 secs     av.it.  17.3
-         pert=    4     time taken/total=      0.6/      9.0 secs     av.it.  17.2
+         pert=    1     time taken/total=      0.2/      5.2 secs     av.it.  16.6
+         pert=    2     time taken/total=      0.2/      5.4 secs     av.it.  16.8
+         pert=    3     time taken/total=      0.4/      5.8 secs     av.it.  17.2
+         pert=    4     time taken/total=      0.4/      6.2 secs     av.it.  17.3
 
      Computing <psi_k-q2 |d^-q2V| psi_k>
 
@@ -548,7 +547,7 @@
        --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:     5.94 sec    Total time:        9.46 sec
+     generate_dwfc   cpu time:     4.09 sec    Total time:        6.56 sec
 
      ================== nscf dpsi done =================
 
@@ -556,7 +555,7 @@
      ================== precomp start
 
      Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
-     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        9.46 sec
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        6.56 sec
 
      ================== precomp done
 
@@ -566,7 +565,7 @@
        <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
        <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
-     dpsi1dv2dpsi3 cpu time:     1.94 sec    Total time:       11.40 sec
+     dpsi1dv2dpsi3 cpu time:     1.23 sec    Total time:        7.79 sec
 
      ================== dpdvdp done
 
@@ -576,7 +575,7 @@
        <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
        <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.07 sec    Total time:       11.47 sec
+     dpsi1dpsi2dv3 cpu time:     0.04 sec    Total time:        7.83 sec
 
      ================== dpdpdv done
 
@@ -585,7 +584,7 @@
      Calculating the matrix elements <psi |d^2 v |dpsi>
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
-     drhod2v       cpu time:     0.16 sec    Total time:       11.63 sec
+     drhod2v       cpu time:     0.17 sec    Total time:        8.00 sec
 
      ================== dpd2v done
 
@@ -593,7 +592,7 @@
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.04 sec    Total time:       11.67 sec
+     d3vrho        cpu time:     0.04 sec    Total time:        8.04 sec
 
      =================== rho d3v done ==================
 
@@ -603,14 +602,14 @@
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   1.01
-     d3ionq        cpu time:     0.08 sec    Total time:       11.75 sec
+     d3ionq        cpu time:     0.08 sec    Total time:        8.12 sec
 
      ================== ewald done
 
      ================ exc contrib start
 
      Calculating the exchange-correlation contribution
-     d3_exc        cpu time:     0.02 sec    Total time:       11.76 sec
+     d3_exc        cpu time:     0.02 sec    Total time:        8.14 sec
 
      ================ exc contrib done
 
@@ -622,29 +621,33 @@
        * imposing hermiticity on idx 2,3
        * symmetrizing with 12 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.-1o2_0_0_Q3.1o2_0_0
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_1o2_0_Q3.0_-1o2_0
        point #  4  : star #  4  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.01 sec    Total time:       11.78 sec
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.-1o2_-1o2_-1o2_Q3.1o2_1o2_1o2
+     d3matrix      cpu time:     0.03 sec    Total time:        8.17 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :     11.24s CPU     11.78s WALL (       2 calls)
+     D3TOTEN      :      7.40s CPU      8.19s WALL (       2 calls)
      --> wfc and dwfc
-     nscf         :      1.08s CPU      1.12s WALL (       2 calls)
-     generate_dwf :      6.67s CPU      7.09s WALL (       2 calls)
+     nscf         :      0.82s CPU      0.89s WALL (       2 calls)
+     generate_dwf :      4.38s CPU      4.91s WALL (       2 calls)
      --> matrix elements
-     dpsi1dv2dpsi :      2.29s CPU      2.34s WALL (       4 calls)
-     dpsi1dpsi2dv :      0.06s CPU      0.09s WALL (       4 calls)
-     dq1rhodq23v  :      0.22s CPU      0.21s WALL (       3 calls)
+     dpsi1dv2dpsi :      1.40s CPU      1.48s WALL (       4 calls)
+     dpsi1dpsi2dv :      0.02s CPU      0.04s WALL (       4 calls)
+     dq1rhodq23v  :      0.22s CPU      0.23s WALL (       3 calls)
      rhodq123v    :      0.07s CPU      0.07s WALL (       2 calls)
-     d3ionq       :      0.35s CPU      0.36s WALL (       2 calls)
-     d3_exc       :      0.03s CPU      0.03s WALL (       2 calls)
-     d3matrix     :      0.02s CPU      0.02s WALL (       2 calls)
+     d3ionq       :      0.16s CPU      0.16s WALL (       2 calls)
+     d3_exc       :      0.02s CPU      0.03s WALL (       2 calls)
+     d3matrix     :      0.01s CPU      0.03s WALL (       2 calls)
      --> total I/O
-     davcio       :      0.06s CPU      0.08s WALL (   16442 calls)
+     davcio       :      0.05s CPU      0.07s WALL (   13756 calls)
 
      ================== cleanup done
 
@@ -658,7 +661,8 @@
      =    q3 = (    0.000000   1.000000   0.000000 )   =
      ===================================================
      Temporary directory set to:
-       ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+       /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho.0_0_0'
          --> drho file for q2 found as 'drho.0_-1o2_-1o2'
@@ -698,7 +702,11 @@
        --> after reducing symmetry:    13
        --> after including k+/-q_i (kunit):    39 (3)
 
-     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2.out
+     --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file silicon.save
 
@@ -722,25 +730,25 @@
      ================ openfild3 done
      u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
      u: 302   recl:     27648   ext:               drho.0_-1o2_-1o2   tmp: FILDRHO/
-     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
-     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:  20   recl:      4352   ext:                            wfc   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
 
      ================= d3_init start
      alpha_pv:      1.7772
@@ -758,13 +766,13 @@
      3 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :    12.16s CPU        12.73s WALL
+     D3_toten     :     8.08s CPU         9.10s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     0.95 sec    Total time:       12.73 sec
+     d3_add_rho_core   cpu time:     0.93 sec    Total time:        9.10 sec
 
      ================== add core done
 
@@ -773,8 +781,8 @@
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      0.9/     13.6 secs     av.it.  16.8
-         pert=    2     time taken/total=      0.9/     14.5 secs     av.it.  16.8
+         pert=    1     time taken/total=      0.6/      9.7 secs     av.it.  16.8
+         pert=    2     time taken/total=      0.6/     10.3 secs     av.it.  16.9
 
      Skipping P_c^G |d^q1 psi_k-q1>
        --> already done as P_c^q1 |d^q1 psi_k+q1>
@@ -786,14 +794,14 @@
        --> already done as P_c^q1 |d^q1 psi_k+q1>
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      0.6/     15.1 secs     av.it.  16.9
-         pert=    2     time taken/total=      0.6/     15.7 secs     av.it.  16.7
-         pert=    3     time taken/total=      0.6/     16.3 secs     av.it.  17.0
+         pert=    1     time taken/total=      0.4/     10.7 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.4/     11.1 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.4/     11.5 secs     av.it.  16.8
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      0.6/     16.9 secs     av.it.  16.9
-         pert=    2     time taken/total=      0.6/     17.5 secs     av.it.  16.7
-         pert=    3     time taken/total=      0.6/     18.2 secs     av.it.  16.9
+         pert=    1     time taken/total=      0.4/     11.9 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     12.3 secs     av.it.  16.9
+         pert=    3     time taken/total=      0.4/     12.7 secs     av.it.  16.6
 
      Computing <psi_k-q2 |d^-q2V| psi_k>
 
@@ -828,7 +836,7 @@
        --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:     5.90 sec    Total time:       18.63 sec
+     generate_dwfc   cpu time:     3.94 sec    Total time:       13.04 sec
 
      ================== nscf dpsi done =================
 
@@ -836,7 +844,7 @@
      ================== precomp start
 
      Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
-     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       18.63 sec
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       13.04 sec
 
      ================== precomp done
 
@@ -846,7 +854,7 @@
        <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
        <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
-     dpsi1dv2dpsi3 cpu time:     1.92 sec    Total time:       20.55 sec
+     dpsi1dv2dpsi3 cpu time:     1.20 sec    Total time:       14.24 sec
 
      ================== dpdvdp done
 
@@ -856,7 +864,7 @@
        <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
        <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.07 sec    Total time:       20.62 sec
+     dpsi1dpsi2dv3 cpu time:     0.03 sec    Total time:       14.28 sec
 
      ================== dpdpdv done
 
@@ -865,7 +873,7 @@
      Calculating the matrix elements <psi |d^2 v |dpsi>
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
-     drhod2v       cpu time:     0.16 sec    Total time:       20.78 sec
+     drhod2v       cpu time:     0.17 sec    Total time:       14.44 sec
 
      ================== dpd2v done
 
@@ -873,7 +881,7 @@
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.04 sec    Total time:       20.82 sec
+     d3vrho        cpu time:     0.04 sec    Total time:       14.49 sec
 
      =================== rho d3v done ==================
 
@@ -883,14 +891,14 @@
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   1.01
-     d3ionq        cpu time:     0.07 sec    Total time:       20.89 sec
+     d3ionq        cpu time:     0.08 sec    Total time:       14.56 sec
 
      ================== ewald done
 
      ================ exc contrib start
 
      Calculating the exchange-correlation contribution
-     d3_exc        cpu time:     0.02 sec    Total time:       20.91 sec
+     d3_exc        cpu time:     0.02 sec    Total time:       14.58 sec
 
      ================ exc contrib done
 
@@ -902,28 +910,31 @@
        * imposing hermiticity on idx 2,3
        * symmetrizing with 16 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.1o2_0_1o2_Q3.-1o2_0_-1o2
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.01 sec    Total time:       20.92 sec
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.1o2_1o2_0_Q3.-1o2_-1o2_0
+     d3matrix      cpu time:     0.02 sec    Total time:       14.60 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :     19.97s CPU     20.92s WALL (       3 calls)
+     D3TOTEN      :     13.20s CPU     14.62s WALL (       3 calls)
      --> wfc and dwfc
-     nscf         :      1.92s CPU      1.98s WALL (       3 calls)
-     generate_dwf :     12.27s CPU     12.99s WALL (       3 calls)
+     nscf         :      1.41s CPU      1.71s WALL (       3 calls)
+     generate_dwf :      8.01s CPU      8.85s WALL (       3 calls)
      --> matrix elements
-     dpsi1dv2dpsi :      4.16s CPU      4.26s WALL (       7 calls)
-     dpsi1dpsi2dv :      0.11s CPU      0.16s WALL (       7 calls)
-     dq1rhodq23v  :      0.37s CPU      0.37s WALL (       5 calls)
+     dpsi1dv2dpsi :      2.57s CPU      2.69s WALL (       7 calls)
+     dpsi1dpsi2dv :      0.03s CPU      0.08s WALL (       7 calls)
+     dq1rhodq23v  :      0.38s CPU      0.39s WALL (       5 calls)
      rhodq123v    :      0.11s CPU      0.11s WALL (       3 calls)
-     d3ionq       :      0.42s CPU      0.43s WALL (       3 calls)
-     d3_exc       :      0.04s CPU      0.05s WALL (       3 calls)
-     d3matrix     :      0.02s CPU      0.03s WALL (       3 calls)
+     d3ionq       :      0.23s CPU      0.23s WALL (       3 calls)
+     d3_exc       :      0.03s CPU      0.05s WALL (       3 calls)
+     d3matrix     :      0.02s CPU      0.05s WALL (       3 calls)
      --> total I/O
-     davcio       :      0.09s CPU      0.14s WALL (   29928 calls)
+     davcio       :      0.08s CPU      0.12s WALL (   24980 calls)
 
      ================== cleanup done
 
@@ -937,7 +948,8 @@
      =    q3 = (    0.000000   1.000000   0.000000 )   =
      ===================================================
      Temporary directory set to:
-       ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+       /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho.0_0_-1o2'
          --> drho file for q2 found as 'drho.0_1o2_0'
@@ -977,7 +989,11 @@
        --> after reducing symmetry:    24
        --> after including k+/-q_i (kunit):   168 (7)
 
-     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2.out
+     --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file silicon.save
 
@@ -1003,108 +1019,108 @@
      ================ openfild3 start
 
      ================ openfild3 done
-     u: 302   recl:     27648   ext:             drho.0_1o2_0_newq2   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u: 303   recl:     27648   ext:         drho.0_-1o2_-1o2_newq3   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u: 302   recl:     27648   ext:             drho.0_1o2_0_newq2   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u: 303   recl:     27648   ext:         drho.0_-1o2_-1o2_newq3   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
      u: 301   recl:     27648   ext:                  drho.0_0_-1o2   tmp: FILDRHO/
-     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5000   recl:      4352   ext:                          dGpG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6000   recl:        32   ext:                        pdvGpG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5001   recl:      4352   ext:                         dGpq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5002   recl:      4352   ext:                         dGpq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5003   recl:      4352   ext:                         dGpq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5010   recl:      4352   ext:                         dq1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5020   recl:      4352   ext:                         dq2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5030   recl:      4352   ext:                         dq3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
-     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:  20   recl:      4352   ext:                            wfc   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5000   recl:      4352   ext:                          dGpG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6000   recl:        32   ext:                        pdvGpG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5001   recl:      4352   ext:                         dGpq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5002   recl:      4352   ext:                         dGpq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5003   recl:      4352   ext:                         dGpq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5010   recl:      4352   ext:                         dq1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5020   recl:      4352   ext:                         dq2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5030   recl:      4352   ext:                         dq3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
 
      ================= d3_init start
      alpha_pv:      1.7772
@@ -1122,13 +1138,13 @@
      6 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :    23.54s CPU        24.66s WALL
+     D3_toten     :    15.73s CPU        17.29s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     3.74 sec    Total time:       24.66 sec
+     d3_add_rho_core   cpu time:     2.69 sec    Total time:       17.29 sec
 
      ================== add core done
 
@@ -1137,72 +1153,72 @@
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      0.6/     25.2 secs     av.it.  17.0
-         pert=    2     time taken/total=      0.6/     25.8 secs     av.it.  17.0
-         pert=    3     time taken/total=      1.1/     26.9 secs     av.it.  17.5
-         pert=    4     time taken/total=      1.2/     28.1 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.4/     17.7 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     18.0 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     18.8 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     19.6 secs     av.it.  17.5
 
      Computing P_c^G |d^q1 psi_k-q1>
-         pert=    1     time taken/total=      0.6/     28.6 secs     av.it.  17.0
-         pert=    2     time taken/total=      0.6/     29.2 secs     av.it.  16.9
-         pert=    3     time taken/total=      1.1/     30.3 secs     av.it.  17.5
-         pert=    4     time taken/total=      1.1/     31.5 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.4/     20.0 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     20.4 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     21.1 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     21.9 secs     av.it.  17.5
 
      Computing P_c^-q1 |d^-q1 psi_k>
-         pert=    1     time taken/total=      0.6/     32.0 secs     av.it.  17.0
-         pert=    2     time taken/total=      0.6/     32.6 secs     av.it.  17.0
-         pert=    3     time taken/total=      1.1/     33.7 secs     av.it.  17.5
-         pert=    4     time taken/total=      1.2/     34.9 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.4/     22.3 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     22.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     23.4 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     24.2 secs     av.it.  17.5
 
      Computing P_c^G |d^-q1 psi_k+q1>
-         pert=    1     time taken/total=      0.6/     35.5 secs     av.it.  17.0
-         pert=    2     time taken/total=      0.6/     36.0 secs     av.it.  17.0
-         pert=    3     time taken/total=      1.1/     37.2 secs     av.it.  17.5
-         pert=    4     time taken/total=      1.1/     38.3 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.4/     24.6 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     25.0 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     25.8 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     26.5 secs     av.it.  17.5
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      0.6/     38.9 secs     av.it.  17.4
-         pert=    2     time taken/total=      0.6/     39.5 secs     av.it.  17.5
-         pert=    3     time taken/total=      1.2/     40.6 secs     av.it.  17.6
-         pert=    4     time taken/total=      1.2/     41.8 secs     av.it.  17.6
+         pert=    1     time taken/total=      0.4/     26.9 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     27.3 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     28.0 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     28.8 secs     av.it.  17.5
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      0.6/     42.4 secs     av.it.  17.4
-         pert=    2     time taken/total=      0.6/     42.9 secs     av.it.  17.5
-         pert=    3     time taken/total=      1.2/     44.1 secs     av.it.  17.7
-         pert=    4     time taken/total=      1.1/     45.2 secs     av.it.  17.7
+         pert=    1     time taken/total=      0.4/     29.2 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     29.6 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     30.4 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     31.2 secs     av.it.  17.5
 
      Computing P_c^-q2 |d^-q2 psi_k>
-         pert=    1     time taken/total=      0.6/     45.8 secs     av.it.  17.4
-         pert=    2     time taken/total=      0.6/     46.4 secs     av.it.  17.5
-         pert=    3     time taken/total=      1.2/     47.5 secs     av.it.  17.6
-         pert=    4     time taken/total=      1.2/     48.7 secs     av.it.  17.7
+         pert=    1     time taken/total=      0.4/     31.6 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     31.9 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     32.7 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     33.5 secs     av.it.  17.5
 
      Computing P_c^G |d^-q2 psi_k+q2>
-         pert=    1     time taken/total=      0.6/     49.2 secs     av.it.  17.3
-         pert=    2     time taken/total=      0.6/     49.8 secs     av.it.  17.5
-         pert=    3     time taken/total=      1.1/     50.9 secs     av.it.  17.6
-         pert=    4     time taken/total=      1.2/     52.1 secs     av.it.  17.7
+         pert=    1     time taken/total=      0.4/     33.9 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     34.2 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     35.0 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     35.8 secs     av.it.  17.5
 
      Computing P_c^q3 |d^q3 psi_k>
-         pert=    1     time taken/total=      1.1/     53.2 secs     av.it.  17.4
-         pert=    2     time taken/total=      1.1/     54.4 secs     av.it.  17.2
-         pert=    3     time taken/total=      1.2/     55.5 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.8/     36.5 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     37.3 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     38.1 secs     av.it.  17.2
 
      Computing P_c^G |d^q3 psi_k-q3>
-         pert=    1     time taken/total=      1.1/     56.7 secs     av.it.  17.4
-         pert=    2     time taken/total=      1.1/     57.8 secs     av.it.  17.2
-         pert=    3     time taken/total=      1.1/     58.9 secs     av.it.  17.4
+         pert=    1     time taken/total=      0.8/     38.8 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     39.6 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     40.3 secs     av.it.  17.2
 
      Computing P_c^-q3 |d^-q3 psi_k>
-         pert=    1     time taken/total=      1.1/     60.1 secs     av.it.  17.4
-         pert=    2     time taken/total=      1.2/     61.3 secs     av.it.  17.2
-         pert=    3     time taken/total=      1.2/     62.4 secs     av.it.  17.5
+         pert=    1     time taken/total=      0.8/     41.1 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     41.9 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     42.6 secs     av.it.  17.2
 
      Computing P_c^G |d^-q3 psi_k+q3>
-         pert=    1     time taken/total=      1.1/     63.6 secs     av.it.  17.4
-         pert=    2     time taken/total=      1.2/     64.7 secs     av.it.  17.1
-         pert=    3     time taken/total=      1.2/     65.9 secs     av.it.  17.4
+         pert=    1     time taken/total=      0.8/     43.4 secs     av.it.  17.6
+         pert=    2     time taken/total=      0.8/     44.2 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     44.9 secs     av.it.  17.2
 
      Computing <psi_k-q3 |d^q1V| psi_k+q2>
 
@@ -1217,7 +1233,7 @@
      Computing <psi_k-q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:    42.49 sec    Total time:       67.15 sec
+     generate_dwfc   cpu time:    28.47 sec    Total time:       45.76 sec
 
      ================== nscf dpsi done =================
 
@@ -1225,7 +1241,7 @@
      ================== precomp start
 
      Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
-     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       67.15 sec
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       45.76 sec
 
      ================== precomp done
 
@@ -1238,7 +1254,7 @@
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
        <d^-q2 psi_k|d^q1  V|d^q3  psi_k>
        <d^-q1 psi_k|d^q2  V|d^q3  psi_k>
-     dpsi1dv2dpsi3 cpu time:     7.33 sec    Total time:       74.48 sec
+     dpsi1dv2dpsi3 cpu time:     4.47 sec    Total time:       50.23 sec
 
      ================== dpdvdp done
 
@@ -1251,7 +1267,7 @@
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
        <d_-q2 psi_k+q2| d_q3 psi_k-q3> <psi_k-q3|d_q1 H|psi_k+q2>
        <d_-q1 psi_k+q1| d_q3 psi_k-q3> <psi_k-q3|d_q2 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.28 sec    Total time:       74.76 sec
+     dpsi1dpsi2dv3 cpu time:     0.13 sec    Total time:       50.36 sec
 
      ================== dpdpdv done
 
@@ -1261,7 +1277,7 @@
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
        <d_q3 psi_k| d^2_(q1,q2) V|psi_k>
-     drhod2v       cpu time:     0.45 sec    Total time:       75.21 sec
+     drhod2v       cpu time:     0.47 sec    Total time:       50.83 sec
 
      ================== dpd2v done
 
@@ -1269,7 +1285,7 @@
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.07 sec    Total time:       75.28 sec
+     d3vrho        cpu time:     0.07 sec    Total time:       50.90 sec
 
      =================== rho d3v done ==================
 
@@ -1279,14 +1295,14 @@
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   1.01
-     d3ionq        cpu time:     0.08 sec    Total time:       75.36 sec
+     d3ionq        cpu time:     0.08 sec    Total time:       50.98 sec
 
      ================== ewald done
 
      ================ exc contrib start
 
      Calculating the exchange-correlation contribution
-     d3_exc        cpu time:     0.02 sec    Total time:       75.38 sec
+     d3_exc        cpu time:     0.02 sec    Total time:       51.00 sec
 
      ================ exc contrib done
 
@@ -1297,37 +1313,49 @@
      CALLing d3matrix
        * symmetrizing with  4 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.1o2_1o2_1o2_Q3.0_-1o2_-1o2
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.-1o2_0_0_Q3.0_-1o2_-1o2
        point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_1o2_0_Q2.0_0_1o2_Q3.0_-1o2_-1o2
        point #  5  : star #  5  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.0_-1o2_0_Q3.-1o2_0_-1o2
        point #  6  : star #  6  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.0_0_-1o2_Q3.1o2_0_1o2
        point #  7  : star #  7  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.1o2_1o2_1o2_Q3.-1o2_0_-1o2
        point #  8  : star #  8  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_-1o2_Q2.1o2_1o2_1o2_Q3.-1o2_-1o2_0
        point #  9  : star #  9  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.0_-1o2_0_Q3.1o2_1o2_0
        point # 10  : star # 10  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0
        point # 11  : star # 11  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.0_0_-1o2_Q3.-1o2_-1o2_0
        point # 12  : star # 12  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.04 sec    Total time:       75.41 sec
+      -->FILD3DYN/anh_Q1.0_0_1o2_Q2.1o2_0_0_Q3.-1o2_0_-1o2
+     d3matrix      cpu time:     0.08 sec    Total time:       51.08 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :     71.97s CPU     75.42s WALL (       4 calls)
+     D3TOTEN      :     47.12s CPU     51.09s WALL (       4 calls)
      --> wfc and dwfc
-     nscf         :      5.32s CPU      5.52s WALL (       4 calls)
-     generate_dwf :     52.71s CPU     55.48s WALL (       4 calls)
+     nscf         :      3.75s CPU      4.19s WALL (       4 calls)
+     generate_dwf :     34.34s CPU     37.32s WALL (       4 calls)
      --> matrix elements
-     dpsi1dv2dpsi :     11.31s CPU     11.59s WALL (      13 calls)
-     dpsi1dpsi2dv :      0.31s CPU      0.44s WALL (      13 calls)
-     dq1rhodq23v  :      0.81s CPU      0.82s WALL (       8 calls)
-     rhodq123v    :      0.18s CPU      0.18s WALL (       4 calls)
-     d3ionq       :      0.50s CPU      0.51s WALL (       4 calls)
-     d3_exc       :      0.06s CPU      0.06s WALL (       4 calls)
-     d3matrix     :      0.06s CPU      0.07s WALL (       4 calls)
+     dpsi1dv2dpsi :      6.91s CPU      7.16s WALL (      13 calls)
+     dpsi1dpsi2dv :      0.10s CPU      0.21s WALL (      13 calls)
+     dq1rhodq23v  :      0.84s CPU      0.86s WALL (       8 calls)
+     rhodq123v    :      0.19s CPU      0.19s WALL (       4 calls)
+     d3ionq       :      0.31s CPU      0.31s WALL (       4 calls)
+     d3_exc       :      0.04s CPU      0.07s WALL (       4 calls)
+     d3matrix     :      0.05s CPU      0.13s WALL (       4 calls)
      --> total I/O
-     davcio       :      0.31s CPU      0.40s WALL (   82116 calls)
+     davcio       :      0.25s CPU      0.34s WALL (   68528 calls)
 
      ================== cleanup done
 
@@ -1341,7 +1369,8 @@
      =    q3 = (   -1.000000   1.000000   0.000000 )   =
      ===================================================
      Temporary directory set to:
-       ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+       /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho.0_-1o2_-1o2'
          --> drho file for q2 found as 'drho.1o2_0_1o2'
@@ -1381,7 +1410,11 @@
        --> after reducing symmetry:    18
        --> after including k+/-q_i (kunit):   126 (7)
 
-     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1.out
+     --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file silicon.save
 
@@ -1407,108 +1440,108 @@
      ================ openfild3 start
 
      ================ openfild3 done
-     u: 302   recl:     27648   ext:           drho.1o2_0_1o2_newq2   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u: 303   recl:     27648   ext:         drho.-1o2_-1o2_0_newq3   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u: 302   recl:     27648   ext:           drho.1o2_0_1o2_newq2   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u: 303   recl:     27648   ext:         drho.-1o2_-1o2_0_newq3   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
      u: 301   recl:     27648   ext:               drho.0_-1o2_-1o2   tmp: FILDRHO/
-     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5000   recl:      4352   ext:                          dGpG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6000   recl:        32   ext:                        pdvGpG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5001   recl:      4352   ext:                         dGpq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5002   recl:      4352   ext:                         dGpq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5003   recl:      4352   ext:                         dGpq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5010   recl:      4352   ext:                         dq1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5020   recl:      4352   ext:                         dq2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5030   recl:      4352   ext:                         dq3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
-     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:  20   recl:      4352   ext:                            wfc   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5000   recl:      4352   ext:                          dGpG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6000   recl:        32   ext:                        pdvGpG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5001   recl:      4352   ext:                         dGpq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5002   recl:      4352   ext:                         dGpq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5003   recl:      4352   ext:                         dGpq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5010   recl:      4352   ext:                         dq1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5020   recl:      4352   ext:                         dq2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5030   recl:      4352   ext:                         dq3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
 
      ================= d3_init start
      alpha_pv:      1.7772
@@ -1526,13 +1559,13 @@
      6 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :  1m14.64s CPU     1m18.22s WALL
+     D3_toten     :    49.07s CPU        53.19s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     2.81 sec    Total time:       78.22 sec
+     d3_add_rho_core   cpu time:     2.11 sec    Total time:       53.19 sec
 
      ================== add core done
 
@@ -1541,64 +1574,64 @@
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      0.8/     79.1 secs     av.it.  17.1
-         pert=    2     time taken/total=      0.8/     79.9 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.8/     80.7 secs     av.it.  17.1
+         pert=    1     time taken/total=      0.6/     53.8 secs     av.it.  17.3
+         pert=    2     time taken/total=      0.6/     54.3 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     54.9 secs     av.it.  16.8
 
      Computing P_c^G |d^q1 psi_k-q1>
-         pert=    1     time taken/total=      0.8/     81.6 secs     av.it.  17.0
-         pert=    2     time taken/total=      0.8/     82.4 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.8/     83.2 secs     av.it.  17.0
+         pert=    1     time taken/total=      0.6/     55.4 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     56.0 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     56.6 secs     av.it.  16.9
 
      Computing P_c^-q1 |d^-q1 psi_k>
-         pert=    1     time taken/total=      0.8/     84.0 secs     av.it.  17.1
-         pert=    2     time taken/total=      0.8/     84.9 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.8/     85.7 secs     av.it.  17.1
+         pert=    1     time taken/total=      0.6/     57.2 secs     av.it.  17.3
+         pert=    2     time taken/total=      0.6/     57.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     58.3 secs     av.it.  16.8
 
      Computing P_c^G |d^-q1 psi_k+q1>
-         pert=    1     time taken/total=      0.8/     86.5 secs     av.it.  17.1
-         pert=    2     time taken/total=      0.8/     87.3 secs     av.it.  16.8
-         pert=    3     time taken/total=      0.8/     88.2 secs     av.it.  17.0
+         pert=    1     time taken/total=      0.6/     58.9 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     59.4 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     60.0 secs     av.it.  16.8
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      0.9/     89.0 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/     89.9 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.8/     90.7 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     60.6 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     61.1 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     61.7 secs     av.it.  16.9
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      0.9/     91.6 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/     92.4 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.8/     93.2 secs     av.it.  17.2
+         pert=    1     time taken/total=      0.6/     62.3 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     62.8 secs     av.it.  16.9
+         pert=    3     time taken/total=      0.6/     63.4 secs     av.it.  16.8
 
      Computing P_c^-q2 |d^-q2 psi_k>
-         pert=    1     time taken/total=      0.8/     94.1 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/     95.0 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.9/     95.8 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     64.0 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     64.5 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     65.1 secs     av.it.  16.9
 
      Computing P_c^G |d^-q2 psi_k+q2>
-         pert=    1     time taken/total=      0.9/     96.7 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/     97.5 secs     av.it.  17.7
-         pert=    3     time taken/total=      0.8/     98.3 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     65.6 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     66.2 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     66.8 secs     av.it.  16.8
 
      Computing P_c^q3 |d^q3 psi_k>
-         pert=    1     time taken/total=      0.9/     99.2 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/    100.0 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.8/    100.9 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     67.4 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     67.9 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     68.5 secs     av.it.  16.8
 
      Computing P_c^G |d^q3 psi_k-q3>
-         pert=    1     time taken/total=      0.8/    101.7 secs     av.it.  17.6
-         pert=    2     time taken/total=      0.9/    102.6 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.8/    103.4 secs     av.it.  17.2
+         pert=    1     time taken/total=      0.6/     69.1 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     69.6 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     70.2 secs     av.it.  16.8
 
      Computing P_c^-q3 |d^-q3 psi_k>
-         pert=    1     time taken/total=      0.9/    104.3 secs     av.it.  17.7
-         pert=    2     time taken/total=      0.9/    105.1 secs     av.it.  17.8
-         pert=    3     time taken/total=      0.8/    106.0 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     70.8 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     71.3 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     71.9 secs     av.it.  16.8
 
      Computing P_c^G |d^-q3 psi_k+q3>
-         pert=    1     time taken/total=      0.9/    106.8 secs     av.it.  17.6
-         pert=    2     time taken/total=      0.9/    107.7 secs     av.it.  17.7
-         pert=    3     time taken/total=      0.8/    108.5 secs     av.it.  17.3
+         pert=    1     time taken/total=      0.6/     72.5 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     73.0 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     73.6 secs     av.it.  16.8
 
      Computing <psi_k-q3 |d^q1V| psi_k+q2>
 
@@ -1613,7 +1646,7 @@
      Computing <psi_k-q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:    31.25 sec    Total time:      109.48 sec
+     generate_dwfc   cpu time:    21.03 sec    Total time:       74.22 sec
 
      ================== nscf dpsi done =================
 
@@ -1621,7 +1654,7 @@
      ================== precomp start
 
      Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
-     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:      109.48 sec
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       74.22 sec
 
      ================== precomp done
 
@@ -1634,7 +1667,7 @@
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
        <d^-q2 psi_k|d^q1  V|d^q3  psi_k>
        <d^-q1 psi_k|d^q2  V|d^q3  psi_k>
-     dpsi1dv2dpsi3 cpu time:     5.52 sec    Total time:      114.99 sec
+     dpsi1dv2dpsi3 cpu time:     3.39 sec    Total time:       77.61 sec
 
      ================== dpdvdp done
 
@@ -1647,7 +1680,7 @@
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
        <d_-q2 psi_k+q2| d_q3 psi_k-q3> <psi_k-q3|d_q1 H|psi_k+q2>
        <d_-q1 psi_k+q1| d_q3 psi_k-q3> <psi_k-q3|d_q2 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.21 sec    Total time:      115.20 sec
+     dpsi1dpsi2dv3 cpu time:     0.10 sec    Total time:       77.71 sec
 
      ================== dpdpdv done
 
@@ -1657,7 +1690,7 @@
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
        <d_q3 psi_k| d^2_(q1,q2) V|psi_k>
-     drhod2v       cpu time:     0.34 sec    Total time:      115.54 sec
+     drhod2v       cpu time:     0.35 sec    Total time:       78.05 sec
 
      ================== dpd2v done
 
@@ -1665,7 +1698,7 @@
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.06 sec    Total time:      115.59 sec
+     d3vrho        cpu time:     0.06 sec    Total time:       78.11 sec
 
      =================== rho d3v done ==================
 
@@ -1675,14 +1708,14 @@
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   1.01
-     d3ionq        cpu time:     0.07 sec    Total time:      115.66 sec
+     d3ionq        cpu time:     0.07 sec    Total time:       78.18 sec
 
      ================== ewald done
 
      ================ exc contrib start
 
      Calculating the exchange-correlation contribution
-     d3_exc        cpu time:     0.02 sec    Total time:      115.68 sec
+     d3_exc        cpu time:     0.02 sec    Total time:       78.20 sec
 
      ================ exc contrib done
 
@@ -1693,12 +1726,18 @@
      CALLing d3matrix
        * symmetrizing with  8 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_1o2_1o2_Q2.-1o2_-1o2_0_Q3.1o2_0_-1o2
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_0_1o2_Q2.1o2_1o2_0_Q3.-1_-1o2_-1o2
        point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_0_Q2.0_-1o2_-1o2_Q3.-1o2_0_1o2
        point #  5  : star #  5  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_-1o2_Q2.0_-1o2_-1o2_Q3.1o2_1o2_1
        point #  6  : star #  6  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.02 sec    Total time:      115.70 sec
+      -->FILD3DYN/anh_Q1.-1o2_-1o2_0_Q2.1o2_0_1o2_Q3.0_1o2_-1o2
+     d3matrix      cpu time:     0.04 sec    Total time:       78.24 sec
 
      =============== computing D3 done
 
@@ -1706,48 +1745,48 @@
 
      ================== cleanup done
  
-     D3TOTEN      :    110.39s CPU    115.71s WALL (       5 calls)
+     D3TOTEN      :     72.25s CPU     78.28s WALL (       5 calls)
  
       NSCF calculation of ground-state wfcs
-     init_run     :      0.19s CPU      0.18s WALL (       5 calls)
-     electrons    :      7.09s CPU      7.39s WALL (       5 calls)
-     c_bands      :      7.09s CPU      7.39s WALL (       5 calls)
-     cegterg      :      6.12s CPU      6.41s WALL (     380 calls)
+     init_run     :      0.17s CPU      0.20s WALL (       5 calls)
+     electrons    :      4.84s CPU      5.15s WALL (       5 calls)
+     c_bands      :      4.83s CPU      5.15s WALL (       5 calls)
+     cegterg      :      4.19s CPU      4.47s WALL (     380 calls)
  
       NSCF calculation of perturbed wfcs
-     generate_dwf :     82.47s CPU     86.73s WALL (       5 calls)
-     solve_linter :     82.47s CPU     86.73s WALL (     162 calls)
-     ortho        :      0.08s CPU      0.08s WALL (    3540 calls)
-     cgsolve      :     74.36s CPU     78.04s WALL (    3540 calls)
+     generate_dwf :     53.78s CPU     58.35s WALL (       5 calls)
+     solve_linter :     53.77s CPU     58.26s WALL (     162 calls)
+     ortho        :      0.05s CPU      0.06s WALL (    3540 calls)
+     cgsolve      :     48.40s CPU     52.46s WALL (    3540 calls)
  
-     ch_psi       :     73.26s CPU     76.95s WALL (   67805 calls)
-     h_psiq       :     70.43s CPU     73.97s WALL (   67805 calls)
+     ch_psi       :     47.36s CPU     51.32s WALL (   67403 calls)
+     h_psiq       :     44.51s CPU     48.24s WALL (   67403 calls)
  
-     firstfft     :     32.71s CPU     34.35s WALL (  251494 calls)
-     secondfft    :     31.72s CPU     33.27s WALL (  251494 calls)
+     firstfft     :     20.80s CPU     22.55s WALL (  249280 calls)
+     secondfft    :     17.46s CPU     18.89s WALL (  249280 calls)
  
       D3 setup and pre-calculations
      d3_setup     :      0.00s CPU      0.01s WALL (       5 calls)
      d3_setup_noq :      0.00s CPU      0.00s WALL (       1 calls)
-     d3_init      :      0.56s CPU      0.56s WALL (       5 calls)
+     d3_init      :      0.56s CPU      0.58s WALL (       5 calls)
  
       D3 matrix elements
-     dpsi1dv2dpsi :     16.67s CPU     17.10s WALL (      19 calls)
-     dpsi1dpsi2dv :      0.46s CPU      0.65s WALL (      19 calls)
-     dq1rhodq23v  :      1.14s CPU      1.15s WALL (      11 calls)
-     rhodq123v    :      0.24s CPU      0.23s WALL (       5 calls)
-     d3ionq       :      0.57s CPU      0.58s WALL (       5 calls)
-     d3_exc       :      0.07s CPU      0.08s WALL (       5 calls)
-     d3matrix     :      0.07s CPU      0.09s WALL (       5 calls)
+     dpsi1dv2dpsi :     10.15s CPU     10.55s WALL (      19 calls)
+     dpsi1dpsi2dv :      0.12s CPU      0.31s WALL (      19 calls)
+     dq1rhodq23v  :      1.17s CPU      1.20s WALL (      11 calls)
+     rhodq123v    :      0.24s CPU      0.24s WALL (       5 calls)
+     d3ionq       :      0.39s CPU      0.39s WALL (       5 calls)
+     d3_exc       :      0.05s CPU      0.08s WALL (       5 calls)
+     d3matrix     :      0.07s CPU      0.17s WALL (       5 calls)
  
       Input/output
      drho_add_pha :      0.00s CPU      0.00s WALL (      24 calls)
      drho_change_ :      0.00s CPU      0.00s WALL (       4 calls)
      read_drho    :      0.07s CPU      0.09s WALL (    1776 calls)
-     davcio       :      0.54s CPU      0.60s WALL (  120936 calls)
+     davcio       :      0.36s CPU      0.50s WALL (  100868 calls)
  
       General routines
-     calbec       :      1.83s CPU      1.94s WALL (  141371 calls)
+     calbec       :      1.85s CPU      2.01s WALL (  140567 calls)
  
       Parallel routines
-     fft_scatter  :      5.31s CPU      5.87s WALL (  691827 calls)
+     fft_scatter  :      5.54s CPU      5.95s WALL (  687405 calls)
