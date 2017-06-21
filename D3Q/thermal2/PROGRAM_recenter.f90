@@ -33,7 +33,7 @@ PROGRAM recenter
   LOGICAL :: writed3
 
   filein  = cmdline_param_char("i", "mat3R")
-  fileout = cmdline_param_char("o", TRIM(filein)//"_recentered")
+  fileout = cmdline_param_char("o", TRIM(filein)//".recentered")
   far      = cmdline_param_int("f", 2)
   writed3  = cmdline_param_logical("w")
   !
