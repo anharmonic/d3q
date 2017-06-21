@@ -12,7 +12,7 @@ PROGRAM read3
   COMPLEX(DP),ALLOCATABLE :: p3(:,:,:, :,:,:), q3(:,:,:, :,:,:)
   CHARACTER(len=256) :: fname1, fname2, basename
   INTEGER :: natoms, i,j,k,a,b,c
-  LOGICAL :: found
+  LOGICAL :: found, exst
   !
   ! Metodo 1: fornisco fname='anh' e i tre vettori q per trovare il file:
   !READ(*,*) fname1
@@ -38,12 +38,14 @@ PROGRAM read3
   
   IF(nargs>=3) THEN
     CALL getarg(3, basename)
-    fname1 = TRIM(fname1)//TRIM(basename)
-    fname2 = TRIM(fname2)//TRIM(basename)
+    fname1 = TRIM(fname1)//"/"//TRIM(basename)
+    fname2 = TRIM(fname2)//"/"//TRIM(basename)
   ENDIF
   !
   !CALL read_d3dyn_xml(fname1, d3=p3, nat=natoms)
   !CALL read_d3dyn_xml(fname2, d3=q3)
+  INQUIRE(file=fname1, exist=exst)
+  IF(.not. exst) STOP 1
   CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, celldm=celldm, at=at)
 
 !  write(0,'(3(3f8.4,2x))') xq1,xq2,xq3
@@ -52,6 +54,8 @@ PROGRAM read3
   at=at/celldm(1)
 
 
+  INQUIRE(file=fname2, exist=exst)
+  IF(.not. exst) STOP 2
   CALL read_d3dyn_xml(fname2, xq1, xq2, xq3, d3=q3)!, seek=.true.)
   !
   maxdiff = 0._dp
@@ -72,7 +76,7 @@ PROGRAM read3
         maxdiff = MAX(maxdiff,diff)
         IF(diff>1.d-5)THEN
             perc = 100*(abs(p3(i,j,k,a,b,c))-abs(q3(i,j,k,a,b,c)))/(abs(p3(i,j,k,a,b,c))+abs(q3(i,j,k,a,b,c)))
-            maxperc = MAX(maxperc,perc)
+            maxperc = MAX(maxperc,ABS(perc))
         ELSE
             perc=0._dp
         ENDIF
