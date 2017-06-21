@@ -69,6 +69,7 @@ MODULE f3_bwfft
     INTEGER,ALLOCATABLE :: found(:,:,:,:,:,:)
     INTEGER :: countq(nq_trip)
     CHARACTER(len=512) :: filename
+    CHARACTER(len=5) :: format_version
     INTEGER :: iqa(3), iqb(3), iqc(3)
     REAL(DP) :: xq_shift(3,3), thresh
     TYPE(ph_system_info) :: Sx
@@ -89,7 +90,8 @@ MODULE f3_bwfft
         CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
                             nat=S%nat, atm=S%atm, ntyp=S%ntyp, &
                             ityp=S%ityp, ibrav=S%ibrav, celldm=S%celldm, at=S%at,&
-                            amass=S%amass, tau=S%tau, seek=.false.)
+                            amass=S%amass, tau=S%tau, seek=.false.,&
+                            file_format_version=format_version)
         CALL aux_system(S)
         CALL latgen( S%ibrav, S%celldm, S%at(:,1), S%at(:,2), S%at(:,3), S%omega )
         S%at=S%at/S%celldm(1)
@@ -101,14 +103,20 @@ MODULE f3_bwfft
         CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
                             nat=Sx%nat, atm=Sx%atm, ntyp=Sx%ntyp, &
                             ityp=Sx%ityp, ibrav=Sx%ibrav, celldm=Sx%celldm, at=Sx%at,&
-                            amass=Sx%amass,tau=Sx%tau, seek=.false.)
+                            amass=Sx%amass,tau=Sx%tau, seek=.false.,&
+                            file_format_version=format_version)
         CALL latgen( Sx%ibrav, Sx%celldm, Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%omega )
         Sx%at=Sx%at/Sx%celldm(1)
         CALL recips(Sx%at(:,1), Sx%at(:,2), Sx%at(:,3), Sx%bg(:,1), Sx%bg(:,2), Sx%bg(:,3))
         IF(.not.same_system(S,Sx)) CALL errore("qq2rr", "not same system "//TRIM(filename), 1)
       ENDIF
       !
-      d3 = DCONJG(d3)
+      IF( format_version == "1.0.0") THEN
+        WRITE(*,*) "Workaround for d3q =< 1.7b: taking conplex conjugate of D3 matrix"
+        d3 = DCONJG(d3)
+      ELSEIF ( format_version /= "1.1.0")THEN
+        CALL errore("read_d3_matrices","unknow file format version: "//TRIM(format_version),1)
+      ENDIF
       !
       PERM_LOOP : &
       DO iperm = 1,nperms

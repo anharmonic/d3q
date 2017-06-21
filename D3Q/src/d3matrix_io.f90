@@ -9,7 +9,7 @@
 !-----------------------------------------------------------------------
 MODULE d3matrix_io
 !-----------------------------------------------------------------------
-  CHARACTER(len=5),PARAMETER :: format_version = "1.0.0"
+  CHARACTER(len=5),PARAMETER :: format_version = "1.1.0"
 !
 CONTAINS
 !
@@ -139,7 +139,7 @@ END SUBROUTINE write_d3dyn_xml
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass,found,seek)
+SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass,found,seek,file_format_version)
   !-----------------------------------------------------------------------
   !
   USE kinds, only : DP
@@ -168,6 +168,8 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   REAL(DP),OPTIONAL,INTENT(out)             :: amass(ntypx)! (ntyp) mass of ions
   INTEGER,ALLOCATABLE,OPTIONAL,INTENT(out)  :: ityp(:)     ! (nat)  index of atomic types 
   CHARACTER(len=3),OPTIONAL,INTENT(out)     :: atm(ntypx)  ! (ntyp) atomic labels (es. Si)
+  ! The version of the written file
+  CHARACTER(len=5),OPTIONAL,INTENT(out) :: file_format_version
   ! Switches:
   LOGICAL,OPTIONAL,INTENT(out)              :: found
   ! if present and file is not found set it to false and return, instead of issuing an error
@@ -200,7 +202,10 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   ENDIF
   !
   CALL iotk_free_unit(u)
-  CALL iotk_open_read(u, filename, ierr=ierr)
+  CALL iotk_open_read(u, filename, ierr=ierr, attr=attr)
+  IF(present(file_format_version)) &
+      CALL iotk_scan_attr(attr, "format_version", file_format_version)
+  !
   IF (ierr/=0) THEN
     IF(present(found)) THEN
       found=.false.

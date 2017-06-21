@@ -158,9 +158,14 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
 !        WRITE(stdout, '(9x,a,3f10.6,a)') "q2: (", sx3q(:,j,istq), " )"
 !        WRITE(stdout, '(9x,a,3f10.6,a)') "q3: (", sx3q(:,k,istq), " )"
         FLUSH( stdout )
+  !
+  ! In the entire code, for historical reasons, we compute the complex-conjugate of 
+  ! the D3 matrix, this is most unfortunate, however we change back to the proper
+  ! D3 matrix here, before writing it to file.
+
         ! Write to file
         CALL write_d3dyn_xml(d3dyn_basename, sx3q(:,i,istq), sx3q(:,j,istq), sx3q(:,k,istq), &
-                             p3perm, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
+                             CONJG(p3perm), ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
         !
         ! If -q1,-q2,-q3 is not in the star, use time reversal to compute its D3 and write it to file:
         IF( im3q == 0 .and. print_trev) THEN
@@ -172,8 +177,9 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
 !          WRITE(stdout, '(9x,a,3f10.6,a)') "q3: (", -sx3q(:,k,istq), " )"
           !
           FLUSH( stdout )
-          CALL write_d3dyn_xml(d3dyn_basename, -sx3q(:,i,istq), -sx3q(:,j,istq), -sx3q(:,k,istq), &
-                               CONJG(p3perm), ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
+          CALL write_d3dyn_xml(d3dyn_basename, &
+                     -sx3q(:,i,istq), -sx3q(:,j,istq), -sx3q(:,k,istq), &
+                     p3perm, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
         ENDIF
         !
       ENDDO &
