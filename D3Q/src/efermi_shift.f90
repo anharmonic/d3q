@@ -119,7 +119,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   WRITE( stdout, '(11x,"--> E_f shift (prt: Ry/eV) =",(1i3,":",1f14.4,1f8.3," /",1f14.4,1f8.3))')  &
        1, def(1), rytoev*def(1)
   IF(npe>1) &
-  WRITE( stdout, '(39x,(1i3,":",1f14.4,1f8.3," /",1f14.4,1f8.3))')  &
+  WRITE( stdout, '(39x,1i3,":",1f14.4,1f8.3," /",1f14.4,1f8.3)')  &
        (ipert, def(ipert), rytoev*def(ipert), ipert=2,npe)
   !
   CALL stop_clock('set_efsh')
