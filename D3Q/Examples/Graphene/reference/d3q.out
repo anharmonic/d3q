@@ -1,5 +1,5 @@
 
-     Program D3_toten v.6.beta (svn rev. 12981M) starts on 23Sep2016 at 15:29: 3 
+     Program D3_toten v.6.1 (svn rev. 13571M) starts on 21Jun2017 at 16:17: 0 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -7,25 +7,13 @@
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
- 
-           HOST :    @host@
-           ARCH :    x86_64
-             CC :    cc
-            CPP :    cpp
-            F90 :    mpif90
-            F77 :    ifort
-         DFLAGS :    -D__INTEL -D__FFTW3 -D__MPI -D__PARA
-      BLAS LIBS :    -lmkl_intel_lp64  -lmkl_sequential -lmkl_core
-    LAPACK LIBS :    
-       FFT LIBS :    -lfftw3
-      MASS LIBS :    
 
      Parallel version (MPI), running on     4 processors
      K-points division:     npool     =       4
-      ___  ____   __    ____  ____  ____  _  _  ___    ____  ___ 
-     / __)(_  _) /__\  (  _ \(_  _)(_  _)( \( )/ __)  (  _ \(__ )
-     \__ \  )(  /(__)\  )   /  )(   _)(_  )  (( (_-.   )(_) )(_ \
-     (___/ (__)(__)(__)(_)\_) (__) (____)(_)\_)\___/  (____/(___/
+      ___  ____   __    ____  ____  ____  _  _  ___    ____  ___  
+     / __)(_  _) /__\  (  _ \(_  _)(_  _)( \( )/ __)  (  _ \(__ ) 
+     \__ \  )(  /(__)\  )   /  )(   _)(_  )  (( (_-.   )(_) )(_ \ 
+     (___/ (__)(__)(__)(_)\_) (__) (____)(_)\_)\___/  (____/(___/ 
 
      Waiting for input...
      _____________ input start _____________
@@ -87,7 +75,7 @@
  REMARK: automatic fildrho file names enabled
 
      Reading data from directory:
-     /home/paulatto/espresso/D3Q/Examples/Graphene/TMP/gene.save
+     /home/paulatto/espresso/D3Q/Examples/Graphene/TMP/gene.save/
 
    Info: using nr1, nr2, nr3 values from input
 
@@ -108,9 +96,9 @@
      Message from routine kpoint_grid:
      ATTENTION: skip check of k-points equivalence
      Looking for irreducible triplets out of        8 possibilities:
-           1:   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )
-           2:   (  0.0000  0.0000  0.0000 )   (  0.0000 -0.5774  0.0000 )   (  0.0000  0.5774  0.0000 )
-           3:   (  0.0000 -0.5774  0.0000 )   ( -0.5000 -0.2887  0.0000 )   (  0.5000  0.8660  0.0000 )
+           1:   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   -->_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+           2:   (  0.0000  0.0000  0.0000 )   (  0.0000 -0.5774  0.0000 )   (  0.0000  0.5774  0.0000 )   -->_Q1.0_0_0_Q2.0_-1o2_0_Q3.0_1o2_0
+           3:   (  0.0000 -0.5774  0.0000 )   ( -0.5000 -0.2887  0.0000 )   (  0.5000  0.8660  0.0000 )   -->_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0
      IRREDUCIBLE NUMBER OF TRIPLETS TO COMPUTE:   3
      Setting up GGA 2nd derivative
 
@@ -125,6 +113,7 @@
      ===================================================
      Temporary directory set to:
        /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho_rot.0_0_0'
          --> drho file for q2 found as 'drho_rot.0_0_0'
@@ -162,6 +151,10 @@
        --> after including k+/-q_i (kunit):    10 (1)
 
      --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file gene.save
 
@@ -211,13 +204,13 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      1 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :     0.98s CPU         1.06s WALL
+     D3_toten     :     0.98s CPU         1.03s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     1.06 sec    Total time:        1.06 sec
+     d3_add_rho_core   cpu time:     1.03 sec    Total time:        1.03 sec
 
      ================== add core done
 
@@ -228,14 +221,14 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      Computing P_c^q1 |d^q1 psi_k>
            --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
          pert=    1     time taken/total=      0.5/      1.5 secs     av.it.  17.0
+           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
+                                         2:       -0.0000   0.000 /       -0.0000   0.000
+         pert=    2     time taken/total=      1.1/      2.6 secs     av.it.  18.9
+           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
+         pert=    3     time taken/total=      0.5/      3.1 secs     av.it.  17.1
            --> E_f shift (prt: Ry/eV) =  1:       -0.0000   0.000 /       -0.0000   0.000
                                          2:        0.0000   0.000 /        0.0000   0.000
-         pert=    2     time taken/total=      0.9/      2.4 secs     av.it.  17.4
-           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
-         pert=    3     time taken/total=      0.5/      2.9 secs     av.it.  17.1
-           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
-                                         2:        0.0000   0.000 /        0.0000   0.000
-         pert=    4     time taken/total=      1.1/      4.0 secs     av.it.  19.8
+         pert=    4     time taken/total=      1.0/      4.1 secs     av.it.  18.2
        Gamma-Gamma perturbation and for metal: E_Fermi shift has been computed.
 
      Skipping P_c^G |d^q1 psi_k-q1>
@@ -290,7 +283,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
        --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
 
 
-     generate_dwfc   cpu time:     2.89 sec    Total time:        3.95 sec
+     generate_dwfc   cpu time:     3.06 sec    Total time:        4.09 sec
 
      ================== nscf dpsi done =================
 
@@ -323,7 +316,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
          --> already done as < Pc d^-q1 psi_k+q1| dq1 V | psi_k-q1 >
        Additional term to precompute for valence contribution:
          none necessary for Gamma-only
-     gen_dpsi1dv2psi     cpu time:     0.45 sec    Total time:        4.40 sec
+     gen_dpsi1dv2psi     cpu time:     0.38 sec    Total time:        4.48 sec
 
      ================== precomp done
 
@@ -331,7 +324,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
 
      Calculating the matrix elements <dpsi |dH |dpsi>
        <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
-     dpsi1dv2dpsi3 cpu time:     2.16 sec    Total time:        6.56 sec
+     dpsi1dv2dpsi3 cpu time:     1.76 sec    Total time:        6.24 sec
 
      ================== dpdvdp done
 
@@ -339,7 +332,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
 
      Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
        <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
-     dpsi1dpsi2dv3 cpu time:     0.02 sec    Total time:        6.58 sec
+     dpsi1dpsi2dv3 cpu time:     0.02 sec    Total time:        6.26 sec
 
      ================== dpdpdv done
 
@@ -348,7 +341,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      Calculating the matrix elements <psi |d^2 v |dpsi>
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
           -> including Efermi_shift correction for |d^G psi_k>
-     drhod2v       cpu time:     0.49 sec    Total time:        7.07 sec
+     drhod2v       cpu time:     0.52 sec    Total time:        6.78 sec
 
      ================== dpd2v done
 
@@ -356,7 +349,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.24 sec    Total time:        7.31 sec
+     d3vrho        cpu time:     0.24 sec    Total time:        7.02 sec
 
      =================== rho d3v done ==================
 
@@ -366,7 +359,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   2.61
-     d3ionq        cpu time:     1.37 sec    Total time:        8.68 sec
+     d3ionq        cpu time:     0.37 sec    Total time:        7.39 sec
 
      ================== ewald done
 
@@ -376,7 +369,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      Computing 3-terms valence contribution   1  2  3
      Doing d3_valence_ij:  1 2 3
        Computing Gamma-only terms
-     d3_valence    cpu time:     0.01 sec    Total time:        8.69 sec
+     d3_valence    cpu time:     0.01 sec    Total time:        7.40 sec
 
      ================== valence done
 
@@ -384,7 +377,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
 
      Calculating the exchange-correlation contribution with GGA
        q1 q2 q3 
-     d3_exc        cpu time:     0.40 sec    Total time:        9.09 sec
+     d3_exc        cpu time:     0.37 sec    Total time:        7.76 sec
 
      ================ exc contrib done
 
@@ -398,28 +391,29 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
        * imposing hermiticity on idx 1,2
        * symmetrizing with 24 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.01 sec    Total time:        9.09 sec
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+     d3matrix      cpu time:     0.00 sec    Total time:        7.77 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :      8.70s CPU      9.10s WALL (       1 calls)
+     D3TOTEN      :      7.48s CPU      7.78s WALL (       1 calls)
      --> wfc and dwfc
-     nscf         :      0.46s CPU      0.53s WALL (       1 calls)
-     generate_dwf :      2.79s CPU      2.89s WALL (       1 calls)
+     nscf         :      0.56s CPU      0.59s WALL (       1 calls)
+     generate_dwf :      2.95s CPU      3.06s WALL (       1 calls)
      --> matrix elements
-     dpsi1dv2dpsi :      2.06s CPU      2.16s WALL (       1 calls)
-     dpsi1dpsi2dv :      0.02s CPU      0.02s WALL (       1 calls)
-     dq1rhodq23v  :      0.46s CPU      0.49s WALL (       1 calls)
+     dpsi1dv2dpsi :      1.73s CPU      1.76s WALL (       1 calls)
+     dpsi1dpsi2dv :      0.01s CPU      0.02s WALL (       1 calls)
+     dq1rhodq23v  :      0.51s CPU      0.52s WALL (       1 calls)
      rhodq123v    :      0.24s CPU      0.24s WALL (       1 calls)
-     d3ionq       :      1.37s CPU      1.37s WALL (       1 calls)
-     d3_smr_ijk   :      0.00s CPU      0.01s WALL (       1 calls)
+     d3ionq       :      0.37s CPU      0.37s WALL (       1 calls)
+     d3_smr_ijk   :      0.01s CPU      0.01s WALL (       1 calls)
      d3_smr_ij    :      0.00s CPU      0.00s WALL (       1 calls)
      d3_smr_gamma :      0.00s CPU      0.00s WALL (       1 calls)
-     d3matrix     :      0.00s CPU      0.01s WALL (       1 calls)
+     d3matrix     :      0.00s CPU      0.00s WALL (       1 calls)
      --> total I/O
-     davcio       :      0.05s CPU      0.07s WALL (    2751 calls)
+     davcio       :      0.05s CPU      0.06s WALL (    2592 calls)
 
      ================== cleanup done
 
@@ -434,6 +428,7 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
      ===================================================
      Temporary directory set to:
        /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_0_0_Q2.0_-1o2_0_Q3.0_1o2_0/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho_rot.0_0_0'
          --> drho file for q2 found as 'drho_rot.0_-1o2_0'
@@ -474,6 +469,10 @@ Possibly too few bands at point    3   0.00000   0.28868   0.00000
        --> after including k+/-q_i (kunit):    63 (3)
 
      --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_0_0_Q2.0_-1o2_0_Q3.0_1o2_0.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file gene.save
 
@@ -563,13 +562,13 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
      3 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :    11.34s CPU        12.78s WALL
+     D3_toten     :    10.87s CPU        11.25s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:     3.69 sec    Total time:       12.78 sec
+     d3_add_rho_core   cpu time:     3.48 sec    Total time:       11.25 sec
 
      ================== add core done
 
@@ -579,15 +578,15 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
 
      Computing P_c^q1 |d^q1 psi_k>
            --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
-         pert=    1     time taken/total=      0.9/     13.7 secs     av.it.  17.4
-           --> E_f shift (prt: Ry/eV) =  1:       -0.0000   0.000 /       -0.0000   0.000
-                                         2:       -0.0000   0.000 /       -0.0001   0.000
-         pert=    2     time taken/total=      1.7/     15.4 secs     av.it.  18.5
-           --> E_f shift (prt: Ry/eV) =  1:       -0.0000   0.000 /       -0.0000   0.000
-         pert=    3     time taken/total=      0.9/     16.3 secs     av.it.  17.6
-           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
+         pert=    1     time taken/total=      0.9/     12.2 secs     av.it.  17.4
+           --> E_f shift (prt: Ry/eV) =  1:       -0.0000   0.000 /       -0.0001   0.000
                                          2:        0.0000   0.000 /        0.0000   0.000
-         pert=    4     time taken/total=      2.0/     18.3 secs     av.it.  20.0
+         pert=    2     time taken/total=      2.1/     14.2 secs     av.it.  19.5
+           --> E_f shift (prt: Ry/eV) =  1:        0.0000   0.000 /        0.0000   0.000
+         pert=    3     time taken/total=      1.0/     15.2 secs     av.it.  17.6
+           --> E_f shift (prt: Ry/eV) =  1:       -0.0000   0.000 /       -0.0000   0.000
+                                         2:        0.0000   0.000 /        0.0000   0.000
+         pert=    4     time taken/total=      1.9/     17.2 secs     av.it.  19.0
        Gamma-Gamma perturbation and for metal: E_Fermi shift has been computed.
 
      Skipping P_c^G |d^q1 psi_k-q1>
@@ -600,20 +599,20 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        --> already done as P_c^q1 |d^q1 psi_k+q1>
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      0.9/     19.2 secs     av.it.  19.1
-         pert=    2     time taken/total=      0.8/     20.1 secs     av.it.  18.0
-         pert=    3     time taken/total=      0.8/     20.9 secs     av.it.  18.4
-         pert=    4     time taken/total=      0.9/     21.7 secs     av.it.  18.4
-         pert=    5     time taken/total=      1.1/     22.8 secs     av.it.  19.1
-         pert=    6     time taken/total=      0.8/     23.6 secs     av.it.  18.3
+         pert=    1     time taken/total=      0.9/     18.1 secs     av.it.  19.1
+         pert=    2     time taken/total=      0.9/     19.0 secs     av.it.  18.0
+         pert=    3     time taken/total=      0.9/     19.9 secs     av.it.  18.4
+         pert=    4     time taken/total=      0.9/     20.8 secs     av.it.  18.4
+         pert=    5     time taken/total=      0.9/     21.7 secs     av.it.  18.3
+         pert=    6     time taken/total=      0.9/     22.6 secs     av.it.  19.1
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      0.9/     24.6 secs     av.it.  19.1
-         pert=    2     time taken/total=      0.8/     25.3 secs     av.it.  18.0
-         pert=    3     time taken/total=      0.9/     26.2 secs     av.it.  18.4
-         pert=    4     time taken/total=      0.9/     27.1 secs     av.it.  18.4
-         pert=    5     time taken/total=      0.9/     28.0 secs     av.it.  19.1
-         pert=    6     time taken/total=      0.8/     28.8 secs     av.it.  18.3
+         pert=    1     time taken/total=      1.0/     23.6 secs     av.it.  19.1
+         pert=    2     time taken/total=      0.8/     24.4 secs     av.it.  18.0
+         pert=    3     time taken/total=      1.0/     25.4 secs     av.it.  18.4
+         pert=    4     time taken/total=      1.0/     26.4 secs     av.it.  18.4
+         pert=    5     time taken/total=      0.8/     27.3 secs     av.it.  18.3
+         pert=    6     time taken/total=      0.9/     28.2 secs     av.it.  19.1
 
      Computing <psi_k-q2 |d^-q2V| psi_k>
 
@@ -648,7 +647,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:    19.36 sec    Total time:       32.14 sec
+     generate_dwfc   cpu time:    19.81 sec    Total time:       31.06 sec
 
      ================== nscf dpsi done =================
 
@@ -678,7 +677,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
          --> already done as < Pc d^-q2 psi_k+q2| dq2 V | psi_k-q2 >
        Additional term to precompute for valence contribution:
        < Pc dpsi_k/du(-q2)| dH/du(q2) | psi_k >
-     gen_dpsi1dv2psi     cpu time:     4.26 sec    Total time:       36.40 sec
+     gen_dpsi1dv2psi     cpu time:     3.54 sec    Total time:       34.60 sec
 
      ================== precomp done
 
@@ -688,7 +687,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
        <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
-     dpsi1dv2dpsi3 cpu time:    13.66 sec    Total time:       50.06 sec
+     dpsi1dv2dpsi3 cpu time:    10.71 sec    Total time:       45.31 sec
 
      ================== dpdvdp done
 
@@ -698,7 +697,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
        <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.08 sec    Total time:       50.14 sec
+     dpsi1dpsi2dv3 cpu time:     0.09 sec    Total time:       45.40 sec
 
      ================== dpdpdv done
 
@@ -708,7 +707,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
           -> including Efermi_shift correction for |d^G psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
-     drhod2v       cpu time:     1.95 sec    Total time:       52.09 sec
+     drhod2v       cpu time:     2.11 sec    Total time:       47.51 sec
 
      ================== dpd2v done
 
@@ -716,7 +715,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.64 sec    Total time:       52.73 sec
+     d3vrho        cpu time:     0.44 sec    Total time:       47.95 sec
 
      =================== rho d3v done ==================
 
@@ -726,7 +725,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   2.61
-     d3ionq        cpu time:     0.40 sec    Total time:       53.13 sec
+     d3ionq        cpu time:     0.37 sec    Total time:       48.32 sec
 
      ================== ewald done
 
@@ -737,7 +736,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
      Computing 3-terms valence contribution   2  1  3
      Computing 3-terms valence contribution   2  3  1
      Doing d3_valence_ij:  1 2 3
-     d3_valence    cpu time:     0.05 sec    Total time:       53.17 sec
+     d3_valence    cpu time:     0.04 sec    Total time:       48.36 sec
 
      ================== valence done
 
@@ -747,7 +746,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        q1 q2 q3 
        q2 q1 q3 
        q2 q3 q1 
-     d3_exc        cpu time:     1.37 sec    Total time:       54.54 sec
+     d3_exc        cpu time:     1.13 sec    Total time:       49.49 sec
 
      ================ exc contrib done
 
@@ -759,30 +758,33 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        * imposing hermiticity on idx 2,3
        * symmetrizing with  8 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_-1o2_0_Q3.0_1o2_0
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.1o2_0_0_Q3.-1o2_0_0
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.01 sec    Total time:       54.55 sec
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.-1o2_1o2_0_Q3.1o2_-1o2_0
+     d3matrix      cpu time:     0.01 sec    Total time:       49.50 sec
 
      =============== computing D3 done
 
      ================== cleanup start
  
-     D3TOTEN      :     51.90s CPU     54.56s WALL (       2 calls)
+     D3TOTEN      :     48.20s CPU     49.50s WALL (       2 calls)
      --> wfc and dwfc
-     nscf         :      2.95s CPU      4.05s WALL (       2 calls)
-     generate_dwf :     21.52s CPU     22.25s WALL (       2 calls)
+     nscf         :      3.73s CPU      3.85s WALL (       2 calls)
+     generate_dwf :     22.27s CPU     22.88s WALL (       2 calls)
      --> matrix elements
-     dpsi1dv2dpsi :     15.54s CPU     15.82s WALL (       4 calls)
-     dpsi1dpsi2dv :      0.05s CPU      0.10s WALL (       4 calls)
-     dq1rhodq23v  :      2.38s CPU      2.44s WALL (       3 calls)
-     rhodq123v    :      0.88s CPU      0.88s WALL (       2 calls)
-     d3ionq       :      1.77s CPU      1.77s WALL (       2 calls)
-     d3_smr_ijk   :      0.04s CPU      0.05s WALL (       4 calls)
+     dpsi1dv2dpsi :     12.30s CPU     12.47s WALL (       4 calls)
+     dpsi1dpsi2dv :      0.08s CPU      0.11s WALL (       4 calls)
+     dq1rhodq23v  :      2.60s CPU      2.63s WALL (       3 calls)
+     rhodq123v    :      0.68s CPU      0.68s WALL (       2 calls)
+     d3ionq       :      0.73s CPU      0.73s WALL (       2 calls)
+     d3_smr_ijk   :      0.04s CPU      0.04s WALL (       4 calls)
      d3_smr_ij    :      0.01s CPU      0.01s WALL (       2 calls)
      d3_smr_gamma :      0.00s CPU      0.00s WALL (       1 calls)
-     d3matrix     :      0.01s CPU      0.02s WALL (       2 calls)
+     d3matrix     :      0.01s CPU      0.01s WALL (       2 calls)
      --> total I/O
-     davcio       :      0.32s CPU      0.43s WALL (   18621 calls)
+     davcio       :      0.31s CPU      0.34s WALL (   17418 calls)
 
      ================== cleanup done
 
@@ -797,6 +799,7 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
      ===================================================
      Temporary directory set to:
        /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//D3_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0/
+     SCF rho copied to D3 tmp dir
      Scanning for fildrho files...
          --> drho file for q1 found as 'drho_rot.0_-1o2_0'
          --> drho file for q2 found as 'drho_rot.1o2_0_0'
@@ -837,6 +840,10 @@ Possibly too few bands at point   17   0.00000   0.00000   0.00000
        --> after including k+/-q_i (kunit):   238 (7)
 
      --> output from 'electrons' appended to /home/paulatto/espresso/D3Q/Examples/Graphene/TMP3//nscf_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
 
      Writing output data file gene.save
 
@@ -1063,13 +1070,13 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      6 inequivalent permutations were found
 
      ========== d3_check_permutations done
-     D3_toten     :  1m 1.56s CPU     1m 5.58s WALL
+     D3_toten     :  0m59.25s CPU     1m 0.73s WALL
 
 
      ================== add core start
 
      Adding derivative of core charge
-     d3_add_rho_core   cpu time:    11.03 sec    Total time:       65.58 sec
+     d3_add_rho_core   cpu time:    11.23 sec    Total time:       60.73 sec
 
      ================== add core done
 
@@ -1078,100 +1085,100 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      ===================================================
 
      Computing P_c^q1 |d^q1 psi_k>
-         pert=    1     time taken/total=      1.5/     67.1 secs     av.it.  19.5
-         pert=    2     time taken/total=      1.6/     68.6 secs     av.it.  18.8
-         pert=    3     time taken/total=      1.4/     70.0 secs     av.it.  19.0
-         pert=    4     time taken/total=      1.5/     71.5 secs     av.it.  18.9
-         pert=    5     time taken/total=      1.4/     72.9 secs     av.it.  19.6
-         pert=    6     time taken/total=      1.3/     74.3 secs     av.it.  19.1
+         pert=    1     time taken/total=      1.5/     62.2 secs     av.it.  19.5
+         pert=    2     time taken/total=      1.4/     63.6 secs     av.it.  18.8
+         pert=    3     time taken/total=      1.5/     65.1 secs     av.it.  19.0
+         pert=    4     time taken/total=      1.5/     66.6 secs     av.it.  18.9
+         pert=    5     time taken/total=      1.4/     67.9 secs     av.it.  19.1
+         pert=    6     time taken/total=      1.5/     69.4 secs     av.it.  19.6
 
      Computing P_c^G |d^q1 psi_k-q1>
-         pert=    1     time taken/total=      1.5/     75.7 secs     av.it.  19.5
-         pert=    2     time taken/total=      1.5/     77.2 secs     av.it.  18.8
-         pert=    3     time taken/total=      1.4/     78.6 secs     av.it.  19.0
-         pert=    4     time taken/total=      1.4/     80.0 secs     av.it.  18.9
-         pert=    5     time taken/total=      1.5/     81.5 secs     av.it.  19.6
-         pert=    6     time taken/total=      1.5/     83.0 secs     av.it.  19.1
+         pert=    1     time taken/total=      1.5/     71.0 secs     av.it.  19.5
+         pert=    2     time taken/total=      1.5/     72.5 secs     av.it.  18.8
+         pert=    3     time taken/total=      1.4/     73.9 secs     av.it.  19.0
+         pert=    4     time taken/total=      1.4/     75.4 secs     av.it.  18.9
+         pert=    5     time taken/total=      1.6/     76.9 secs     av.it.  19.1
+         pert=    6     time taken/total=      1.6/     78.5 secs     av.it.  19.6
 
      Computing P_c^-q1 |d^-q1 psi_k>
-         pert=    1     time taken/total=      1.9/     84.9 secs     av.it.  19.5
-         pert=    2     time taken/total=      1.3/     86.2 secs     av.it.  18.8
-         pert=    3     time taken/total=      1.4/     87.6 secs     av.it.  19.0
-         pert=    4     time taken/total=      1.4/     89.0 secs     av.it.  18.9
-         pert=    5     time taken/total=      1.5/     90.5 secs     av.it.  19.6
-         pert=    6     time taken/total=      1.3/     91.8 secs     av.it.  19.1
+         pert=    1     time taken/total=      1.5/     80.0 secs     av.it.  19.5
+         pert=    2     time taken/total=      1.4/     81.3 secs     av.it.  18.8
+         pert=    3     time taken/total=      1.5/     82.8 secs     av.it.  19.0
+         pert=    4     time taken/total=      1.5/     84.3 secs     av.it.  18.9
+         pert=    5     time taken/total=      1.4/     85.6 secs     av.it.  19.1
+         pert=    6     time taken/total=      1.6/     87.2 secs     av.it.  19.6
 
      Computing P_c^G |d^-q1 psi_k+q1>
-         pert=    1     time taken/total=      1.5/     93.3 secs     av.it.  19.5
-         pert=    2     time taken/total=      1.5/     94.8 secs     av.it.  18.8
-         pert=    3     time taken/total=      1.4/     96.1 secs     av.it.  19.0
-         pert=    4     time taken/total=      1.4/     97.5 secs     av.it.  18.9
-         pert=    5     time taken/total=      1.5/     99.0 secs     av.it.  19.6
-         pert=    6     time taken/total=      1.5/    100.5 secs     av.it.  19.1
+         pert=    1     time taken/total=      1.6/     88.8 secs     av.it.  19.5
+         pert=    2     time taken/total=      1.8/     90.6 secs     av.it.  18.8
+         pert=    3     time taken/total=      1.6/     92.1 secs     av.it.  19.0
+         pert=    4     time taken/total=      1.4/     93.6 secs     av.it.  18.9
+         pert=    5     time taken/total=      1.5/     95.1 secs     av.it.  19.1
+         pert=    6     time taken/total=      1.5/     96.7 secs     av.it.  19.6
 
      Computing P_c^q2 |d^q2 psi_k>
-         pert=    1     time taken/total=      1.4/    101.9 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.4/    103.3 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.3/    104.6 secs     av.it.  19.1
-         pert=    4     time taken/total=      1.3/    105.9 secs     av.it.  19.2
-         pert=    5     time taken/total=      1.4/    107.3 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.4/    108.6 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.4/     98.1 secs     av.it.  19.9
+         pert=    2     time taken/total=      1.4/     99.5 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.5/    101.0 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.5/    102.5 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.5/    103.9 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.4/    105.4 secs     av.it.  19.9
 
      Computing P_c^G |d^q2 psi_k-q2>
-         pert=    1     time taken/total=      1.5/    110.1 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.5/    111.5 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.4/    112.9 secs     av.it.  19.3
-         pert=    4     time taken/total=      1.4/    114.3 secs     av.it.  19.3
-         pert=    5     time taken/total=      1.4/    115.7 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.5/    117.2 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.5/    106.9 secs     av.it.  20.0
+         pert=    2     time taken/total=      1.5/    108.4 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.5/    109.9 secs     av.it.  19.3
+         pert=    4     time taken/total=      1.5/    111.3 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.5/    112.8 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.5/    114.3 secs     av.it.  19.9
 
      Computing P_c^-q2 |d^-q2 psi_k>
-         pert=    1     time taken/total=      1.4/    118.6 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.4/    119.9 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.3/    121.3 secs     av.it.  19.2
-         pert=    4     time taken/total=      1.3/    122.6 secs     av.it.  19.3
-         pert=    5     time taken/total=      1.4/    123.9 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.4/    125.3 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.5/    115.8 secs     av.it.  20.0
+         pert=    2     time taken/total=      1.4/    117.3 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.4/    118.7 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.4/    120.1 secs     av.it.  19.3
+         pert=    5     time taken/total=      1.4/    121.5 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.4/    122.9 secs     av.it.  19.9
 
      Computing P_c^G |d^-q2 psi_k+q2>
-         pert=    1     time taken/total=      1.5/    126.8 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.5/    128.2 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.5/    129.7 secs     av.it.  19.2
-         pert=    4     time taken/total=      1.4/    131.1 secs     av.it.  19.2
-         pert=    5     time taken/total=      1.4/    132.5 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.5/    134.0 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.5/    124.5 secs     av.it.  19.9
+         pert=    2     time taken/total=      1.5/    125.9 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.5/    127.5 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.5/    128.9 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.6/    130.5 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.5/    132.0 secs     av.it.  19.9
 
      Computing P_c^q3 |d^q3 psi_k>
-         pert=    1     time taken/total=      1.4/    135.4 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.4/    136.8 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.3/    138.1 secs     av.it.  19.2
-         pert=    4     time taken/total=      1.3/    139.5 secs     av.it.  19.2
-         pert=    5     time taken/total=      1.4/    140.9 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.4/    142.3 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.5/    133.5 secs     av.it.  19.9
+         pert=    2     time taken/total=      1.5/    134.9 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.4/    136.4 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.4/    137.8 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.5/    139.3 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.5/    140.7 secs     av.it.  19.9
 
      Computing P_c^G |d^q3 psi_k-q3>
-         pert=    1     time taken/total=      1.4/    143.7 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.5/    145.2 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.3/    146.5 secs     av.it.  19.2
-         pert=    4     time taken/total=      1.4/    147.9 secs     av.it.  19.3
-         pert=    5     time taken/total=      1.4/    149.3 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.4/    150.8 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.5/    142.2 secs     av.it.  20.0
+         pert=    2     time taken/total=      1.5/    143.8 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.5/    145.2 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.4/    146.6 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.5/    148.2 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.5/    149.7 secs     av.it.  19.9
 
      Computing P_c^-q3 |d^-q3 psi_k>
-         pert=    1     time taken/total=      1.4/    152.2 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.4/    153.6 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.3/    154.9 secs     av.it.  19.1
-         pert=    4     time taken/total=      1.3/    156.2 secs     av.it.  19.2
-         pert=    5     time taken/total=      1.4/    157.6 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.4/    159.0 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.7/    151.4 secs     av.it.  20.0
+         pert=    2     time taken/total=      1.7/    153.0 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.5/    154.6 secs     av.it.  19.3
+         pert=    4     time taken/total=      1.5/    156.1 secs     av.it.  19.2
+         pert=    5     time taken/total=      1.4/    157.5 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.5/    159.1 secs     av.it.  19.9
 
      Computing P_c^G |d^-q3 psi_k+q3>
-         pert=    1     time taken/total=      1.4/    160.4 secs     av.it.  20.4
-         pert=    2     time taken/total=      1.5/    161.9 secs     av.it.  20.4
-         pert=    3     time taken/total=      1.4/    163.3 secs     av.it.  19.2
-         pert=    4     time taken/total=      1.3/    164.6 secs     av.it.  19.2
-         pert=    5     time taken/total=      1.4/    166.0 secs     av.it.  20.3
-         pert=    6     time taken/total=      1.5/    167.5 secs     av.it.  20.4
+         pert=    1     time taken/total=      1.6/    160.6 secs     av.it.  19.9
+         pert=    2     time taken/total=      1.6/    162.3 secs     av.it.  19.5
+         pert=    3     time taken/total=      1.8/    164.1 secs     av.it.  19.2
+         pert=    4     time taken/total=      1.7/    165.7 secs     av.it.  19.1
+         pert=    5     time taken/total=      1.8/    167.5 secs     av.it.  19.7
+         pert=    6     time taken/total=      1.8/    169.3 secs     av.it.  19.9
 
      Computing <psi_k-q3 |d^q1V| psi_k+q2>
 
@@ -1186,7 +1193,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      Computing <psi_k-q1 |d^q3V| psi_k+q2>
 
 
-     generate_dwfc   cpu time:   109.24 sec    Total time:      174.82 sec
+     generate_dwfc   cpu time:   116.39 sec    Total time:      177.12 sec
 
      ================== nscf dpsi done =================
 
@@ -1207,7 +1214,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
        < Pc d^q3 psi_k-q3| dq1 V | psi_k-q1 >
        < Pc d^q3 psi_k-q3| dq2 V | psi_k-q2 >
        Additional term to precompute for valence contribution:
-     gen_dpsi1dv2psi     cpu time:    16.05 sec    Total time:      190.87 sec
+     gen_dpsi1dv2psi     cpu time:    12.48 sec    Total time:      189.60 sec
 
      ================== precomp done
 
@@ -1220,7 +1227,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
        <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
        <d^-q2 psi_k|d^q1  V|d^q3  psi_k>
        <d^-q1 psi_k|d^q2  V|d^q3  psi_k>
-     dpsi1dv2dpsi3 cpu time:    39.89 sec    Total time:      230.77 sec
+     dpsi1dv2dpsi3 cpu time:    31.09 sec    Total time:      220.69 sec
 
      ================== dpdvdp done
 
@@ -1233,7 +1240,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
        <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
        <d_-q2 psi_k+q2| d_q3 psi_k-q3> <psi_k-q3|d_q1 H|psi_k+q2>
        <d_-q1 psi_k+q1| d_q3 psi_k-q3> <psi_k-q3|d_q2 H|psi_k+q1>
-     dpsi1dpsi2dv3 cpu time:     0.22 sec    Total time:      230.99 sec
+     dpsi1dpsi2dv3 cpu time:     0.24 sec    Total time:      220.93 sec
 
      ================== dpdpdv done
 
@@ -1243,7 +1250,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
        <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
        <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
        <d_q3 psi_k| d^2_(q1,q2) V|psi_k>
-     drhod2v       cpu time:     4.30 sec    Total time:      235.29 sec
+     drhod2v       cpu time:     4.53 sec    Total time:      225.46 sec
 
      ================== dpd2v done
 
@@ -1251,7 +1258,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
 
 
      Calculating the matrix elements <psi |d^3v |psi>
-     d3vrho        cpu time:     0.59 sec    Total time:      235.88 sec
+     d3vrho        cpu time:     0.70 sec    Total time:      226.15 sec
 
      =================== rho d3v done ==================
 
@@ -1261,7 +1268,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      Calculating the Ewald contribution
 
      Alpha used in Ewald sum =   2.61
-     d3ionq        cpu time:     0.37 sec    Total time:      236.25 sec
+     d3ionq        cpu time:     0.37 sec    Total time:      226.53 sec
 
      ================== ewald done
 
@@ -1274,7 +1281,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      Computing 3-terms valence contribution   2  3  1
      Computing 3-terms valence contribution   3  1  2
      Computing 3-terms valence contribution   3  2  1
-     d3_valence    cpu time:     0.10 sec    Total time:      236.35 sec
+     d3_valence    cpu time:     0.08 sec    Total time:      226.61 sec
 
      ================== valence done
 
@@ -1287,7 +1294,7 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
        q2 q3 q1 
        q3 q1 q2 
        q3 q2 q1 
-     d3_exc        cpu time:     2.42 sec    Total time:      238.77 sec
+     d3_exc        cpu time:     2.16 sec    Total time:      228.77 sec
 
      ================ exc contrib done
 
@@ -1298,12 +1305,18 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
      CALLing d3matrix
        * symmetrizing with  4 sym.ops.
        point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0
        point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.1o2_-1o2_0_Q3.-1o2_1_0
        point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_0_0_Q2.0_1o2_0_Q3.-1o2_-1o2_0
        point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_1o2_0_Q2.-1o2_0_0_Q3.1_-1o2_0
        point #  5  : star #  5  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_-1o2_0_Q2.0_-1o2_0_Q3.-1o2_1_0
        point #  6  : star #  6  perm #  1 ( 1 2 3 )
-     d3matrix      cpu time:     0.03 sec    Total time:      238.80 sec
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.-1o2_1o2_0_Q3.1_-1o2_0
+     d3matrix      cpu time:     0.02 sec    Total time:      228.79 sec
 
      =============== computing D3 done
 
@@ -1311,55 +1324,55 @@ Possibly too few bands at point   54   0.75000   0.72169   0.00000
 
      ================== cleanup done
  
-     D3TOTEN      :    223.88s CPU    238.83s WALL (       3 calls)
+     D3TOTEN      :    223.85s CPU    228.82s WALL (       3 calls)
  
       NSCF calculation of ground-state wfcs
-     init_run     :      0.18s CPU      0.23s WALL (       3 calls)
-     electrons    :     11.68s CPU     13.84s WALL (       3 calls)
-     c_bands      :     11.68s CPU     13.84s WALL (       3 calls)
-     cegterg      :      8.96s CPU      9.05s WALL (      91 calls)
+     init_run     :      0.19s CPU      0.26s WALL (       3 calls)
+     electrons    :     13.89s CPU     14.01s WALL (       3 calls)
+     c_bands      :     13.88s CPU     14.01s WALL (       3 calls)
+     cegterg      :      9.58s CPU      9.67s WALL (      91 calls)
  
       NSCF calculation of perturbed wfcs
-     generate_dwf :    122.37s CPU    131.49s WALL (       3 calls)
-     solve_linter :    122.37s CPU    131.48s WALL (     148 calls)
-     ortho        :      0.17s CPU      0.19s WALL (     774 calls)
-     cgsolve      :     93.88s CPU     95.48s WALL (     774 calls)
-     incdrhoscf   :      0.32s CPU      0.34s WALL (      54 calls)
-     set_efsh     :      0.00s CPU      0.01s WALL (       8 calls)
+     generate_dwf :    136.21s CPU    139.26s WALL (       3 calls)
+     solve_linter :    136.19s CPU    138.84s WALL (     148 calls)
+     ortho        :      0.19s CPU      0.19s WALL (     774 calls)
+     cgsolve      :    104.07s CPU    105.86s WALL (     774 calls)
+     incdrhoscf   :      0.36s CPU      0.38s WALL (      54 calls)
+     set_efsh     :      0.01s CPU      0.01s WALL (       8 calls)
  
-     ch_psi       :     90.85s CPU     92.34s WALL (   20132 calls)
-     h_psiq       :     82.87s CPU     84.26s WALL (   20132 calls)
+     ch_psi       :    100.90s CPU    102.63s WALL (   19987 calls)
+     h_psiq       :     92.63s CPU     94.23s WALL (   19987 calls)
  
-     firstfft     :     36.46s CPU     37.07s WALL (  101199 calls)
-     secondfft    :     32.70s CPU     33.10s WALL (  101199 calls)
+     firstfft     :     42.16s CPU     42.91s WALL (  100536 calls)
+     secondfft    :     36.04s CPU     36.64s WALL (  100536 calls)
  
       D3 setup and pre-calculations
      d3_setup     :      0.00s CPU      0.00s WALL (       3 calls)
      d3_setup_noq :      0.01s CPU      0.01s WALL (       1 calls)
-     d3_init      :      0.57s CPU      0.69s WALL (       3 calls)
-     gen_dpsi1dv2 :     19.89s CPU     20.76s WALL (       3 calls)
-     dpsi1dv2psi  :     19.08s CPU     19.90s WALL (      17 calls)
+     d3_init      :      0.67s CPU      0.69s WALL (       3 calls)
+     gen_dpsi1dv2 :     15.82s CPU     16.40s WALL (       3 calls)
+     dpsi1dv2psi  :     15.15s CPU     15.71s WALL (      17 calls)
  
       D3 matrix elements
-     dpsi1dv2dpsi :     54.16s CPU     55.71s WALL (      10 calls)
-     dpsi1dpsi2dv :      0.15s CPU      0.32s WALL (      10 calls)
-     dq1rhodq23v  :      6.56s CPU      6.74s WALL (       6 calls)
-     rhodq123v    :      1.45s CPU      1.47s WALL (       3 calls)
-     d3ionq       :      2.14s CPU      2.14s WALL (       3 calls)
-     d3_smr_ijk   :      0.08s CPU      0.15s WALL (      10 calls)
+     dpsi1dv2dpsi :     43.03s CPU     43.56s WALL (      10 calls)
+     dpsi1dpsi2dv :      0.28s CPU      0.35s WALL (      10 calls)
+     dq1rhodq23v  :      7.11s CPU      7.16s WALL (       6 calls)
+     rhodq123v    :      1.38s CPU      1.38s WALL (       3 calls)
+     d3ionq       :      1.10s CPU      1.10s WALL (       3 calls)
+     d3_smr_ijk   :      0.11s CPU      0.13s WALL (      10 calls)
      d3_smr_ij    :      0.01s CPU      0.01s WALL (       2 calls)
      d3_smr_gamma :      0.00s CPU      0.00s WALL (       1 calls)
-     d3_exc_gc    :      3.75s CPU      4.19s WALL (      10 calls)
-     d3matrix     :      0.03s CPU      0.04s WALL (       3 calls)
+     d3_exc_gc    :      3.37s CPU      3.66s WALL (      10 calls)
+     d3matrix     :      0.02s CPU      0.03s WALL (       3 calls)
  
       Input/output
      drho_add_pha :      0.00s CPU      0.00s WALL (      12 calls)
      drho_change_ :      0.00s CPU      0.01s WALL (       2 calls)
-     read_drho    :      0.81s CPU      1.30s WALL (    2940 calls)
-     davcio       :      1.26s CPU      1.55s WALL (   66615 calls)
+     read_drho    :      1.06s CPU      1.18s WALL (    2940 calls)
+     davcio       :      1.13s CPU      1.24s WALL (   62172 calls)
  
       General routines
-     calbec       :      6.98s CPU      7.21s WALL (   41927 calls)
+     calbec       :      7.41s CPU      7.53s WALL (   41637 calls)
  
       Parallel routines
-     fft_scatter  :     12.87s CPU     12.99s WALL (  308847 calls)
+     fft_scatter  :     12.71s CPU     12.99s WALL (  307523 calls)

@@ -12,6 +12,7 @@
   nk = 60,60,1     ! size of the integration grid (not converged!)
   nconf = 1         ! number of configurations sigma/temperature to read
   nq = 4            ! number of q-point lines to read
+  grid_type = 'random'
 /
  CONFIGS
  50.0 10

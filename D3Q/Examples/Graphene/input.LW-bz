@@ -11,6 +11,7 @@
   asr2 = 'simple'   ! second order sum rule, analogous to "crystal"
   nk = 60,60,1     ! size of the integration grid (not converged!)
   nconf = 1         ! number of configurations sigma/temperature to read
+  grid_type = 'random'
 /
  CONFIGS
  50.0 10

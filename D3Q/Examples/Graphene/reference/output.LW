@@ -3,11 +3,11 @@
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
@@ -37,7 +37,7 @@
  START_Q =           1,
  NQ      =           4,
  NK      = 2*60,           1,
- GRID_TYPE       = simple,
+ GRID_TYPE       = random,
  NE      =          -1,
  DE      =   1.00000000000000     ,
  E0      =  0.000000000000000E+000,
@@ -81,13 +81,13 @@
     Number of R:                49
  WARNING! FC2 and FC3 systems DO NOT MATCH !!!
  Reading : done.
- Memory used :            2 Mb
+ Memory used :            3 Mb
  calculation: lw              imag            
  Reading CONFIGS           1
   Temperatures:
      10.0
   Smearings:   
-     50.0
+   50.000
  
  Reading QPOINTS
   Path turning point:     0.500000
@@ -143,7 +143,9 @@
       0.486111    0.027778    0.000000       1.313025
       0.500000    0.000000    0.000000       1.344082
  
-  Setup a simple grid of     3600 q-points
+ --> Setting up inner grid
+  Random grid shift    0.480378    0.050771    0.000000
+  Setup a random grid of     3600 q-points
   Going to compute    49 points (1)
      1     0.50000000     0.00000000     0.00000000
      2     0.47500000     0.00000000     0.00000000
@@ -194,27 +196,27 @@
     47     0.47222222     0.05555550     0.00000000
     48     0.48611111     0.02777775     0.00000000
     49     0.50000000     0.00000000     0.00000000
-   * WALL :       6.3944 s
+   * WALL :       6.3780 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *                 lw ph-ph *     5493.091870 *       28.025979 *       21972.367 *      112.103916 *   85.904 *         196. *
+   *                 lw ph-ph *     5521.262072 *       28.169704 *       22085.048 *      112.678818 *   86.567 *         196. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *      683.822462 *        0.003872 *        2735.290 *        0.015489 *   10.694 *      176596. *
-   *             bose distrib *       51.318724 *        0.000291 *         205.275 *        0.001164 *    0.803 *      176400. *
-   *                sum modes *      560.718294 *        0.003179 *        2242.873 *        0.012715 *    8.769 *      176400. *
-   *          fc3 interpolate *      256.322169 *        0.001453 *        1025.289 *        0.005812 *    4.008 *      176400. *
-   *           fc3 modulus sq *       48.896403 *        0.000277 *         195.586 *        0.001109 *    0.765 *      176400. *
-   *               fc3 rotate *     3592.257549 *        0.020364 *       14369.030 *        0.081457 *   56.177 *      176400. *
-   *        mpi communication *       85.319403 *        0.435303 *         341.278 *        1.741212 *    1.334 *         196. *
-   *         merge degenerate *       35.607590 *        0.000202 *         142.430 *        0.000807 *    0.557 *      176400. *
+   *         ph interp & diag *      652.272723 *        0.003694 *        2609.091 *        0.014774 *   10.227 *      176596. *
+   *             bose distrib *       48.987727 *        0.000278 *         195.951 *        0.001111 *    0.768 *      176400. *
+   *                sum modes *      542.747163 *        0.003077 *        2170.989 *        0.012307 *    8.510 *      176400. *
+   *          fc3 interpolate *      389.179167 *        0.002206 *        1556.717 *        0.008825 *    6.102 *      176400. *
+   *           fc3 modulus sq *       43.873092 *        0.000249 *         175.492 *        0.000995 *    0.688 *      176400. *
+   *               fc3 rotate *     3555.966422 *        0.020159 *       14223.866 *        0.080634 *   55.753 *      176400. *
+   *        mpi communication *      103.361774 *        0.527356 *         413.447 *        2.109424 *    1.621 *         196. *
+   *         merge degenerate *       31.630444 *        0.000179 *         126.522 *        0.000717 *    0.496 *      176400. *
  
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
-         Phys. Rev. B 87, 214303 – Published 7 June 2013
+         Phys. Rev. B 87, 214303 (2013)
       
      For thermal transport calculations please cite:
       2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
-         Phys. Rev. B 88, 045430 – Published 17 July 2013
+         Phys. Rev. B 88, 045430 (2013)
       3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,

@@ -36,10 +36,10 @@ echo "computing 3-body force constants"
 ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 1 mat3R > d3_qq2rr.out
 
 echo "appying sum rules 3-body force constants"
-$bin/d3_asr3.x mat3R mat3R.asr 1.e-12 10000 > d3_asr3.out
+$bin/d3_asr3.x -i mat3R -o mat3R.asr -t 1.e-12 -n 10000 -p 1 > d3_asr3.out
 
 echo "preparing sparse representation of 3-body force constants"
-$bin/d3_sparse.x mat3R.asr mat3R.asr.sparse 0. 10000 > d3_sparse.out
+$bin/d3_sparse.x -i mat3R.asr -o mat3R.asr.sparse -t 0. -n 10000 > d3_sparse.out
 
 echo "doing linewidth dispersion calculation (path)"
 $pref $bin/d3_lw.x -in input.LW > output.LW

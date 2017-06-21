@@ -8,10 +8,11 @@
   nk_in =  32,32,1
   isotopic_disorder=.false.
   casimir_scattering = .false.
-  nconf = 10
+  nconf = 11
+  grid_type='random'
  /
 CONFIGS
-50.	5.
+20.	5.
 	10.
 	20.
 	30.
@@ -19,5 +20,6 @@ CONFIGS
 	70.
 	100.
 	200.
+	300.
 	500.
 	1000.
