@@ -1,32 +1,69 @@
 !
+! Written by Lorenzo Paulatto (2017) IMPMC @ UPMC / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
 MODULE cmdline_param_module
 
   USE kinds, ONLY : DP
   !
   IMPLICIT NONE
-  
-
-!   INTERFACE cmdline_param
-!     MODULE PROCEDURE cmdline_param_char
-!     MODULE PROCEDURE cmdline_param_dble
-!     MODULE PROCEDURE cmdline_param_int
-!   END INTERFACE
+  !
+  PRIVATE
+  ! 
+  ! Each of the following functions will parse a single command line argument
+  ! after parsing, the argument will be removed from command line, calling it
+  ! again will cause an error.
+  ! 
+  PUBLIC :: cmdline_param_char
+  ! Example: 
+  !   char_var = cmdline_param_char('c' [, default="def value"] [,found])
+  ! Return a character array with content "value" from argument '-c value',
+  ! will stop if argument is not found, unless default is specified.
+  ! I the optional logical argument "found" is present, it will be set to 
+  ! false when the default value is used, to true if the argument is found.
+  !
+  PUBLIC :: cmdline_param_dble
+  ! Example: 
+  !   dble_var = cmdline_param_char('f' [, default=0.d0] [,found])
+  ! Same as above, but tries to read a double-precision FP number
+  !
+  PUBLIC :: cmdline_param_int
+  ! Example: 
+  !   int_var = cmdline_param_char('i' [, default=1] [,found])
+  ! Same as above, but tries to read an integer number
+  !
+  PUBLIC :: cmdline_param_logical
+  ! Example:
+  !    bool_var = cmdline_param_logical('b')
+  ! Returns true if "-b" is found in the command line, false otherwise.
+  !
+  PUBLIC :: cmdline_check_exausted
+  ! Check that there are no command line options left in the command line,
+  ! issues an error message and stops if any is found.
+  !
+  PUBLIC :: cmdline_residual
+  ! Returns all that is left in the command line after stripping the command name
+  ! (i.e. the executable name, argument 0). It also calls cmdline_check_exausted
   !
   INTEGER :: length = -1
   CHARACTER(len=:),ALLOCATABLE :: command
   !
   CONTAINS
 
-  REAL(DP) FUNCTION cmdline_param_dble(switch, default)
+  REAL(DP) FUNCTION cmdline_param_dble(switch, default, found)
     IMPLICIT NONE
     CHARACTER(len=1),INTENT(in)  :: switch
     REAL(DP),OPTIONAL,INTENT(in) :: default
+    LOGICAL,OPTIONAL,INTENT(out) :: found
     !
     CHARACTER(len=:),ALLOCATABLE :: char_value
     INTEGER :: ios
     REAL(DP) :: value
     !
-    char_value = cmdline_param_char(switch, default=' ')
+    char_value = cmdline_param_char(switch, default=' ', found=found)
     READ(char_value,*,iostat=ios) value
     IF(ios/=0) THEN
       IF(present(default)) THEN
@@ -41,16 +78,17 @@ MODULE cmdline_param_module
     !
   END FUNCTION
   !
-  INTEGER FUNCTION cmdline_param_int(switch, default)
+  INTEGER FUNCTION cmdline_param_int(switch, default, found)
     IMPLICIT NONE
     CHARACTER(len=1),INTENT(in)  :: switch
     INTEGER,OPTIONAL,INTENT(in) :: default
+    LOGICAL,OPTIONAL,INTENT(out) :: found
     !
     CHARACTER(len=:),ALLOCATABLE :: char_value
     INTEGER :: ios
     INTEGER :: value
     !
-    char_value = cmdline_param_char(switch, default=' ')
+    char_value = cmdline_param_char(switch, default=' ', found=found)
     READ(char_value,*,iostat=ios) value
     IF(ios/=0) THEN
       IF(present(default)) THEN
