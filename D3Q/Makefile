@@ -2,7 +2,7 @@
 # Adapted from TDDFPT main Makefile
 
 SUBDIRS = src thermal2  
-OPTDIRS = 
+OPTDIRS = tools
 
 default: all
 
@@ -25,9 +25,12 @@ clean_examples :
 $(SUBDIRS) $(OPTDIRS): FORCE
 	test -d $@ && (cd $@ ; $(MAKE) $(MFLAGS) all) 
 
+MYNAME = $(shell basename $(CURDIR))
 distrib: veryclean
 	( cd ..; \
-	tar --exclude .svn -czvf d3q.tgz D3Q; \
-	tar --exclude .svn -cJvf d3q.tar.xz D3Q )
+	rm -rf d3q-latest; \
+	ln -s $(MYNAME) d3q-latest; \
+	tar --exclude .svn -czvf $(MYNAME).tgz d3q-latest $(MYNAME) ) 
+#	tar --exclude .svn -cJvf d3q.tar.xz $$myname )
 
 FORCE:
