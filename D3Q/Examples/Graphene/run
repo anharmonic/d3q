@@ -14,8 +14,8 @@ mkdir -p $ESPRESSO_D3DIR
 echo ================================================================
 
 bin="$ESPRESSO_BIN"
-pref="mpirun -np 4 "  # e.g. "mpirun -np 4 "
-post="-npool 4 "  # e.g. "-npool 4 " 
+pref=" "  # e.g. "mpirun -np 4 "
+post=" "  # e.g. "-npool 4 " 
 
 # STEP1: pw.x calculation, then ph.x calculation
 echo "pw calculation"

@@ -10,7 +10,7 @@ for i in Silicon Graphene Tutorial*/DAY*/PART* ; do
 done
 
 # Re-create these directories:
-mkdir -p DAY3-ANHARMONICITY/PART1/FIL{DYN,D3DYN}
+mkdir -p Tutorial2016/DAY3-ANHARMONICITY/PART1/FIL{DYN,D3DYN}
 
 # In import_FD we only delete mat3R* (not mat2R)
 (
