@@ -55,83 +55,14 @@ SUBROUTINE d3_init
   CALL start_clock('d3_init')
   !
   IF(ALLOCATED(nbnd_occ))  DEALLOCATE(nbnd_occ)
+  !
   CALL setup_nbnd_occ()
-!   ALLOCATE ( nbnd_occ(nks) )
-!   nbnd_occ = 0
-!   IF (lgauss) THEN
-!      !
-!      ! discard conduction bands such that w0gauss(x,n) < small
-!      !
-!      !
-!      ! - limit appropriated for gaussian broadening (used for all ngauss)
-!      !
-!      xmax = SQRT ( - LOG (SQRT (pi) * small) )
-!      !
-!      ! - limit appropriated for Fermi-Dirac
-!      !
-!      IF (ngauss == - 99) THEN
-!         fac = 1.d0 / SQRT (small)
-!         xmax = 2.d0 * LOG (0.5d0 * (fac + SQRT (fac**2 - 4.0d0) ) )
-!      ENDIF
-!      target_w = ef + xmax * degauss
-!      !WRITE(stdout,'(5x,"target:",1f12.4)') target
-!      DO ik = 1, tot_nks
-!         DO ibnd = 1, nbnd
-!            !WRITE(stdout,'(5x,"       ",2i6,1f12.4)') ik,ibnd, et (ibnd, ik)
-!            IF (et (ibnd, ik) < target_w) THEN
-!               nbnd_occ(ik) = ibnd
-!            !ELSE
-!            !   WRITE(stdout,'(5x,"       ","------------")')
-!            ENDIF
-!         ENDDO
-!         IF (nbnd_occ(ik) == nbnd) &
-!              WRITE( stdout, '(5x,/,"Possibly too few bands at point ", &
-!              & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
-! !         IF (nbnd_occ (ik) >  nbnd) &
-! !              WRITE( stdout, '(5x,/,"WARNING! Definitely too few bands at point ", &
-! !              & i4,3f10.5)') ik,  (xk (ipol, ik) , ipol = 1, 3)
-!      ENDDO
-! !      WRITE(stdout,'(5x,a,i4)') "WARNING!! nbnd_occ == nbnd", nbnd
-! !      nbnd_occ = nbnd
-!   ELSE
-!      IF (lsda) CALL infomsg (sub, 'occupation numbers probably wrong')
-!      nbnd_occ(1:tot_nks) = NINT(nelec/degspin)
-!   ENDIF
   !
-  ! ==============================================================================================
-  ! Computes alpha_pv
-  !
-!   emin = et(1, 1)
-!   DO ik = 1, nksq
-!      DO ibnd = 1, nbnd_occ(ik)
-!         emin = MIN (emin, et (ibnd, ik) )
-!      ENDDO
-!   ENDDO
-!   ! find the minimum across pools
-!   CALL mp_min( emin, inter_pool_comm )
-!   !
-!   IF (lgauss) THEN
-!      emax = target_w
-!      alpha_pv = emax - emin
-!   ELSE
-!     emax = et(1, 1)
-!     DO ik = 1, nksq
-!        DO ibnd = 1, nbnd_occ(ik)
-!           emax = MAX (emax, et (ibnd, ik) )
-!        ENDDO
-!     ENDDO
-!     CALL mp_max( emax, inter_pool_comm )
-!     alpha_pv = 2._dp * (emax - emin)
-!   ENDIF
-!   ! find the maximum across pools
-!   !
-!   ! avoid zero value for alpha_pv
-!   alpha_pv = MAX (alpha_pv, 1.e-2_dp)
   CALL setup_alpha_pv()
   !
   WRITE(stdout,'(5x,"alpha_pv:",1f12.4)') alpha_pv
   !
-  ! ==============================================================================================
+  ! ===========================================================================================
   !
   ! NOTE: allocation has to be done in advance, or in the following loop pointers
   !       could point to yet-unallocated arrays

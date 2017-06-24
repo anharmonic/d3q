@@ -368,8 +368,8 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     DO icart = 1, 3
       DO jcart = 1, 3
           LOOP_ON_BANDS : &
-          !DO ibnd = 1, MIN(nbnd_occ(ikq_gamm), nbnd_occ(ikq_drho))
-          DO ibnd = 1, nbnd!_occ(ikq_gamm)
+          DO ibnd = 1, MIN(nbnd_occ(ikq_gamm), nbnd_occ(ikq_drho))
+          !DO ibnd = 1, nbnd!_occ(ikq_gamm)
             ! Note: in this loops, xk(*,ikq_drho) is actually k+q
             !
             IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:30')
@@ -429,15 +429,12 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
                   CALL mp_sum( alpha, intra_pool_comm )
                   CALL mp_sum( beta,  intra_pool_comm )
                   !
-!                   WRITE(10999,'(3i6,3x,99i6)') ik, ikq_gamm, ikq_drho,jcart,nt,na
                   DO ih = 1, nh(nt)
-!                   WRITE(10999,'(1i6,4(2f12.6,2x))') ih,alpha(:,ih)
                   DO jh = 1, nh(nt)
-!                   WRITE(10999,'(2i6,4(2f12.6,2x))') ih,jh,beta(:,jh)
                     d3dyn_wrk (na_icart,na_jcart) = d3dyn_wrk (na_icart,na_jcart) &
                            +( alpha(1,ih) * beta(1,jh) + alpha(2,ih) * beta(2,jh)&
                              -alpha(3,ih) * beta(3,jh) - alpha(4,ih) * beta(4,jh) ) &
-                            * dvan(ih, jh, nt) * kplusq(0)%wk(ik) !* 2._dp
+                            * dvan(ih, jh, nt) * kplusq(0)%wk(ik)
                   ENDDO
                   ENDDO
                   !
@@ -567,14 +564,19 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
       CALL davcio(psi_q, lrwfc, iuwfc, ik0, -1) ! psi_q are actually psi_Gamma from here on
     ENDIF
     !
-    IF(nu==1 .and. ik==1) &
-       WRITE(stdout, "(10x,a)") "-> including Efermi_shift correction for |d^G psi_k>"
-    !
-    DO ibnd = 1, nbnd_occ(ikq)
-       wfshift = 0.5_dp * ef_sh(nu) * w0gauss( (ef - et(ibnd, ikq))*degaussm1, ngauss)*degaussm1
-       CALL daxpy(2*npw, wfshift, psi_q (1, ibnd), 1, dpsi (1, ibnd), 1) ! <-- ugly
-!       CALL zaxpy(npw, CMPLX(wfshift,0._dp,kind=DP), psi_q (:, ibnd), 1, dpsi (:, ibnd), 1)
-     ENDDO
+    IF(ABS(ef_sh(nu))>1.d-12)THEN
+      IF(nu==1 .and. ik==1) &
+        WRITE(stdout, "(10x,a)") "-> including Efermi_shift correction for |d^G psi_k>"
+      !
+      DO ibnd = 1, nbnd_occ(ikq)
+        wfshift = 0.5_dp * ef_sh(nu) * &
+                  w0gauss((ef-et(ibnd, ikq))*degaussm1, ngauss)*degaussm1
+        CALL daxpy(2*npw, wfshift, psi_q (1, ibnd), 1, dpsi (1, ibnd), 1) 
+      ENDDO
+    ELSE
+      IF(nu==1 .and. ik==1) &
+        WRITE(stdout, "(10x,a)") "-> skipping null Efermi_shift correction for |d^G psi_k>"
+    ENDIF
   ENDIF
   !
   DEALLOCATE(psi_q)
