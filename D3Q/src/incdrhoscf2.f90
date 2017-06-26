@@ -102,12 +102,12 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
      endif
 
      do ig = 1, npwd
-        dpsic (nls (igkd (ig) ) ) = dpsi(ig, ibnd)
+        dpsic(nls(igkd(ig))) = dpsi(ig, ibnd)
      enddo
      call invfft('Wave', dpsic, dffts)
 
      do ir = 1, dffts%nnr
-        drhoscf(ir) = drhoscf(ir) + wgt * CONJG(psic(ir) ) * dpsic(ir)
+        drhoscf(ir) = drhoscf(ir) + wgt * CONJG(psic(ir)) * dpsic(ir)
         !            if (ir.lt.20) WRITE( stdout,*)   drhoscf(ir)
      enddo
 
