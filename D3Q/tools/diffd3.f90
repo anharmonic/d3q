@@ -11,6 +11,7 @@ PROGRAM read3
   REAL(DP) :: xq1(3), xq2(3), xq3(3), maxdiff, maxperc, perc, diff
   COMPLEX(DP),ALLOCATABLE :: p3(:,:,:, :,:,:), q3(:,:,:, :,:,:)
   CHARACTER(len=256) :: fname1, fname2, basename
+  CHARACTER(len=5) :: format_version
   INTEGER :: natoms, i,j,k,a,b,c
   LOGICAL :: found, exst
   !
@@ -46,7 +47,8 @@ PROGRAM read3
   !CALL read_d3dyn_xml(fname2, d3=q3)
   INQUIRE(file=fname1, exist=exst)
   IF(.not. exst) STOP 1
-  CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, celldm=celldm, at=at)
+  CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, celldm=celldm, at=at, file_format_version=format_version)
+  IF(format_version=="1.0.0") p3 = CONJG(p3)
 
 !  write(0,'(3(3f8.4,2x))') xq1,xq2,xq3
 
@@ -56,7 +58,8 @@ PROGRAM read3
 
   INQUIRE(file=fname2, exist=exst)
   IF(.not. exst) STOP 2
-  CALL read_d3dyn_xml(fname2, xq1, xq2, xq3, d3=q3)!, seek=.true.)
+  CALL read_d3dyn_xml(fname2, xq1, xq2, xq3, d3=q3, file_format_version=format_version)
+  IF(format_version=="1.0.0") q3 = CONJG(q3)
   !
   maxdiff = 0._dp
   maxperc = 0._dp
@@ -73,9 +76,9 @@ PROGRAM read3
     DO j = 1,3
     DO k = 1,3
         diff = ABS(p3(i,j,k,a,b,c)-q3(i,j,k,a,b,c))
-        maxdiff = MAX(maxdiff,diff)
+        maxdiff = MAX(maxdiff,ABS(diff))
         IF(diff>1.d-5)THEN
-            perc = 100*(abs(p3(i,j,k,a,b,c))-abs(q3(i,j,k,a,b,c)))/(abs(p3(i,j,k,a,b,c))+abs(q3(i,j,k,a,b,c)))
+            perc = 100*abs(p3(i,j,k,a,b,c)-q3(i,j,k,a,b,c))/(abs(p3(i,j,k,a,b,c))+abs(q3(i,j,k,a,b,c)))
             maxperc = MAX(maxperc,ABS(perc))
         ELSE
             perc=0._dp
