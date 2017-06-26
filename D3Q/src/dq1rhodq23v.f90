@@ -241,9 +241,7 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
           d3dyn_wrk(na_icart, na_jcart) = d3dyn_wrk(na_icart, na_jcart) &
                 + (xq(icart) + g(icart, ng)) * (xq(jcart) + g(jcart, ng)) &
                 *  d3v(iq_drho)%loc(ng, ityp(na)) * struct_factor(ng) * drhoscf_G(nl(ng))
-!          WRITE(10088, '(4i6,99f12.6)') na, icart, jcart, ng, d3v(iq_drho)%loc(ng, ityp(na)), struct_factor(ng), drhoscf_G(nl(ng))
         ENDDO
-!        WRITE(10099,'(3i6,99f15.9)') na, icart, jcart, d3dyn_wrk(na_icart, na_jcart)
         !
       ENDDO
     ENDDO
