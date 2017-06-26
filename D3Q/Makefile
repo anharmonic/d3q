@@ -30,7 +30,8 @@ distrib: veryclean
 	( cd ..; \
 	rm -rf d3q-latest; \
 	ln -s $(MYNAME) d3q-latest; \
-	tar --exclude .svn -czvf $(MYNAME).tgz d3q-latest $(MYNAME) ) 
+	ln -s d3q-latest D3Q; \
+	tar --exclude .svn -czvf $(MYNAME).tgz d3q-latest D3Q $(MYNAME) ) 
 #	tar --exclude .svn -cJvf d3q.tar.xz $$myname )
 
 FORCE:
