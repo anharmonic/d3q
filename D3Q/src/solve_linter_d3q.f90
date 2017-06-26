@@ -191,7 +191,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE qpoint,     ONLY : nksq
   USE units_ph,   ONLY : iuwfc, lrwfc, lrdwf
   USE d3com,      ONLY : ethr_ph
-  USE kplus3q,    ONLY : kplusq, q_sum_rule
+  USE kplus3q,    ONLY : kplusq, q_sum_rule, nbnd_max
   USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm
   USE mp,         ONLY : mp_sum
   USE d3_iofiles, ONLY : lrpdqvp
@@ -316,14 +316,9 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
      mode = imode0 + ipert
      CALL dq_vscf(mode, dvloc(:,ipert), xq_prt, iq_prt, u_prt)
   ENDDO
-
   !
   ! fixme:
   drhoscf = (0._dp, 0._dp)
-  !
-  !REWIND (unit = kplusq(iq_wfc)%iunigkq)
-!   IF (.not.kplusq(iq_wfc)%lsame(iq_prj)) &!
-  !REWIND (unit = kplusq(iq_prj)%iunigkq) ! two rewinds do not hurt
   !
   KPOINTS_LOOP : &
   DO ik = 1, nksq
@@ -351,16 +346,12 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
     ! calculate the variation of the non-local part of the K-S potential
     CALL init_us_2 (npw_wfc, igk_wfc, xk(1, ik_wfc), vkb_wfc)
     !
-!     IF (kplusq(iq_wfc)%lsame(iq_prj)) THEN
-    IF (ik_wfc == ik_prj) THEN
       ! If the two q vectors are equal just copy
-      !npw_prj = npw_wfc
-      !igk_prj = igk_wfc
+    IF (ik_wfc == ik_prj) THEN
       psi_prj = psi_wfc
       vkb_prj = vkb_wfc
     ELSE
       ! Otherwise, we have to repeat for q_prj
-      !READ (kplusq(iq_prj)%iunigkq, iostat = ios) npw_prj, igk_prj
       CALL davcio (psi_prj, lrwfc, iuwfc, ik_prj, -1)
       CALL init_us_2 (npw_prj, igk_prj, xk(1, ik_prj), vkb_prj)
       !
@@ -405,7 +396,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
                   wg2 = wgauss( (ef-et(jbnd, ik_prj) ) * degaussm1, ngauss)
                   wwg = (wg1 - wg2) / deltae
                 ELSE
-                  wwg = - w0gauss( (ef - et (ibnd, ik_wfc) ) * degaussm1, ngauss) * degaussm1
+                  wwg = - w0gauss( (ef-et(ibnd, ik_wfc))*degaussm1, ngauss)*degaussm1
                 ENDIF
                 !
                 psidvpsi = 0.5_dp * wwg * psidvpsi
@@ -434,15 +425,15 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       !
       CALL start_clock ('ortho')
       wwg = 1._dp
-      DO ibnd = 1, nbnd_occ(ik_prj)
-          auxg = (0._dp, 0._dp)
-          DO jbnd = 1, nbnd
+      DO ibnd = 1, nbnd_occ(ik_wfc)
+          auxg = CMPLX(0._dp, 0._dp, kind=DP)
+          DO jbnd = 1, nbnd_max
               ps (jbnd) = - wwg * ZDOTC(npw_prj, psi_prj(1,jbnd), 1, dvpsi(1,ibnd), 1)
           ENDDO
           !
           CALL mp_sum ( ps, intra_pool_comm )
           !
-          DO jbnd = 1, nbnd_occ(ik_prj)
+          DO jbnd = 1, nbnd_max !_occ(ik_prj)
               CALL ZAXPY(npw_prj, ps (jbnd), psi_prj(1, jbnd), 1, auxg, 1)
           ENDDO
           !
@@ -457,9 +448,12 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       ! dvpsi=-P_c^+ (dvscf)*psi
       !
       dpsi = (0._dp, 0._dp)
-      DO ibnd = 1, nbnd_occ(ik_prj)
-          auxg (1:npw_prj) = g2kin_prj(1:npw_prj) * psi_prj (1:npw_prj, ibnd)
-          eprec1 = PRECONDITIONING_FACTOR * REAL(ZDOTC(npw_prj, psi_prj(:, ibnd), 1, auxg, 1),kind=DP)
+      DO ibnd = 1, nbnd_occ(ik_wfc)
+          DO ig = 1, npw_prj
+            auxg (ig) = g2kin_prj(ig) * psi_prj(ig, ibnd)
+          ENDDO
+          eprec1 = PRECONDITIONING_FACTOR &
+                  *DBLE(ZDOTC(npw_prj, psi_prj(:, ibnd), 1, auxg, 1))
           !
           CALL mp_sum ( eprec1, intra_pool_comm )
           !
@@ -470,33 +464,12 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
           ENDDO
       ENDDO
       !
-      ! Massive amount of old debug line, everything necessary to compute dwfcs is printed here:
-      ! WRITE(10000+unit_dpsi,*) "______________________________________________________________________"
-      ! WRITE(10000+unit_dpsi,*) ik, ipert, imode0, irr, npe, iq_wfc, iq_prj, iq_prt
-      ! WRITE(10000+unit_dpsi,*) nbnd_occ(ik_prj), npwx, npw_prj, thresh, ik_prj, et(:, ik_wfc)
-      ! WRITE(10000+unit_dpsi,*) nls, dffts%nr1, dffts%nr2, dffts%nr3, dffts%nr1x, dffts%nr2x, dffts%nr3x, dfftp%nnr
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') psi_prj(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') psi_wfc(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') dvloc(1:15,ipert)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') vrs(1:15,:)
-      ! WRITE(10000+unit_dpsi,*) "===1"
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') h_diag(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') dvpsi(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') becp%k !(1:2,1:2)
-      ! WRITE(10000+unit_dpsi,*) igk_wfc(1:15), igk_prj(1:15)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') vkb_wfc(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') vkb_prj(1:50:10,:)
-      ! WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') g2kin_prj
-      ! WRITE(10000+unit_dpsi,*) "===2"
-      !
       ! Solve the linear problem! Computes the first derivative of wfcs
       conv_root = .true.
-      nproj = nbnd_occ(ik_prj)
+      nproj = nbnd_max !_occ(ik_prj)
       CALL cgsolve_all (d3_ch_psi, d3_cg_psi, et(:, ik_wfc), dvpsi, dpsi, &
            h_diag, npwx, npw_prj, thresh, ik_prj, lter, conv_root, anorm, &
-           nbnd_occ(ik_prj), 1)
-
-!       WRITE(10000+unit_dpsi,'(100(2f10.5,2x))') dpsi(1:50:10,:)
+           nbnd_occ(ik_wfc), 1)
       !
       ltaver = ltaver + lter
       lintercall = lintercall + 1
@@ -513,17 +486,20 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       CALL davcio (dpsi, lrdwf, unit_dpsi, nrec, + 1)
       !
       IF (lmetal) THEN
-          DO ibnd = 1, nbnd_occ(ik_wfc)
-            wg1 = wgauss ( (ef - et(ibnd, ik_wfc) ) * degaussm1, ngauss)
-            CALL dscal (2*npw_prj, wg1, dpsi(1, ibnd), 1)
+          DO ibnd = 1, nbnd !_occ(ik_wfc)
+            wg1 = wgauss( (ef-et(ibnd,ik_wfc))*degaussm1, ngauss)
+            CALL dscal(2*npw_prj, wg1, dpsi(1, ibnd), 1)
           ENDDO
-          CALL daxpy(2*npwx * nbnd, 1._dp, dpsiaux, 1, dpsi, 1)
+          CALL daxpy(2*npw_prj * nbnd, 1._dp, dpsiaux, 1, dpsi, 1)
       ENDIF
       !
       ! This is used to calculate Fermi energy shift at q=0 in metals
       !
       IF (lmetq0) THEN
-          CALL incdrhoscf2 (drhoscf(1, ipert), npw_wfc, igk_wfc, psi_wfc, &
+!           CALL incdrhoscf2 (drhoscf(1, ipert), npw_wfc, igk_wfc, psi_wfc, &
+!                             npw_prj, igk_prj, dpsi, kplusq(iq_wfc)%wk(ik), &
+!                             kplusq(iq_prj)%ikqs(ik), 1)
+          CALL incdrhoscf2 (drhoscf(1, ipert), npw_prj, igk_prj, psi_prj, &
                             npw_prj, igk_prj, dpsi, kplusq(iq_wfc)%wk(ik), &
                             kplusq(iq_prj)%ikqs(ik), 1)
       ENDIF
