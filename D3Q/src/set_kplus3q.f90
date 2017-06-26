@@ -26,6 +26,8 @@ MODULE kplus3q
   ! note that it can be less than 4*orig_nks if some points are equal to each other,
   ! or equal to Gamma
   !
+  INTEGER :: nbnd_max
+  !
   TYPE kplus3q_type
     REAL(DP) :: xq(3)      ! coordinates of the q-point from input (alat units)
     REAL(DP) :: xq_drho(3) ! coordinates of the q-point of the ph.x calculation (alat units)

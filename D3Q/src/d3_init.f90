@@ -27,26 +27,17 @@ SUBROUTINE d3_init
   USE uspp,          ONLY : nlcc_any
   USE d3com,         ONLY : d3v, d3c
   USE mp,            ONLY : mp_barrier
-  USE kplus3q,       ONLY : write_igkq_d3, nksq, kplusq, tot_nks
+  USE kplus3q,       ONLY : write_igkq_d3, nksq, kplusq, tot_nks, nbnd_max
   USE pwcom,         ONLY : lsda, ef
   USE control_lr,    ONLY : alpha_pv, nbnd_occ
-!   USE klist,         ONLY : nks, ngauss, degauss, nelec, &
-!                             xk, lgauss
-!   USE klist,         ONLY : lgauss
+  USE klist,         ONLY : lgauss, nelec
   USE wvfct,         ONLY : et, nbnd
 
   IMPLICIT NONE
   ! local vars:
   INTEGER :: ik, nt
   INTEGER :: iq, ibnd, ipol
-!   REAL(DP) :: emin, emax, target_w            ! for alpha_pv
-  !REAL(DP) :: xmax, fac, target_w ! for nbnd_occ
-  ! parameters:
-  !REAL(DP),PARAMETER :: small = 6.9626525973374d-5
-     !   small = 1.0333492677046d-2  ! corresponds to 2 gaussian sigma
-     !   small = 6.9626525973374d-5  ! corresponds to 3 gaussian sigma
-     !   small = 6.3491173359333d-8  ! corresponds to 4 gaussian sigma
-     !
+  !
   CHARACTER(len=7),PARAMETER :: sub = 'd3_init'
   !
   ! ==============================================================================================
@@ -57,6 +48,12 @@ SUBROUTINE d3_init
   IF(ALLOCATED(nbnd_occ))  DEALLOCATE(nbnd_occ)
   !
   CALL setup_nbnd_occ()
+  !
+  IF(lgauss)THEN
+    nbnd_max = nbnd
+  ELSE
+    nbnd_max = NINT(nelec/degspin)
+  ENDIF
   !
   CALL setup_alpha_pv()
   !

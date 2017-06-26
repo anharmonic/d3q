@@ -28,7 +28,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   USE mp_pools,     ONLY : me_pool, inter_pool_comm
   USE mp,           ONLY : mp_sum
   USE mp_world,     ONLY : world_comm
-  USE kplus3q,      ONLY : kplusq, q_sum_rule
+  USE kplus3q,      ONLY : kplusq, q_sum_rule, nbnd_max
   USE d3_iofiles,   ONLY : iu_psi_dH_psi, lrpdqvp
   USE control_lr,   ONLY : nbnd_occ
 
@@ -36,7 +36,8 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
   COMPLEX(DP),INTENT(inout)   :: d3dyn( 3*nat, 3*nat, 3*nat)
   INTEGER,INTENT(in)          :: iq1,iq2,iq3
   LOGICAL,OPTIONAL,INTENT(in) :: order
-  REAL(DP),PARAMETER :: trm1 = (2._dp / 6._dp)
+  REAL(DP),PARAMETER :: twosixth = (2._dp / 6._dp)
+  REAL(DP),PARAMETER :: onesixth = (2._dp / 6._dp)
 
   INTEGER :: ik, ik_i, ik_j, ik_k, &
              ibnd, jbnd, kbnd, &
@@ -142,11 +143,11 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
       CALL davcio(pdvp_k, lrpdqvp, iu_psi_dH_psi(-iq3,iq3), nrec, - 1)
         !
         BANDS_LOOPS : &
-        DO ibnd = 1,nbnd_occ(ik_i)
-        DO jbnd = 1,nbnd_occ(ik_j)
+        DO ibnd = 1,nbnd_max !_occ(ik_i)
+        DO jbnd = 1,nbnd_max !_occ(ik_j)
           de_ij = et(ibnd, ik_i) - et(jbnd, ik_j)
           de_ji = -de_ij
-          DO kbnd = 1,nbnd_occ(ik_k)
+          DO kbnd = 1,nbnd_max !_occ(ik_k)
             de_jk = et(jbnd, ik_j) - et(kbnd, ik_k)
             de_kj = -de_jk
             de_ik = et(ibnd, ik_i) - et(kbnd, ik_k)
@@ -157,7 +158,8 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
                 .and. ABS(de_jk) < 2*eps &
                 .and. ABS(de_ki) < 2*eps ) &
             THEN
-              wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
+              !wrk = 0.5_dp * w1g_i(ibnd) !+w1g_j(jbnd)+w1g_k(kbnd))/3._dp
+              wrk = onesixth*(w1g_i(ibnd)+w1g_j(jbnd)+w1g_k(kbnd))
             ELSEIF( ABS(de_ij) < eps) THEN
               wrk = ( (wg_i(ibnd)-wg_k(kbnd))/de_jk + w0g_i(ibnd) )/de_ki
             ELSEIF( ABS(de_jk) < eps) THEN
@@ -170,7 +172,7 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
             ENDIF
             !
             d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3)) &
-                                  + trm1 *wrk *kplusq(0)%wk(ik) &
+                                  + twosixth *wrk *kplusq(0)%wk(ik) &
                                     *pdvp_i(jbnd, ibnd) &
                                     *pdvp_j(kbnd, jbnd) &
                                     *pdvp_k(ibnd, kbnd)
@@ -179,7 +181,6 @@ SUBROUTINE d3_valence_ijk(iq1, iq2, iq3, d3dyn, order)
         ENDDO &
         BANDS_LOOPS
         !
-  !      CLOSE(10000*iq1+1000*iq2+nu(1)*100+nu(2)*10+nu(3))
       ENDDO
       ENDDO
       ENDDO &
@@ -219,7 +220,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   USE mp_pools,        ONLY : inter_pool_comm, me_pool
   USE io_global,       ONLY : stdout
   USE mp,              ONLY : mp_sum
-  USE kplus3q,         ONLY : kplusq, q_sum_rule
+  USE kplus3q,         ONLY : kplusq, q_sum_rule, nbnd_max
   USE d3_iofiles,      ONLY : iu_psi_dH_psi, iudpdvp, lrpdqvp, lrdpdvp
   USE d3_efermi_shift, ONLY : read_efsh, ef_sh
   !
@@ -290,24 +291,22 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
       PERT_MQ_LOOP : &
       DO nu_pq = 1,3*nat
         nrec = nu_pq + (ik-1) * 3*nat
-  !       CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
         CALL davcio(pdvp_pq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
         !
         PERT_PQ_LOOP : &
         DO nu_mq = 1,3*nat
           nrec = nu_mq + (ik-1) * 3*nat
-  !         CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(iq_p,iq_m),nrec, -1)
           CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
           !
-          nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   ! <-- exchage pq and mq to get conjug at 0,q,-q
+          nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   ! <-- exchage pq and mq to get conjg at 0,q,-q
           CALL davcio(dpsidvpsi, lrdpdvp, iudpdvp(iq_p), nrec, -1)
           !
           PERT_GAMMA_LOOP : &
           DO nu_ef = 1,3*nat
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd_occ(ikG)
-            DO jbnd = 1,nbnd_occ(ikpq)
+            DO ibnd = 1,nbnd_max !_occ(ikG)
+            DO jbnd = 1,nbnd_max !_occ(ikpq)
               de = et(ibnd,ikG) - et(jbnd,ikpq)
               IF(ABS(de)>eps) THEN
                 wrk = ( w0gauss((ef-et(ibnd,ikG)) *degaussm1,ngauss) &
@@ -324,7 +323,7 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
             d3dyn_aux(nu(1),nu(2),nu(3)) = d3dyn_aux(nu(1),nu(2),nu(3))+0.5_dp*bsum
             !
             bsum = (0._dp, 0._dp)
-            DO ibnd = 1,nbnd_occ(ikG)
+            DO ibnd = 1,nbnd_max !_occ(ikG)
               bsum = bsum + kplusq(iq_ef)%wk(ik)*ef_sh(nu_ef)*dpsidvpsi(ibnd,ibnd) &
                            *w0gauss((ef-et(ibnd,ikG))*degaussm1,ngauss)*degaussm1
             ENDDO
@@ -365,7 +364,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   USE ions_base,        ONLY : nat
   USE mp_global,        ONLY : inter_pool_comm
   USE mp,               ONLY : mp_sum
-  USE kplus3q,          ONLY : kplusq
+  USE kplus3q,          ONLY : kplusq, nbnd_max
   USE d3_efermi_shift,  ONLY : read_efsh, ef_sh
   USE io_global,        ONLY : stdout
   USE d3_iofiles,       ONLY : iu_psi_dH_psi, lrpdqvp
@@ -408,7 +407,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   DO ik = 1, nksq
     ikG = kplusq(0)%ikqs(ik)
     !
-    DO ibnd = 1, nbnd_occ(ikG)
+    DO ibnd = 1, nbnd_max !_occ(ikG)
         d_dos = d_dos + kplusq(0)%wk(ik) * w_1gauss((ef-et(ibnd, ikG))*degaussm1, ngauss)*degaussm1**2
     ENDDO
     DO nu_i = 1, 3 * nat
@@ -416,7 +415,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
         nrec = nu_i + (ik - 1) * 3 * nat
         CALL davcio (pdvp_i, lrpdqvp, iu_psi_dH_psi(0,1), nrec, -1)
         !
-        DO ibnd = 1, nbnd_occ(ikG)
+        DO ibnd = 1, nbnd_max !_occ(ikG)
           aux (nu_i) = aux(nu_i) + pdvp_i(ibnd, ibnd)*kplusq(0)%wk(ik) &
                                   *w_1gauss((ef-et(ibnd,ikG))*degaussm1, ngauss)*degaussm1**2
         ENDDO

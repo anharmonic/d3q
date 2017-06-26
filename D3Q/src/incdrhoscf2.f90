@@ -26,6 +26,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
   USE fft_base,       ONLY : dffts
   USE fft_interfaces, ONLY : invfft
   USE uspp,           ONLY : okvan
+  USE kplus3q,        ONLY : nbnd_max
 
   implicit none
   integer,intent(in) :: ikk
@@ -73,7 +74,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
   ! dpsi contains the   perturbed wavefunctions of this k point
   ! evc  contains the unperturbed wavefunctions of this k point
   !
-  do ibnd = 1, nbnd_occ(ikk)
+  do ibnd = 1, nbnd_max !_occ(ikk)
      psic (:) = (0.d0, 0.d0)
      do ig = 1, npw
         psic (nls (igk (ig) ) ) = psi(ig, ibnd)

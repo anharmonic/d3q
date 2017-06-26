@@ -99,9 +99,9 @@ d3_iofiles.o : ../../Modules/mp_world.o
 d3_iofiles.o : ../../Modules/recvec.o
 d3_iofiles.o : ../../Modules/uspp.o
 d3_iofiles.o : ../../Modules/wrappers.o
-d3_iofiles.o : ../../Modules/xml_io_base.o
 d3_iofiles.o : ../../PHonon/PH/dfile_autoname.o
 d3_iofiles.o : ../../PHonon/PH/phcom.o
+d3_iofiles.o : ../../PW/src/io_rho_xml.o
 d3_iofiles.o : ../../PW/src/pwcom.o
 d3_iofiles.o : ../../PW/src/scf_mod.o
 d3_iofiles.o : ./d3_basis.o
@@ -426,6 +426,7 @@ incdrhoscf2.o : ../../Modules/kind.o
 incdrhoscf2.o : ../../Modules/recvec.o
 incdrhoscf2.o : ../../Modules/uspp.o
 incdrhoscf2.o : ../../PW/src/pwcom.o
+incdrhoscf2.o : ./set_kplus3q.o
 print_clock_d3.o : ../../Modules/io_global.o
 qstar_d3.o : ../../Modules/kind.o
 rhodq123v.o : ../../FFTXlib/fft_interfaces.o

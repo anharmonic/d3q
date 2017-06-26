@@ -36,7 +36,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE modes,          ONLY : npertx
   USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
-  USE kplus3q,        ONLY : kplusq
+  USE kplus3q,        ONLY : kplusq, nbnd_max
   USE control_lr,     ONLY : nbnd_occ
   IMPLICIT NONE
   INTEGER :: npe, imode0, irr
@@ -66,7 +66,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
      DO ik = 1, nksq
         ikk = kplusq(0)%ikqs(ik)
         weight = kplusq(0)%wk(ik)
-        DO ibnd = 1, nbnd_occ(ikk)
+        DO ibnd = 1, nbnd_max !_occ(ikk)
            wdelta = w0gauss((ef - et(ibnd, ikk))/degauss, ngauss) / degauss
            dos_ef = dos_ef + weight * wdelta
 !             write(*,'(4i6,99e24.12)') ik, ibnd, ikk, ngauss, &

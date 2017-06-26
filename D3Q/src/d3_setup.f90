@@ -134,7 +134,6 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   ! total up charge
   ! total down charge
   ! auxiliary variables used
-  ! to set nbnd_occ in the metallic case
   ! minimum band energy
   ! maximum band energy
   ! working array

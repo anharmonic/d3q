@@ -282,7 +282,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE control_lr,      ONLY : nbnd_occ
   USE mp_global,       ONLY : intra_pool_comm
   USE mp,              ONLY : mp_sum
-  USE kplus3q,         ONLY : nksq, kplusq !iunigk, iunigkq2, ikks, ikq_drho2s, kplusq
+  USE kplus3q,         ONLY : nksq, kplusq, nbnd_max 
   USE d3_iofiles,      ONLY : iu_dwfc
   USE d3_efermi_shift, ONLY : read_efsh
   !
@@ -368,8 +368,8 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
     DO icart = 1, 3
       DO jcart = 1, 3
           LOOP_ON_BANDS : &
-          DO ibnd = 1, MIN(nbnd_occ(ikq_gamm), nbnd_occ(ikq_drho))
-          !DO ibnd = 1, nbnd!_occ(ikq_gamm)
+          !DO ibnd = 1, MIN(nbnd_occ(ikq_gamm), nbnd_occ(ikq_drho))
+          DO ibnd = 1, nbnd_max
             ! Note: in this loops, xk(*,ikq_drho) is actually k+q
             !
             IF (prof_dq1rhod2v) CALL start_clock('dq23v_nlc:30')
@@ -483,7 +483,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   USE control_lr,      ONLY : nbnd_occ
   USE d3_efermi_shift, ONLY : ef_sh
   USE io_global,       ONLY : stdout
-  USE kplus3q,         ONLY : kplusq
+  USE kplus3q,         ONLY : kplusq, nbnd_max
   USE d3_iofiles,      ONLY : iu_psi_dH_psi, lrpdqvp
 
   IMPLICIT NONE
@@ -527,7 +527,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   !
   IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:30')
   ! Multiply dpsi by the theta function
-  DO ibnd = 1, nbnd_occ(ik0)
+  DO ibnd = 1, nbnd_max !_occ(ik0)
      wg1 = wgauss( (ef - et(ibnd, ik0) )*degaussm1, ngauss)
      CALL dscal(2 * npwq, wg1, dpsi(:, ibnd), 1)
   ENDDO
@@ -536,8 +536,8 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   ! Adds to dpsi the term containing the valence wavefunctions
   !
   IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:40')
-  DO ibnd = 1, nbnd_occ(ik0)
-     DO jbnd = 1, nbnd_occ(ikq)
+  DO ibnd = 1, nbnd_max !_occ(ik0)
+     DO jbnd = 1, nbnd_max !_occ(ikq)
         deltae = et(ibnd, ik0) - et(jbnd, ikq)
         IF (ABS(deltae) > 1.0d-5) THEN
            wg1 = wgauss ( (ef - et(ibnd, ik0) )*degaussm1, ngauss)
@@ -558,13 +558,14 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   !
   IF (prof_dq1rhod2v) CALL start_clock('dpsi_corr:50')
   IF (kplusq(iq)%lgamma) THEN
-    ! Next line is only used when memory-saving tricks are disabled in set_kplus3q
-    IF(ik0/=ikq) THEN ! or, equivalently: .not.kplusq(iq)%lsame(0)
-       IF(nu==1 .and. ik==1) WRITE(stdout, "(10x,a)") "-> reading |psi_k>"
-      CALL davcio(psi_q, lrwfc, iuwfc, ik0, -1) ! psi_q are actually psi_Gamma from here on
-    ENDIF
     !
     IF(ABS(ef_sh(nu))>1.d-12)THEN
+      ! Next line is only used when memory-saving tricks are disabled in set_kplus3q
+      IF(ik0/=ikq) THEN ! or, equivalently: .not.kplusq(iq)%lsame(0)
+         IF(nu==1 .and. ik==1) WRITE(stdout, "(10x,a)") "-> reading |psi_k>"
+        CALL davcio(psi_q, lrwfc, iuwfc, ik0, -1) ! psi_q are actually psi_Gamma from here on
+      ENDIF
+      !
       IF(nu==1 .and. ik==1) &
         WRITE(stdout, "(10x,a)") "-> including Efermi_shift correction for |d^G psi_k>"
       !
