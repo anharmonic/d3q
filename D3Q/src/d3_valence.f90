@@ -245,10 +245,11 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   INTEGER,VOLATILE,TARGET  :: nu(3)
   CHARACTER(len=14),PARAMETER :: sub="d3_valence_ij"
   !
+  ! This term only applies to metals
+  IF (.not. lgauss) RETURN
+  !
   ! This term is only non-zero when ef_sh is non-zero at this point:
   IF (.not.kplusq(iq_ef)%lgamma) RETURN
-  !
-  IF (.not. lgauss) RETURN
   !
   CALL start_clock('d3_smr_ij')
   !
@@ -276,6 +277,9 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
   CALL read_efsh()
   d3dyn_aux = (0._dp, 0._dp)
   !
+  ! Return if all Fermi shifts are zero (i.e. in high symmetry materials)
+  IF(ALL(ABS(ef_sh)<1.d-12)) RETURN
+  !
   ! Only one CPU per pool works (no sums over plane waves here)
   IF(me_pool==0) THEN
     !
@@ -298,7 +302,8 @@ SUBROUTINE d3_valence_ij(iq_ef, iq_p, iq_m, d3dyn) !, order)
           nrec = nu_mq + (ik-1) * 3*nat
           CALL davcio(pdvp_mq, lrpdqvp, iu_psi_dH_psi(0,iq_p),nrec, -1)
           !
-          nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   ! <-- exchage pq and mq to get conjg at 0,q,-q
+          nrec = nu_mq + (nu_pq-1)*3*nat + (ik-1)*(3*nat)**2   
+          !         ^-- exchage pq and mq to get conjg at 0,q,-q
           CALL davcio(dpsidvpsi, lrdpdvp, iudpdvp(iq_p), nrec, -1)
           !
           PERT_GAMMA_LOOP : &
