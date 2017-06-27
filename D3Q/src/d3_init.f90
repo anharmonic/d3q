@@ -32,6 +32,7 @@ SUBROUTINE d3_init
   USE control_lr,    ONLY : alpha_pv, nbnd_occ
   USE klist,         ONLY : lgauss, nelec
   USE wvfct,         ONLY : et, nbnd
+  USE d3_debug,      ONLY : dbg_full_bands
 
   IMPLICIT NONE
   ! local vars:
@@ -48,6 +49,12 @@ SUBROUTINE d3_init
   IF(ALLOCATED(nbnd_occ))  DEALLOCATE(nbnd_occ)
   !
   CALL setup_nbnd_occ()
+  !
+  IF(dbg_full_bands)THEN
+    WRITE(stdout,*) "WARNING!",&
+                    "Solving the Sternheimer equation with all empty bands."
+    nbnd_occ(:) = nbnd
+  ENDIF
   !
   IF(lgauss)THEN
     nbnd_max = nbnd

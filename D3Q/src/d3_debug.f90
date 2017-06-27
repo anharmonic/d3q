@@ -29,6 +29,8 @@ MODULE d3_debug
   LOGICAL :: &
     dbg_write_d3_parts = .false., &
     dbg_add_core = .true. 
+    
+   LOGICAL :: dbg_full_bands = .false.
 
 CONTAINS
 !-----------------------------------------------------------------------
@@ -45,7 +47,8 @@ SUBROUTINE read_d3_debug(u)
    dbg_do_smearing, dbg_do_smr_ijk, dbg_do_smr_ij, dbg_do_smr_g, &
    dbg_do_exc, dbg_exc_do_gga, &
    dbg_do_nlcc, dbg_do_nlcc_0, dbg_do_nlcc_123, &
-   dbg_write_d3_parts, dbg_add_core 
+   dbg_write_d3_parts, dbg_add_core, &
+   dbg_full_bands
 
     dbg_do_dwfc       = .true.
     dbg_do_dpdvp      = .true.
@@ -66,6 +69,8 @@ SUBROUTINE read_d3_debug(u)
    !
    dbg_write_d3_parts = .false.
    dbg_add_core      = .true.
+   !
+   dbg_full_bands = .false.
    !
    WRITE(stdout,'(5x,a)') "Checking for debug instructions."
    READ (u, d3_debug, iostat = ios)
@@ -112,6 +117,7 @@ SUBROUTINE bcast_d3_debug
    !
    CALL mp_bcast( dbg_write_d3_parts, ionode_id, world_comm)
    CALL mp_bcast( dbg_add_core, ionode_id, world_comm)
+   CALL mp_bcast( dbg_full_bands, ionode_id, world_comm)
 #endif
     !   
   !-----------------------------------------------------------------------
