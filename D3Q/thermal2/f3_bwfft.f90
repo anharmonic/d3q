@@ -510,7 +510,8 @@ MODULE f3_bwfft
     
   END SUBROUTINE update_rlist
   ! \/o\________\\\________________\\/\_________________________/^>
-  SUBROUTINE test_fwfft_d3(nq_trip, S, d3grid, fc3, write_diff, write_diff_prefix)
+  SUBROUTINE test_fwfft_d3(nq_trip, S, d3grid, fc3, &
+                diff_stop, write_diff, write_diff_prefix)
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
@@ -520,7 +521,7 @@ MODULE f3_bwfft
     TYPE(d3_list),INTENT(in) :: d3grid(nq_trip)
     TYPE(grid),INTENT(in)    :: fc3
     TYPE(ph_system_info),INTENT(in) :: S
-    LOGICAL,INTENT(in) :: write_diff
+    LOGICAL,INTENT(in) :: diff_stop, write_diff
     CHARACTER(len=*),INTENT(in) :: write_diff_prefix
     
     COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:), D3_6idx(:,:,:,:,:,:)
@@ -556,7 +557,13 @@ MODULE f3_bwfft
     ENDDO
     !
     IF(found) THEN
-      WRITE(*,*) "  WARNING! BW/FW FFT discrepancy was found! "
+      IF(diff_stop)THEN
+        WRITE(*,*) "  ERROR!! BW/FW FFT discrepancy was found! "
+        WRITE(*,*) "  This indicates a serious problem with D3 matrices "
+        STOP 1
+      ELSE
+        WRITE(*,*) "  WARNING! BW/FW FFT discrepancy was found! "
+      ENDIF
     ELSE
       WRITE(*,*) "  BW/FW FFT fine."
     ENDIF

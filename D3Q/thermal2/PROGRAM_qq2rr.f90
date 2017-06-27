@@ -81,10 +81,10 @@ PROGRAM qq2rr
   !
   WRITE(*,*) "Testing Forward FFT, with imaginary part..."
   WRITE(*,*) "(you can stop the code with CTRL-C to avoid running tests)  "
-  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, write_diff, "anh_cmplx")
+  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .true., write_diff, "anh_cmplx")
   WRITE(*,*) "Testing Forward FFT, without imaginary part..."
   DEALLOCATE(fc3%ifc)
-  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, write_diff, "anh_real")
+  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .false., write_diff, "anh_real")
   WRITE(*,*) "Testing forward FFT done"
   !
 END PROGRAM qq2rr
