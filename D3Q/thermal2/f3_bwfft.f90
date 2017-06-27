@@ -510,7 +510,7 @@ MODULE f3_bwfft
     
   END SUBROUTINE update_rlist
   ! \/o\________\\\________________\\/\_________________________/^>
-  SUBROUTINE test_fwfft_d3(nq_trip, S, d3grid, fc3)
+  SUBROUTINE test_fwfft_d3(nq_trip, S, d3grid, fc3, write_diff, write_diff_prefix)
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
@@ -520,6 +520,8 @@ MODULE f3_bwfft
     TYPE(d3_list),INTENT(in) :: d3grid(nq_trip)
     TYPE(grid),INTENT(in)    :: fc3
     TYPE(ph_system_info),INTENT(in) :: S
+    LOGICAL,INTENT(in) :: write_diff
+    CHARACTER(len=*),INTENT(in) :: write_diff_prefix
     
     COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:), D3_6idx(:,:,:,:,:,:)
     REAL(DP) :: rmaxi, imaxi
@@ -544,12 +546,13 @@ MODULE f3_bwfft
         found = .true.
         WRITE(*,'("    Imag:",i8,3(3f12.4,3x),es20.8)') iq, d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, imaxi
       ENDIF
-!       IF(rmaxi>1.d-6 .or. imaxi>1.d-6)THEN
-!         CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
-!         CALL write_d3dyn_xml("diff", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
-!                             D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
-!                             S%tau, S%atm, S%amass)
-!       ENDIF
+      IF(write_diff .and. (rmaxi>1.d-6 .or. imaxi>1.d-6) )THEN
+        CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
+        CALL write_d3dyn_xml(trim(write_diff_prefix), &
+                            d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
+                            D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
+                            S%tau, S%atm, S%amass)
+      ENDIF
     ENDDO
     !
     IF(found) THEN
