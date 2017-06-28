@@ -57,9 +57,24 @@ PROGRAM d3_sc2c
   COMPLEX(DP),PARAMETER :: ii = (0._dp, 1._dp)
   COMPLEX(DP) :: phase
   !
-  NAMELIST / input / fileD3SC, fileD3UC
-  CALL input_from_file ( ) 
-  READ ( 5, input )
+  INTEGER,INTRINSIC :: iargc
+  INTEGER :: nargs
+  !
+  nargs = iargc()
+  !
+  IF(nargs>=1) THEN
+    CALL getarg(1, fileD3UC)
+  ELSE
+    PRINT*, "Note: you can also pass the file names on command line"
+    PRINT*, "enter unit cell file"
+    READ(*,"(a256)") fileD3UC
+  ENDIF
+  IF(nargs>=2) THEN
+    CALL getarg(2, fileD3SC)
+  ELSE
+    PRINT*, "enter super-cell file"
+    READ(*,"(a256)") fileD3SC
+  ENDIF
 
   ! Read the third order dynamical matrices of the supercell and the unit cell
   DO i = 1,2

@@ -21,6 +21,7 @@ PROGRAM read3
   title="bogus title"
   first=.true.
   !
+  OPEN(unit=iudyn, file="d3.txt", status='unknown')
   FILES_LOOP : &
   DO WHILE(.true.)
     READ(*,'(a256)',iostat=ios) fname1   ! <-- the first one is the full file (e.g. anh_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0)
@@ -82,7 +83,9 @@ PROGRAM read3
 
   END DO &
   FILES_LOOP
- !
+  !
+  close(iudyn)
+  !
 END PROGRAM read3
 
 
