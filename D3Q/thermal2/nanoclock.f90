@@ -134,10 +134,41 @@ MODULE nanoclock
     
   END SUBROUTINE print_nanoclock
   
+  ! \/o\________\\\_________________________________________/^>
   FUNCTION get_wall()
     REAL(kind=DP) :: get_wall
     get_wall= REAL(c_nanosec(), kind=DP)
   END FUNCTION
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_percent_wall(gran_pc, gran_sec, i, n, reset)
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: gran_pc, gran_sec
+    INTEGER,INTENT(in) :: i, n
+    LOGICAL,INTENT(in) :: reset
+    !
+    REAL(DP),SAVE :: last_print = 0._dp
+    REAL(DP),SAVE :: iter_start = 0._dp
+    REAL(DP) :: wall, fact
+    LOGICAL ::print_now
+    !
+    fact = 100._dp / gran_pc
+    !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
+    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.5_dp*fact/n
+
+    wall = get_wall()
+    print_now = print_now .or. (wall-last_print)>gran_sec
+!    print_now = print_now .and. (wall-last_print)>gran_sec/10._dp
+
+    print_now = print_now .or. (i==n)
+
+    IF(reset) iter_start = wall
+
+    IF(print_now)THEN
+      last_print = wall
+      ioWRITE(stdout,'(f12.1,"%       STEP time:",f12.1,"s     WALL time:",f12.1,"s ")') &
+                     100*DBLE(i-1)/(n-1), wall-iter_start,         wall
+    ENDIF
+  END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_timers_header()
     IMPLICIT NONE

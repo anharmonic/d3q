@@ -57,6 +57,7 @@ MODULE code_input
     REAL(DP) :: casimir_dir(3)
     !
     INTEGER :: nk(3), nk_in(3)
+    REAL(DP) :: xk0(3), xk0_in(3)
     !
     ! only for tk:
     REAL(DP) :: thr_tk
@@ -161,6 +162,8 @@ MODULE code_input
     INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
     INTEGER            :: start_q = 1                ! skip the preceeding points when computing a BZ path
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
+    REAL(DP)           :: xk0(3) = 0._dp             ! grid shift as fraction of half grid step
+    REAL(DP)           :: xk0_in(3) = 0._dp             ! grid shift as fraction of half grid step
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
     LOGICAL            :: sort_shifted_freq = .false. ! sort w+l_shift
@@ -217,7 +220,7 @@ MODULE code_input
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, start_q, nq, nk, grid_type, &
+      nconf, start_q, nq, nk, grid_type, xk0, &
       ne, de, e0, e_initial, q_initial, q_resolved, sigmaq,&
       exp_t_factor, sort_shifted_freq, &
       isotopic_disorder, &
@@ -228,7 +231,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       thr_tk, niter_max, &
-      nconf, nk, nk_in, grid_type, &
+      nconf, nk, nk_in, grid_type, xk0, xk0_in, &
       isotopic_disorder, store_lw, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time, restart
@@ -236,7 +239,7 @@ MODULE code_input
     NAMELIST  / dbinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, file_mat2_final, asr2, &
-      nconf, nk, nq, grid_type, print_dynmat, &
+      nconf, nk, nq, xk0, grid_type, print_dynmat, &
       ne, de, e0, &
       max_seconds, max_time
 
@@ -244,7 +247,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, asr2, nq, &
       ne, de, e0, &
-      nk, nconf, grid_type, &
+      nk, nconf, grid_type, xk0, &
       print_dynmat, print_velocity
       !
     input_file="input."//TRIM(code)
@@ -309,6 +312,7 @@ MODULE code_input
     input%start_q   = start_q
     input%nconf     = nconf
     input%nk        = nk
+    input%xk0       = 0.5_dp*xk0/input%nk
     input%grid_type = grid_type
     input%exp_t_factor = exp_t_factor
     input%sort_shifted_freq = sort_shifted_freq
@@ -326,6 +330,7 @@ MODULE code_input
     !
     IF(ANY(nk_in<0)) nk_in = nk
     input%nk_in            = nk_in
+    input%xk0_in    = 0.5_dp*xk0_in/input%nk_in
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
@@ -343,6 +348,8 @@ MODULE code_input
     !
 !     IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
 !         CALL errore('READ_INPUT', 'Missing nq', 1)    
+    CALL cryst_to_cart(1,input%xk0,S%bg, +1)
+    CALL cryst_to_cart(1,input%xk0_in,S%bg, +1)
     !
     IF(TRIM(prefix)==INVALID)THEN
       input%prefix = TRIM(input%calculation)//"_"//TRIM(input%mode)
@@ -581,7 +588,7 @@ MODULE code_input
       ENDIF
       !
       ioWRITE(*,*) "--> Setting up outer grid"
-      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false.)
+      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false., xq0=input%xk0)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &

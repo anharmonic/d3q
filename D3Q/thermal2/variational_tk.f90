@@ -68,6 +68,7 @@ MODULE variational_tk
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
     USE mpi_thermal,        ONLY : mpi_bsum
+    USE nanoclock,          ONLY : print_percent_wall
     USE timers
     IMPLICIT NONE
     !
@@ -94,6 +95,8 @@ MODULE variational_tk
     QPOINT_LOOP : &
     DO iq = 1,out_grid%nq
       ! 
+      CALL print_percent_wall(20._dp, 600._dp, iq, out_grid%nq, (iq==1))
+      !
       timer_CALL t_lwphph%start()
       !
       ! Compute the ph-ph and the isotope scattering terms
@@ -456,6 +459,7 @@ MODULE variational_tk
     USE casimir_linewidth,  ONLY : casimir_linewidth_vel
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
+    USE nanoclock,          ONLY : print_percent_wall
     USE timers
     IMPLICIT NONE
     !
@@ -492,6 +496,7 @@ MODULE variational_tk
     timer_CALL t_tktld%stop()
 
     DO iq = 1,out_grid%nq
+      CALL print_percent_wall(20._dp, 600._dp, iq, out_grid%nq, (iq==1))
       ! apply A_in
       Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
             sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)

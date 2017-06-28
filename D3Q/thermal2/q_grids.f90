@@ -99,7 +99,12 @@ MODULE q_grids
       IF(SUM(ABS(xq0))>0._dp) THEN
         grid%xq0 = xq0
         grid%shifted = .true.
-        ioWRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
+        IF(grid_type=="random") THEN
+          ioWRITE(stdout, "(2x,a,3f12.6)") &
+            "WARNING! Random grid: ignoring grid shift from input", grid%xq0
+        ELSE
+          ioWRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
+        ENDIF
       ENDIF
     ENDIF
     !
@@ -112,18 +117,16 @@ MODULE q_grids
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
       ENDIF
     ELSE IF(grid_type=="random")THEN
-      IF(.not.present(xq0))THEN
-        ! Do not add a random shift in the direction where 
-        ! only on point is requested
-        grid%xq0 = 0._dp
-        IF(n1>1) grid%xq0(1) = randy()
-        IF(n2>1) grid%xq0(2) = randy()
-        IF(n3>1) grid%xq0(3) = randy()
-        grid%shifted = .true.
-        ioWRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
-      ELSE
-        ioWRITE(stdout, "(2x,a,3f12.6)") "(Random shift request ignored)"
-      ENDIF
+      ! Do not add a random shift in the direction where 
+      ! only on point is requested.
+      ! The random shift is inside the first grid cell
+      grid%xq0 = 0._dp
+      IF(n1>1) grid%xq0(1) = randy()/DBLE(grid%n(1))
+      IF(n2>1) grid%xq0(2) = randy()/DBLE(grid%n(2))
+      IF(n3>1) grid%xq0(3) = randy()/DBLE(grid%n(3))
+      CALL cryst_to_cart(1,grid%xq0,bg, +1)
+      grid%shifted = .true.
+      ioWRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
       !
       IF(.not.do_scatter)THEN
         ! If the grid is not mpi-scattered I use the simple subroutine

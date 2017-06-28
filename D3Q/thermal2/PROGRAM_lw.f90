@@ -30,6 +30,7 @@ MODULE linewidth_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
+    USE nanoclock,          ONLY : print_percent_wall
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -48,11 +49,9 @@ MODULE linewidth_program
     REAL(DP)   :: sigma_ry(input%nconf)
     CHARACTER(len=15) :: f1, f2
     CHARACTER(len=256) :: filename
-    ! RAFTEST
-    INTEGER :: nu
     !
     ioWRITE(*,*) "--> Setting up inner grid"
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
     !CALL grid%scatter()
     !
     IF(ionode)THEN
@@ -90,7 +89,8 @@ MODULE linewidth_program
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
     DO iq = 1,qpath%nq
-      ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+      !ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
+      CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
       !
@@ -255,7 +255,7 @@ MODULE linewidth_program
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
     ioWRITE(*,*) "--> Setting up inner grid"
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
     !CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))
@@ -367,7 +367,7 @@ MODULE linewidth_program
     ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
     !
     ioWRITE(*,*) "--> Setting up inner grid"
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true.)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
     !CALL grid%scatter()
     !
     ALLOCATE(ener(input%ne))

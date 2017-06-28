@@ -57,6 +57,7 @@ MODULE thermalk_program
     USE code_input,         ONLY : code_input_type
     USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
     USE ph_velocity,        ONLY : velocity
+    USE nanoclock,          ONLY : print_percent_wall
     USE timers
     IMPLICIT NONE
     !
@@ -88,7 +89,7 @@ MODULE thermalk_program
     ! the inner grid (in_grid) is scatterd over MPI
     ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
-                    in_grid, scatter=.true.)
+                    in_grid, scatter=.true., xq0=input%xk0_in)
     !
     ! Open files to store the linewidth
     IF(ionode.and.input%store_lw)THEN
@@ -127,7 +128,8 @@ MODULE thermalk_program
       timer_CALL t_tksma%start()
     QPOINT_LOOP : &
     DO iq = 1,out_grid%nq
-      ioWRITE(stdout,'(i6,3f15.8)') iq, out_grid%xq(:,iq)
+      !ioWRITE(stdout,'(i6,3f15.8)') iq, out_grid%xq(:,iq)
+      CALL print_percent_wall(10._dp, 300._dp, iq, out_grid%nq, (iq==1))
       !
         timer_CALL t_lwphph%start()
       lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T,&
