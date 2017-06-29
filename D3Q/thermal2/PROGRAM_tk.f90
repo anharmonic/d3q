@@ -88,7 +88,7 @@ MODULE thermalk_program
     !
     ! the inner grid (in_grid) is scatterd over MPI
     ioWRITE(*,*) "--> Setting up inner grid"
-    CALL setup_grid(input%grid_type, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
+    CALL setup_grid(input%grid_type_in, S%bg, input%nk_in(1), input%nk_in(2), input%nk_in(3),&
                     in_grid, scatter=.true., xq0=input%xk0_in)
     !
     ! Open files to store the linewidth
