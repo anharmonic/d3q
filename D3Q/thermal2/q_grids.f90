@@ -121,9 +121,9 @@ MODULE q_grids
       ! only on point is requested.
       ! The random shift is inside the first grid cell
       grid%xq0 = 0._dp
-      IF(n1>1) grid%xq0(1) = randy()/DBLE(grid%n(1))
-      IF(n2>1) grid%xq0(2) = randy()/DBLE(grid%n(2))
-      IF(n3>1) grid%xq0(3) = randy()/DBLE(grid%n(3))
+      IF(n1>1) grid%xq0(1) = randy()/DBLE(n1)
+      IF(n2>1) grid%xq0(2) = randy()/DBLE(n2)
+      IF(n3>1) grid%xq0(3) = randy()/DBLE(n3)
       CALL cryst_to_cart(1,grid%xq0,bg, +1)
       grid%shifted = .true.
       ioWRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
@@ -144,7 +144,7 @@ MODULE q_grids
       IF(do_scatter) CALL grid%scatter()
       !print*,3
     ELSE
-      CALL errore("setup_grid", "wrong grid type", 1)
+      CALL errore("setup_grid", "wrong grid type '"//TRIM(grid_type)//"'", 1)
     ENDIF
     ioWRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
   END SUBROUTINE setup_grid
