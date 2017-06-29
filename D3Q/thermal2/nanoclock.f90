@@ -165,7 +165,7 @@ MODULE nanoclock
 
     IF(print_now)THEN
       last_print = wall
-      ioWRITE(stdout,'(f12.1,"%       STEP time:",f12.1,"s     WALL time:",f12.1,"s ")') &
+      ioWRITE(stdout,'(f12.1,"%    ||   STEP time:",f12.1,"s   ||   WALL time:",f12.1,"s ")') &
                      100*DBLE(i-1)/(n-1), wall-iter_start,         wall
     ENDIF
   END SUBROUTINE
