@@ -210,17 +210,22 @@ MODULE cmdline_param_module
         cmdline_param_char = default
         RETURN
       ELSE
-        CALL errore("cmdline_param", "required parameter not found '-"//switch//"'", 1)
+        CALL errore("cmdline_param", "required parameter not found '-"//switch//"'; &
+                     &use '-h' for help", 1)
       ENDIF
     ENDIF
     IF(empty)THEN
-      print*, ">>"//trim(command)//".."
+      IF(.not.present(found))THEN
+        CALL errore("cmdline_param", "missing value for parameter '-"//switch//"'; &
+                    &use '-h' for help", 1)
+      ENDIF
+      !print*, ">>"//trim(command)//".."
       command(start_switch:length-2) = command(start_switch+2:length)
       command(length-1:length) = ''
       length = length-2
       ALLOCATE(character(0) :: cmdline_param_char)
       cmdline_param_char = ''
-      print*, ".."//trim(command(1:length))//"<<"
+      !print*, ".."//trim(command(1:length))//"<<"
       RETURN
     ENDIF
     !
