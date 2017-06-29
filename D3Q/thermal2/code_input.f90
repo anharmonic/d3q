@@ -64,6 +64,7 @@ MODULE code_input
     INTEGER  :: niter_max
     !
     CHARACTER(len=6) :: grid_type
+    CHARACTER(len=6) :: grid_type_in
     ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
@@ -134,7 +135,7 @@ MODULE code_input
     !USE io_global,      ONLY : stdout
     USE q_grids,        ONLY : q_grid, setup_path, setup_grid
     USE constants,      ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
-    USE more_constants, ONLY : INVALID, MASS_DALTON_TO_RY
+    USE more_constants, ONLY : INVALID, DHUGE, MASS_DALTON_TO_RY
     USE wrappers,       ONLY : f_mkdir_safe
     USE fc3_interpolate,ONLY : forceconst3
     USE nist_isotopes_db, ONLY : compute_gs
@@ -163,11 +164,12 @@ MODULE code_input
     INTEGER            :: start_q = 1                ! skip the preceeding points when computing a BZ path
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
     REAL(DP)           :: xk0(3) = 0._dp             ! grid shift as fraction of half grid step
-    REAL(DP)           :: xk0_in(3) = 0._dp             ! grid shift as fraction of half grid step
+    REAL(DP)           :: xk0_in(3) = (/ DHUGE, DHUGE, DHUGE/)          ! grid shift as fraction of half grid step
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
     LOGICAL            :: sort_shifted_freq = .false. ! sort w+l_shift
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
+    CHARACTER(len=6)   :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
     LOGICAL            :: print_velocity = .true.    ! print the phonon group velocity for each q (only r2q code)
     LOGICAL            :: store_lw = .false.         ! for tk-sma calculation, store the lw for the grid point to file
@@ -231,7 +233,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       thr_tk, niter_max, &
-      nconf, nk, nk_in, grid_type, xk0, xk0_in, &
+      nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
       isotopic_disorder, store_lw, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time, restart
@@ -314,6 +316,7 @@ MODULE code_input
     input%nk        = nk
     input%xk0       = 0.5_dp*xk0/input%nk
     input%grid_type = grid_type
+    input%grid_type_in = grid_type_in
     input%exp_t_factor = exp_t_factor
     input%sort_shifted_freq = sort_shifted_freq
     input%print_dynmat   = print_dynmat
@@ -330,7 +333,11 @@ MODULE code_input
     !
     IF(ANY(nk_in<0)) nk_in = nk
     input%nk_in            = nk_in
+    IF(xk0_in(1)==DHUGE) xk0_in(1) = xk0(1)
+    IF(xk0_in(2)==DHUGE) xk0_in(2) = xk0(2)
+    IF(xk0_in(3)==DHUGE) xk0_in(3) = xk0(3)
     input%xk0_in    = 0.5_dp*xk0_in/input%nk_in
+    IF(TRIM(input%grid_type_in)==INVALID) input%grid_type_in = grid_type
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
