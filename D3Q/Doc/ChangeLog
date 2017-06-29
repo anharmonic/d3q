@@ -1,3 +1,8 @@
+v 1.1.1
+* D3 calculation of metallic systems has been improved, only full bands used for the Sternheimer equation: improved convergence.
+* Added debug options to d3 and qq2rr, added documentation for tools.
+* Added manual grid shift from input to thermal2 codes.
+
 v 1.1.0
 * the phonon HWHM was mistakenly used in the SMA and CGP calculations, instead of the FWHM, thanks to Francesco Macheda for reporting and helping with debugging
 * version of d3q.x prior to 1.1.0 would save the complex conjugate of the D3 matrix (there is some freedom in the definition) which would result in poor result for most grid sizes (1x1x1 and 2x2x2 are fine). Now qq2rr contains a workaround that detects this case and takes the CC of the input D3 matrices
