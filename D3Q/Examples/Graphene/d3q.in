@@ -31,5 +31,7 @@ d3 for graphene
     !
     dbg_write_d3_parts = .TRUE. ! write separate files for each term
     dbg_add_core = .TRUE.       ! add core correction to drho (only applies to exc and nlcc terms)
+    !
+    dbg_full_bands = .false.    ! include all empty bands in Sternheimer equation solver
  /
 
