@@ -148,12 +148,12 @@ MODULE nanoclock
     !
     REAL(DP),SAVE :: last_print = 0._dp
     REAL(DP),SAVE :: iter_start = 0._dp
-    REAL(DP) :: wall, fact
+    REAL(DP) :: wall, fact, pc, iter_time, iter_end_time
     LOGICAL ::print_now
     !
     fact = 100._dp / gran_pc
     !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
-    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.5_dp*fact/n
+    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.2_dp*fact/n
 
     wall = get_wall()
     print_now = print_now .or. (wall-last_print)>gran_sec
@@ -162,11 +162,22 @@ MODULE nanoclock
     print_now = print_now .or. (i==n)
 
     IF(reset) iter_start = wall
+    
 
     IF(print_now)THEN
       last_print = wall
-      ioWRITE(stdout,'(f12.1,"%    ||   STEP time:",f12.1,"s   ||   WALL time:",f12.1,"s ")') &
-                     100*DBLE(i-1)/(n-1), wall-iter_start,         wall
+    pc = 100*DBLE(i-1)/(n-1)
+    iter_time = (wall-iter_start)
+      IF(pc>0._dp) THEN
+        iter_end_time = 100*iter_time/pc
+        ioWRITE(stdout,'(f12.1,"% | STEP:",f12.1,"s | END: ",f12.1,"s &
+                      &| WALL:",f12.1,"s ")') &
+                      pc, iter_time,iter_end_time, wall
+      ELSE
+        ioWRITE(stdout,'(f12.1,"% | STEP:",f12.1,"s | END: ",9x,"-.-s &
+                      &| WALL:",f12.1,"s ")') &
+                      pc, iter_time, wall
+      ENDIF
     ENDIF
   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>

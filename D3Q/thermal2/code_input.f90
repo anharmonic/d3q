@@ -421,7 +421,11 @@ MODULE code_input
         ioWRITE(*,*) "Reading QPOINTS"
         !
         qpts%basis = 'cartesian'
-        READ(line,*,iostat=ios) word2, word3
+        READ(line,*,iostat=ios) word2, word3, xk0
+        IF(ios/=0) THEN
+          READ(line,*,iostat=ios) word2, word3
+          xk0 = 0._dp
+        ENDIF
         IF(ios==0) qpts%basis = TRIM(word3(1:9))
         !
         IF(TRIM(qpts%basis) == "grid" .or. TRIM(qpts%basis) == "bz" &
@@ -595,7 +599,7 @@ MODULE code_input
       ENDIF
       !
       ioWRITE(*,*) "--> Setting up outer grid"
-      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false., xq0=input%xk0)
+      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false., xq0=xk0)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &
