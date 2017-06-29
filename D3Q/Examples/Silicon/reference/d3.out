@@ -1,0 +1,1792 @@
+
+     Program D3_toten v.6.1 (svn rev. 13571M) starts on 29Jun2017 at 16:28: 3 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on     1 processors
+      ___  ____   __    ____  ____  ____  _  _  ___    ____  ___  
+     / __)(_  _) /__\  (  _ \(_  _)(_  _)( \( )/ __)  (  _ \(__ ) 
+     \__ \  )(  /(__)\  )   /  )(   _)(_  )  (( (_-.   )(_) )(_ \ 
+     (___/ (__)(__)(__)(_)\_) (__) (____)(_)\_)\___/  (____/(___/ 
+
+     Waiting for input...
+     _____________ input start _____________
+ &INPUTD3Q
+ ETHR_PH =  1.000000000000000E-009,
+ AMASS   = 10*0.000000000000000E+000  ,
+ PREFIX  = silicon                                                                                                                   
+                                                                                                                                     
+   ,
+ OUTDIR  = ./tmp                                                                                                                     
+                                                                                                                                     
+   ,
+ FILDRHO_DIR     = FILDRHO                                                                                                           
+                                                                                                                                     
+           ,
+ D3DIR   =                                                                                                                           
+                                                                                                                                     
+   ,
+ FILD3DYN        = FILD3DYN/anh                                                    ,
+ FILDRHO = auto:drho                                                                                                                 
+                                                                                                                                     
+   ,
+ FILD1RHO        =                                                                                                                   
+                                                                                                                                     
+           ,
+ FILD2RHO        =                                                                                                                   
+                                                                                                                                     
+           ,
+ FILD3RHO        =                                                                                                                   
+                                                                                                                                     
+           ,
+ ISTOP   =           0,
+ MODE    = full                                                                                                                      
+                                                                                                                                     
+   ,
+ IVERBOSITY      =           0,
+ FIRST   =          -1,
+ LAST    =          -1,
+ STEP    =           1,
+ OFFSET  =           0,
+ SAFE_IO = F,
+ RESTART = F,
+ MAX_TIME        =  -1.00000000000000     ,
+ MAX_SECONDS     =          -1,
+ PRINT_STAR      = T,
+ PRINT_PERM      = F,
+ PRINT_TREV      = T,
+ NK1     =          -1,
+ NK2     =          -1,
+ NK3     =          -1,
+ K1      =          -1,
+ K2      =          -1,
+ K3      =          -1,
+ DEGAUSS =  -1.00000000000000     
+ /
+     _____________  input end  _____________
+     Doing grid dispersion calculation
+     Checking for debug instructions.
+
+     Reading data from directory:
+     ./tmp/silicon.save/
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     IMPORTANT: XC functional enforced from input :
+     Exchange-correlation      = PZ ( 1  1  0  0 0 0)
+     Any further DFT definition will be discarded
+     Please, verify this is what you really want
+
+ 
+     G-vector sticks info
+     --------------------
+     sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
+     Sum         349     349    109                 4279     4279     749
+ 
+     Message from routine kpoint_grid:
+     ATTENTION: skip check of k-points equivalence
+     Looking for irreducible triplets out of       24 possibilities:
+           1:   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   (  0.0000  0.0000  0.0000 )   -->_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+           2:   (  0.0000  0.0000  0.0000 )   (  0.5000 -0.5000  0.5000 )   ( -0.5000  0.5000 -0.5000 )   -->_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2
+           3:   (  0.0000  0.0000  0.0000 )   (  0.0000 -1.0000  0.0000 )   (  0.0000  1.0000  0.0000 )   -->_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2
+           4:   (  0.5000 -0.5000  0.5000 )   ( -0.5000 -0.5000 -0.5000 )   (  0.0000  1.0000  0.0000 )   -->_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2
+           5:   (  0.0000 -1.0000  0.0000 )   (  1.0000  0.0000  0.0000 )   ( -1.0000  1.0000  0.0000 )   -->_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1
+     IRREDUCIBLE NUMBER OF TRIPLETS TO COMPUTE:   5
+
+     ===================================================
+     =             Starting D3 calculation             =
+     ===================================================
+     =     triplet    1 (    1 of    5,   0% done)     =
+     ===================================================
+     =    q1 = (    0.000000   0.000000   0.000000 )   =
+     =    q2 = (    0.000000   0.000000   0.000000 )   =
+     =    q3 = (    0.000000   0.000000   0.000000 )   =
+     ===================================================
+     Temporary directory set to:
+       ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     SCF rho copied to D3 tmp dir
+     Scanning for fildrho files...
+         --> drho file for q1 found as 'drho.0_0_0'
+         --> drho file for q2 found as 'drho.0_0_0'
+         --> drho file for q3 found as 'drho.0_0_0'
+     ================== setup started ==================
+     Special cases for qs:
+       q1 = G  , q2 , -q2, q3 , -q3
+       q2 = G  , q1 , -q1, q3 , -q3
+       q3 = G  , q1 , -q1, q2 , -q2
+       Symmetry operations:
+         q1:  0  TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+         q2:  0  TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+         q3:  0  TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+       Symmetry common to all q vectors:
+             TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+         -->48 symmetry operation(s) have been found
+ REMARK: q -> -q symmetry yet unsupported in d3q.x
+         individual q --> -q operations:  F F F
+       Reading patterns and q-point for q1
+       Reading patterns and q-point for q2
+       Reading patterns and q-point for q3
+       Symmetry information for Gamma associated with q1
+
+     Symmetry analysis done
+     =================== setup done ====================
+
+
+
+     =============== run_nscf_d3 start
+
+     Starting non-scf calculation of ground state wavefunctions.
+       * has time reversal symmetry.
+     Total number of kpoints:
+       --> after reducing symmetry:     8
+       --> after including k+/-q_i (kunit):     8 (1)
+
+     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     Writing output data file silicon.save
+
+     =============== run_nscf_d3 done
+
+     =============== allocate_d3 start
+
+     =============== allocate_d3 done
+
+     ============== openfile_drho start
+
+     Opening files of charge density derivative.
+         q1 --> opening: drho.0_0_0
+         q2 --> not opening: drho.0_0_0
+         q3 --> not opening: drho.0_0_0
+
+     ============== openfile_drho done
+
+     ================ openfild3 start
+
+     ================ openfild3 done
+     u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
+     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0/
+
+     ================= d3_init start
+     alpha_pv:      1.7772
+
+     ================= d3_init done
+
+     ========== d3_check_permutations start
+     Looking for equivalent permutations of q vectors
+       Permutation 1 (123) has to be computed explicitly
+       Permutation 2 (132) can be obtained from 1 (123) 
+       Permutation 3 (213) can be obtained from 1 (123) 
+       Permutation 4 (231) can be obtained from 1 (123) 
+       Permutation 5 (312) can be obtained from 1 (123) 
+       Permutation 6 (321) can be obtained from 1 (123) 
+     1 inequivalent permutations were found
+
+     ========== d3_check_permutations done
+     D3_toten     :     0.45s CPU         0.46s WALL
+
+
+     ================== add core start
+
+     Adding derivative of core charge
+     d3_add_rho_core   cpu time:     0.46 sec    Total time:        0.46 sec
+
+     ================== add core done
+
+     ===================================================
+     = Nscf calculation of the perturbed wavefunctions =
+     ===================================================
+
+     Computing P_c^q1 |d^q1 psi_k>
+         pert=    1     time taken/total=      0.4/      0.9 secs     av.it.  16.5
+         pert=    2     time taken/total=      0.4/      1.3 secs     av.it.  16.9
+
+     Skipping P_c^G |d^q1 psi_k-q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^-q1 |d^-q1 psi_k>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^G |d^-q1 psi_k+q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping <psi_k+q2 |d^q2V| psi_k>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k |d^q2V| psi_k-q2>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping P_c^-q2 |d^-q2 psi_k>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^G |d^-q2 psi_k+q2>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping <psi_k+q3 |d^q3V| psi_k>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k |d^q3V| psi_k-q3>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping P_c^-q3 |d^-q3 psi_k>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^G |d^-q3 psi_k+q3>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping <psi_k-q3 |d^q1V| psi_k+q2>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k-q2 |d^q1V| psi_k+q3>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k-q3 |d^q2V| psi_k+q1>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q2V| psi_k+q3>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k-q2 |d^q3V| psi_k+q1>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q3V| psi_k+q2>
+       --> already done as <psi_k+q1 |d^q1V| psi_k+q1>
+
+
+     generate_dwfc   cpu time:     0.81 sec    Total time:        1.28 sec
+
+     ================== nscf dpsi done =================
+
+
+     ================== precomp start
+
+     Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        1.28 sec
+
+     ================== precomp done
+
+     ================== dpdvdp start
+
+     Calculating the matrix elements <dpsi |dH |dpsi>
+       <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
+     dpsi1dv2dpsi3 cpu time:     0.25 sec    Total time:        1.53 sec
+
+     ================== dpdvdp done
+
+     ================== dpdpdv start
+
+     Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
+       <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
+     dpsi1dpsi2dv3 cpu time:     0.01 sec    Total time:        1.54 sec
+
+     ================== dpdpdv done
+
+     ================== dpd2v start
+
+     Calculating the matrix elements <psi |d^2 v |dpsi>
+       <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
+     drhod2v       cpu time:     0.06 sec    Total time:        1.59 sec
+
+     ================== dpd2v done
+
+     =================== rho d3v start =================
+
+
+     Calculating the matrix elements <psi |d^3v |psi>
+     d3vrho        cpu time:     0.03 sec    Total time:        1.62 sec
+
+     =================== rho d3v done ==================
+
+
+     ================== ewald start
+
+     Calculating the Ewald contribution
+
+     Alpha used in Ewald sum =   1.01
+     d3ionq        cpu time:     0.08 sec    Total time:        1.71 sec
+
+     ================== ewald done
+
+     ================ exc contrib start
+
+     Calculating the exchange-correlation contribution
+     d3_exc        cpu time:     0.02 sec    Total time:        1.72 sec
+
+     ================ exc contrib done
+
+     =============== computing D3 start
+
+     Symmetrizing and writing the tensor to disc
+
+     CALLing d3matrix
+       * imposing hermiticity on idx 2,3
+       * imposing hermiticity on idx 1,3
+       * imposing hermiticity on idx 1,2
+       * symmetrizing with 48 sym.ops.
+       point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_0_0_Q3.0_0_0
+     d3matrix      cpu time:     0.00 sec    Total time:        1.73 sec
+
+     =============== computing D3 done
+
+     ================== cleanup start
+ 
+     D3TOTEN      :      1.61s CPU      1.73s WALL (       1 calls)
+     --> wfc and dwfc
+     nscf         :      0.22s CPU      0.23s WALL (       1 calls)
+     generate_dwf :      0.74s CPU      0.81s WALL (       1 calls)
+     --> matrix elements
+     dpsi1dv2dpsi :      0.23s CPU      0.25s WALL (       1 calls)
+     dpsi1dpsi2dv :      0.01s CPU      0.01s WALL (       1 calls)
+     dq1rhodq23v  :      0.06s CPU      0.06s WALL (       1 calls)
+     rhodq123v    :      0.03s CPU      0.03s WALL (       1 calls)
+     d3ionq       :      0.08s CPU      0.08s WALL (       1 calls)
+     d3_exc       :      0.01s CPU      0.02s WALL (       1 calls)
+     d3matrix     :      0.00s CPU      0.00s WALL (       1 calls)
+     --> total I/O
+     davcio       :      0.01s CPU      0.01s WALL (    2428 calls)
+
+     ================== cleanup done
+
+     ===================================================
+     =             Starting D3 calculation             =
+     ===================================================
+     =     triplet    2 (    2 of    5,  20% done)     =
+     ===================================================
+     =    q1 = (    0.000000   0.000000   0.000000 )   =
+     =    q2 = (    0.500000  -0.500000   0.500000 )   =
+     =    q3 = (   -0.500000   0.500000  -0.500000 )   =
+     ===================================================
+     Temporary directory set to:
+       ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     SCF rho copied to D3 tmp dir
+     Scanning for fildrho files...
+         --> drho file for q1 found as 'drho.0_0_0'
+         --> drho file for q2 found as 'drho.0_0_-1o2'
+         --> drho file for q3 found as 'drho.0_0_-1o2'
+     ================== setup started ==================
+     Special cases for qs:
+       q1 = G
+       q2 = -q3
+       q3 = -q2
+       Symmetry operations:
+         q1: 48  TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+         q2: 48  TFFFTFFFFTFFTFFFFFFTFTFFTFFFTFFFFTFFTFFFFFFTFTFF
+         q3: 48  TFFFTFFFFTFFTFFFFFFTFTFFTFFFTFFFFTFFTFFFFFFTFTFF
+       Symmetry common to all q vectors:
+             TFFFTFFFFTFFTFFFFFFTFTFFTFFFTFFFFTFFTFFFFFFTFTFF
+         -->12 symmetry operation(s) have been found
+ REMARK: q -> -q symmetry yet unsupported in d3q.x
+         individual q --> -q operations:  F F F
+       Reading patterns and q-point for q1
+       Reading patterns and q-point for q2
+       Reading patterns and q-point for q3
+         --> taking c.c. of patterns for q3
+       Symmetry information for Gamma associated with q1
+
+     Symmetry analysis done
+     =================== setup done ====================
+
+
+
+     =============== run_nscf_d3 start
+
+     Starting non-scf calculation of ground state wavefunctions.
+
+     WARNING: check_stop already initialized
+       * has time reversal symmetry.
+     Total number of kpoints:
+       --> after reducing symmetry:    13
+       --> after including k+/-q_i (kunit):    39 (3)
+
+     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     Writing output data file silicon.save
+
+     =============== run_nscf_d3 done
+
+     =============== allocate_d3 start
+
+     =============== allocate_d3 done
+
+     ============== openfile_drho start
+
+     Opening files of charge density derivative.
+         q1 --> opening: drho.0_0_0
+         q2 --> opening: drho.0_0_-1o2
+         q3 --> not opening: drho.0_0_-1o2
+
+     ============== openfile_drho done
+
+     ================ openfild3 start
+
+     ================ openfild3 done
+     u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
+     u: 302   recl:     27648   ext:                  drho.0_0_-1o2   tmp: FILDRHO/
+     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2/
+
+     ================= d3_init start
+     alpha_pv:      1.7772
+
+     ================= d3_init done
+
+     ========== d3_check_permutations start
+     Looking for equivalent permutations of q vectors
+       Permutation 1 (123) has to be computed explicitly
+       Permutation 2 (132) can be obtained from 1 (123) with c.c.
+       Permutation 3 (213) has to be computed explicitly
+       Permutation 4 (231) has to be computed explicitly
+       Permutation 5 (312) can be obtained from 3 (213) with c.c.
+       Permutation 6 (321) can be obtained from 4 (231) with c.c.
+     3 inequivalent permutations were found
+
+     ========== d3_check_permutations done
+     D3_toten     :     2.34s CPU         2.50s WALL
+
+
+     ================== add core start
+
+     Adding derivative of core charge
+     d3_add_rho_core   cpu time:     0.77 sec    Total time:        2.50 sec
+
+     ================== add core done
+
+     ===================================================
+     = Nscf calculation of the perturbed wavefunctions =
+     ===================================================
+
+     Computing P_c^q1 |d^q1 psi_k>
+         pert=    1     time taken/total=      0.6/      3.1 secs     av.it.  16.8
+         pert=    2     time taken/total=      0.7/      3.8 secs     av.it.  17.2
+
+     Skipping P_c^G |d^q1 psi_k-q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^-q1 |d^-q1 psi_k>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^G |d^-q1 psi_k+q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Computing P_c^q2 |d^q2 psi_k>
+         pert=    1     time taken/total=      0.2/      4.0 secs     av.it.  16.6
+         pert=    2     time taken/total=      0.2/      4.2 secs     av.it.  16.8
+         pert=    3     time taken/total=      0.4/      4.7 secs     av.it.  17.2
+         pert=    4     time taken/total=      0.4/      5.1 secs     av.it.  17.3
+
+     Computing P_c^G |d^q2 psi_k-q2>
+         pert=    1     time taken/total=      0.2/      5.3 secs     av.it.  16.6
+         pert=    2     time taken/total=      0.2/      5.5 secs     av.it.  16.8
+         pert=    3     time taken/total=      0.4/      6.0 secs     av.it.  17.2
+         pert=    4     time taken/total=      0.4/      6.4 secs     av.it.  17.3
+
+     Computing <psi_k-q2 |d^-q2V| psi_k>
+
+     Computing <psi_k |d^-q2V| psi_k+q2>
+
+     Skipping <psi_k+q3 |d^q3V| psi_k>
+       --> already done as <psi_k+q3 |d^q3V| psi_k+q1>
+
+     Skipping <psi_k |d^q3V| psi_k-q3>
+       --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
+
+     Skipping P_c^-q3 |d^-q3 psi_k>
+       --> already done as P_c^q2 |d^q2 psi_k+q1>
+
+     Skipping P_c^G |d^-q3 psi_k+q3>
+       --> already done as P_c^q1 |d^q2 psi_k+q3>
+
+     Computing <psi_k-q3 |d^q1V| psi_k+q2>
+
+     Computing <psi_k-q2 |d^q1V| psi_k+q3>
+
+     Skipping <psi_k-q3 |d^q2V| psi_k+q1>
+       --> already done as <psi_k+q2 |d^q2V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q2V| psi_k+q3>
+       --> already done as <psi_k+q1 |d^q2V| psi_k+q3>
+
+     Skipping <psi_k-q2 |d^q3V| psi_k+q1>
+       --> already done as <psi_k+q3 |d^q3V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q3V| psi_k+q2>
+       --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
+
+
+     generate_dwfc   cpu time:     4.20 sec    Total time:        6.70 sec
+
+     ================== nscf dpsi done =================
+
+
+     ================== precomp start
+
+     Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:        6.70 sec
+
+     ================== precomp done
+
+     ================== dpdvdp start
+
+     Calculating the matrix elements <dpsi |dH |dpsi>
+       <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
+       <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
+       <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
+     dpsi1dv2dpsi3 cpu time:     1.26 sec    Total time:        7.96 sec
+
+     ================== dpdvdp done
+
+     ================== dpdpdv start
+
+     Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
+       <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
+       <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
+       <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
+     dpsi1dpsi2dv3 cpu time:     0.03 sec    Total time:        8.00 sec
+
+     ================== dpdpdv done
+
+     ================== dpd2v start
+
+     Calculating the matrix elements <psi |d^2 v |dpsi>
+       <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
+       <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
+     drhod2v       cpu time:     0.17 sec    Total time:        8.17 sec
+
+     ================== dpd2v done
+
+     =================== rho d3v start =================
+
+
+     Calculating the matrix elements <psi |d^3v |psi>
+     d3vrho        cpu time:     0.04 sec    Total time:        8.22 sec
+
+     =================== rho d3v done ==================
+
+
+     ================== ewald start
+
+     Calculating the Ewald contribution
+
+     Alpha used in Ewald sum =   1.01
+     d3ionq        cpu time:     0.08 sec    Total time:        8.30 sec
+
+     ================== ewald done
+
+     ================ exc contrib start
+
+     Calculating the exchange-correlation contribution
+     d3_exc        cpu time:     0.02 sec    Total time:        8.31 sec
+
+     ================ exc contrib done
+
+     =============== computing D3 start
+
+     Symmetrizing and writing the tensor to disc
+
+     CALLing d3matrix
+       * imposing hermiticity on idx 2,3
+       * symmetrizing with 12 sym.ops.
+       point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_0_-1o2_Q3.0_0_1o2
+       point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.-1o2_0_0_Q3.1o2_0_0
+       point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_1o2_0_Q3.0_-1o2_0
+       point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.-1o2_-1o2_-1o2_Q3.1o2_1o2_1o2
+     d3matrix      cpu time:     0.01 sec    Total time:        8.33 sec
+
+     =============== computing D3 done
+
+     ================== cleanup start
+ 
+     D3TOTEN      :      7.82s CPU      8.33s WALL (       2 calls)
+     --> wfc and dwfc
+     nscf         :      0.86s CPU      0.91s WALL (       2 calls)
+     generate_dwf :      4.67s CPU      5.01s WALL (       2 calls)
+     --> matrix elements
+     dpsi1dv2dpsi :      1.44s CPU      1.52s WALL (       4 calls)
+     dpsi1dpsi2dv :      0.03s CPU      0.04s WALL (       4 calls)
+     dq1rhodq23v  :      0.23s CPU      0.23s WALL (       3 calls)
+     rhodq123v    :      0.07s CPU      0.07s WALL (       2 calls)
+     d3ionq       :      0.16s CPU      0.16s WALL (       2 calls)
+     d3_exc       :      0.03s CPU      0.03s WALL (       2 calls)
+     d3matrix     :      0.01s CPU      0.02s WALL (       2 calls)
+     --> total I/O
+     davcio       :      0.06s CPU      0.07s WALL (   13756 calls)
+
+     ================== cleanup done
+
+     ===================================================
+     =             Starting D3 calculation             =
+     ===================================================
+     =     triplet    3 (    3 of    5,  40% done)     =
+     ===================================================
+     =    q1 = (    0.000000   0.000000   0.000000 )   =
+     =    q2 = (    0.000000  -1.000000   0.000000 )   =
+     =    q3 = (    0.000000   1.000000   0.000000 )   =
+     ===================================================
+     Temporary directory set to:
+       ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     SCF rho copied to D3 tmp dir
+     Scanning for fildrho files...
+         --> drho file for q1 found as 'drho.0_0_0'
+         --> drho file for q2 found as 'drho.0_-1o2_-1o2'
+         --> drho file for q3 found as 'drho.0_-1o2_-1o2'
+     ================== setup started ==================
+     Special cases for qs:
+       q1 = G
+       q2 = -q3
+       q3 = -q2
+       Symmetry operations:
+         q1: 48  TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+         q2: 12  TFTFFFTFTFFFTFFFFFFTFFFFFTTTFFFFTTTTTFFFFFFTFTFF
+         q3: 12  TFTFFFTFTFFFTFFFFFFTFFFFFTTTFFFFTTTTTFFFFFFTFTFF
+       Symmetry common to all q vectors:
+             TFTFFFTFTFFFTFFFFFFTFFFFFTTTFFFFTTTTTFFFFFFTFTFF
+         -->16 symmetry operation(s) have been found
+ REMARK: q -> -q symmetry yet unsupported in d3q.x
+         individual q --> -q operations:  F F F
+       Reading patterns and q-point for q1
+       Reading patterns and q-point for q2
+       Reading patterns and q-point for q3
+         --> taking c.c. of patterns for q3
+       Symmetry information for Gamma associated with q1
+
+     Symmetry analysis done
+     =================== setup done ====================
+
+
+
+     =============== run_nscf_d3 start
+
+     Starting non-scf calculation of ground state wavefunctions.
+
+     WARNING: check_stop already initialized
+       * has time reversal symmetry.
+     Total number of kpoints:
+       --> after reducing symmetry:    13
+       --> after including k+/-q_i (kunit):    39 (3)
+
+     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     Writing output data file silicon.save
+
+     =============== run_nscf_d3 done
+
+     =============== allocate_d3 start
+
+     =============== allocate_d3 done
+
+     ============== openfile_drho start
+
+     Opening files of charge density derivative.
+         q1 --> opening: drho.0_0_0
+         q2 --> opening: drho.0_-1o2_-1o2
+         q3 --> not opening: drho.0_-1o2_-1o2
+
+     ============== openfile_drho done
+
+     ================ openfild3 start
+
+     ================ openfild3 done
+     u: 301   recl:     27648   ext:                     drho.0_0_0   tmp: FILDRHO/
+     u: 302   recl:     27648   ext:               drho.0_-1o2_-1o2   tmp: FILDRHO/
+     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2/
+
+     ================= d3_init start
+     alpha_pv:      1.7772
+
+     ================= d3_init done
+
+     ========== d3_check_permutations start
+     Looking for equivalent permutations of q vectors
+       Permutation 1 (123) has to be computed explicitly
+       Permutation 2 (132) can be obtained from 1 (123) with c.c.
+       Permutation 3 (213) has to be computed explicitly
+       Permutation 4 (231) has to be computed explicitly
+       Permutation 5 (312) can be obtained from 3 (213) with c.c.
+       Permutation 6 (321) can be obtained from 4 (231) with c.c.
+     3 inequivalent permutations were found
+
+     ========== d3_check_permutations done
+     D3_toten     :     8.52s CPU         9.08s WALL
+
+
+     ================== add core start
+
+     Adding derivative of core charge
+     d3_add_rho_core   cpu time:     0.75 sec    Total time:        9.08 sec
+
+     ================== add core done
+
+     ===================================================
+     = Nscf calculation of the perturbed wavefunctions =
+     ===================================================
+
+     Computing P_c^q1 |d^q1 psi_k>
+         pert=    1     time taken/total=      0.6/      9.7 secs     av.it.  16.8
+         pert=    2     time taken/total=      0.6/     10.3 secs     av.it.  16.9
+
+     Skipping P_c^G |d^q1 psi_k-q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^-q1 |d^-q1 psi_k>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Skipping P_c^G |d^-q1 psi_k+q1>
+       --> already done as P_c^q1 |d^q1 psi_k+q1>
+
+     Computing P_c^q2 |d^q2 psi_k>
+         pert=    1     time taken/total=      0.4/     10.8 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.4/     11.2 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.4/     11.6 secs     av.it.  16.8
+
+     Computing P_c^G |d^q2 psi_k-q2>
+         pert=    1     time taken/total=      0.4/     12.0 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     12.4 secs     av.it.  16.9
+         pert=    3     time taken/total=      0.4/     12.9 secs     av.it.  16.6
+
+     Computing <psi_k-q2 |d^-q2V| psi_k>
+
+     Computing <psi_k |d^-q2V| psi_k+q2>
+
+     Skipping <psi_k+q3 |d^q3V| psi_k>
+       --> already done as <psi_k+q3 |d^q3V| psi_k+q1>
+
+     Skipping <psi_k |d^q3V| psi_k-q3>
+       --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
+
+     Skipping P_c^-q3 |d^-q3 psi_k>
+       --> already done as P_c^q2 |d^q2 psi_k+q1>
+
+     Skipping P_c^G |d^-q3 psi_k+q3>
+       --> already done as P_c^q1 |d^q2 psi_k+q3>
+
+     Computing <psi_k-q3 |d^q1V| psi_k+q2>
+
+     Computing <psi_k-q2 |d^q1V| psi_k+q3>
+
+     Skipping <psi_k-q3 |d^q2V| psi_k+q1>
+       --> already done as <psi_k+q2 |d^q2V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q2V| psi_k+q3>
+       --> already done as <psi_k+q1 |d^q2V| psi_k+q3>
+
+     Skipping <psi_k-q2 |d^q3V| psi_k+q1>
+       --> already done as <psi_k+q3 |d^q3V| psi_k+q1>
+
+     Skipping <psi_k-q1 |d^q3V| psi_k+q2>
+       --> already done as <psi_k+q1 |d^q3V| psi_k+q2>
+
+
+     generate_dwfc   cpu time:     4.09 sec    Total time:       13.17 sec
+
+     ================== nscf dpsi done =================
+
+
+     ================== precomp start
+
+     Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       13.17 sec
+
+     ================== precomp done
+
+     ================== dpdvdp start
+
+     Calculating the matrix elements <dpsi |dH |dpsi>
+       <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
+       <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
+       <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
+     dpsi1dv2dpsi3 cpu time:     1.26 sec    Total time:       14.42 sec
+
+     ================== dpdvdp done
+
+     ================== dpdpdv start
+
+     Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
+       <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
+       <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
+       <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
+     dpsi1dpsi2dv3 cpu time:     0.04 sec    Total time:       14.46 sec
+
+     ================== dpdpdv done
+
+     ================== dpd2v start
+
+     Calculating the matrix elements <psi |d^2 v |dpsi>
+       <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
+       <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
+     drhod2v       cpu time:     0.18 sec    Total time:       14.64 sec
+
+     ================== dpd2v done
+
+     =================== rho d3v start =================
+
+
+     Calculating the matrix elements <psi |d^3v |psi>
+     d3vrho        cpu time:     0.04 sec    Total time:       14.68 sec
+
+     =================== rho d3v done ==================
+
+
+     ================== ewald start
+
+     Calculating the Ewald contribution
+
+     Alpha used in Ewald sum =   1.01
+     d3ionq        cpu time:     0.08 sec    Total time:       14.76 sec
+
+     ================== ewald done
+
+     ================ exc contrib start
+
+     Calculating the exchange-correlation contribution
+     d3_exc        cpu time:     0.02 sec    Total time:       14.78 sec
+
+     ================ exc contrib done
+
+     =============== computing D3 start
+
+     Symmetrizing and writing the tensor to disc
+
+     CALLing d3matrix
+       * imposing hermiticity on idx 2,3
+       * symmetrizing with 16 sym.ops.
+       point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.0_-1o2_-1o2_Q3.0_1o2_1o2
+       point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.1o2_0_1o2_Q3.-1o2_0_-1o2
+       point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_0_Q2.1o2_1o2_0_Q3.-1o2_-1o2_0
+     d3matrix      cpu time:     0.01 sec    Total time:       14.79 sec
+
+     =============== computing D3 done
+
+     ================== cleanup start
+ 
+     D3TOTEN      :     13.89s CPU     14.80s WALL (       3 calls)
+     --> wfc and dwfc
+     nscf         :      1.48s CPU      1.58s WALL (       3 calls)
+     generate_dwf :      8.49s CPU      9.10s WALL (       3 calls)
+     --> matrix elements
+     dpsi1dv2dpsi :      2.66s CPU      2.77s WALL (       7 calls)
+     dpsi1dpsi2dv :      0.04s CPU      0.08s WALL (       7 calls)
+     dq1rhodq23v  :      0.40s CPU      0.41s WALL (       5 calls)
+     rhodq123v    :      0.11s CPU      0.11s WALL (       3 calls)
+     d3ionq       :      0.24s CPU      0.24s WALL (       3 calls)
+     d3_exc       :      0.04s CPU      0.05s WALL (       3 calls)
+     d3matrix     :      0.02s CPU      0.03s WALL (       3 calls)
+     --> total I/O
+     davcio       :      0.10s CPU      0.12s WALL (   24980 calls)
+
+     ================== cleanup done
+
+     ===================================================
+     =             Starting D3 calculation             =
+     ===================================================
+     =     triplet    4 (    4 of    5,  60% done)     =
+     ===================================================
+     =    q1 = (    0.500000  -0.500000   0.500000 )   =
+     =    q2 = (   -0.500000  -0.500000  -0.500000 )   =
+     =    q3 = (    0.000000   1.000000   0.000000 )   =
+     ===================================================
+     Temporary directory set to:
+       ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     SCF rho copied to D3 tmp dir
+     Scanning for fildrho files...
+         --> drho file for q1 found as 'drho.0_0_-1o2'
+         --> drho file for q2 found as 'drho.0_1o2_0'
+         --> drho file for q3 found as 'drho.0_-1o2_-1o2'
+     ================== setup started ==================
+     Special cases for qs:
+       q1 : no special case detected
+       q2 : no special case detected
+       q3 : no special case detected
+       Symmetry operations:
+         q1: 48  TTTTFFFFFFFFFFFFFFFTFFFFFTTTFFFFTTTTFFFFFFFFFFFF
+         q2: 16  TTTTFFFFFFFFFFFFTFFFTTFFFFFFFTFFFFFFTTFFTFFFTFFF
+         q3: 16  TTTTTTTTTTTTTTTTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+       Symmetry common to all q vectors:
+             TTTTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+         --> 4 symmetry operation(s) have been found
+ REMARK: q -> -q symmetry yet unsupported in d3q.x
+         individual q --> -q operations:  F F F
+       Reading patterns and q-point for q1
+       Reading patterns and q-point for q2
+         --> drho of q2 ( -0.5000 -0.5000 -0.5000) was computed by ph.x for (  0.5000  0.5000  0.5000)
+       Reading patterns and q-point for q3
+         --> drho of q3 (  0.0000  1.0000  0.0000) was computed by ph.x for (  0.0000 -1.0000  0.0000)
+
+     Symmetry analysis done
+     =================== setup done ====================
+
+
+
+     =============== run_nscf_d3 start
+
+     Starting non-scf calculation of ground state wavefunctions.
+
+     WARNING: check_stop already initialized
+       * has time reversal symmetry.
+     Total number of kpoints:
+       --> after reducing symmetry:    24
+       --> after including k+/-q_i (kunit):   168 (7)
+
+     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     Writing output data file silicon.save
+
+     =============== run_nscf_d3 done
+
+     =============== allocate_d3 start
+
+     =============== allocate_d3 done
+
+     ============== openfile_drho start
+
+     Opening files of charge density derivative.
+       Translating drho from xq=(  0.5000  0.5000  0.5000) to xq=(  -0.50000  -0.50000  -0.50000) for point q2
+         --> new drho stored to 'drho.0_1o2_0_newq2'
+       Translating drho from xq=(  0.0000 -1.0000  0.0000) to xq=(   0.00000   1.00000   0.00000) for point q3
+         --> new drho stored to 'drho.0_-1o2_-1o2_newq3'
+         q1 --> opening: drho.0_0_-1o2
+         q2 --> just opened: drho.0_1o2_0_newq2
+         q3 --> just opened: drho.0_-1o2_-1o2_newq3
+
+     ============== openfile_drho done
+
+     ================ openfild3 start
+
+     ================ openfild3 done
+     u: 302   recl:     27648   ext:             drho.0_1o2_0_newq2   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u: 303   recl:     27648   ext:         drho.0_-1o2_-1o2_newq3   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u: 301   recl:     27648   ext:                  drho.0_0_-1o2   tmp: FILDRHO/
+     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5000   recl:      4352   ext:                          dGpG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6000   recl:        32   ext:                        pdvGpG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5001   recl:      4352   ext:                         dGpq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5002   recl:      4352   ext:                         dGpq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5003   recl:      4352   ext:                         dGpq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5010   recl:      4352   ext:                         dq1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5020   recl:      4352   ext:                         dq2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5030   recl:      4352   ext:                         dq3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2/
+
+     ================= d3_init start
+     alpha_pv:      1.7772
+
+     ================= d3_init done
+
+     ========== d3_check_permutations start
+     Looking for equivalent permutations of q vectors
+       Permutation 1 (123) has to be computed explicitly
+       Permutation 2 (132) has to be computed explicitly
+       Permutation 3 (213) has to be computed explicitly
+       Permutation 4 (231) has to be computed explicitly
+       Permutation 5 (312) has to be computed explicitly
+       Permutation 6 (321) has to be computed explicitly
+     6 inequivalent permutations were found
+
+     ========== d3_check_permutations done
+     D3_toten     :    16.50s CPU        17.56s WALL
+
+
+     ================== add core start
+
+     Adding derivative of core charge
+     d3_add_rho_core   cpu time:     2.77 sec    Total time:       17.56 sec
+
+     ================== add core done
+
+     ===================================================
+     = Nscf calculation of the perturbed wavefunctions =
+     ===================================================
+
+     Computing P_c^q1 |d^q1 psi_k>
+         pert=    1     time taken/total=      0.4/     17.9 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     18.3 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     19.1 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     19.9 secs     av.it.  17.5
+
+     Computing P_c^G |d^q1 psi_k-q1>
+         pert=    1     time taken/total=      0.4/     20.3 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     20.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     21.5 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     22.3 secs     av.it.  17.5
+
+     Computing P_c^-q1 |d^-q1 psi_k>
+         pert=    1     time taken/total=      0.4/     22.7 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     23.0 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     23.8 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     24.6 secs     av.it.  17.5
+
+     Computing P_c^G |d^-q1 psi_k+q1>
+         pert=    1     time taken/total=      0.4/     25.0 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     25.4 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     26.2 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     27.0 secs     av.it.  17.5
+
+     Computing P_c^q2 |d^q2 psi_k>
+         pert=    1     time taken/total=      0.4/     27.3 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     27.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     28.5 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     29.3 secs     av.it.  17.5
+
+     Computing P_c^G |d^q2 psi_k-q2>
+         pert=    1     time taken/total=      0.4/     29.7 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     30.1 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     30.9 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     31.6 secs     av.it.  17.5
+
+     Computing P_c^-q2 |d^-q2 psi_k>
+         pert=    1     time taken/total=      0.4/     32.0 secs     av.it.  16.9
+         pert=    2     time taken/total=      0.4/     32.4 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     33.2 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     34.0 secs     av.it.  17.5
+
+     Computing P_c^G |d^-q2 psi_k+q2>
+         pert=    1     time taken/total=      0.4/     34.4 secs     av.it.  17.0
+         pert=    2     time taken/total=      0.4/     34.8 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.8/     35.5 secs     av.it.  17.5
+         pert=    4     time taken/total=      0.8/     36.3 secs     av.it.  17.5
+
+     Computing P_c^q3 |d^q3 psi_k>
+         pert=    1     time taken/total=      0.8/     37.1 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     37.9 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     38.7 secs     av.it.  17.2
+
+     Computing P_c^G |d^q3 psi_k-q3>
+         pert=    1     time taken/total=      0.8/     39.5 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     40.3 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     41.0 secs     av.it.  17.2
+
+     Computing P_c^-q3 |d^-q3 psi_k>
+         pert=    1     time taken/total=      0.8/     41.8 secs     av.it.  17.7
+         pert=    2     time taken/total=      0.8/     42.6 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     43.4 secs     av.it.  17.2
+
+     Computing P_c^G |d^-q3 psi_k+q3>
+         pert=    1     time taken/total=      0.8/     44.2 secs     av.it.  17.6
+         pert=    2     time taken/total=      0.8/     45.0 secs     av.it.  17.4
+         pert=    3     time taken/total=      0.8/     45.8 secs     av.it.  17.2
+
+     Computing <psi_k-q3 |d^q1V| psi_k+q2>
+
+     Computing <psi_k-q2 |d^q1V| psi_k+q3>
+
+     Computing <psi_k-q3 |d^q2V| psi_k+q1>
+
+     Computing <psi_k-q1 |d^q2V| psi_k+q3>
+
+     Computing <psi_k-q2 |d^q3V| psi_k+q1>
+
+     Computing <psi_k-q1 |d^q3V| psi_k+q2>
+
+
+     generate_dwfc   cpu time:    29.04 sec    Total time:       46.60 sec
+
+     ================== nscf dpsi done =================
+
+
+     ================== precomp start
+
+     Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       46.60 sec
+
+     ================== precomp done
+
+     ================== dpdvdp start
+
+     Calculating the matrix elements <dpsi |dH |dpsi>
+       <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
+       <d^-q2 psi_k|d^q3  V|d^q1  psi_k>
+       <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
+       <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
+       <d^-q2 psi_k|d^q1  V|d^q3  psi_k>
+       <d^-q1 psi_k|d^q2  V|d^q3  psi_k>
+     dpsi1dv2dpsi3 cpu time:     4.55 sec    Total time:       51.15 sec
+
+     ================== dpdvdp done
+
+     ================== dpdpdv start
+
+     Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
+       <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
+       <d_-q2 psi_k+q2| d_q1 psi_k-q1> <psi_k-q1|d_q3 H|psi_k+q2>
+       <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
+       <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
+       <d_-q2 psi_k+q2| d_q3 psi_k-q3> <psi_k-q3|d_q1 H|psi_k+q2>
+       <d_-q1 psi_k+q1| d_q3 psi_k-q3> <psi_k-q3|d_q2 H|psi_k+q1>
+     dpsi1dpsi2dv3 cpu time:     0.13 sec    Total time:       51.28 sec
+
+     ================== dpdpdv done
+
+     ================== dpd2v start
+
+     Calculating the matrix elements <psi |d^2 v |dpsi>
+       <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
+       <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
+       <d_q3 psi_k| d^2_(q1,q2) V|psi_k>
+     drhod2v       cpu time:     0.46 sec    Total time:       51.74 sec
+
+     ================== dpd2v done
+
+     =================== rho d3v start =================
+
+
+     Calculating the matrix elements <psi |d^3v |psi>
+     d3vrho        cpu time:     0.07 sec    Total time:       51.82 sec
+
+     =================== rho d3v done ==================
+
+
+     ================== ewald start
+
+     Calculating the Ewald contribution
+
+     Alpha used in Ewald sum =   1.01
+     d3ionq        cpu time:     0.08 sec    Total time:       51.90 sec
+
+     ================== ewald done
+
+     ================ exc contrib start
+
+     Calculating the exchange-correlation contribution
+     d3_exc        cpu time:     0.02 sec    Total time:       51.91 sec
+
+     ================ exc contrib done
+
+     =============== computing D3 start
+
+     Symmetrizing and writing the tensor to disc
+
+     CALLing d3matrix
+       * symmetrizing with  4 sym.ops.
+       point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_-1o2_Q2.0_-1o2_0_Q3.0_1o2_1o2
+       point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.1o2_1o2_1o2_Q3.0_-1o2_-1o2
+       point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.-1o2_0_0_Q3.0_-1o2_-1o2
+       point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_1o2_0_Q2.0_0_1o2_Q3.0_-1o2_-1o2
+       point #  5  : star #  5  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.0_-1o2_0_Q3.-1o2_0_-1o2
+       point #  6  : star #  6  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.0_0_-1o2_Q3.1o2_0_1o2
+       point #  7  : star #  7  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.1o2_1o2_1o2_Q3.-1o2_0_-1o2
+       point #  8  : star #  8  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_-1o2_Q2.1o2_1o2_1o2_Q3.-1o2_-1o2_0
+       point #  9  : star #  9  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_0_Q2.0_-1o2_0_Q3.1o2_1o2_0
+       point # 10  : star # 10  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_0_Q2.-1o2_0_0_Q3.1o2_1o2_0
+       point # 11  : star # 11  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_1o2_Q2.0_0_-1o2_Q3.-1o2_-1o2_0
+       point # 12  : star # 12  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_0_1o2_Q2.1o2_0_0_Q3.-1o2_0_-1o2
+     d3matrix      cpu time:     0.05 sec    Total time:       51.96 sec
+
+     =============== computing D3 done
+
+     ================== cleanup start
+ 
+     D3TOTEN      :     48.66s CPU     51.97s WALL (       4 calls)
+     --> wfc and dwfc
+     nscf         :      3.90s CPU      4.14s WALL (       4 calls)
+     generate_dwf :     35.60s CPU     38.15s WALL (       4 calls)
+     --> matrix elements
+     dpsi1dv2dpsi :      7.03s CPU      7.32s WALL (      13 calls)
+     dpsi1dpsi2dv :      0.08s CPU      0.21s WALL (      13 calls)
+     dq1rhodq23v  :      0.85s CPU      0.87s WALL (       8 calls)
+     rhodq123v    :      0.19s CPU      0.19s WALL (       4 calls)
+     d3ionq       :      0.32s CPU      0.32s WALL (       4 calls)
+     d3_exc       :      0.05s CPU      0.07s WALL (       4 calls)
+     d3matrix     :      0.06s CPU      0.07s WALL (       4 calls)
+     --> total I/O
+     davcio       :      0.24s CPU      0.33s WALL (   68528 calls)
+
+     ================== cleanup done
+
+     ===================================================
+     =             Starting D3 calculation             =
+     ===================================================
+     =     triplet    5 (    5 of    5,  80% done)     =
+     ===================================================
+     =    q1 = (    0.000000  -1.000000   0.000000 )   =
+     =    q2 = (    1.000000   0.000000   0.000000 )   =
+     =    q3 = (   -1.000000   1.000000   0.000000 )   =
+     ===================================================
+     Temporary directory set to:
+       ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     SCF rho copied to D3 tmp dir
+     Scanning for fildrho files...
+         --> drho file for q1 found as 'drho.0_-1o2_-1o2'
+         --> drho file for q2 found as 'drho.1o2_0_1o2'
+         --> drho file for q3 found as 'drho.-1o2_-1o2_0'
+     ================== setup started ==================
+     Special cases for qs:
+       q1 : no special case detected
+       q2 : no special case detected
+       q3 : no special case detected
+       Symmetry operations:
+         q1: 12  TTTTTTTTTTTTTTTTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+         q2: 12  TFTFTTTTTFFFFTFFFFFFFFFFFFFTFFFFTFFFTTTTFFFTFTFF
+         q3: 16  TFTFTTTTTFFFFTFFFFFFFTFFTTTFTTTTFFFFFFFFFFFFFFFF
+       Symmetry common to all q vectors:
+             TFTFTTTTTFFFFTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+         --> 8 symmetry operation(s) have been found
+ REMARK: q -> -q symmetry yet unsupported in d3q.x
+         individual q --> -q operations:  F F F
+       Reading patterns and q-point for q1
+       Reading patterns and q-point for q2
+         --> drho of q2 (  1.0000  0.0000  0.0000) was computed by ph.x for ( -1.0000  0.0000  0.0000)
+       Reading patterns and q-point for q3
+         --> drho of q3 ( -1.0000  1.0000  0.0000) was computed by ph.x for (  0.0000  0.0000 -1.0000)
+
+     Symmetry analysis done
+     =================== setup done ====================
+
+
+
+     =============== run_nscf_d3 start
+
+     Starting non-scf calculation of ground state wavefunctions.
+
+     WARNING: check_stop already initialized
+       * has time reversal symmetry.
+     Total number of kpoints:
+       --> after reducing symmetry:    18
+       --> after including k+/-q_i (kunit):   126 (7)
+
+     --> output from 'electrons' appended to ./tmp//nscf_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1.out
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     Writing output data file silicon.save
+
+     =============== run_nscf_d3 done
+
+     =============== allocate_d3 start
+
+     =============== allocate_d3 done
+
+     ============== openfile_drho start
+
+     Opening files of charge density derivative.
+       Translating drho from xq=( -1.0000  0.0000  0.0000) to xq=(   1.00000   0.00000   0.00000) for point q2
+         --> new drho stored to 'drho.1o2_0_1o2_newq2'
+       Translating drho from xq=(  0.0000  0.0000 -1.0000) to xq=(  -1.00000   1.00000   0.00000) for point q3
+         --> new drho stored to 'drho.-1o2_-1o2_0_newq3'
+         q1 --> opening: drho.0_-1o2_-1o2
+         q2 --> just opened: drho.1o2_0_1o2_newq2
+         q3 --> just opened: drho.-1o2_-1o2_0_newq3
+
+     ============== openfile_drho done
+
+     ================ openfild3 start
+
+     ================ openfild3 done
+     u: 302   recl:     27648   ext:           drho.1o2_0_1o2_newq2   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u: 303   recl:     27648   ext:         drho.-1o2_-1o2_0_newq3   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u: 301   recl:     27648   ext:               drho.0_-1o2_-1o2   tmp: FILDRHO/
+     u:  20   recl:      4352   ext:                            wfc   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5077   recl:      4352   ext:                      d-q3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6077   recl:        32   ext:                    pdv-q3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5078   recl:      4352   ext:                      d-q3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6078   recl:        32   ext:                    pdv-q3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5079   recl:      4352   ext:                      d-q3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6079   recl:        32   ext:                    pdv-q3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5070   recl:      4352   ext:                        d-q3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6070   recl:        32   ext:                      pdv-q3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5071   recl:      4352   ext:                       d-q3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6071   recl:        32   ext:                     pdv-q3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5072   recl:      4352   ext:                       d-q3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6072   recl:        32   ext:                     pdv-q3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5073   recl:      4352   ext:                       d-q3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6073   recl:        32   ext:                     pdv-q3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5087   recl:      4352   ext:                      d-q2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6087   recl:        32   ext:                    pdv-q2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5088   recl:      4352   ext:                      d-q2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6088   recl:        32   ext:                    pdv-q2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5089   recl:      4352   ext:                      d-q2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6089   recl:        32   ext:                    pdv-q2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5080   recl:      4352   ext:                        d-q2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6080   recl:        32   ext:                      pdv-q2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5081   recl:      4352   ext:                       d-q2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6081   recl:        32   ext:                     pdv-q2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5082   recl:      4352   ext:                       d-q2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6082   recl:        32   ext:                     pdv-q2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5083   recl:      4352   ext:                       d-q2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6083   recl:        32   ext:                     pdv-q2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5097   recl:      4352   ext:                      d-q1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6097   recl:        32   ext:                    pdv-q1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5098   recl:      4352   ext:                      d-q1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6098   recl:        32   ext:                    pdv-q1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5099   recl:      4352   ext:                      d-q1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6099   recl:        32   ext:                    pdv-q1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5090   recl:      4352   ext:                        d-q1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6090   recl:        32   ext:                      pdv-q1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5091   recl:      4352   ext:                       d-q1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6091   recl:        32   ext:                     pdv-q1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5092   recl:      4352   ext:                       d-q1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6092   recl:        32   ext:                     pdv-q1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5093   recl:      4352   ext:                       d-q1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6093   recl:        32   ext:                     pdv-q1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5007   recl:      4352   ext:                        dGp-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6007   recl:        32   ext:                      pdvGp-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5008   recl:      4352   ext:                        dGp-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6008   recl:        32   ext:                      pdvGp-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5009   recl:      4352   ext:                        dGp-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6009   recl:        32   ext:                      pdvGp-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5000   recl:      4352   ext:                          dGpG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6000   recl:        32   ext:                        pdvGpG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5001   recl:      4352   ext:                         dGpq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6001   recl:        32   ext:                       pdvGpq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5002   recl:      4352   ext:                         dGpq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6002   recl:        32   ext:                       pdvGpq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5003   recl:      4352   ext:                         dGpq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6003   recl:        32   ext:                       pdvGpq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5017   recl:      4352   ext:                       dq1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6017   recl:        32   ext:                     pdvq1p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5018   recl:      4352   ext:                       dq1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6018   recl:        32   ext:                     pdvq1p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5019   recl:      4352   ext:                       dq1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6019   recl:        32   ext:                     pdvq1p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5010   recl:      4352   ext:                         dq1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6010   recl:        32   ext:                       pdvq1pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5011   recl:      4352   ext:                        dq1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6011   recl:        32   ext:                      pdvq1pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5012   recl:      4352   ext:                        dq1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6012   recl:        32   ext:                      pdvq1pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5013   recl:      4352   ext:                        dq1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6013   recl:        32   ext:                      pdvq1pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5027   recl:      4352   ext:                       dq2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6027   recl:        32   ext:                     pdvq2p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5028   recl:      4352   ext:                       dq2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6028   recl:        32   ext:                     pdvq2p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5029   recl:      4352   ext:                       dq2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6029   recl:        32   ext:                     pdvq2p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5020   recl:      4352   ext:                         dq2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6020   recl:        32   ext:                       pdvq2pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5021   recl:      4352   ext:                        dq2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6021   recl:        32   ext:                      pdvq2pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5022   recl:      4352   ext:                        dq2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6022   recl:        32   ext:                      pdvq2pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5023   recl:      4352   ext:                        dq2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6023   recl:        32   ext:                      pdvq2pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5037   recl:      4352   ext:                       dq3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6037   recl:        32   ext:                     pdvq3p-q3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5038   recl:      4352   ext:                       dq3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6038   recl:        32   ext:                     pdvq3p-q2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5039   recl:      4352   ext:                       dq3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6039   recl:        32   ext:                     pdvq3p-q1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5030   recl:      4352   ext:                         dq3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6030   recl:        32   ext:                       pdvq3pG.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5031   recl:      4352   ext:                        dq3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6031   recl:        32   ext:                      pdvq3pq1.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5032   recl:      4352   ext:                        dq3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6032   recl:        32   ext:                      pdvq3pq2.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:5033   recl:      4352   ext:                        dq3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+     u:6033   recl:        32   ext:                      pdvq3pq3.   tmp: ./tmp//D3_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1/
+
+     ================= d3_init start
+     alpha_pv:      1.7772
+
+     ================= d3_init done
+
+     ========== d3_check_permutations start
+     Looking for equivalent permutations of q vectors
+       Permutation 1 (123) has to be computed explicitly
+       Permutation 2 (132) has to be computed explicitly
+       Permutation 3 (213) has to be computed explicitly
+       Permutation 4 (231) has to be computed explicitly
+       Permutation 5 (312) has to be computed explicitly
+       Permutation 6 (321) has to be computed explicitly
+     6 inequivalent permutations were found
+
+     ========== d3_check_permutations done
+     D3_toten     :    50.65s CPU        54.06s WALL
+
+
+     ================== add core start
+
+     Adding derivative of core charge
+     d3_add_rho_core   cpu time:     2.11 sec    Total time:       54.06 sec
+
+     ================== add core done
+
+     ===================================================
+     = Nscf calculation of the perturbed wavefunctions =
+     ===================================================
+
+     Computing P_c^q1 |d^q1 psi_k>
+         pert=    1     time taken/total=      0.6/     54.6 secs     av.it.  17.3
+         pert=    2     time taken/total=      0.6/     55.2 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     55.8 secs     av.it.  16.8
+
+     Computing P_c^G |d^q1 psi_k-q1>
+         pert=    1     time taken/total=      0.6/     56.4 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     57.0 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     57.5 secs     av.it.  16.9
+
+     Computing P_c^-q1 |d^-q1 psi_k>
+         pert=    1     time taken/total=      0.6/     58.1 secs     av.it.  17.3
+         pert=    2     time taken/total=      0.6/     58.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     59.3 secs     av.it.  16.8
+
+     Computing P_c^G |d^-q1 psi_k+q1>
+         pert=    1     time taken/total=      0.6/     59.8 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     60.4 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     61.0 secs     av.it.  16.8
+
+     Computing P_c^q2 |d^q2 psi_k>
+         pert=    1     time taken/total=      0.6/     61.6 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     62.2 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     62.8 secs     av.it.  16.9
+
+     Computing P_c^G |d^q2 psi_k-q2>
+         pert=    1     time taken/total=      0.6/     63.4 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     63.9 secs     av.it.  16.9
+         pert=    3     time taken/total=      0.6/     64.5 secs     av.it.  16.8
+
+     Computing P_c^-q2 |d^-q2 psi_k>
+         pert=    1     time taken/total=      0.6/     65.1 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     65.7 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     66.3 secs     av.it.  16.9
+
+     Computing P_c^G |d^-q2 psi_k+q2>
+         pert=    1     time taken/total=      0.6/     66.8 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     67.4 secs     av.it.  17.0
+         pert=    3     time taken/total=      0.6/     68.0 secs     av.it.  16.8
+
+     Computing P_c^q3 |d^q3 psi_k>
+         pert=    1     time taken/total=      0.6/     68.6 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     69.2 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     69.8 secs     av.it.  16.8
+
+     Computing P_c^G |d^q3 psi_k-q3>
+         pert=    1     time taken/total=      0.6/     70.4 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     71.0 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     71.5 secs     av.it.  16.8
+
+     Computing P_c^-q3 |d^-q3 psi_k>
+         pert=    1     time taken/total=      0.6/     72.1 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     72.7 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     73.3 secs     av.it.  16.8
+
+     Computing P_c^G |d^-q3 psi_k+q3>
+         pert=    1     time taken/total=      0.6/     73.8 secs     av.it.  17.2
+         pert=    2     time taken/total=      0.6/     74.4 secs     av.it.  17.1
+         pert=    3     time taken/total=      0.6/     75.0 secs     av.it.  16.8
+
+     Computing <psi_k-q3 |d^q1V| psi_k+q2>
+
+     Computing <psi_k-q2 |d^q1V| psi_k+q3>
+
+     Computing <psi_k-q3 |d^q2V| psi_k+q1>
+
+     Computing <psi_k-q1 |d^q2V| psi_k+q3>
+
+     Computing <psi_k-q2 |d^q3V| psi_k+q1>
+
+     Computing <psi_k-q1 |d^q3V| psi_k+q2>
+
+
+     generate_dwfc   cpu time:    21.61 sec    Total time:       75.67 sec
+
+     ================== nscf dpsi done =================
+
+
+     ================== precomp start
+
+     Pre-computing < Pc dpsi_(k+X)/du(-X)| dH/du(Y) | psi_k-Y >
+     gen_dpsi1dv2psi     cpu time:     0.00 sec    Total time:       75.67 sec
+
+     ================== precomp done
+
+     ================== dpdvdp start
+
+     Calculating the matrix elements <dpsi |dH |dpsi>
+       <d^-q3 psi_k|d^q2  V|d^q1  psi_k>
+       <d^-q2 psi_k|d^q3  V|d^q1  psi_k>
+       <d^-q3 psi_k|d^q1  V|d^q2  psi_k>
+       <d^-q1 psi_k|d^q3  V|d^q2  psi_k>
+       <d^-q2 psi_k|d^q1  V|d^q3  psi_k>
+       <d^-q1 psi_k|d^q2  V|d^q3  psi_k>
+     dpsi1dv2dpsi3 cpu time:     3.47 sec    Total time:       79.14 sec
+
+     ================== dpdvdp done
+
+     ================== dpdpdv start
+
+     Calculating the matrix elements <dpsi|dpsi>< psi|dH|psi> 
+       <d_-q3 psi_k+q3| d_q1 psi_k-q1> <psi_k-q1|d_q2 H|psi_k+q3>
+       <d_-q2 psi_k+q2| d_q1 psi_k-q1> <psi_k-q1|d_q3 H|psi_k+q2>
+       <d_-q3 psi_k+q3| d_q2 psi_k-q2> <psi_k-q2|d_q1 H|psi_k+q3>
+       <d_-q1 psi_k+q1| d_q2 psi_k-q2> <psi_k-q2|d_q3 H|psi_k+q1>
+       <d_-q2 psi_k+q2| d_q3 psi_k-q3> <psi_k-q3|d_q1 H|psi_k+q2>
+       <d_-q1 psi_k+q1| d_q3 psi_k-q3> <psi_k-q3|d_q2 H|psi_k+q1>
+     dpsi1dpsi2dv3 cpu time:     0.10 sec    Total time:       79.24 sec
+
+     ================== dpdpdv done
+
+     ================== dpd2v start
+
+     Calculating the matrix elements <psi |d^2 v |dpsi>
+       <d_q1 psi_k| d^2_(q2,q3) V|psi_k>
+       <d_q2 psi_k| d^2_(q1,q3) V|psi_k>
+       <d_q3 psi_k| d^2_(q1,q2) V|psi_k>
+     drhod2v       cpu time:     0.35 sec    Total time:       79.59 sec
+
+     ================== dpd2v done
+
+     =================== rho d3v start =================
+
+
+     Calculating the matrix elements <psi |d^3v |psi>
+     d3vrho        cpu time:     0.06 sec    Total time:       79.65 sec
+
+     =================== rho d3v done ==================
+
+
+     ================== ewald start
+
+     Calculating the Ewald contribution
+
+     Alpha used in Ewald sum =   1.01
+     d3ionq        cpu time:     0.08 sec    Total time:       79.72 sec
+
+     ================== ewald done
+
+     ================ exc contrib start
+
+     Calculating the exchange-correlation contribution
+     d3_exc        cpu time:     0.02 sec    Total time:       79.74 sec
+
+     ================ exc contrib done
+
+     =============== computing D3 start
+
+     Symmetrizing and writing the tensor to disc
+
+     CALLing d3matrix
+       * symmetrizing with  8 sym.ops.
+       point #  1  : star #  1  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_-1o2_-1o2_Q2.-1o2_0_-1o2_Q3.1o2_1o2_1
+       point #  2  : star #  2  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.0_1o2_1o2_Q2.-1o2_-1o2_0_Q3.1o2_0_-1o2
+       point #  3  : star #  3  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_0_1o2_Q2.1o2_1o2_0_Q3.-1_-1o2_-1o2
+       point #  4  : star #  4  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.1o2_1o2_0_Q2.0_-1o2_-1o2_Q3.-1o2_0_1o2
+       point #  5  : star #  5  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_0_-1o2_Q2.0_-1o2_-1o2_Q3.1o2_1o2_1
+       point #  6  : star #  6  perm #  1 ( 1 2 3 )
+      -->FILD3DYN/anh_Q1.-1o2_-1o2_0_Q2.1o2_0_1o2_Q3.0_1o2_-1o2
+     d3matrix      cpu time:     0.02 sec    Total time:       79.76 sec
+
+     =============== computing D3 done
+
+     ================== cleanup start
+
+     ================== cleanup done
+ 
+     D3TOTEN      :     74.65s CPU     79.77s WALL (       5 calls)
+ 
+      NSCF calculation of ground-state wfcs
+     init_run     :      0.19s CPU      0.19s WALL (       5 calls)
+     electrons    :      4.98s CPU      5.31s WALL (       5 calls)
+     c_bands      :      4.98s CPU      5.31s WALL (       5 calls)
+     cegterg      :      4.32s CPU      4.60s WALL (     380 calls)
+ 
+      NSCF calculation of perturbed wfcs
+     generate_dwf :     55.71s CPU     59.75s WALL (       5 calls)
+     solve_linter :     55.70s CPU     59.73s WALL (     162 calls)
+     ortho        :      0.05s CPU      0.06s WALL (    3540 calls)
+     cgsolve      :     50.19s CPU     53.83s WALL (    3540 calls)
+ 
+     ch_psi       :     49.13s CPU     52.69s WALL (   67403 calls)
+     h_psiq       :     46.20s CPU     49.55s WALL (   67403 calls)
+ 
+     firstfft     :     21.65s CPU     23.23s WALL (  249280 calls)
+     secondfft    :     18.12s CPU     19.41s WALL (  249280 calls)
+ 
+      D3 setup and pre-calculations
+     d3_setup     :      0.00s CPU      0.01s WALL (       5 calls)
+     d3_setup_noq :      0.00s CPU      0.00s WALL (       1 calls)
+     d3_init      :      0.57s CPU      0.58s WALL (       5 calls)
+ 
+      D3 matrix elements
+     dpsi1dv2dpsi :     10.38s CPU     10.80s WALL (      19 calls)
+     dpsi1dpsi2dv :      0.12s CPU      0.30s WALL (      19 calls)
+     dq1rhodq23v  :      1.19s CPU      1.22s WALL (      11 calls)
+     rhodq123v    :      0.24s CPU      0.24s WALL (       5 calls)
+     d3ionq       :      0.39s CPU      0.39s WALL (       5 calls)
+     d3_exc       :      0.06s CPU      0.08s WALL (       5 calls)
+     d3matrix     :      0.07s CPU      0.09s WALL (       5 calls)
+ 
+      Input/output
+     drho_add_pha :      0.00s CPU      0.00s WALL (      24 calls)
+     drho_change_ :      0.00s CPU      0.00s WALL (       4 calls)
+     read_drho    :      0.07s CPU      0.09s WALL (    1776 calls)
+     davcio       :      0.36s CPU      0.48s WALL (  100868 calls)
+ 
+      General routines
+     calbec       :      1.91s CPU      2.05s WALL (  140567 calls)
+ 
+      Parallel routines
+     fft_scatter  :      5.74s CPU      6.11s WALL (  687405 calls)
