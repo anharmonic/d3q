@@ -498,7 +498,7 @@ MODULE fc2_interpolate
     !
     ! WARNING: dirty hack!
     ! Instead of computing the non-analitical contribution (which seemed to be missing some
-    ! pieace that I did not manage to track down) I'm computing the frequencies at 
+    ! piece that I did not manage to track down) I'm computing the frequencies at 
     ! a tiny displacement out of Gamma
     CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
     !

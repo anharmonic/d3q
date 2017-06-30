@@ -27,7 +27,7 @@ MODULE code_input
     CHARACTER(len=256) :: prefix     ! put this in front of file names
     !
     LOGICAL :: exp_t_factor ! add elastic peak (sort of not working)
-    LOGICAL :: sort_shifted_freq ! only applies to "full" calculation: 
+    CHARACTER(len=7) :: sort_freq ! only applies to "full" calculation: 
                                  ! sort w+w_shift when saving to file. Instead of w,lw,ls 
                                  ! you have w,lw,ls+w with the last two blocks sorted differently 
                                  ! than the first one to avoid unesthetical jumps in band plots
@@ -87,7 +87,7 @@ MODULE code_input
     CALL mpi_broadcast(in%prefix)
     !
     CALL mpi_broadcast(in%exp_t_factor)
-    CALL mpi_broadcast(in%sort_shifted_freq)
+    CALL mpi_broadcast(in%sort_freq)
     !
     CALL mpi_broadcast(in%file_mat3)
     CALL mpi_broadcast(in%file_mat2)
@@ -167,7 +167,7 @@ MODULE code_input
     REAL(DP)           :: xk0_in(3) = (/ DHUGE, DHUGE, DHUGE/)          ! grid shift as fraction of half grid step
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
-    LOGICAL            :: sort_shifted_freq = .false. ! sort w+l_shift
+    CHARACTER(len=7)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted)
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     CHARACTER(len=6)   :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
@@ -224,7 +224,7 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       nconf, start_q, nq, nk, grid_type, xk0, &
       ne, de, e0, e_initial, q_initial, q_resolved, sigmaq,&
-      exp_t_factor, sort_shifted_freq, &
+      exp_t_factor, sort_freq, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
       max_seconds, max_time
@@ -318,7 +318,7 @@ MODULE code_input
     input%grid_type = grid_type
     input%grid_type_in = grid_type_in
     input%exp_t_factor = exp_t_factor
-    input%sort_shifted_freq = sort_shifted_freq
+    input%sort_freq    = sort_freq
     input%print_dynmat   = print_dynmat
     input%print_velocity = print_velocity
     input%store_lw       = store_lw 
@@ -477,9 +477,9 @@ MODULE code_input
           qpts%basis = "cartesian"
           ioWRITE(*,"(4x,a)") "q-points converted to cartesian basis"
         ENDIF
-        DO i = 1, qpts%nq 
-          ioWRITE(*,"(2x,3f12.6,f15.6)") qpts%xq(:,i), qpts%w(i) ! this prints all points, one per line
-        ENDDO
+!         DO i = 1, qpts%nq 
+!           ioWRITE(*,"(2x,3f12.6,f15.6)") qpts%xq(:,i), qpts%w(i) ! this prints all points, one per line
+!         ENDDO
         ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("CONFIGS")

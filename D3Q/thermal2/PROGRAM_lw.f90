@@ -41,7 +41,7 @@ MODULE linewidth_program
     !
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
-    INTEGER :: iq, it
+    INTEGER :: iq, it, order(S%nat3)
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
     REAL(DP)   :: lw(S%nat3,input%nconf)
@@ -94,6 +94,11 @@ MODULE linewidth_program
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
       !
+      ! If necessary, compute the ordering of the bands to assure modes continuity;
+      ! on first call, it just returns the trivial 1...3*nat order
+      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, w2, D)
+      !
+      MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
       
           timer_CALL t_lwphph%start()
@@ -109,6 +114,7 @@ MODULE linewidth_program
                                         S, grid, fc2)
             timer_CALL t_lwisot%stop()
         ENDIF
+        !
         IF(input%casimir_scattering)THEN
             timer_CALL t_lwcasi%start()
           lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%casimir_length, &
@@ -118,20 +124,25 @@ MODULE linewidth_program
           ENDDO
           timer_CALL t_lwcasi%stop()
         ENDIF
+        !
         DO it = 1,input%nconf
           lsx = ls(:,it) - CMPLX(0._dp, lw(:,it),kind=DP)
-          IF(input%sort_shifted_freq) THEN
+          !
+          IF(TRIM(input%sort_freq)=="shifted") THEN
             CALL resort_w_ls(S%nat3, w2, lsx)
           ELSE
             lsx = lsx + w2
           ENDIF
           IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
-                iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, -DIMAG(lsx)*RY_TO_CMM1, DBLE(lsx)*RY_TO_CMM1
+                iq,qpath%w(iq),qpath%xq(:,iq), w2(order(:))*RY_TO_CMM1, &
+                -DIMAG(lsx(order(:)))*RY_TO_CMM1, &
+                  DBLE(lsx(order(:)))*RY_TO_CMM1
           
           ioFLUSH(1000+it)
         ENDDO
       !
+      ! MODE_SELECTION !
       ELSE IF (TRIM(input%mode) == "real" .or. TRIM(input%mode) == "imag") THEN
       !
           timer_CALL t_lwphph%start()
@@ -155,16 +166,19 @@ MODULE linewidth_program
         ENDIF
         
         DO it = 1,input%nconf
+          !
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
-                iq,qpath%w(iq),qpath%xq(:,iq), w2*RY_TO_CMM1, lw(:,it)*RY_TO_CMM1
+                iq,qpath%w(iq),qpath%xq(:,iq), &
+                w2(order(:))*RY_TO_CMM1, lw(order(:),it)*RY_TO_CMM1
           ioFLUSH(1000+it)
         ENDDO
       !
+      ! MODE_SELECTION !
       ELSE
       !
         CALL errore('LW_QBZ_LINE', 'wrong mode (imag or full)', 1)
       !
-      ENDIF
+      ENDIF MODE_SELECTION
       !
     ENDDO
     !
@@ -195,7 +209,9 @@ MODULE linewidth_program
   END SUBROUTINE LW_QBZ_LINE
   !
   ! Sort w and ls so that w+real(ls) is in increasing order
-  ! On output, give ls+w correctly sorted, leave w unchanged
+  ! On output, return ls+w correctly sorted, leave w unchanged
+  ! Note that the imaginary part of ls (the linewidth) will also
+  ! be sorted in the order w+real(ls) during the process
   SUBROUTINE resort_w_ls(nat3, w, ls)
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
@@ -206,7 +222,7 @@ MODULE linewidth_program
     COMPLEX(DP):: lsx(nat3)
     REAL(DP)   :: tot(nat3), maxx, minx
     INTEGER    :: i,j
-    ! Use stupid O(n^2) sort as quicksort with two list would be boring to implement
+    ! Use stupid O(n^2) sort as quicksort with two lists would be boring to implement
     tot = w + DBLE(ls)
     maxx = MAXVAL(tot)+1._dp
     DO i = 1, nat3
@@ -224,6 +240,74 @@ MODULE linewidth_program
     !w  = wx
     ls = lsx+wx
   END SUBROUTINE
+  !
+  FUNCTION overlap_order(nat3, w, e) RESULT(order_out)
+    USE constants, ONLY : RY_TO_CMM1
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nat3
+    REAL(DP),INTENT(in) :: w(nat3)
+    COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
+    !COMPLEX(DP),INTENT(inout):: ls(nat3)
+    INTEGER :: order_out(nat3)
+    !
+    COMPLEX(DP),ALLOCATABLE,SAVE :: e_prev(:,:)
+    INTEGER,ALLOCATABLE,SAVE :: order(:)
+    COMPLEX(DP) :: e_new(nat3,nat3)
+    !
+    REAL(DP)   :: olap !wx(nat3)
+    !COMPLEX(DP):: lsx(nat3), lsx2(nat3),
+    COMPLEX(DP) :: dolap
+    REAL(DP)   :: maxx
+    INTEGER    :: i,j,jmax, orderx(nat3)
+    LOGICAL    :: assigned(nat3)
+    !
+    ! On first call, just sort as usual and exit
+    IF(.not.ALLOCATED(e_prev))THEN
+      ALLOCATE(e_prev(nat3,nat3))
+      e_prev = e
+      ALLOCATE(order(nat3))
+      FORALL(i=1:nat3) order(i) = i
+      order_out = order
+      RETURN
+    ELSE
+      IF(size(e_prev,1)/=nat3) CALL errore("overlap","inconsistent nat3",1)
+      !lsx = ls+w
+      !wx = w
+    ENDIF
+    e_new = e
+    !
+    assigned = .false.
+    DO i = 1, nat3
+      maxx = -1._dp
+      jmax = -1
+      DO j = nat3,1,-1
+        ! Square modulus:
+        dolap = SUM( e_prev(:,i)*DCONJG(e_new(:,j)) )
+        olap = dolap*DCONJG(dolap)
+        ! Do not change the order if the overlap condition is weak
+        ! i.e. where some modes are degenerate, or if points are too far apart
+        IF(olap>=maxx .and. .not. assigned(j).and.olap>0.9_dp )THEN
+          jmax = j
+          maxx = olap
+        ENDIF
+        !
+      ENDDO
+      IF(jmax<0) jmax = i
+      !
+      ! Destroy assigned polarizations:
+      e_new(:,jmax) = 0._dp
+      assigned(jmax) = .true.
+      orderx(i) = order(jmax)
+    ENDDO
+    !
+    ! Prepare for next call
+    e_prev = e
+    order = orderx
+    !
+    ! Set output
+    order_out = order
+    !
+  END FUNCTION
   !  
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq_path
