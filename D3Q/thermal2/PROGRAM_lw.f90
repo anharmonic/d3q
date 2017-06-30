@@ -96,7 +96,7 @@ MODULE linewidth_program
       !
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
-      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, w2, D)
+      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, D)
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
@@ -241,25 +241,23 @@ MODULE linewidth_program
     ls = lsx+wx
   END SUBROUTINE
   !
-  FUNCTION overlap_order(nat3, w, e) RESULT(order_out)
+  FUNCTION overlap_order(nat3, e) RESULT(order_out)
     USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
-    REAL(DP),INTENT(in) :: w(nat3)
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
-    !COMPLEX(DP),INTENT(inout):: ls(nat3)
     INTEGER :: order_out(nat3)
     !
     COMPLEX(DP),ALLOCATABLE,SAVE :: e_prev(:,:)
     INTEGER,ALLOCATABLE,SAVE :: order(:)
     COMPLEX(DP) :: e_new(nat3,nat3)
     !
-    REAL(DP)   :: olap !wx(nat3)
-    !COMPLEX(DP):: lsx(nat3), lsx2(nat3),
+    REAL(DP)   :: olap
     COMPLEX(DP) :: dolap
     REAL(DP)   :: maxx
     INTEGER    :: i,j,jmax, orderx(nat3)
     LOGICAL    :: assigned(nat3)
+    REAL(DP),PARAMETER :: olap_thr = 0.9_dp
     !
     ! On first call, just sort as usual and exit
     IF(.not.ALLOCATED(e_prev))THEN
@@ -286,7 +284,7 @@ MODULE linewidth_program
         olap = dolap*DCONJG(dolap)
         ! Do not change the order if the overlap condition is weak
         ! i.e. where some modes are degenerate, or if points are too far apart
-        IF(olap>=maxx .and. .not. assigned(j).and.olap>0.9_dp )THEN
+        IF(olap>=maxx .and. .not. assigned(j).and.olap>olap_thr)THEN
           jmax = j
           maxx = olap
         ENDIF
@@ -294,7 +292,8 @@ MODULE linewidth_program
       ENDDO
       IF(jmax<0) jmax = i
       !
-      ! Destroy assigned polarizations:
+      !IF(i/=jmax) print*, i, "->", jmax
+      ! Destroy polarizations already assigned:
       e_new(:,jmax) = 0._dp
       assigned(jmax) = .true.
       orderx(i) = order(jmax)
