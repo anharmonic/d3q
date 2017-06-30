@@ -81,6 +81,7 @@ d3_init.o : ../../Modules/mp_world.o
 d3_init.o : ../../Modules/recvec.o
 d3_init.o : ../../Modules/uspp.o
 d3_init.o : ../../PW/src/pwcom.o
+d3_init.o : ./d3_debug.o
 d3_init.o : ./d3com.o
 d3_init.o : ./set_kplus3q.o
 d3_iofiles.o : ../../FFTXlib/fft_interfaces.o

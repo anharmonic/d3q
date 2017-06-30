@@ -153,7 +153,7 @@ MODULE nanoclock
     !
     fact = 100._dp / gran_pc
     !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
-    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.2_dp*fact/n
+    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.49_dp*fact/n
 
     wall = get_wall()
     print_now = print_now .or. (wall-last_print)>gran_sec
@@ -166,8 +166,8 @@ MODULE nanoclock
 
     IF(print_now)THEN
       last_print = wall
-    pc = 100*DBLE(i-1)/(n-1)
-    iter_time = (wall-iter_start)
+      pc = 100*DBLE(i-1)/(n-1)
+      iter_time = (wall-iter_start)
       IF(pc>0._dp) THEN
         iter_end_time = 100*iter_time/pc
         ioWRITE(stdout,'(f12.1,"% | STEP:",f12.1,"s | END: ",f12.1,"s &
