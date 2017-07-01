@@ -96,7 +96,7 @@ MODULE linewidth_program
       !
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
-      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, D)
+      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, w2, D)
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
@@ -241,10 +241,12 @@ MODULE linewidth_program
     ls = lsx+wx
   END SUBROUTINE
   !
-  FUNCTION overlap_order(nat3, e) RESULT(order_out)
+  FUNCTION overlap_order(nat3, w, e) RESULT(order_out)
     USE constants, ONLY : RY_TO_CMM1
+    !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
+    REAL(DP),INTENT(in) :: w(nat3)
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
     INTEGER :: order_out(nat3)
     !
@@ -255,9 +257,11 @@ MODULE linewidth_program
     REAL(DP)   :: olap
     COMPLEX(DP) :: dolap
     REAL(DP)   :: maxx
-    INTEGER    :: i,j,jmax, orderx(nat3)
+    INTEGER    :: i,j,j_,jmax, orderx(nat3)
     LOGICAL    :: assigned(nat3)
-    REAL(DP),PARAMETER :: olap_thr = 0.9_dp
+    REAL(DP),PARAMETER :: olap_thr = 0._dp
+    REAL(DP),PARAMETER :: w_thr = 10000._dp/RY_TO_CMM1
+    REAL(DP),PARAMETER :: eps = 0._dp
     !
     ! On first call, just sort as usual and exit
     IF(.not.ALLOCATED(e_prev))THEN
@@ -269,42 +273,51 @@ MODULE linewidth_program
       RETURN
     ELSE
       IF(size(e_prev,1)/=nat3) CALL errore("overlap","inconsistent nat3",1)
-      !lsx = ls+w
-      !wx = w
     ENDIF
+    !
     e_new = e
+    !CALL merge_degen(nat3, nat3, e_new, w)
     !
     assigned = .false.
-    DO i = 1, nat3
+    !WRITE(*,'(99i2)') order
+    DO i = 1,nat3
       maxx = -1._dp
       jmax = -1
-      DO j = nat3,1,-1
+      DO j_ = 1,nat3
+        j = order(j_)
+        IF(assigned(j)) CYCLE
         ! Square modulus:
         dolap = SUM( e_prev(:,i)*DCONJG(e_new(:,j)) )
-        olap = dolap*DCONJG(dolap)
+        olap = DBLE(dolap*DCONJG(dolap))
         ! Do not change the order if the overlap condition is weak
         ! i.e. where some modes are degenerate, or if points are too far apart
-        IF(olap>=maxx .and. .not. assigned(j).and.olap>olap_thr)THEN
+        IF(olap>(maxx+eps) .and.olap>olap_thr .and. ABS(w(i)-w(j))<w_thr )THEN
+        !IF(olap>(maxx+eps) .and.olap>olap_thr )THEN
           jmax = j
           maxx = olap
         ENDIF
         !
       ENDDO
-      IF(jmax<0) jmax = i
       !
-      !IF(i/=jmax) print*, i, "->", jmax
+      IF(jmax<0) THEN
+        IF (assigned(i)) CALL errore("overlap_sort","dont know what to do",1)
+        jmax = i
+      ENDIF
+      !
+      !IF(i/=jmax) print*, i, "->", jmax, maxx
       ! Destroy polarizations already assigned:
-      e_new(:,jmax) = 0._dp
+      !e_new(:,jmax) = 0._dp
+      e_prev(:,i) = e_new(:,jmax)
       assigned(jmax) = .true.
-      orderx(i) = order(jmax)
+      orderx(i) = jmax !order(jmax)
     ENDDO
     !
     ! Prepare for next call
-    e_prev = e
+    !e_prev = e
     order = orderx
     !
     ! Set output
-    order_out = order
+    order_out = orderx
     !
   END FUNCTION
   !  
