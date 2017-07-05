@@ -43,7 +43,7 @@ MODULE asr3_module
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
   ! In the original form (as written by Q2R3) you have a matrix of 3rd order
-  ! force constant for each couple of (R2, R3). The long list of (R2, R3) couples
+  ! force constants for each couple of (R2, R3). The long list of (R2, R3) couples
   ! repeats many times R2 and R3 in no specific order.
   ! This subroutine takes the long list of R2 *or* R3 and make a list of the used ones.
   ! The ordering is stable as long as the limits are the same.
@@ -158,13 +158,10 @@ MODULE asr3_module
     ENDDO
     !
     !
-    print*, "R ===================", nR, iRe0
-    DO i = 1, nR
-      WRITE(*,'(2i4,2x,3i3,2x,i3,2x,1000i5)') i,idmR(i), R(:,i), nRi(i)!, idR(1:nRi(i),i)
-    ENDDO
-!     DO i = 1, nR
-!       WRITE(*,'(1000i5)') idRmR(:,i)
-!     ENDDO
+    !print*, "R ===================", nR, iRe0
+    !DO i = 1, nR
+    !  WRITE(*,'(2i4,2x,3i3,2x,i3,2x,1000i5)') i,idmR(i), R(:,i), nRi(i)!, idR(1:nRi(i),i)
+    !ENDDO
     
   END SUBROUTINE stable_index_R
   !
