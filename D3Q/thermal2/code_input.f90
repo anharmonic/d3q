@@ -314,7 +314,6 @@ MODULE code_input
     input%start_q   = start_q
     input%nconf     = nconf
     input%nk        = nk
-    input%xk0       = 0.5_dp*xk0/input%nk
     input%grid_type = grid_type
     input%grid_type_in = grid_type_in
     input%exp_t_factor = exp_t_factor
@@ -332,12 +331,13 @@ MODULE code_input
     input%restart = restart
     !
     IF(ANY(nk_in<0)) nk_in = nk
-    input%nk_in            = nk_in
+    input%nk_in = nk_in
     IF(xk0_in(1)==DHUGE) xk0_in(1) = xk0(1)
     IF(xk0_in(2)==DHUGE) xk0_in(2) = xk0(2)
     IF(xk0_in(3)==DHUGE) xk0_in(3) = xk0(3)
     input%xk0_in    = 0.5_dp*xk0_in/input%nk_in
     IF(TRIM(input%grid_type_in)==INVALID) input%grid_type_in = grid_type
+    input%xk0    = 0.5_dp*xk0/input%nk
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
@@ -356,6 +356,7 @@ MODULE code_input
 !     IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
 !         CALL errore('READ_INPUT', 'Missing nq', 1)    
     CALL cryst_to_cart(1,input%xk0,S%bg, +1)
+    xk0 = input%xk0 ! put it back there to do "outer grid" later (HACK)
     CALL cryst_to_cart(1,input%xk0_in,S%bg, +1)
     !
     IF(TRIM(prefix)==INVALID)THEN
@@ -436,6 +437,8 @@ MODULE code_input
           do_grid = .true.
           !
           READ(input_unit,*,iostat=ios) nq1, nq2, nq3
+          xk0 = xk0 / (/ nq1, nq2, nq3 /)
+          CALL cryst_to_cart(1,xk0,S%bg, +1)
           IF(ios/=0) CALL errore("READ_INPUT", "Reading QPOINTS nq1, nq2, nq3 for grid calculation", 1)
           line=''
           !this is done later
@@ -485,6 +488,12 @@ MODULE code_input
       CASE ("CONFIGS")
         IF(configs_ok) CALL errore("READ_INPUT", "Won't reads configs twice", 1)
         configs_ok = .true.
+        !
+        READ(line,*,iostat=ios) word2, word3
+        !
+!         IF(TRIM(word3)=="matrix")THEN
+!           READ(input_unit,'(a1024)', iostat=ios2) line
+!         ENDIF
         !
         ioWRITE(*,*) "Reading CONFIGS", nconf
         DO i = 1,nconf
