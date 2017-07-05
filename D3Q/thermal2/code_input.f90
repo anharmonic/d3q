@@ -500,15 +500,25 @@ MODULE code_input
           nsigma_aux = -1
           READ_CONFIGS_MATRIX : &
           DO
-            READ(input_unit,*, iostat=ios2) word2
+            READ(input_unit,"(a1024)", iostat=ios2) line
+            IF(ios2/= 0) CALL errore("READ_INPUT","Error configs matrix.", 1)
+            READ(line,*, iostat=ios2)  word2, naux
+            IF(ios2/=0)THEN
+              READ(line,*, iostat=ios2)  word2
+              IF(ios2/= 0) CALL errore("READ_INPUT","Error configs matrix line.", 2)
+              naux = 1
+            ENDIF
+            !
             IF(TRIM(word2)=="T")THEN
-              READ(input_unit,*, iostat=ios2) nT_aux
+              !READ(input_unit,*, iostat=ios2) nT_aux
+              nT_aux = naux
               IF(nT_aux < 0) CALL errore("READ_INPUT","Bad number of temperatures.", 1)
               ALLOCATE(T_aux(nT_aux))
               READ(input_unit,*, iostat=ios2) T_aux
               IF(ios/= 0) CALL errore("READ_INPUT","Error reading temperatures.", 1)
             ELSE IF (TRIM(word2)=="sigma") THEN
-              READ(input_unit,*, iostat=ios2) nsigma_aux
+              !READ(input_unit,*, iostat=ios2) nsigma_aux
+              nsigma_aux = naux
               IF(nsigma_aux < 0) CALL errore("READ_INPUT","Bad number of sigmas.", 1)
               ALLOCATE(sigma_aux(nsigma_aux))
               READ(input_unit,*, iostat=ios2) sigma_aux
@@ -524,6 +534,7 @@ MODULE code_input
           READ_CONFIGS_MATRIX
           !
           nconf = nT_aux * nsigma_aux
+          ioWRITE(stdout,'(2x,4(a,i4))') "Building matrix of ", nconf, " configurations, from", nT_aux," temperature and ", nsigma_aux," smearings."
           input%nconf = nconf
           ALLOCATE(input%sigma(nconf), input%T(nconf))
           ij = 0
@@ -546,7 +557,7 @@ MODULE code_input
           !
           ALLOCATE(input%sigma(nconf), input%T(nconf))
           !
-          ioWRITE(*,*) "Reading CONFIGS", nconf
+          ioWRITE(stdout,*) "Reading CONFIGS", nconf
           DO i = 1,nconf
             READ(input_unit,'(a1024)', iostat=ios2) line
             IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
@@ -689,8 +700,10 @@ MODULE code_input
     CALL div_mass_fc2(S, fc2)
     IF(present(fc3)) CALL fc3%div_mass(S)
     !
-    IF(.not.qpoints_ok) CALL errore("READ_INPUT", "I did not find QPOINTS card", 1)
-    IF(.not.configs_ok) CALL errore("READ_INPUT", "I did not find CONFIGS card", 1)
+    IF(.not.qpoints_ok) CALL errore("READ_INPUT", "QPOINTS card not found &
+                                    &(it may have been eaten by the preceeding card)", 1)
+    IF(.not.configs_ok) CALL errore("READ_INPUT", "CONFIGS card not found &
+                                    &(it may have been eaten by the preceeding card)", 1)
     !
     IF(input_unit/=5) CLOSE(input_unit)
     !
