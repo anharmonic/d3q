@@ -159,7 +159,7 @@ MODULE code_input
     !
     CHARACTER(len=256) :: outdir = './'              ! where to write output files
     CHARACTER(len=8)   :: asr2 = "no"                ! apply sum rule to phonon force constants
-    INTEGER            :: nconf = 1                  ! numebr of smearing/temperature couples
+    INTEGER            :: nconf = -1                 ! number of smearing/temperature couples
     INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
     INTEGER            :: start_q = 1                ! skip the preceeding points when computing a BZ path
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
@@ -204,7 +204,8 @@ MODULE code_input
     !
     ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
-    INTEGER  :: ios, ios2, i, j, naux, nq1, nq2, nq3
+    INTEGER  :: ios, ios2, i, j, ij, naux, nq1, nq2, nq3, nT_aux, nsigma_aux
+    REAL(DP),ALLOCATABLE :: T_aux(:), sigma_aux(:)
     !
     CHARACTER(len=1024) :: line, word
     CHARACTER(len=16)   :: word2, word3
@@ -302,7 +303,7 @@ MODULE code_input
     IF(TRIM(file_mat3) == INVALID .and. present(fc3)) &
         CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
-    IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
+    !IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
 
     CALL set_time_limit(max_seconds, max_time)
     
@@ -394,10 +395,6 @@ MODULE code_input
       input%casimir_length = 0._dp
     ENDIF
     !
-    ! Read the configurations:
-    !
-    ALLOCATE(input%T(nconf), input%sigma(nconf))
-    !
     READ(input_unit,'(a1024)', iostat=ios) line
     READ_CARDS : &
     DO WHILE (ios==0)
@@ -437,8 +434,8 @@ MODULE code_input
           do_grid = .true.
           !
           READ(input_unit,*,iostat=ios) nq1, nq2, nq3
-          xk0 = xk0 / (/ nq1, nq2, nq3 /)
-          CALL cryst_to_cart(1,xk0,S%bg, +1)
+          xq0 = 0.5_dp * xk0 / (/ nq1, nq2, nq3 /)
+          CALL cryst_to_cart(1,xq0,S%bg, +1)
           IF(ios/=0) CALL errore("READ_INPUT", "Reading QPOINTS nq1, nq2, nq3 for grid calculation", 1)
           line=''
           !this is done later
@@ -446,6 +443,13 @@ MODULE code_input
           CYCLE READ_CARDS
         ENDIF
         !
+        ! Read the number of q-points, if not specified in the namelist
+        IF(nq<0) THEN 
+          READ(input_unit,*, iostat=ios) nq
+          IF(ios/=0) CALL errore("READ_INPUT","Expecting number of q-points.", 1)
+        ENDIF
+        !
+        ! REad the q-points, one by one, add to path
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
           READ(input_unit,'(a1024)', iostat=ios) line
@@ -473,16 +477,14 @@ MODULE code_input
         ENDDO &
         QPOINT_LOOP ! .................................................................
         
-        ioWRITE(*,"(2x,a,i4,a)") "Read ", qpts%nq, " q-points, "//TRIM(qpts%basis)//" basis"
+        ioWRITE(*,"(2x,a,i4,a,i6,a)") "Read", nq," lines, set-up ",qpts%nq,&
+                                 " q-points, "//TRIM(qpts%basis)//" basis"
         !
         IF(TRIM(qpts%basis) == "crystal")  THEN
           !CALL cryst_to_cart(qpts%nq,qpts%xq,S%bg, +1)
           qpts%basis = "cartesian"
           ioWRITE(*,"(4x,a)") "q-points converted to cartesian basis"
         ENDIF
-!         DO i = 1, qpts%nq 
-!           ioWRITE(*,"(2x,3f12.6,f15.6)") qpts%xq(:,i), qpts%w(i) ! this prints all points, one per line
-!         ENDDO
         ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("CONFIGS")
@@ -490,31 +492,85 @@ MODULE code_input
         configs_ok = .true.
         !
         READ(line,*,iostat=ios) word2, word3
+        IF(ios/=0) word3 = "list"
         !
-!         IF(TRIM(word3)=="matrix")THEN
-!           READ(input_unit,'(a1024)', iostat=ios2) line
-!         ENDIF
-        !
-        ioWRITE(*,*) "Reading CONFIGS", nconf
-        DO i = 1,nconf
-          READ(input_unit,'(a1024)', iostat=ios2) line
-          IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
+        IF(TRIM(word3)=="matrix")THEN
           !
-          ! try to read sigma and temperature
-          READ(line,*,iostat=ios2) input%sigma(i), input%T(i)
-          ! If it fails, read just temperature
-          IF(ios2/=0) THEN
-            READ(line,*,iostat=ios2) input%T(i)
-            ! If this fails, complain
-            IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration, got: '"//TRIM(line)//"'.", 1)
-            ! reuse previous value of sigma if we read jus ttemperature
-            IF(i>1) THEN
-              input%sigma(i) = input%sigma(i-1)
+          nT_aux=-1
+          nsigma_aux = -1
+          READ_CONFIGS_MATRIX : &
+          DO
+            READ(input_unit,*, iostat=ios2) word2
+            IF(TRIM(word2)=="T")THEN
+              READ(input_unit,*, iostat=ios2) nT_aux
+              IF(nT_aux < 0) CALL errore("READ_INPUT","Bad number of temperatures.", 1)
+              ALLOCATE(T_aux(nT_aux))
+              READ(input_unit,*, iostat=ios2) T_aux
+              IF(ios/= 0) CALL errore("READ_INPUT","Error reading temperatures.", 1)
+            ELSE IF (TRIM(word2)=="sigma") THEN
+              READ(input_unit,*, iostat=ios2) nsigma_aux
+              IF(nsigma_aux < 0) CALL errore("READ_INPUT","Bad number of sigmas.", 1)
+              ALLOCATE(sigma_aux(nsigma_aux))
+              READ(input_unit,*, iostat=ios2) sigma_aux
+              IF(ios/= 0) CALL errore("READ_INPUT","Error reading sigmas.", 1)
+            ELSE IF (TRIM(word2)=="" .or. word2(1:1) =='!')THEN
+              CYCLE READ_CONFIGS_MATRIX
             ELSE
-              CALL errore("READ_INPUT","I need at least one value of sigma", 1)
+              CALL errore("READ_INPUT","Unexpected line in CONFIGS matrix: '"//TRIM(word2)//"'", 1)
             ENDIF
+            !
+            IF(nT_aux>0 .and. nsigma_aux>0) EXIT READ_CONFIGS_MATRIX
+          ENDDO &
+          READ_CONFIGS_MATRIX
+          !
+          nconf = nT_aux * nsigma_aux
+          input%nconf = nconf
+          ALLOCATE(input%sigma(nconf), input%T(nconf))
+          ij = 0
+          DO i = 1,nsigma_aux
+            DO j  = 1,nT_aux
+              ij = ij+1
+              input%T(ij) = T_aux(j)
+              input%sigma(ij)     = sigma_aux(i)
+            ENDDO
+          ENDDO
+          DEALLOCATE(T_aux, sigma_aux)
+          !
+        ELSE IF (TRIM(word3)=="list")THEN
+          !
+          IF(nconf<0) THEN
+            READ(input_unit,*, iostat=ios2) nconf
+            IF(ios2/=0 .or. nconf<1) CALL errore("READ_INPUT","Expecting number of configs.", 1)
+            input%nconf = nconf
           ENDIF
-        ENDDO
+          !
+          ALLOCATE(input%sigma(nconf), input%T(nconf))
+          !
+          ioWRITE(*,*) "Reading CONFIGS", nconf
+          DO i = 1,nconf
+            READ(input_unit,'(a1024)', iostat=ios2) line
+            IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
+            !
+            ! try to read sigma and temperature
+            READ(line,*,iostat=ios2) input%sigma(i), input%T(i)
+            ! If it fails, read just temperature
+            IF(ios2/=0) THEN
+              READ(line,*,iostat=ios2) input%T(i)
+              ! If this fails, complain
+              IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration, got: '"//TRIM(line)//"'.", 1)
+              ! reuse previous value of sigma if we read jus ttemperature
+              IF(i>1) THEN
+                input%sigma(i) = input%sigma(i-1)
+              ELSE
+                CALL errore("READ_INPUT","I need at least one value of sigma", 1)
+              ENDIF
+            ENDIF
+          ENDDO
+          !
+        ELSE
+          CALL errore("READ_INPUT","CONFIGS can be 'list' (default) or 'matrix'.", 1)
+        ENDIF
+        !
         ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
         ioWRITE(*,'(2x,a,/,100(8f9.3,/))') "Smearings:   ", input%sigma
         ioWRITE(*,*)
@@ -604,11 +660,12 @@ MODULE code_input
       IF(.not.qpoints_ok .or. code=="TK") THEN
         nq1=nk(1); nq2=nk(2); nq3=nk(3)
         grid_type = input%grid_type
+        xq0       = input%xk0
         qpoints_ok = .true.
       ENDIF
       !
       ioWRITE(*,*) "--> Setting up outer grid"
-      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false., xq0=xk0)
+      CALL setup_grid(grid_type, S%bg, nq1, nq2, nq3, qpts, scatter=.false., xq0=xq0)
       input%prefix = TRIM(input%prefix)//&
                 "."//TRIM(int_to_char(nq1))// &
                 "x"//TRIM(int_to_char(nq2))// &
