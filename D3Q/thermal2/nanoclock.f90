@@ -178,6 +178,7 @@ MODULE nanoclock
                       &| WALL:",f12.1,"s ")') &
                       pc, iter_time, wall
       ENDIF
+      FLUSH(stdout)
     ENDIF
   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>

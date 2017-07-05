@@ -856,6 +856,9 @@ MODULE variational_tk
     
     IF(.not. ionode) RETURN
     !
+    ioWRITE(stdout,'(2x,a)') name
+    ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
+                           "    K_x              K_y              K_z              "
     ! Rewind the main file and rewrite the header
     IF(present(unit0)) THEN
       REWIND(unit0)
@@ -865,8 +868,13 @@ MODULE variational_tk
                             "    K_yx             K_zx             K_zy"
     ENDIF
     !
-    ioWRITE(stdout,'(2x,a)') name
     DO it = 1,nconf
+      IF(it>1)THEN
+        IF(sigma(it-1)/=sigma(it)) THEN
+          ioWRITE(stdout,*)
+          IF(present(unit0) .and. ionode) WRITE(unit0,*)
+        ENDIF
+      ENDIF
       ! on screen we only write the diagonal components
       ioWRITE(stdout,'(i6,2f10.4,3(3e17.8,3x))') it, sigma(it), T(it), &
         tk(1,1,it)*RY_TO_WATTMM1KM1, &
@@ -923,6 +931,10 @@ MODULE variational_tk
     !
     ioWRITE(stdout,'(2x,a)') name
     DO it = 1,nconf
+      IF(it>1)THEN
+        IF(sigma(it-1)/=sigma(it).and.ionode) WRITE(stdout,*)
+      ENDIF
+      !
       IF(      ABS(dtk(1,1,it))>1.d-6 &
          .and. ABS(dtk(2,2,it))>1.d-6 &
          .and. ABS(dtk(3,3,it))>1.d-6 &

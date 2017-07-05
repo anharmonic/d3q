@@ -244,6 +244,9 @@ MODULE thermalk_program
                         "    K_yx           K_zx           K_zy       "
     tk = tk*RY_TO_WATTMM1KM1
     DO it = 1,input%nconf
+      IF(it>1)THEN
+        IF(input%sigma(it-1)/=input%sigma(it) .and. ionode) WRITE(10000,*)
+      ENDIF
       ioWRITE(10000,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
       tk(1,1,it),tk(2,2,it),tk(3,3,it), &
       tk(1,2,it),tk(1,3,it),tk(2,3,it), &
@@ -256,6 +259,9 @@ MODULE thermalk_program
     ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
     ioWRITE(stdout,"(3x,a)") "Diagonal components (conf, sigma, T, K_x, K_y, K_z):"
     DO it = 1,input%nconf
+      IF(it>1)THEN
+        IF(input%sigma(it-1)/=input%sigma(it) .and. ionode) WRITE(stdout,*)
+      ENDIF
       ioWRITE(stdout,"(i3,2f12.6,3e16.8)")  it, input%sigma(it), input%T(it),&
                                       tk(1,1,it), tk(2,2,it), tk(3,3,it)
     ENDDO
@@ -285,6 +291,8 @@ MODULE thermalk_program
     !
     !
   END SUBROUTINE TK_SMA
+  !
+  !
   !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
   SUBROUTINE TK_CG_prec(input, out_grid, S, fc2, fc3)
     USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq
@@ -365,6 +373,7 @@ MODULE thermalk_program
       timer_CALL t_restart%stop()
     !
     IF(.not. restart_ok) THEN
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "SMA calculation"
       ! Compute A_out diagonal matrix
         timer_CALL t_tkaout%start()
       CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
@@ -380,9 +389,7 @@ MODULE thermalk_program
     qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
     !
     !
-    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
-    ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
-                          "    K_x              K_y              K_z              "
+!    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     !
     IF(.not. restart_ok) THEN
       ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
@@ -398,6 +405,7 @@ MODULE thermalk_program
           timer_CALL t_tkprec%stop()
       !
       ! Compute g0 = Af0 - b
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter", 0
         timer_CALL t_tkain%start()
       CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
         timer_CALL t_tkain%stop()
@@ -408,6 +416,9 @@ MODULE thermalk_program
       ! Trivially set h0 = -g0
       h = -g
         timer_CALL t_tkprec%stop()
+      !
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
       !
         timer_CALL t_restart%start()
       CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
@@ -449,6 +460,8 @@ MODULE thermalk_program
       tk_old = tk
       !tk = -\lambda (f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      !
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>')") 
       CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
       ! also compute the variation of tk and check for convergence
       WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
@@ -458,7 +471,7 @@ MODULE thermalk_program
       conv = check_conv_tk(input%thr_tk, nconf, delta_tk)
       !
       IF(conv) THEN
-        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
+        ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a)") &
                       "Convergence achieved"
         CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
         EXIT CGP_ITERATION
