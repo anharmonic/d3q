@@ -411,7 +411,11 @@ MODULE q_grids
     REAL(DP) :: dq(3), dql
     LOGICAL ::  equiv
     !
-    IF(nq_new==0) RETURN
+    IF(nq_new==0) THEN
+      IF(path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 2)
+      ioWRITE(*,'(2x,"Path skip point:    ",f12.6)') path%w(path%nq)
+      RETURN
+    ENDIF
     IF(nq_new>1 .and. path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 1)
     IF(nq_new<-1) CALL errore("setup_path", "nq_new must be >= -1",1)
     !
@@ -421,6 +425,8 @@ MODULE q_grids
       auxq = path%xq
       auxw = path%w
       DEALLOCATE(path%xq, path%w)
+      ! If xqi is the same as the last point in the list, 
+      ! do not add this distance to the path length
       nq_old = path%nq
       path%nq = path%nq + ABS(nq_new)
       !
@@ -438,10 +444,8 @@ MODULE q_grids
     ENDIF &
     ADD_TO_PATH
     !
-    ! Compute the path length or th newly added points.
-    ! If xqi is the same as the last point in the list, 
-    ! do not add this distance to the path length
-    ! If nq_new = -1, reset the path length
+    !
+    !
     equiv = .false.
     COMPUTE_NEW_PATH : &
     IF(nq_new>1)THEN
@@ -476,8 +480,8 @@ MODULE q_grids
         IF(nq_new==-1) path%w(nq_old+1) = 0._dp
       ENDIF
       !
-      path%xq(:,path%nq) = xqi
       !
+      path%xq(:,path%nq) = xqi
     ENDIF  &
     COMPUTE_NEW_PATH
     ! 
