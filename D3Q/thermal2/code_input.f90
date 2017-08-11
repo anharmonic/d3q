@@ -248,7 +248,7 @@ MODULE code_input
 
     NAMELIST  / r2qinput / &
       calculation, outdir, prefix, &
-      file_mat2, asr2, nq, &
+      file_mat2, asr2, nq, sort_freq, &
       ne, de, e0, &
       nk, nconf, grid_type, xk0, &
       print_dynmat, print_velocity
@@ -382,8 +382,9 @@ MODULE code_input
     IF(calculation == 'cgp' .and. (grid_type == 'bz' .or. grid_type == 'ws'))&
       CALL errore('READ_INPUT', "CGP calculation isn't properly implemented with bz grids", 1)
     !
+    
     IF(input%casimir_scattering)THEN
-      IF(casimir_length_au>0._dp .and. casimir_length_mu>0._dp .and. casimir_length_mm>0._dp) &
+      IF(COUNT((/casimir_length_au,casimir_length_mu,casimir_length_mm/)>=0._dp)>1) &
         CALL errore('READ_INPUT', "You cannot specify more than one: casimir_length_{au,mu,mm}",1)
       IF(casimir_length_au<0._dp .and. casimir_length_mu<0._dp .and. casimir_length_mm<0._dp) &
         CALL errore('READ_INPUT', "You must specify one of: casimir_length_{au,mu,mm}",2)

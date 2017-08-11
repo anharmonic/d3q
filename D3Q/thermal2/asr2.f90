@@ -20,7 +20,7 @@ MODULE asr2_module
     INTEGER :: iR, a,b, i,j, nu,mu
     REAL(DP):: delta, norm
     !
-    IF(method=="no")RETURN
+    IF(method=="no" .or. method=="none")RETURN
     !
     DO i = 1,nat
       DO a = 1,3
