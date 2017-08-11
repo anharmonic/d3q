@@ -31,6 +31,7 @@ MODULE linewidth_program
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
     USE nanoclock,          ONLY : print_percent_wall
+    USE overlap,            ONLY : order_type
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -39,9 +40,10 @@ MODULE linewidth_program
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: qpath
     !
+    TYPE(order_type) :: order
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
-    INTEGER :: iq, it, order(S%nat3)
+    INTEGER :: iq, it
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
     REAL(DP)   :: lw(S%nat3,input%nconf)
@@ -96,7 +98,7 @@ MODULE linewidth_program
       !
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
-      IF(input%sort_freq=="overlap" .or. iq==1) order=overlap_order(S%nat3, w2, D)
+      IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
@@ -135,9 +137,9 @@ MODULE linewidth_program
           ENDIF
           IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
-                iq,qpath%w(iq),qpath%xq(:,iq), w2(order(:))*RY_TO_CMM1, &
-                -DIMAG(lsx(order(:)))*RY_TO_CMM1, &
-                  DBLE(lsx(order(:)))*RY_TO_CMM1
+                iq,qpath%w(iq),qpath%xq(:,iq), w2(order%idx(:))*RY_TO_CMM1, &
+                -DIMAG(lsx(order%idx(:)))*RY_TO_CMM1, &
+                  DBLE(lsx(order%idx(:)))*RY_TO_CMM1
           
           ioFLUSH(1000+it)
         ENDDO
@@ -169,7 +171,7 @@ MODULE linewidth_program
           !
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), &
-                w2(order(:))*RY_TO_CMM1, lw(order(:),it)*RY_TO_CMM1
+                w2(order%idx(:))*RY_TO_CMM1, lw(order%idx(:),it)*RY_TO_CMM1
           ioFLUSH(1000+it)
         ENDDO
       !
@@ -241,86 +243,6 @@ MODULE linewidth_program
     ls = lsx+wx
   END SUBROUTINE
   !
-  FUNCTION overlap_order(nat3, w, e) RESULT(order_out)
-    USE constants, ONLY : RY_TO_CMM1
-    !USE merge_degenerate, ONLY : merge_degen
-    IMPLICIT NONE
-    INTEGER,INTENT(in) :: nat3
-    REAL(DP),INTENT(in) :: w(nat3)
-    COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
-    INTEGER :: order_out(nat3)
-    !
-    COMPLEX(DP),ALLOCATABLE,SAVE :: e_prev(:,:)
-    INTEGER,ALLOCATABLE,SAVE :: order(:)
-    COMPLEX(DP) :: e_new(nat3,nat3)
-    !
-    REAL(DP)   :: olap
-    COMPLEX(DP) :: dolap
-    REAL(DP)   :: maxx
-    INTEGER    :: i,j,j_,jmax, orderx(nat3)
-    LOGICAL    :: assigned(nat3)
-    REAL(DP),PARAMETER :: olap_thr = 0._dp
-    REAL(DP),PARAMETER :: w_thr = 10000._dp/RY_TO_CMM1
-    REAL(DP),PARAMETER :: eps = 0._dp
-    !
-    ! On first call, just sort as usual and exit
-    IF(.not.ALLOCATED(e_prev))THEN
-      ALLOCATE(e_prev(nat3,nat3))
-      e_prev = e
-      ALLOCATE(order(nat3))
-      FORALL(i=1:nat3) order(i) = i
-      order_out = order
-      RETURN
-    ELSE
-      IF(size(e_prev,1)/=nat3) CALL errore("overlap","inconsistent nat3",1)
-    ENDIF
-    !
-    e_new = e
-    !CALL merge_degen(nat3, nat3, e_new, w)
-    !
-    assigned = .false.
-    !WRITE(*,'(99i2)') order
-    DO i = 1,nat3
-      maxx = -1._dp
-      jmax = -1
-      DO j_ = 1,nat3
-        j = order(j_)
-        IF(assigned(j)) CYCLE
-        ! Square modulus:
-        dolap = SUM( e_prev(:,i)*DCONJG(e_new(:,j)) )
-        olap = DBLE(dolap*DCONJG(dolap))
-        ! Do not change the order if the overlap condition is weak
-        ! i.e. where some modes are degenerate, or if points are too far apart
-        IF(olap>(maxx+eps) .and.olap>olap_thr .and. ABS(w(i)-w(j))<w_thr )THEN
-        !IF(olap>(maxx+eps) .and.olap>olap_thr )THEN
-          jmax = j
-          maxx = olap
-        ENDIF
-        !
-      ENDDO
-      !
-      IF(jmax<0) THEN
-        IF (assigned(i)) CALL errore("overlap_sort","dont know what to do",1)
-        jmax = i
-      ENDIF
-      !
-      !IF(i/=jmax) print*, i, "->", jmax, maxx
-      ! Destroy polarizations already assigned:
-      !e_new(:,jmax) = 0._dp
-      e_prev(:,i) = e_new(:,jmax)
-      assigned(jmax) = .true.
-      orderx(i) = jmax !order(jmax)
-    ENDDO
-    !
-    ! Prepare for next call
-    !e_prev = e
-    order = orderx
-    !
-    ! Set output
-    order_out = orderx
-    !
-  END FUNCTION
-  !  
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq_path
     USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor

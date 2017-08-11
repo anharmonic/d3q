@@ -161,6 +161,7 @@ PROGRAM r2q
   USE code_input,       ONLY : code_input_type, READ_INPUT
   USE ph_velocity,      ONLY : velocity
   USE more_constants,   ONLY : print_citations_linewidth
+  USE overlap,          ONLY : order_type
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -174,6 +175,7 @@ PROGRAM r2q
   REAL(DP),ALLOCATABLE :: freq(:), vel(:,:)
   COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
   INTEGER :: i, output_unit=10000, nu
+  TYPE(order_type) :: order
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
   CALL print_citations_linewidth()
@@ -204,8 +206,9 @@ PROGRAM r2q
     !
     DO i = 1,qpath%nq
       CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
+      IF(input%sort_freq=="overlap" .or. i==1) CALL order%set(S%nat3, freq, U)
       ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
-        i, qpath%w(i), qpath%xq(:,i), freq*RY_TO_CMM1
+        i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1
       ioFLUSH(output_unit)
       
       IF(input%print_dynmat) THEN
