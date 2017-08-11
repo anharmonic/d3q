@@ -68,7 +68,7 @@ MODULE casimir_linewidth
     !
     ! Case 2: Modulus of velocity (as in PRB 87, 214303 (2013))
     ELSE
-      inv_lcas = 0.5_dp / l_casimir
+      inv_lcas = 1/ l_casimir
       DO nu = 1,nat3
           lw(nu) = inv_lcas * DSQRT(SUM(vel(:,nu)**2))
       ENDDO
