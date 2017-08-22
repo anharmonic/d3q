@@ -31,7 +31,7 @@ print_help(){
         echo
         echo "FILDYN.in:  input fildyn file prefix (default: 'dyn')"
         echo "FILDYN.out: output fildyn file prefix (default: 'asr_dyn')"
-        echo "ASR_TYPE:   type of sum rul to use (default: crystal)"
+        echo "ASR_TYPE:   type of sum rule to use (default: crystal)"
         exit $1
 }
 
@@ -77,6 +77,11 @@ cat << eof |q2r.x > ${tmpdir}/out-${rand}.0
    flfrc   =  '${tmpdir}/${fcf}'
  /
 eof
+
+if [ ! -s "${tmpdir}/${fcf}" ]; then
+ echo -e "\n\nError: Could not generate force constants file" >&2
+ exit 1
+fi
 
 #prepare ${header} file
 nhead=$(grep -B100 "Dynamical  Matrix in cartesian axes" ${input}1|wc -l)
