@@ -17,15 +17,15 @@ MODULE isotopes_linewidth
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
   ! due to isotope-isotope scattering
-  FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2) &
-  RESULT(lw)
+  FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2)
+  !RESULT(lw)
     !
     USE nanoclock
     !
-    USE q_grids,                ONLY : q_grid
-    USE fc2_interpolate,             ONLY : freq_phq_safe, bose_phq
-    USE nist_isotopes_db, ONLY : compute_gs
-
+    USE q_grids,           ONLY : q_grid
+    USE fc2_interpolate,   ONLY : freq_phq_safe, bose_phq
+    USE nist_isotopes_db,  ONLY : compute_gs
+    USE mpi_thermal,       ONLY : mpi_bsum
 
     IMPLICIT NONE
     !
@@ -39,6 +39,7 @@ MODULE isotopes_linewidth
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
     ! FUNCTION RESULT:
+    REAL(DP) :: isotopic_linewidth_q(S%nat3,nconf)
     REAL(DP) :: lw(S%nat3,nconf)
     !
     COMPLEX(DP) :: U(S%nat3, S%nat3,2)
@@ -61,15 +62,17 @@ MODULE isotopes_linewidth
       DO it = 1,nconf
         !
         lw(:,it) = lw(:,it) &
-                  +0.5_dp * sum_isotope_linewidth_modes(            &
-                                S%nat3, S%nat, sigma(it), freq,     &
-                                S%ntyp, S%ityp, S%amass_variance, U )
+                  +0.5_dp * grid%w(iq)                      &
+                    * sum_isotope_linewidth_modes(          &
+                        S%nat3, S%nat, sigma(it), freq,     &
+                        S%ntyp, S%ityp, S%amass_variance, U )
         !
       ENDDO
       !
     ENDDO
     !
-    lw = lw/grid%nq
+    IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,lw)
+    isotopic_linewidth_q = lw
     !
   END FUNCTION isotopic_linewidth_q
   ! \/o\________\\\_________________________________________/^>
@@ -89,12 +92,15 @@ MODULE isotopes_linewidth
     !
     REAL(DP) :: freq_f, sum_zz2
     COMPLEX(DP) :: sum_zz
+!    COMPLEX(DP) :: czz1(nat3,nat3), zz2(nat3,nat3)
     !
     !
     INTEGER :: i,j, ia, it, ix, nu
     REAL(DP) :: lw(nat3)
     lw(:) = 0._dp
     !
+!    czz1 = CONJG(zz(:,:,1))
+!    zz2 = zz(:,:,2)
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,ia,it,ix,nu,freq_f,sum_zz,sum_zz2) &
 !$OMP REDUCTION(+:lw) COLLAPSE(2)
@@ -114,11 +120,10 @@ MODULE isotopes_linewidth
             nu = nu + 1
             !
             sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
+            !sum_zz =  sum_zz + czz1(nu,i) * zz2(nu,j)
             !
           ENDDO
           sum_zz2 = sum_zz2 + gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
-!           WRITE(*,'(2e12.3,3x,1e12.3,1f12.6,4e12.3)') sum_zz, sum_zz2, gs2(it), freq_f, &
-!           freq(i,1),freq(j,2), f_gauss(freq(i,1)-freq(j,2), sigma), 
         ENDDO
         !ENDIF
         !

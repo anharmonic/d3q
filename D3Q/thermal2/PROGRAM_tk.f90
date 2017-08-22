@@ -141,7 +141,7 @@ MODULE thermalk_program
       IF(input%isotopic_disorder)THEN
           timer_CALL t_lwisot%start()
         lw_isotopic = isotopic_linewidth_q(out_grid%xq(:,iq), input%nconf, input%T, &
-                                           sigma_ry, S, out_grid, fc2)
+                                           sigma_ry, S, in_grid, fc2)
         CALL check_negative_lw(lw_isotopic, S%nat3, input%nconf, "SMA:isotopic")
           timer_CALL t_lwisot%stop()
       ELSE
@@ -291,7 +291,7 @@ MODULE thermalk_program
     !USE constants,          ONLY : RY_TO_CMM1
      USE more_constants,     ONLY : RY_TO_WATTMM1KM1!, write_conf
     USE fc3_interpolate,    ONLY : forceconst3
-    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
+    !USE isotopes_linewidth, ONLY : isotopic_linewidth_q
     !USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
