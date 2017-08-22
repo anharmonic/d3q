@@ -192,7 +192,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE units_ph,   ONLY : iuwfc, lrwfc, lrdwf
   USE d3com,      ONLY : ethr_ph
   USE kplus3q,    ONLY : kplusq, q_sum_rule, nbnd_max
-  USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm
+  USE mp_pools,   ONLY : inter_pool_comm, intra_pool_comm
   USE mp,         ONLY : mp_sum
   USE d3_iofiles, ONLY : lrpdqvp
   !

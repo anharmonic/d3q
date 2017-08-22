@@ -26,7 +26,7 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
   USE wvfct,    ONLY : nbnd, npwx !, igk !, npw
   USE uspp,     ONLY : nkb, dvan
   USE uspp_param, ONLY : nh
-  USE mp_global,  ONLY : intra_pool_comm
+  USE mp_pools,   ONLY : intra_pool_comm
   USE mp,      ONLY : mp_sum
   !
   IMPLICIT NONE

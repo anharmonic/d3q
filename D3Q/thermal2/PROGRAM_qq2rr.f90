@@ -10,9 +10,9 @@
 PROGRAM qq2rr
   USE kinds,           ONLY : DP
   USE input_fc,        ONLY : ph_system_info
-  USE iso_c_binding,   ONLY : c_int
   USE fc3_interpolate, ONLY : grid
   USE f3_bwfft,        ONLY : d3_list, read_d3_matrices, bwfft_d3_interp, test_fwfft_d3
+  USE wrappers,        ONLY : memstat
   USE cmdline_param_module
   
   IMPLICIT NONE
@@ -20,7 +20,7 @@ PROGRAM qq2rr
   TYPE(grid)                :: fc3
   INTEGER :: nq(3)
   INTEGER :: nq_trip, nq_grid
-  INTEGER(kind=c_int)    :: kb
+  INTEGER :: kb
   !
   TYPE(ph_system_info) :: S
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)

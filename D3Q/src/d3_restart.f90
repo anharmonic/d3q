@@ -11,7 +11,7 @@ MODULE d3_restart
   ! Number of processors in every possible parallelisation level (several not supported by D3)
   ! restart is only tested with exactly the same parallel configuration (changing nproc_pool MAY work)
   USE mp_world,  ONLY : cur_nproc => nproc
-  USE mp_global, ONLY : cur_nproc_pool => nproc_pool !, &
+!  USE mp_global, ONLY : cur_nproc_pool => nproc_pool !, &
 !                         cur_nproc_image => nproc_image, & ! not in D3 (mpi)
 !                         cur_nproc_ortho => nproc_ortho, & ! not in D3 (mpi)
 !                         cur_nogrp => nogrp, &             ! not in D3 (openmp)
@@ -80,7 +80,7 @@ SUBROUTINE d3_check_restart(what)
     !
     IF (ionode) THEN
       rst_nproc      = cur_nproc
-      rst_nproc_pool = cur_nproc_pool
+!      rst_nproc_pool = cur_nproc_pool
       !
       OPEN(UNIT  = runit, ACCESS= 'sequential',  FILE  = TRIM(rfile), &
             FORM  ='formatted', status='unknown', iostat=ios)
@@ -124,7 +124,7 @@ SUBROUTINE d3_check_restart(what)
       ! check the number of processors
       CALL mp_bcast(rst_nproc,      ionode_id, world_comm)
       CALL mp_bcast(rst_nproc_pool, ionode_id, world_comm)
-      IF(rst_nproc/=cur_nproc .or. rst_nproc_pool/=cur_nproc_pool) &
+!      IF(rst_nproc/=cur_nproc .or. rst_nproc_pool/=cur_nproc_pool) &
         CALL errore(sub, 'Trying to restart with a different number of processor or pools.', 2)
     ENDIF
     !

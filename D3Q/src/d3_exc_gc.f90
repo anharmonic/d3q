@@ -28,7 +28,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   USE gc_d3,        ONLY : dvxc_rrr, dvxc_srr, &
                            dvxc_ssr, dvxc_sss
   USE io_global,    ONLY : ionode_id, stdout
-  USE mp_global,    ONLY : inter_pool_comm, my_pool_id, &
+  USE mp_pools,     ONLY : inter_pool_comm, my_pool_id, &
                            npool, intra_pool_comm
   USE mp,           ONLY : mp_bcast, mp_sum 
   USE d3_iofiles,   ONLY : read_drho

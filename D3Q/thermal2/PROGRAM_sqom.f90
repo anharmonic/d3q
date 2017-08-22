@@ -139,17 +139,17 @@ MODULE sqom_program
   !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, S, fc2)
-    USE iso_c_binding,  ONLY : c_int
     USE input_fc,       ONLY : same_system, read_fc2, &
                                aux_system, div_mass_fc2
     USE asr2_module,    ONLY : impose_asr2
+    USE wrappers,        ONLY : memstat
     IMPLICIT NONE
     !
     TYPE(sqom_input_type),INTENT(in)        :: input
     TYPE(forceconst2_grid),INTENT(inout) :: fc2
     TYPE(ph_system_info),INTENT(inout)   :: S
     !
-    INTEGER(kind=c_int) :: kb
+    INTEGER :: kb
     !
     CALL read_fc2(input%file_mat2, S,  fc2)
     !

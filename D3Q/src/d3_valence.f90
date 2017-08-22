@@ -367,7 +367,7 @@ SUBROUTINE d3_valence_gamma(d3dyn)
   !
   USE kinds,            ONLY : DP
   USE ions_base,        ONLY : nat
-  USE mp_global,        ONLY : inter_pool_comm
+  USE mp_pools,         ONLY : inter_pool_comm
   USE mp,               ONLY : mp_sum
   USE kplus3q,          ONLY : kplusq, nbnd_max
   USE d3_efermi_shift,  ONLY : read_efsh, ef_sh

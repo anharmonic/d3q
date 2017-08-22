@@ -34,7 +34,6 @@ END MODULE gen_sparse_program
 PROGRAM gen_sparse
 
     USE kinds,          ONLY : DP
-    USE iso_c_binding,  ONLY : c_int, c_long
     USE fc3_interpolate,      ONLY : grid, sparse, forceconst3, fc3_grid_to_sparse, read_fc3
     USE input_fc,       ONLY : aux_system,  ph_system_info
     USE io_global,      ONLY : stdout
@@ -43,13 +42,14 @@ PROGRAM gen_sparse
     USE random_numbers, ONLY : randy
     USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode
     USE more_constants,  ONLY : print_citations_linewidth
+    USE wrappers,        ONLY : memstat
     USE cmdline_param_module
     IMPLICIT NONE
     !
     TYPE(grid)   :: fc
     TYPE(sparse) :: sfc
     TYPE(ph_system_info)   :: S
-    INTEGER(kind=c_int)    :: kb
+    INTEGER      :: kb
     COMPLEX(DP),ALLOCATABLE :: D1(:,:,:), D2(:,:,:)
     !
     REAL(DP) :: xq1(3), xq2(3),x 

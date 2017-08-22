@@ -5,8 +5,10 @@ include ../../make.inc
 STRIP = true #strip
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
-	  $(MOD_FLAG)../src $(MOD_FLAG)../../PW/src  $(MOD_FLAG).
+MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
+          $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
+	  $(MOD_FLAG)../src \
+	  $(MOD_FLAG).
 
 IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH 
 
@@ -31,14 +33,15 @@ LDFLAGS  += -openmp #-pg -g
 #F90FLAGS += -Mbounds -Mchkptr -Mchkstk -traceback
 
 
-EXTOBJS = \
-../src/libd3q.a \
-../../PHonon/PH/libph.a \
-../../PHonon/PH/libphaux.a \
-../../LR_Modules/liblrmod.a \
-../../PW/src/libpw.a
 
-QEMODS = ../../Modules/libqemod.a
+PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
+LRMODS = ../../LR_Modules/liblrmod.a
+PWOBJS = ../../PW/src/libpw.a
+QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
+         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
+
+EXTOBJS = ../src/libd3q.a \
+	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph
 

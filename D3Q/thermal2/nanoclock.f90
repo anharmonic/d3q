@@ -191,9 +191,9 @@ MODULE nanoclock
   END SUBROUTINE print_timers_header
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_memory()
-    USE iso_c_binding,  ONLY : c_int
+    USE wrappers,           ONLY : memstat
     IMPLICIT NONE
-    INTEGER(kind=c_int) :: kb
+    INTEGER :: kb
     CHARACTER(len=2)    :: unit
     !
     CALL memstat(kb)

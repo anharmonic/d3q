@@ -19,7 +19,7 @@ SUBROUTINE dpsi1dpsi2dv3(iq_rgt,iq_dH,iq_lft, d3dyn, order)
   USE kinds,      ONLY : DP
   USE ions_base,  ONLY : nat
   USE io_global,  ONLY : stdout
-  USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm
+  USE mp_pools,   ONLY : inter_pool_comm, intra_pool_comm
   USE mp,         ONLY : mp_sum
   USE pwcom,      ONLY : npwx, nbnd, degauss, ngauss, et, ef
   USE phcom,      ONLY : lrdwf 

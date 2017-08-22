@@ -703,12 +703,12 @@ END MODULE asr3_module
 PROGRAM asr3
 
   USE kinds,           ONLY : DP
-  USE iso_c_binding,   ONLY : c_int, C_INT64_T
   USE input_fc,        ONLY : aux_system, ph_system_info
   USE fc3_interpolate, ONLY : grid
   USE io_global,       ONLY : stdout
   USE asr3_module
   USE more_constants,  ONLY : print_citations_linewidth
+  USE wrappers,        ONLY : memstat
   USE cmdline_param_module
   USE timers
   IMPLICIT NONE
@@ -716,7 +716,7 @@ PROGRAM asr3
   TYPE(grid)             :: fc
   TYPE(ph_system_info)   :: s
   TYPE(index_r_type)     :: idx2,idx3,idx_wrap
-  INTEGER(kind=c_int)    :: kb
+  INTEGER                :: kb
   INTEGER,ALLOCATABLE :: idR23(:,:)
   TYPE(forceconst3_ofRR),ALLOCATABLE :: fx(:,:)
   !
@@ -740,7 +740,7 @@ PROGRAM asr3
       WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NITER] [-p POWER]"
       WRITE(*,*) ""
       WRITE(*,'(a)') "        FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
-      WRITE(*,'(a)') "        FILEOUT : output file with with sum rule applied (default: 'FILEIN.sparse')"
+      WRITE(*,'(a)') "        FILEOUT : output file with with sum rule applied (default: 'FILEIN.asr3')"
       WRITE(*,'(a)') "                  "
       WRITE(*,'(a)') "        THRESH  : stop when residual breakage of ASR is smaller than THRESH (default: 1.d-12)"
       WRITE(*,'(a)') "        NITER   : maximum number of iterations (default: 1000)"

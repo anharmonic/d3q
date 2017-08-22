@@ -713,10 +713,11 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
   ! isw = -1 : reads data from a single file and distributes them
   !
   USE kinds,        ONLY : DP
-  USE fft_base,     ONLY : dfftp
+  USE fft_base,  ONLY : dfftp
 !   USE phcom
   USE io_global,    ONLY : ionode_id, ionode
-  USE mp_global,    ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
+  USE mp_pools,  ONLY : inter_pool_comm, intra_pool_comm, me_pool, root_pool
+  !USE mp_global,    ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
   USE mp,           ONLY : mp_bcast, mp_barrier
   USE scatter_mod,  ONLY : gather_grid
   !
@@ -762,10 +763,12 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
      ! Distributes ddrho between between the tasks of the pool
      itmp = 1
      DO proc = 1, me_pool
-        itmp = itmp + dfftp%nnp * dfftp%npp (proc)
+        !itmp = itmp + dfftp%nnp * dfftp%npp (proc)
+        itmp = itmp + dfftp%nnp * dfftp%my_nr3p
      ENDDO
      drho (:) = (0.d0, 0.d0)
-     CALL zcopy (dfftp%nnp * dfftp%npp (me_pool+1), ddrho (itmp), 1, drho, 1)
+     !CALL zcopy (dfftp%nnp * dfftp%npp (me_pool+1), ddrho (itmp), 1, drho, 1)
+     CALL zcopy (dfftp%nnp * dfftp%my_nr3p, ddrho (itmp), 1, drho, 1)
   ENDIF
 
   DEALLOCATE(ddrho)

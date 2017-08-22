@@ -16,7 +16,7 @@ SUBROUTINE d3_init
   USE kinds,         ONLY : DP
   USE constants,     ONLY : eps8, degspin, pi
   USE io_global,     ONLY : stdout
-  USE mp_global,     ONLY : inter_pool_comm
+  USE mp_pools,      ONLY : inter_pool_comm
   USE mp_world,      ONLY : world_comm
   USE mp,            ONLY : mp_max, mp_min
   USE ions_base,     ONLY : ntyp => nsp

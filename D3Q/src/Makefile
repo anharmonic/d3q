@@ -5,8 +5,11 @@ include ../../make.inc
 STRIP = true
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../FFTXlib \
-          $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../PHonon/PH $(MOD_FLAG). $(MOD_FLAG)../../LR_Modules
+#MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../UtilXlib \
+#          $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../PHonon/PH $(MOD_FLAG). $(MOD_FLAG)../../LR_Modules
+MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
+          $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
+	  $(MOD_FLAG).
 
 D3QOBJS = d3q.o
 
@@ -57,12 +60,12 @@ stop_d3.o \
 w_1gauss.o \
 write_d3dyn.o 
 
+PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
-PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
-QEMODS = ../../Modules/libqemod.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
+         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
 
-#LIBOBJS = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a
 
 

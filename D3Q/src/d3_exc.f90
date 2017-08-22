@@ -23,7 +23,7 @@ MODULE d3_exc_module
     USE fft_base,   ONLY : dfftp
     USE cell_base,  ONLY : omega
     USE io_global,  ONLY : ionode_id
-    USE mp_global,  ONLY : inter_pool_comm, my_pool_id, &
+    USE mp_pools,   ONLY : inter_pool_comm, my_pool_id, &
                             npool, intra_pool_comm
     USE mp,         ONLY : mp_bcast, mp_sum
     USE d3_iofiles, ONLY : read_drho

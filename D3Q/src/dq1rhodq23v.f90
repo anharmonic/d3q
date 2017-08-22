@@ -29,7 +29,7 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
   USE ions_base,      ONLY : nat
   USE fft_base,       ONLY : dfftp
   USE fft_interfaces, ONLY : fwfft
-  USE mp_global,      ONLY : inter_pool_comm, my_pool_id
+  USE mp_pools,       ONLY : inter_pool_comm, my_pool_id
   USE mp,             ONLY : mp_sum, mp_bcast
   USE d3_iofiles,     ONLY : read_drho
   USE d3_basis,       ONLY : patq
@@ -196,7 +196,7 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
   USE fft_base,     ONLY : dfftp
   USE gvect,        ONLY : ngm, g, nl
   USE cell_base,    ONLY : tpiba2, omega
-  USE mp_global,    ONLY : intra_pool_comm
+  USE mp_pools,     ONLY : intra_pool_comm
   USE mp,           ONLY : mp_sum
   USE d3com,        ONLY : d3v
   USE kplus3q,      ONLY : kplusq
@@ -278,7 +278,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE uspp_param,      ONLY : nh
   USE phcom,           ONLY : lrdwf, lrwfc, iuwfc
   USE control_lr,      ONLY : nbnd_occ
-  USE mp_global,       ONLY : intra_pool_comm
+  USE mp_pools,        ONLY : intra_pool_comm
   USE mp,              ONLY : mp_sum
   USE kplus3q,         ONLY : nksq, kplusq, nbnd_max 
   USE d3_iofiles,      ONLY : iu_dwfc

@@ -163,7 +163,7 @@ SUBROUTINE setup_nscf_d3()
   USE wvfct,              ONLY : nbnd, nbndx
   USE control_flags,      ONLY : ethr, isolve, david, &
                                  noinv, use_para_diag
-  USE mp_global,          ONLY : kunit, inter_pool_comm
+  USE mp_pools,           ONLY : kunit, inter_pool_comm
   USE spin_orb,           ONLY : domag
   USE noncollin_module,   ONLY : noncolin
   USE start_k,            ONLY : nks_start, xk_start, wk_start, &

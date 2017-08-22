@@ -479,12 +479,12 @@ MODULE code_input
         QPOINT_LOOP ! .................................................................
         
         ioWRITE(*,"(2x,a,i4,a,i6,a)") "Read", nq," lines, set-up ",qpts%nq,&
-                                 " q-points, "//TRIM(qpts%basis)//" basis"
+                                 " q-points, "//TRIM(qpts%basis)//" coordinates"
         !
         IF(TRIM(qpts%basis) == "crystal")  THEN
           !CALL cryst_to_cart(qpts%nq,qpts%xq,S%bg, +1)
           qpts%basis = "cartesian"
-          ioWRITE(*,"(4x,a)") "q-points converted to cartesian basis"
+          ioWRITE(*,"(4x,a)") "q-points converted to cartesian coordinates (2pi/alat)"
         ENDIF
         ioWRITE(*,*)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -713,12 +713,12 @@ MODULE code_input
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, s, fc2, fc3)
-    USE iso_c_binding,      ONLY : c_int
     USE input_fc,           ONLY : same_system, read_fc2, aux_system, &
                                    forceconst2_grid, ph_system_info
     USE asr2_module,        ONLY : impose_asr2
     !USE io_global,          ONLY : stdout
     USE fc3_interpolate,    ONLY : read_fc3, forceconst3
+    USE wrappers,           ONLY : memstat
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)        :: input
@@ -727,7 +727,8 @@ MODULE code_input
     TYPE(ph_system_info),INTENT(inout)   :: s
     TYPE(ph_system_info) :: s3
     !
-    INTEGER(kind=c_int) :: kb
+    !INTEGER(kind=c_int) :: kb
+    INTEGER :: kb
     !
       timer_CALL t_readdt%start()
     CALL read_fc2(input%file_mat2, S,  fc2)

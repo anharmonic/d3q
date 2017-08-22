@@ -125,7 +125,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   USE mp,               ONLY : mp_bcast, mp_barrier
   USE mp_world,         ONLY : world_comm
   USE noncollin_module, ONLY : m_loc
-  USE extfield,         ONLY : monopole
+  USE extfield,         ONLY : gate
   !
   IMPLICIT NONE
   !
@@ -159,7 +159,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   magnetic_sym = .false.
   ALLOCATE(m_loc(3,nat))
   m_loc = 0._dp
-  CALL find_sym ( nat, tau, ityp, magnetic_sym, m_loc, monopole )
+  CALL find_sym ( nat, tau, ityp, magnetic_sym, m_loc, gate )
   sym(:)      = .false.
   sym(1:nsym) = .true.
   !

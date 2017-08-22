@@ -115,7 +115,7 @@ SUBROUTINE dpsi1dv2psi(unit, iq_dp, iq_v)
   USE fft_base,    ONLY : dfftp
   USE wvfct,       ONLY : nbnd, npwx
   USE uspp,        ONLY : nkb
-  USE mp_global,   ONLY : intra_pool_comm
+  USE mp_pools,    ONLY : intra_pool_comm
   USE mp,          ONLY : mp_sum
   USE kplus3q,     ONLY : kplusq, nksq, q_names, q_names2
   USE d3_basis,    ONLY : patq
@@ -256,7 +256,7 @@ SUBROUTINE dpsi1dv2psi_gamma(unit, iq)
   USE fft_base,    ONLY : dfftp
   USE wvfct,       ONLY : nbnd, npwx
   USE uspp,        ONLY : nkb
-  USE mp_global,   ONLY : intra_pool_comm
+  USE mp_pools,    ONLY : intra_pool_comm
   USE mp,          ONLY : mp_sum
   USE kplus3q,     ONLY : kplusq, nksq, q_names
   USE d3_basis,    ONLY : patq

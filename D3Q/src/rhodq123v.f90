@@ -28,7 +28,7 @@ SUBROUTINE rhodq123v(d3dyn)
   USE klist,          ONLY : xk
   USE cell_base,      ONLY : omega, tpiba, tpiba2
   USE uspp_param,     ONLY : nh, nhm
-  USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
+  USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
   USE phcom,          ONLY : lrwfc, iuwfc
   USE qpoint,         ONLY : nksq

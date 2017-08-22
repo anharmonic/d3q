@@ -32,7 +32,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   USE d3_basis,   ONLY : patq
   USE mp,         ONLY : mp_sum
   USE mp_world,   ONLY : world_comm
-  USE mp_global,  ONLY : intra_pool_comm
+  USE mp_pools,   ONLY : intra_pool_comm
 
   implicit none
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)
@@ -158,7 +158,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   USE eqv,        ONLY : dmuxc
   USE d3com,      ONLY : d3c, npert_i, npert_f
   !
-  USE mp_global,  ONLY : inter_pool_comm, intra_pool_comm, my_pool_id, npool
+  USE mp_pools,   ONLY : inter_pool_comm, intra_pool_comm, my_pool_id, npool
   USE mp,         ONLY : mp_sum, mp_bcast
   USE io_global,  ONLY : stdout, ionode_id
   USE d3_iofiles, ONLY : read_drho !iu_drho_cc_q, davcio_drho2

@@ -54,7 +54,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
   !
   USE io_global, ONLY : stdout
   USE constants, ONLY : e2, tpi, fpi, eps16, eps8
-  USE mp_global, ONLY : inter_pool_comm, intra_pool_comm, my_pool_id, npool
+  USE mp_pools,  ONLY : inter_pool_comm, intra_pool_comm, my_pool_id, npool
   USE mp,        ONLY : mp_sum, mp_bcast
   USE ions_base, ONLY : nat, ityp, tau, zv
   USE cell_base, ONLY : alat
@@ -329,7 +329,7 @@ END SUBROUTINE d3ionq
     !-----------------------------------------------------------------------
     USE constants, ONLY : tpi, fpi, e2, eps8, eps16
     USE cell_base, ONLY : alat, at, bg
-    USE mp_global, ONLY : me_pool, nproc_pool
+    USE mp_pools,  ONLY : me_pool, nproc_pool
     IMPLICIT NONE
     COMPLEX(DP)         :: F_abc_R
     REAL(DP),INTENT(IN) :: q(3), t(3), eta

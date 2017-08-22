@@ -34,7 +34,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE gvect,          ONLY : gg, nl
   USE qpoint,         ONLY : nksq
   USE modes,          ONLY : npertx
-  USE mp_global,      ONLY : inter_pool_comm, intra_pool_comm
+  USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
   USE kplus3q,        ONLY : kplusq, nbnd_max
   USE control_lr,     ONLY : nbnd_occ
