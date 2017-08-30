@@ -78,13 +78,13 @@ quter.o \
 timers.o \
 variational_tk.o
 
-#EXECUTABLES = d3_lw.x d3_tk.x d3_asr3.x d3_sqom.x d3_sparse.x d3_q2r.x d3_r2q.x d3_qq2rr.x d3_import3py.x d3_recenter.x
+#EXECUTABLES = d3_lw.x d3_tk.x d3_asr3.x d3_sqom.x d3_sparse.x d3_q2r.x d3_r2q.x d3_qq2rr.x d3_import_shengbte.x d3_recenter.x
 
 MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = tk lw asr3 sqom sparse q2r r2q qq2rr import3py recenter
+EXEC = tk lw asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter
 
 all : tldeps d3q-libs thermal2-libs $(EXEC)
 

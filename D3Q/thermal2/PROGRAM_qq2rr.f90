@@ -52,7 +52,7 @@ PROGRAM qq2rr
   
   cmdline = cmdline_residual()
   READ(cmdline, *, iostat=ios) nq
-  IF(ios/=0) CALL errore("import3py", "missing argument use command '-h' for help",1)
+  IF(ios/=0) CALL errore("qq2rr", "missing argument use command '-h' for help",1)
   !
   WRITE(*,*) "Reading grid", nq
   WRITE(*,*) "Number of neighbours to check for BZ", far

@@ -1,6 +1,6 @@
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
-PROGRAM_import3py.o : mpi_thermal.o
+PROGRAM_import_shengbte.o : mpi_thermal.o
 PROGRAM_lw.BAK.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
@@ -57,14 +57,14 @@ PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
 PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
-PROGRAM_import3py.o : ../../Modules/constants.o
-PROGRAM_import3py.o : ../../Modules/kind.o
-PROGRAM_import3py.o : ./PROGRAM_import3py.o
-PROGRAM_import3py.o : ./cmdline_param.o
-PROGRAM_import3py.o : ./f3_bwfft.o
-PROGRAM_import3py.o : ./fc3_interp.o
-PROGRAM_import3py.o : ./input_fc.o
-PROGRAM_import3py.o : ./ph_system.o
+PROGRAM_import_shengbte.o : ../../Modules/constants.o
+PROGRAM_import_shengbte.o : ../../Modules/kind.o
+PROGRAM_import_shengbte.o : ./PROGRAM_import_shengbte.o
+PROGRAM_import_shengbte.o : ./cmdline_param.o
+PROGRAM_import_shengbte.o : ./f3_bwfft.o
+PROGRAM_import_shengbte.o : ./fc3_interp.o
+PROGRAM_import_shengbte.o : ./input_fc.o
+PROGRAM_import_shengbte.o : ./ph_system.o
 PROGRAM_lw.BAK.o : ../../Modules/constants.o
 PROGRAM_lw.BAK.o : ../../Modules/kind.o
 PROGRAM_lw.BAK.o : ./PROGRAM_lw.BAK.o
@@ -308,7 +308,7 @@ variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 PROGRAM_db.o : 
-PROGRAM_import3py.o : 
+PROGRAM_import_shengbte.o : 
 PROGRAM_lw.BAK.o : 
 PROGRAM_lw.o : 
 PROGRAM_r2q.o : 

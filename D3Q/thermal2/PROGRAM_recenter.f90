@@ -50,7 +50,7 @@ PROGRAM recenter
   !
   cmdline = cmdline_residual()
   READ(cmdline, *, iostat=ios) nq
-  IF(ios/=0) CALL errore("import3py", "missing argument use command '-h' for help",1)
+  IF(ios/=0) CALL errore("recenter", "missing argument use command '-h' for help",1)
   !
   IF(TRIM(fileout)==TRIM(filein)) &
     CALL errore("recenter","filein and fileout are the same, I refuse to do that",1)
