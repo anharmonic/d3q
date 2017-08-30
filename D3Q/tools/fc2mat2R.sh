@@ -17,7 +17,7 @@ print_help(){
 	echo "  $0 [-i FC.input] [-o FC.out] [-a ASR_TYPE]"
         echo
         echo "FC.in:  input force constants (normal q2r.x format) default: 'fc'"
-        echo "FC.out: output force constants (optimized d3_q2r.x format) default: 'mat2R'"
+        echo "FC.out: output force constants (optimized d3_q2r.x format) default: 'mat2R_fc'"
         echo "ASR_TYPE: sum rule method to apply default: no"
         exit $1
 }
@@ -75,7 +75,7 @@ fi
 cat << eof > ${tmpdir}/${q2r}
  &input
    fildyn  =  ''
-   flfrc   =  'mat2R'
+   flfrc   =  '${output}'
  /
 $n1 $n2 $n3
 $nn
