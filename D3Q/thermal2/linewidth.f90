@@ -20,7 +20,7 @@ MODULE linewidth
   CONTAINS
 
 ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
+  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
     USE fc3_interpolate,  ONLY : forceconst3
@@ -36,6 +36,9 @@ MODULE linewidth
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    !
+    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
     !
     ! FUNCTION RESULT:
     REAL(DP) :: linewidth_q(S%nat3,nconf)
@@ -58,8 +61,13 @@ MODULE linewidth
       timer_CALL t_freq%start()
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
-    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
-      timer_CALL t_freq%stop()
+    IF(present(freq1) .and. present(U1)) THEN
+      freq(:,1) = freq1
+      U(:,:,1)    = U1
+    ELSE
+      CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    ENDIF
+        timer_CALL t_freq%stop()
     !
     !WRITE(*,*) "Summing over a grid of", grid%nq, " points"
     DO iq = 1, grid%nq
@@ -116,7 +124,7 @@ MODULE linewidth
   ! This function returns the complex self energy from the bubble(?) diagram:
   !  its real part is the order contribution to lineshift
   !  its complex part is the intrinsic linewidth
-  FUNCTION selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)
+  FUNCTION selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
@@ -132,6 +140,9 @@ MODULE linewidth
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    !
+    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
     !
     ! FUNCTION RESULT:
     COMPLEX(DP) :: selfnrg_q(S%nat3,nconf)
@@ -154,9 +165,14 @@ MODULE linewidth
     ! Compute eigenvalues, eigenmodes at q1
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
-    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
-      timer_CALL t_freq%stop()
-    !
+    IF(present(freq1) .and. present(U1)) THEN
+      freq(:,1) = freq1
+      U(:,:,1)    = U1
+    ELSE
+      CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    ENDIF
+        timer_CALL t_freq%stop()
+    
     DO iq = 1, grid%nq
       !
       timer_CALL t_freq%start()
