@@ -194,6 +194,8 @@ MODULE code_input
     REAL(DP) :: casimir_length_mm = -1._dp ! length in millimitres
     REAL(DP) :: casimir_dir(3) = 0._dp
     !
+    REAL(DP) :: volume_factor = 1._dp ! volume scaling, e.g. for 2D slabs
+    !
     INTEGER  :: max_seconds = -1
     REAL(DP) :: max_time    = -1._dp
     !
@@ -236,7 +238,9 @@ MODULE code_input
       thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
       isotopic_disorder, store_lw, &
-      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
+      casimir_scattering, casimir_dir, &
+      casimir_length_au, casimir_length_mu, casimir_length_mm, &
+      volume_factor, &
       max_seconds, max_time, restart
 
     NAMELIST  / dbinput / &
@@ -346,6 +350,12 @@ MODULE code_input
     ! read data before reading the q-point, because we need the unit
     ! cell to go to/from crystal coords etc
     CALL READ_DATA(input, s, fc2, fc3)
+    !
+    IF(volume_factor/=1._dp)THEN
+      s%Omega = s%Omega*volume_factor
+      ioWRITE(*,'(2x,"Unit-cell volume rescaled by:",f12.6," new volume: ",f12.6," bohr^3")') &
+      volume_factor, s%Omega
+    ENDIF
     !
     READ(calculation,*,iostat=ios) input%calculation, input%mode
     IF(ios/=0) THEN
