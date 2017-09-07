@@ -98,22 +98,23 @@ MODULE linewidth_program
       !
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
-      IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
+      !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
+      IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
       
           timer_CALL t_lwphph%start()
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                        S, grid, fc2, fc3)
+                        S, grid, fc2, fc3, w2, D)
           timer_CALL t_lwphph%stop()
         !
         ! Add contribution of isotopes, scattering here:
         lw = 0._dp
         IF(input%isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
-          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
-                                        S, grid, fc2)
+          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,&
+                                         sigma_ry, S, grid, fc2)
             timer_CALL t_lwisot%stop()
         ENDIF
         !
@@ -135,6 +136,9 @@ MODULE linewidth_program
           ELSE
             lsx = lsx + w2
           ENDIF
+  
+          WHERE(ABS(DBLE(lsx)) <1.d-99) lsx = DCMPLX(0._dp, DIMAG(lsx))
+          WHERE(ABS(DIMAG(lsx))<1.d-99) lsx = DCMPLX(DBLE(lsx), 0._dp)
           IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), w2(order%idx(:))*RY_TO_CMM1, &
@@ -149,24 +153,25 @@ MODULE linewidth_program
       !
           timer_CALL t_lwphph%start()
         lw = linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
-                        S, grid, fc2, fc3)
+                        S, grid, fc2, fc3, w2, D)
           timer_CALL t_lwphph%stop()
         IF(input%isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
-          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
-                                        S, grid, fc2)
+          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T, &
+                                         sigma_ry, S, grid, fc2)
             timer_CALL t_lwisot%stop()
         ENDIF
         IF(input%casimir_scattering)THEN
             timer_CALL t_lwcasi%start()
           lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%casimir_length, &
-                                        input%casimir_dir, S, fc2)
+                                           input%casimir_dir, S, fc2)
           DO it = 1,input%nconf
             lw(:,it) = lw(:,it) + lw_casimir
           ENDDO
             timer_CALL t_lwcasi%stop()
         ENDIF
         
+        WHERE(ABS(lw)<1.d-99) lw= 0._dp
         DO it = 1,input%nconf
           !
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
