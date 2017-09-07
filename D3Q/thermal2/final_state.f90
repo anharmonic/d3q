@@ -76,9 +76,16 @@ MODULE final_state
     fstate_q = (0._dp, 0._dp)
     !
     IF(qresolved)THEN
-      WRITE(*,'(2x,a,3f10.4,a,f12.6,a)') "Q-resolved final state", xq0, &
+      ioWRITE(*,'(2x,a,3f12.4,a,f12.6,a)') "Q-resolved final state", xq0, &
                                        " energy = ", ei*RY_TO_CMM1, "cm^-1"
-      ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf))
+      ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf), stat=i)
+      IF(i/=0)THEN
+        ioWRITE(*,'(///,5x,a,f6.3,a,//,5x,a)') "Trying to allocate: ", &
+          DBLE(ne)*DBLE(S%nat3)*DBLE(qpath%nq)*DBLE(nconf)*DBLE(DP)/2._dp**30, &
+          " GB", "Use less configurations/q-points/energies "&
+               //"to do q-resolved final state."
+        CALL errore("final_state_q","out of memory",1)
+      ENDIF
     ENDIF
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
@@ -139,25 +146,26 @@ MODULE final_state
       ALLOCATE(xqsum(S%nat3))
       
       unit = find_free_unit()
+      IF(ionode)THEN
       DO it = 1,nconf
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qresolved_T"//TRIM(write_conf(it,nconf,T))//&
                         "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
-        ioWRITE(unit,'(a)') "ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
+        WRITE(unit,'(a)') "# ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           DO ie = 1,ne
-            ioWRITE(unit,'(5f12.6,100e15.5)') qpath%w(iqpath), &
+            WRITE(unit,'(5f12.6,100e15.5)') qpath%w(iqpath), &
                             ener(ie)*RY_TO_CMM1, qpath%xq(:,iqpath), &
                             SUM(xqbar(ie,:,iqpath,it)),  xqbar(ie,:,iqpath,it)
           ENDDO
-          WRITE(unit,*) 
+          ioWRITE(unit,*) 
         ENDDO
         CLOSE(unit)
         !
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
                         "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
-        ioWRITE(unit,'(a)') " path_l/q_weight  q_x q_y q_z total band1 band2 ..."
+        WRITE(unit,'(a)') "# path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           xqsum = 0._dp
           DO nu = 1,S%nat3
@@ -165,13 +173,14 @@ MODULE final_state
             xqsum(nu) = xqsum(nu) + xqbar(ie,nu,iqpath,it)
           ENDDO
           ENDDO
-          ioWRITE(unit,'(4f12.6,100e15.5)') &
+          WRITE(unit,'(4f12.6,100e15.5)') &
                           qpath%w(iqpath), qpath%xq(:,iqpath), &
                           SUM(xqsum(:)),  xqsum(:)
         ENDDO
         CLOSE(unit)
         !
       ENDDO
+      ENDIF
       DEALLOCATE(xqbar, xqsum)
     ENDIF
     !
