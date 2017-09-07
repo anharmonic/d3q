@@ -486,7 +486,7 @@ MODULE fc2_interpolate
     REAL(DP) :: xq_hat(3)
     !
     ! Check for exactly Gamma, even a tiny displacement works already
-    IF(ALL(ABS(xq(:,iq))< 1.d-12 ))THEN
+    IF(ALL(ABS(xq(:,iq))< 1.d-12 .and. nq>1))THEN
       IF(iq==1) THEN
         xq_hat = xq(:,2)-xq(:,1)
       ELSE
