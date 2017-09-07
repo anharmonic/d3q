@@ -194,7 +194,7 @@ MODULE thermalk_program
         !
         MODE_LOOP : &
         DO nu = 1, S%nat3
-          ! Check if we have zero linewidth and non-zero velocity it is a problem
+          ! Check: if we have zero linewidth and non-zero velocity it is a problem
           ! lw can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
             WRITE(stdout,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
@@ -337,7 +337,9 @@ MODULE thermalk_program
     ! make the inner grid on top of the outer one, they are actually identical
     ! but the inner one is MPI-scattered, so we need two separate objects to store them
     ioWRITE(*,*) "--> Setting up inner grid from outer grid"
-    CALL setup_grid(input%grid_type, S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
+    ! Grid type here is always "simple" because we want to reuse the eventual random
+    ! shift from the outer grid (using two different shifts would not work)
+    CALL setup_grid("simple", S%bg, out_grid%n(1),out_grid%n(2),out_grid%n(3), &
                     in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
 
