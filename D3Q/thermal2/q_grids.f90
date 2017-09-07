@@ -414,7 +414,7 @@ MODULE q_grids
     IF(nq_new==0) THEN
       IF(path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 2)
       ioWRITE(*,'(2x,"Path skip point:    ",f12.6)') path%w(path%nq)
-      RETURN
+      !RETURN
     ENDIF
     IF(nq_new>1 .and. path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 1)
     IF(nq_new<-1) CALL errore("setup_path", "nq_new must be >= -1",1)
@@ -428,7 +428,11 @@ MODULE q_grids
       ! If xqi is the same as the last point in the list, 
       ! do not add this distance to the path length
       nq_old = path%nq
-      path%nq = path%nq + ABS(nq_new)
+      IF(nq_new>0)THEN
+        path%nq = path%nq + nq_new
+      ELSE
+        path%nq = path%nq + 1
+      ENDIF
       !
       ALLOCATE(path%xq(3,path%nq),path%w(path%nq))
       path%xq(:,1:nq_old) = auxq(:,1:nq_old)
@@ -478,6 +482,7 @@ MODULE q_grids
           path%w(nq_old+1) = path%w(nq_old)+dql
         ENDIF
         IF(nq_new==-1) path%w(nq_old+1) = 0._dp
+        IF(nq_new==0)  path%w(nq_old+1) = path%w(nq_old)
       ENDIF
       !
       !
