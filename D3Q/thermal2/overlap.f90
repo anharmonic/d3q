@@ -6,6 +6,7 @@ MODULE overlap
     INTEGER,ALLOCATABLE     :: idx(:)
     CONTAINS
       PROCEDURE :: set => set_idx
+      PROCEDURE :: set_path => set_path_idx
       PROCEDURE :: reset => reset_idx
   END TYPE
   !
@@ -18,8 +19,42 @@ MODULE overlap
     DEALLOCATE(self%idx, self%e_prev)
     RETURN
   END SUBROUTINE
+  
+  ! Specialized version of set_idx, that aso checks the path length:
+  ! if the path length at this point is the same than at the previous point,
+  ! it means that there is a discontinuity, do not attempt to compute the overlap
+  ! just keep the current order
+  ! Same story when the length is reset to zero
+  SUBROUTINE set_path_idx(self, nat3, w, e, iq, nq, lpath) !RESULT(order_out)
+    USE constants, ONLY : RY_TO_CMM1
+    !USE merge_degenerate, ONLY : merge_degen
+    IMPLICIT NONE
+    CLASS(order_type),INTENT(inout) :: self
+    !
+    INTEGER,INTENT(in) :: nat3
+    REAL(DP),INTENT(in) :: w(nat3)
+    COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
+    !
+    INTEGER,INTENT(in) :: iq,nq
+    REAL(DP) ::  lpath(nq)
+    INTEGER :: i
+    !
+    IF(iq>1 .and. ALLOCATED(self%e_prev))THEN
+      IF(lpath(iq-1)==lpath(iq) .or. lpath(iq)==0._dp) THEN
+        DO i = 1, nat3
+          self%e_prev(:,i) = e(:,self%idx(i))
+        ENDDO
+        ! quick return
+        RETURN
+      ENDIF
+    ENDIF
+    !
+    ! otherwise, do the full overlap analysis:
+    CALL set_idx(self, nat3, w, e) 
+    !
+  END SUBROUTINE
   !
-  SUBROUTINE set_idx(self, nat3, w, e) !RESULT(order_out)
+  SUBROUTINE set_idx(self, nat3, w, e)
     USE constants, ONLY : RY_TO_CMM1
     !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
