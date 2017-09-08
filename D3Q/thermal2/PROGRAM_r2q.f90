@@ -156,7 +156,7 @@ PROGRAM r2q
   USE asr2_module,      ONLY : impose_asr2
   !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
-  USE fc2_interpolate,  ONLY : freq_phq, fftinterp_mat2
+  USE fc2_interpolate,  ONLY : freq_phq, freq_phq_path, fftinterp_mat2
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
   USE ph_velocity,      ONLY : velocity
@@ -205,7 +205,8 @@ PROGRAM r2q
     ENDIF
     !
     DO i = 1,qpath%nq
-      CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
+      !CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
+      CALL freq_phq_path(qpath%nq, i, qpath%xq, S, fc2, freq, U)
       IF(input%sort_freq=="overlap" .or. i==1) CALL order%set(S%nat3, freq, U)
       ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
         i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1

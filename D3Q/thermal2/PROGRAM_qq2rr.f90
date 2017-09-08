@@ -28,25 +28,28 @@ PROGRAM qq2rr
   INTEGER :: far, ios
   CHARACTER(len=512) :: argv, filename
   CHARACTER(len=:),ALLOCATABLE :: cmdline
-  LOGICAL :: write_diff
+  LOGICAL :: write_diff, skip_test
 
   filename = cmdline_param_char("o", "mat3R")
   far      = cmdline_param_int("f", 2)
   write_diff = cmdline_param_logical("w")
+  skip_test = cmdline_param_logical("s")
   !
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR]"
+      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR] [-w] [-s]"
       WRITE(*,*) ""
       WRITE(*,*) "Selects a grid of (NQX x NQY x NQZ) points from the anh* files"
       WRITE(*,*) "Apply the inverse Fourier transform, and saves it to FILEOUT (default: mat3R)."
       WRITE(*,*) "Check for shortes perimeter up to NFAR unit cells away (default: 2)."
       WRITE(*,*)
-      WRITE(*,*) "If the -w option is specified, when performing the FFT test, if the"
-      WRITE(*,*) "re-computed D3 matrix differes significantly from the initial one it will"
-      WRITE(*,*) "be printed to a file. The file will start with prefix 'anh_cmplx' if the"
-      WRITE(*,*) "test was performed with complex force constant and 'anh_real' if the test"
-      WRITE(*,*) "was performed with just the  real part of the FCs (which should be real in"
-      WRITE(*,*) "principle)"
+      WRITE(*,*) "-w : when performing the FFT test, if the re-computed D3 matrix differs"
+      WRITE(*,*) "     significantly from the initial one it will be printed to a file."
+      WRITE(*,*) "     The file name will start with prefix 'anh_cmplx' if the test was"
+      WRITE(*,*) "     performed with complex force constant and 'anh_real' if the test"
+      WRITE(*,*) "     was performed with just the real part of the FCs (they should be real)"
+      WRITE(*,*) ""
+      WRITE(*,*) "-s : skip the test"
+      WRITE(*,*) ""
       STOP 1
   ENDIF
   
@@ -79,13 +82,15 @@ PROGRAM qq2rr
     CALL fc3%write(filename, S)
   ENDIF
   !
-  WRITE(*,*) "Testing Forward FFT, with imaginary part..."
-  WRITE(*,*) "(you can stop the code with CTRL-C to avoid running tests)  "
-  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .true., write_diff, "anh_cmplx")
-  WRITE(*,*) "Testing Forward FFT, without imaginary part..."
-  DEALLOCATE(fc3%ifc)
-  CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .false., write_diff, "anh_real")
-  WRITE(*,*) "Testing forward FFT done"
+  IF(.not.skip_test)THEN
+    WRITE(*,*) "Testing Forward FFT, with imaginary part..."
+    WRITE(*,*) "(you can stop the code with CTRL-C to avoid running tests)  "
+    CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .true., write_diff, "anh_cmplx")
+    WRITE(*,*) "Testing Forward FFT, without imaginary part..."
+    DEALLOCATE(fc3%ifc)
+    CALL test_fwfft_d3(nq_trip, S, d3grid, fc3, .false., write_diff, "anh_real")
+    WRITE(*,*) "Testing forward FFT done"
+  ENDIF
   !
 END PROGRAM qq2rr
 
