@@ -257,6 +257,7 @@ MODULE linewidth_program
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
     USE code_input,     ONLY : code_input_type
+    USE nanoclock,      ONLY : print_percent_wall
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -302,7 +303,8 @@ MODULE linewidth_program
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
-      !CALL freq_phq(qpath%xq(:,iq), S, fc2, w2, D)
+      CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
+      !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
       ioWRITE(*,'(i6,3f12.6,5x,6f12.6,100(/,47x,6f12.6))') iq, qpath%xq(:,iq), w2*RY_TO_CMM1
       !
@@ -420,7 +422,8 @@ MODULE linewidth_program
       !
       fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
                              S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
-                             input%q_resolved, input%sigmaq, input%outdir, input%prefix)
+                             input%q_resolved, input%q_summed, input%sigmaq, &
+                             input%outdir, input%prefix)
       !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
@@ -447,9 +450,11 @@ MODULE linewidth_program
       CALL print_timers_header()
       CALL t_spf%print()
       CALL t_qresolved_io%print()
+    CALL t_qsummed_io%print()
       CALL t_readdt%print()
       ioWRITE(*,'(a)') "*** * Contributions to spectra function time:"
       CALL t_qresolved%print()
+      CALL t_qsummed%print()
       CALL t_freq%print() 
       CALL t_bose%print() 
       CALL t_sum%print() 

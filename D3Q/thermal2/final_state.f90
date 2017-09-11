@@ -17,7 +17,7 @@ MODULE final_state
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
   FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3,&
-                         ei, ne, ener, qresolved, sigmaq, outdir, prefix)
+                         ei, ne, ener, qresolved, qsummed, sigmaq, outdir, prefix)
     USE fc2_interpolate,     ONLY : bose_phq, freq_phq_safe
     USE linewidth,      ONLY : sum_selfnrg_modes
     USE q_grids,        ONLY : q_grid
@@ -39,7 +39,7 @@ MODULE final_state
     INTEGER,INTENT(in)  :: ne       ! number of final state energies
     REAL(DP),INTENT(in) :: ener(ne) ! the final state energies
     REAL(DP),INTENT(in) :: sigmaq ! gaussian width used to select the q points
-    LOGICAL,INTENT(in) :: qresolved
+    LOGICAL,INTENT(in) :: qresolved, qsummed
     CHARACTER(len=256),INTENT(in) :: outdir, prefix
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
@@ -66,7 +66,7 @@ MODULE final_state
     REAL(DP) :: sumaux(ne,S%nat3)
     INTEGER     :: iqpath
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
-    REAL(DP),ALLOCATABLE    :: xqsum(:)
+    REAL(DP),ALLOCATABLE    :: xqsum(:,:,:)
     REAL(DP) :: qbarweight
     REAL(DP) :: pl,dpl
     !
@@ -77,10 +77,13 @@ MODULE final_state
     !
     fstate_q = (0._dp, 0._dp)
     !
-    IF(qresolved)THEN
-      timer_CALL t_qresolved_io%start()
+    IF(qresolved .or. qsummed)THEN
       ioWRITE(*,'(2x,a,3f12.4,a,f12.6,a)') "Q-resolved final state", xq0, &
                                        " energy = ", ei*RY_TO_CMM1, "cm^-1"
+    ENDIF
+    !
+    IF(qresolved)THEN
+      timer_CALL t_qresolved_io%start()
       ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf), stat=i)
       IF(i/=0)THEN
         ioWRITE(*,'(///,5x,a,f6.3,a,//,5x,a)') "Trying to allocate: ", &
@@ -89,13 +92,20 @@ MODULE final_state
                //"to do q-resolved final state."
         CALL errore("final_state_q","out of memory",1)
       ENDIF
+      xqbar = 0._dp
       timer_CALL t_qresolved_io%stop()
+    ENDIF
+    !
+    IF(qsummed) THEN
+      ALLOCATE(xqsum(S%nat3,qpath%nq,nconf))
+      xqsum = 0._dp
     ENDIF
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
+    GRID_LOOP : &
     DO iq = 1, grid%nq
         timer_CALL t_spf%start()
       !
@@ -120,6 +130,7 @@ MODULE final_state
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
         timer_CALL t_fc3m2%stop()
       !
+      CONF_LOOP : &
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
 !/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
@@ -130,26 +141,50 @@ MODULE final_state
 !/nope/!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
-        sumaux = grid%w(iq)*&
+        sumaux = grid%w(iq) * &
             sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, ei, ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
           timer_CALL t_sum%stop()
         !
         IF(qresolved) THEN
-!           sumaux = sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq)
           timer_CALL t_qresolved%start()
           DO iqpath = 1,qpath%nq
-            qbarweight = qpath%w(iqpath)*&
+            qbarweight = & !qpath%w(iqpath)*&
               f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
             xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
           timer_CALL t_qresolved%stop()
         ENDIF
         !
-      ENDDO
+        IF(qsummed)THEN
+          timer_CALL t_qsummed%start()
+          IF(qresolved)THEN
+            DO iqpath = 1,qpath%nq
+            DO nu = 1,S%nat3
+            DO ie = 1,ne
+              xqsum(nu,iqpath,it) = xqsum(nu,iqpath,it) + xqbar(ie,nu,iqpath,it)
+            ENDDO
+            ENDDO
+            ENDDO
+          ELSE
+            DO iqpath = 1,qpath%nq
+            qbarweight = & !qpath%w(iqpath)*&
+              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
+              DO nu = 1,S%nat3
+                xqsum(nu,iqpath,it) = xqsum(nu,iqpath,it) &
+                              - 0.5_dp * SUM(sumaux(:,nu)) *  qbarweight
+              ENDDO
+            ENDDO
+          ENDIF
+          timer_CALL t_qsummed%stop()
+        ENDIF
+        !
+      ENDDO &
+      CONF_LOOP
       !
         timer_CALL t_spf%stop()
-    ENDDO
+    ENDDO &
+    GRID_LOOP
     !
     IF(qresolved)THEN
       timer_CALL t_qresolved_io%start()
@@ -157,10 +192,8 @@ MODULE final_state
       !
       ! To avoid messy graphs because many softwares do not understand 1.00-120 (i.e. 10^{-120})
       WHERE(ABS(xqbar)<1.d-99) xqbar = 0._dp
-      ALLOCATE(xqsum(S%nat3))
-      
-      unit = find_free_unit()
       IF(ionode)THEN
+      unit = find_free_unit()
       DO it = 1,nconf
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qresolved_T"//TRIM(write_conf(it,nconf,T))//&
@@ -168,7 +201,7 @@ MODULE final_state
         WRITE(unit,'(a)') "# ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           DO ie = 1,ne
-            WRITE(unit,'(5f12.6,100e15.5)') qpath%w(iqpath), &
+            WRITE(unit,'(100e15.5)') qpath%w(iqpath), &
                             ener(ie)*RY_TO_CMM1, qpath%xq(:,iqpath), &
                             SUM(xqbar(ie,:,iqpath,it)),  xqbar(ie,:,iqpath,it)
           ENDDO
@@ -176,29 +209,38 @@ MODULE final_state
         ENDDO
         CLOSE(unit)
         !
+      ENDDO
+      ENDIF
+      DEALLOCATE(xqbar)
+      timer_CALL t_qresolved_io%stop()
+    ENDIF
+    !
+    IF(qsummed)THEN
+      timer_CALL t_qsummed_io%start()
+      CALL mpi_bsum(S%nat3,qpath%nq, nconf, xqsum)
+      !
+      WHERE(ABS(xqsum)<1.d-99) xqsum = 0._dp
+      !
+      IF(ionode)THEN
+      unit = find_free_unit()
+      DO it = 1,nconf
         OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                         "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
                         "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
         WRITE(unit,'(a)') "# path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
-          xqsum = 0._dp
-          DO nu = 1,S%nat3
-          DO ie = 1,ne
-            xqsum(nu) = xqsum(nu) + xqbar(ie,nu,iqpath,it)
-          ENDDO
-          ENDDO
-          WRITE(unit,'(4f12.6,100e15.5)') &
+          WRITE(unit,'(100e15.5)') &
                           qpath%w(iqpath), qpath%xq(:,iqpath), &
-                          SUM(xqsum(:)),  xqsum(:)
+                          SUM(xqsum(:,iqpath,it)),  xqsum(:,iqpath,it)
         ENDDO
         CLOSE(unit)
-        !
       ENDDO
       ENDIF
-      DEALLOCATE(xqbar, xqsum)
-      timer_CALL t_qresolved_io%stop()
+      DEALLOCATE(xqsum)
+      timer_CALL t_qsummed_io%stop()
     ENDIF
-    !
+        
+        
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf, fstate_q)
     final_state_q = -0.5_dp * fstate_q
     !

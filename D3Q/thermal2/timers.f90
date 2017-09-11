@@ -46,7 +46,9 @@ MODULE timers
                      
   TYPE(nanotimer) :: t_spf          = nanotimer("spectral function"), &
                      t_qresolved    = nanotimer("q-resolved spf"), &
-                     t_qresolved_io = nanotimer("q-resolved i/o & comm")
+                     t_qresolved_io = nanotimer("q-resolved i/o & comm"), &
+                     t_qsummed      = nanotimer("q-resolved spf"), &
+                     t_qsummed_io   = nanotimer("q-resolved i/o & comm")
                      
                     
 
@@ -90,6 +92,8 @@ MODULE timers
     ! q-resolved spectra function
     CALL t_qresolved%print()
     CALL t_qresolved_io%print()
+    CALL t_qsummed%print()
+    CALL t_qsummed_io%print()
   END SUBROUTINE
   !
   SUBROUTINE set_time_limit(max_seconds, max_time)

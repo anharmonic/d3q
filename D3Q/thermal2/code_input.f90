@@ -46,7 +46,7 @@ MODULE code_input
     ! for final state:
     REAL(DP) :: e_initial
     REAL(DP) :: q_initial(3)
-    LOGICAL  :: q_resolved
+    LOGICAL  :: q_resolved, q_summed
     REAL(DP) :: sigmaq
     ! for isotope contribution to lw
     LOGICAL  :: isotopic_disorder
@@ -179,7 +179,9 @@ MODULE code_input
     REAL(DP) :: de = 1._dp, e0 = 0._dp  ! energie step and minimum
     REAL(DP) :: e_initial = -1._dp      ! initial energy for final state decomposition
     REAL(DP) :: q_initial(3) = 0._dp    ! initial q for final state decomp
-    LOGICAL  :: q_resolved = .false.    ! save the final q as well in different files
+    LOGICAL  :: q_resolved = .false.    ! save the final state function of q and e as well
+                                        ! in different files
+    LOGICAL  :: q_summed = .false.      ! save the final state of q as well
     REAL(DP) :: sigmaq = 0.1_dp         ! reciprocal space smearing for final q decomposition
     !
     ! Use isotopic disorder (only for tk calculations)
@@ -226,7 +228,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, start_q, nq, nk, grid_type, xk0, &
-      ne, de, e0, e_initial, q_initial, q_resolved, sigmaq,&
+      ne, de, e0, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
       isotopic_disorder, &
       casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
@@ -388,6 +390,7 @@ MODULE code_input
     input%q_initial = q_initial
     ! if we also want the q of the final state:
     input%q_resolved = q_resolved
+    input%q_summed = q_summed
     input%sigmaq  = sigmaq
     IF(calculation == 'cgp' .and. (grid_type == 'bz' .or. grid_type == 'ws'))&
       CALL errore('READ_INPUT', "CGP calculation isn't properly implemented with bz grids", 1)

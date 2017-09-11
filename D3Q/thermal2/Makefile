@@ -21,8 +21,9 @@ DFLAGS+= -D__HASVTRIG
 #F90FLAGS += -qsmp=omp
 # intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
-F90FLAGS += -openmp 
-LDFLAGS  += -openmp #-pg -g
+#F90FLAGS += -check uninit -check bounds -traceback -g
+#F90FLAGS += -openmp 
+#LDFLAGS  += -openmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
