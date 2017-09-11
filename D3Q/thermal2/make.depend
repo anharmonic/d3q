@@ -109,6 +109,7 @@ PROGRAM_q2r.o : ../../UtilXlib/mp.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
 PROGRAM_qq2rr.o : ../../Modules/kind.o
+PROGRAM_qq2rr.o : ../../Modules/wrappers.o
 PROGRAM_qq2rr.o : ./cmdline_param.o
 PROGRAM_qq2rr.o : ./f3_bwfft.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
@@ -233,7 +234,9 @@ final_state.o : ./linewidth.o
 final_state.o : ./merge_degenerate.o
 final_state.o : ./more_constants.o
 final_state.o : ./mpi_thermal.o
+final_state.o : ./nanoclock.o
 final_state.o : ./q_grids.o
+final_state.o : ./timers.o
 functions.o : ../../Modules/constants.o
 functions.o : ../../Modules/kind.o
 input_fc.o : ../../Modules/kind.o

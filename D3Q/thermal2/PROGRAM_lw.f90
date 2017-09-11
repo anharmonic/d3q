@@ -329,12 +329,11 @@ MODULE linewidth_program
         CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
       ENDIF
       !
-      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, input%ne, S%nat3, ener, spectralf)
-      !RAF change of units, since now I multiplicate by omega
+      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, &
+                      input%ne, S%nat3, ener, spectralf)
+      !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
-          !ioWRITE(1000+it, '(2f14.8,100e14.6)') &
-          !        qpath%w(iq), ener(ie)*RY_TO_CMM1, SUM(spectralf(ie,:,it))/RY_TO_CMM1**2, spectralf(ie,:,it)/RY_TO_CMM1**2        
           ioWRITE(1000+it, '(2f14.8,100e14.6)') &
                 qpath%w(iq), ener(ie)*RY_TO_CMM1, &
                 SUM(spectralf(ie,:,it))/RY_TO_CMM1, &
@@ -360,14 +359,15 @@ MODULE linewidth_program
   !   
   !  
   SUBROUTINE FINAL_STATE_LINE(input, qpath, S, fc2, fc3)
-    USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag
-    USE  final_state,   ONLY : final_state_q
-    USE constants,      ONLY : RY_TO_CMM1
-    USE q_grids,        ONLY : q_grid, setup_grid
-    USE more_constants, ONLY : write_conf
-    USE input_fc,       ONLY : forceconst2_grid, ph_system_info
-    USE fc3_interpolate,ONLY : forceconst3
-    USE code_input,     ONLY : code_input_type
+    USE fc2_interpolate,  ONLY : fftinterp_mat2, mat2_diag
+    USE final_state,      ONLY : final_state_q
+    USE constants,        ONLY : RY_TO_CMM1
+    USE q_grids,          ONLY : q_grid, setup_grid
+    USE more_constants,   ONLY : write_conf
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    USE fc3_interpolate,  ONLY : forceconst3
+    USE code_input,       ONLY : code_input_type
+    USE timers
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -417,13 +417,6 @@ MODULE linewidth_program
     ioWRITE(*,'(2x,a,3f12.6,a,1f12.6,a)') "Going to compute final state decomposition for", &
                                 input%q_initial, "  energy:", input%e_initial, "cm^-1"
     
-    !DO iq = 1,qpath%nq
-      !ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
-      !
-!       DO it = 1,input%nconf
-!         ioWRITE(1000+it, *)
-!         ioWRITE(1000+it, '(a,i6,3f15.8)') "#  xq",  iq, qpath%xq(:,iq)
-!       ENDDO
       !
       fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
                              S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
@@ -448,8 +441,24 @@ MODULE linewidth_program
     !
     DEALLOCATE(fstate, ener)
     !
-    CALL print_all_timers()
-    !
+    !CALL print_all_timers()
+#ifdef timer_CALL
+      ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
+      CALL print_timers_header()
+      CALL t_spf%print()
+      CALL t_qresolved_io%print()
+      CALL t_readdt%print()
+      ioWRITE(*,'(a)') "*** * Contributions to spectra function time:"
+      CALL t_qresolved%print()
+      CALL t_freq%print() 
+      CALL t_bose%print() 
+      CALL t_sum%print() 
+      CALL t_fc3int%print() 
+      CALL t_fc3m2%print() 
+      CALL t_fc3rot%print() 
+      CALL t_mpicom%print() 
+      CALL t_merged%print()
+#endif    !
   END SUBROUTINE FINAL_STATE_LINE
   !   
   END MODULE linewidth_program

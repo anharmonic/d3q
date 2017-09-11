@@ -24,6 +24,8 @@ MODULE final_state
     USE functions,      ONLY : refold_bz, refold_bz_mod, f_gauss
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : write_conf
+    USE nanoclock,      ONLY : print_percent_wall
+    USE timers
     !
     IMPLICIT NONE
     !
@@ -76,6 +78,7 @@ MODULE final_state
     fstate_q = (0._dp, 0._dp)
     !
     IF(qresolved)THEN
+      timer_CALL t_qresolved_io%start()
       ioWRITE(*,'(2x,a,3f12.4,a,f12.6,a)') "Q-resolved final state", xq0, &
                                        " energy = ", ei*RY_TO_CMM1, "cm^-1"
       ALLOCATE(xqbar(ne,S%nat3,qpath%nq,nconf), stat=i)
@@ -86,6 +89,7 @@ MODULE final_state
                //"to do q-resolved final state."
         CALL errore("final_state_q","out of memory",1)
       ENDIF
+      timer_CALL t_qresolved_io%stop()
     ENDIF
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
@@ -93,6 +97,9 @@ MODULE final_state
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
+        timer_CALL t_spf%start()
+      !
+      CALL print_percent_wall(10._dp, 300._dp, iq, grid%nq, (iq==1))
       !
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
@@ -103,43 +110,50 @@ MODULE final_state
 !/nope/!$OMP END PARALLEL DO
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
+        timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+        timer_CALL t_fc3int%stop()
+        timer_CALL t_fc3rot%start()
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+        timer_CALL t_fc3rot%stop()
+        timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+        timer_CALL t_fc3m2%stop()
       !
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
 !/nope/!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+          timer_CALL t_bose%start()
         DO jq = 1,3
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !/nope/!$OMP END PARALLEL DO
-        sumaux = grid%w(iq)*sum_final_state_e( S, sigma(it), T(it), freq, bose, V3sq, ei, ne, ener )
-!         sumaux = sum_final_state_e( S, sigma(:,it), freq, bose, V3sq, freq(6,1), ne, ener )
+          timer_CALL t_bose%stop()
+          timer_CALL t_sum%start()
+        sumaux = grid%w(iq)*&
+            sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, ei, ne, ener )
         fstate_q(:,:,it) = fstate_q(:,:,it) + sumaux
+          timer_CALL t_sum%stop()
         !
         IF(qresolved) THEN
 !           sumaux = sum_selfnrg_modes( S, sigma(it), freq, bose, V3sq)
+          timer_CALL t_qresolved%start()
           DO iqpath = 1,qpath%nq
             qbarweight = qpath%w(iqpath)*&
               f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
-!             qbarweight = qpath%w(iqpath)* f_gauss(refold_bz_mod(qpath%xq(:,iqpath),S%bg) &
-!                                                  -refold_bz_mod(xq(:,2), S%bg), sigmaq)
             xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux *  qbarweight
           ENDDO
+          timer_CALL t_qresolved%stop()
         ENDIF
         !
       ENDDO
       !
+        timer_CALL t_spf%stop()
     ENDDO
     !
     IF(qresolved)THEN
-      !IF(grid%scattered)THEN
-      !CALL errore("final_state_q","grid resolved not implemented in parallel",1)
-      !DO it = 1,nconf
+      timer_CALL t_qresolved_io%start()
       CALL mpi_bsum(ne,S%nat3,qpath%nq, nconf, xqbar)
-      !ENDDO
-      !ENDIF
       !
       ! To avoid messy graphs because many softwares do not understand 1.00-120 (i.e. 10^{-120})
       WHERE(ABS(xqbar)<1.d-99) xqbar = 0._dp
@@ -182,6 +196,7 @@ MODULE final_state
       ENDDO
       ENDIF
       DEALLOCATE(xqbar, xqsum)
+      timer_CALL t_qresolved_io%stop()
     ENDIF
     !
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf, fstate_q)

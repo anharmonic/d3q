@@ -105,7 +105,7 @@ MODULE linewidth
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
         lw(:,it) = lw(:,it) + grid%w(iq)&
-                          *sum_linewidth_modes(S, sigma(it), freq, bose, V3sq, nu0)
+                *sum_linewidth_modes(S, sigma(it), freq, bose, V3sq, nu0)
           timer_CALL t_sum%stop()
       ENDDO
       !

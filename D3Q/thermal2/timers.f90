@@ -43,6 +43,12 @@ MODULE timers
                      t_asr3s   = nanotimer("asr3 symmetrize"), &
                      t_asr3io  = nanotimer("asr3 in/output"), &
                      t_asr3idx = nanotimer("asr3 index")
+                     
+  TYPE(nanotimer) :: t_spf          = nanotimer("spectral function"), &
+                     t_qresolved    = nanotimer("q-resolved spf"), &
+                     t_qresolved_io = nanotimer("q-resolved i/o & comm")
+                     
+                    
 
   CONTAINS
   SUBROUTINE print_all_timers()
@@ -81,6 +87,9 @@ MODULE timers
     CALL t_asr3s%print()
     CALL t_asr3io%print()
     CALL t_asr3idx%print()
+    ! q-resolved spectra function
+    CALL t_qresolved%print()
+    CALL t_qresolved_io%print()
   END SUBROUTINE
   !
   SUBROUTINE set_time_limit(max_seconds, max_time)
