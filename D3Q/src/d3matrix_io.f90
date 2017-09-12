@@ -139,7 +139,8 @@ END SUBROUTINE write_d3dyn_xml
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass,found,seek,file_format_version)
+SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, &
+                          ityp, tau, atm, amass,found,seek,file_format_version)
   !-----------------------------------------------------------------------
   !
   USE kinds, only : DP
