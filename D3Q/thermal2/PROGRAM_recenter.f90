@@ -43,7 +43,8 @@ PROGRAM recenter
       WRITE(*,*) "Reads force constants from FILEIN (default: mat3R), interpolate them on a grid"
       WRITE(*,*) "of NQX x NQY x NQZ points, recenter them on a Wigner-Seitz cell constructed up"
       WRITE(*,*) "to NFAR unit cells and save the result in FILEOUT (default: FILEIN_recenter)"
-      WRITE(*,*) "If '-w' is specified, write the intermediate D3 matrices to files called atmp_Q1*_Q2*_Q3* (default: don't write, lot of output!)"
+      WRITE(*,*) "If '-w' is specified, write the intermediate D3 matrices to files called "
+      WRITE(*.*) "   atmp_Q1x_Q2x_Q3x (default: don't write, lot of output!)"
      
       STOP 1
   ENDIF
