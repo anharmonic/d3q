@@ -44,7 +44,7 @@ PROGRAM recenter
       WRITE(*,*) "of NQX x NQY x NQZ points, recenter them on a Wigner-Seitz cell constructed up"
       WRITE(*,*) "to NFAR unit cells and save the result in FILEOUT (default: FILEIN_recenter)"
       WRITE(*,*) "If '-w' is specified, write the intermediate D3 matrices to files called "
-      WRITE(*.*) "   atmp_Q1x_Q2x_Q3x (default: don't write, lot of output!)"
+      WRITE(*,*) "   atmp_Q1x_Q2x_Q3x (default: don't write, lot of output!)"
      
       STOP 1
   ENDIF
