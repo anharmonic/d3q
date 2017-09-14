@@ -286,12 +286,13 @@ MODULE linewidth
   END FUNCTION simple_spectre_q  
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
-  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener) &
+  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, shift) &
   RESULT(spectralf)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
     USE fc3_interpolate,  ONLY : forceconst3
+    USE nanoclock,      ONLY : print_percent_wall
     !
     IMPLICIT NONE
     !
@@ -307,6 +308,7 @@ MODULE linewidth
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    LOGICAL,INTENT(in)  :: shift ! set to false to drop the real part of the self-energy
     !
     ! To interpolate D2 and D3:
     INTEGER :: iq, jq, nu, it
@@ -335,6 +337,7 @@ MODULE linewidth
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     DO iq = 1, grid%nq
+      CALL print_percent_wall(33.333_dp, 300._dp, iq, grid%nq, (iq==1))
       !
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
@@ -358,7 +361,7 @@ MODULE linewidth
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
-        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, ABS(sigma(it)), freq, bose, V3sq, ne, ener, nu0 )
+        selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
         !
       ENDDO
       !
@@ -371,7 +374,7 @@ MODULE linewidth
       DO i = 1,S%nat3
         DO ie = 1, ne
           gamma =  -DIMAG(selfnrg(ie,i,it))
-          IF(sigma(it)>0._dp) THEN
+          IF(shift) THEN
             delta =   DBLE(selfnrg(ie,i,it))
           ELSE
             delta = 0._dp
@@ -422,6 +425,11 @@ MODULE linewidth
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
     COMPLEX(DP) :: sum_selfnrg_spectre(ne,S%nat3)
     COMPLEX(DP),ALLOCATABLE :: spf(:,:)
+    !
+    IF(sigma<=0._dp)THEN
+      CALL errore("sum_selfnrg_spectre","spf not implemented in the static limit. "&
+                  //"NEW: To do unshifted spf use 'spf imag'",1)
+    ENDIF
     !
     ALLOCATE(spf(ne,S%nat3))
     spf = (0._dp, 0._dp)

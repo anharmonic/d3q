@@ -120,8 +120,8 @@ MODULE linewidth_program
         !
         IF(input%casimir_scattering)THEN
             timer_CALL t_lwcasi%start()
-          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%casimir_length, &
-                                        input%casimir_dir, S, fc2)
+          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
+                                        input%sample_dir, S, fc2)
           DO it = 1,input%nconf
             lw(:,it) = lw(:,it) + lw_casimir
           ENDDO
@@ -163,8 +163,8 @@ MODULE linewidth_program
         ENDIF
         IF(input%casimir_scattering)THEN
             timer_CALL t_lwcasi%start()
-          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%casimir_length, &
-                                           input%casimir_dir, S, fc2)
+          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
+                                           input%sample_dir, S, fc2)
           DO it = 1,input%nconf
             lw(:,it) = lw(:,it) + lw_casimir
           ENDDO
@@ -257,7 +257,7 @@ MODULE linewidth_program
     USE input_fc,       ONLY : forceconst2_grid, ph_system_info
     USE fc3_interpolate,ONLY : forceconst3
     USE code_input,     ONLY : code_input_type
-    USE nanoclock,      ONLY : print_percent_wall
+    !USE nanoclock,      ONLY : print_percent_wall
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)     :: input
@@ -303,7 +303,7 @@ MODULE linewidth_program
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
     DO iq = 1,qpath%nq
-      CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
+      !CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
       ioWRITE(*,'(i6,3f12.6,5x,6f12.6,100(/,47x,6f12.6))') iq, qpath%xq(:,iq), w2*RY_TO_CMM1
@@ -323,7 +323,10 @@ MODULE linewidth_program
       !
       IF (TRIM(input%mode) == "full") THEN
         spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener)
+                                  S, grid, fc2, fc3, input%ne, ener, shift=.true.)
+      ELSE IF (TRIM(input%mode) == "imag") THEN
+        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                  S, grid, fc2, fc3, input%ne, ener, shift=.false.)
       ELSE IF (TRIM(input%mode) == "simple") THEN
         spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                                   S, grid, fc2, fc3, input%ne, ener)
