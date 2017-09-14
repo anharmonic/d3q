@@ -116,8 +116,8 @@ MODULE variational_tk
       ! note that casimir_linewidth_vel returns the HALF width half maximum
       IF(input%casimir_scattering) THEN
         timer_CALL t_lwcasi%start()
-        lw_casimir = 2*casimir_linewidth_vel( basis%c(:,:,iq), input%casimir_length, &
-                                              input%casimir_dir, S%nat3)
+        lw_casimir = 2*casimir_linewidth_vel( basis%c(:,:,iq), input%sample_length, &
+                                              input%sample_dir, S%nat3)
         !
         ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
         DO it = 1,input%nconf

@@ -98,17 +98,18 @@ MODULE thermalk_program
                                 "lw."//TRIM(input%prefix)//&
                                 "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                                 "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-        ioWRITE(1000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
+        ioWRITE(1000+it, *) "# linewidth [cm^-1]"
         ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
                                                     "    sigma=", input%sigma(it)
         ioFLUSH(1000+it)
+        !
         !
         IF(input%isotopic_disorder) THEN
           OPEN(unit=2000+it, file=TRIM(input%outdir)//"/"//&
                                   "lwiso."//TRIM(input%prefix)//&
                                       "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                                       "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-          ioWRITE(2000+it, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
+          ioWRITE(2000+it, *) "# isotopic linewidth [cm^-1]"
           ioWRITE(2000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
                                                       "    sigma=", input%sigma(it)
           ioFLUSH(2000+it)
@@ -117,9 +118,22 @@ MODULE thermalk_program
       IF(input%casimir_scattering) THEN
         OPEN(unit=3000, file=TRIM(input%outdir)//"/"//&
                                 "lwcas."//TRIM(input%prefix)//".out")
-        ioWRITE(3000, *) "# qpoint [2pi/alat], linewidth [cm^-1]"
+        ioWRITE(3000, *) "# casimir linewidth [cm^-1]"
         ioFLUSH(3000)
       ENDIF
+      ! Velocity:
+        OPEN(unit=5000, file=TRIM(input%outdir)//"/"//&
+                                "vel."//TRIM(input%prefix)//".out")
+        ioWRITE(5000, *) "# ph group velocity x1, y1, z1, x2, y2, z2, ..."
+        ioFLUSH(5000)
+        OPEN(unit=6000, file=TRIM(input%outdir)//"/"//&
+                                "freq."//TRIM(input%prefix)//".out")
+        ioWRITE(6000, *) "# phonon frequencies"
+        ioFLUSH(6000)
+        OPEN(unit=7000, file=TRIM(input%outdir)//"/"//&
+                                "q."//TRIM(input%prefix)//".out")
+        ioWRITE(7000, *) "# qpoint [2pi/alat], weight"
+        ioFLUSH(7000)
     ENDIF
     !
     tk = 0._dp
@@ -158,7 +172,7 @@ MODULE thermalk_program
       ! Compute anisotropic Casimir linewidth
       IF(input%casimir_scattering) THEN
           timer_CALL t_lwcasi%start()
-        lw_casimir = casimir_linewidth_vel(vel, input%casimir_length, input%casimir_dir, S%nat3)
+        lw_casimir = casimir_linewidth_vel(vel, input%sample_length, input%sample_dir, S%nat3)
           timer_CALL t_lwcasi%stop()
       ELSE
         lw_casimir = 0._dp
@@ -167,14 +181,18 @@ MODULE thermalk_program
       IF(input%store_lw)THEN
         timer_CALL t_lwinout%start()
         DO it = 1, input%nconf
-          ioWRITE(1000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_phph(:,it)*RY_TO_CMM1
+          ioWRITE(1000+it,'(99e20.10)') lw_phph(:,it)*RY_TO_CMM1
           IF(input%isotopic_disorder) THEN
-            ioWRITE(2000+it,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_isotopic(:,it)*RY_TO_CMM1
+            ioWRITE(2000+it,'(99e20.10)') lw_isotopic(:,it)*RY_TO_CMM1
           ENDIF
         ENDDO
         IF(input%casimir_scattering) THEN
-          ioWRITE(3000,'(3f12.6,99e20.10)') out_grid%xq(:,iq), lw_casimir(:)*RY_TO_CMM1
+          ioWRITE(3000,'(99e20.10)') lw_casimir(:)*RY_TO_CMM1
         ENDIF
+        ioWRITE(5000,'(3(99e20.10,3x))') vel(:,:)
+        ioWRITE(6000,'(99e20.10)') freq(:)*RY_TO_CMM1
+        ioWRITE(7000,'(99e20.10)') freq(:)*RY_TO_CMM1
+        ioWRITE(7000,'(4e20.10)') out_grid%xq(:,iq), out_grid%w(iq)
         timer_CALL t_lwinout%stop()
       ENDIF
       !
@@ -210,6 +228,14 @@ MODULE thermalk_program
             ENDIF
           ENDIF
           !
+          IF(input%mfp_cutoff)THEN
+            IF(lw(nu,it)==0._dp) CYCLE MODE_LOOP
+            IF(DSQRT(SUM(vel(:,nu)**2))/(2*lw(nu,it)) > input%sample_length) THEN
+              !write(*,'(i4,3e12.3)') iq, DSQRT(SUM(vel(:,nu)**2)), (2*lw(nu,it)), input%sample_length
+              CYCLE MODE_LOOP
+            ENDIF
+          ENDIF
+          !
           pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
                              /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY )&
                              *out_grid%w(iq) /lw(nu,it)
@@ -218,6 +244,10 @@ MODULE thermalk_program
             tk(a,b,it) = tk(a,b,it) + pref*vel(a,nu)*vel(b,nu)
           ENDDO
           ENDDO
+!           write(*,'(3f12.3)') tk(:,1,1)*RY_TO_WATTMM1KM1
+!           write(*,'(3f12.3)') tk(:,2,1)*RY_TO_WATTMM1KM1
+!           write(*,'(3f12.3)') tk(:,3,1)*RY_TO_WATTMM1KM1          
+!           write(*,*)  
         ENDDO MODE_LOOP
         !
       ENDDO CONF_LOOP
@@ -227,11 +257,14 @@ MODULE thermalk_program
       timer_CALL t_tksma%stop()
 
     IF(ionode.and.input%store_lw)THEN
-    DO it = 1, input%nconf
-      CLOSE(1000+it)
-      IF(input%isotopic_disorder) CLOSE(2000+it)
-    ENDDO
-    IF(input%casimir_scattering) CLOSE(3000)
+      DO it = 1, input%nconf
+        CLOSE(1000+it)
+        IF(input%isotopic_disorder) CLOSE(2000+it)
+      ENDDO
+      IF(input%casimir_scattering) CLOSE(3000)
+      CLOSE(5000) !velocity
+      CLOSE(6000) ! freq
+      CLOSE(7000) ! q-points
     ENDIF
     !
     ! Write to disk

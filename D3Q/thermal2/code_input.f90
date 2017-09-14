@@ -51,10 +51,11 @@ MODULE code_input
     ! for isotope contribution to lw
     LOGICAL  :: isotopic_disorder
     ! for border scattering, grain size effects
+    LOGICAL  :: mfp_cutoff
     LOGICAL  :: casimir_scattering
     ! NOTE: Casimir length must also include the structure factor (usually 0.5)
-    REAL(DP) :: casimir_length
-    REAL(DP) :: casimir_dir(3)
+    REAL(DP) :: sample_length
+    REAL(DP) :: sample_dir(3)
     !
     INTEGER :: nk(3), nk_in(3)
     REAL(DP) :: xk0(3), xk0_in(3)
@@ -113,8 +114,8 @@ MODULE code_input
     CALL mpi_broadcast(in%isotopic_disorder)
 
     CALL mpi_broadcast(in%casimir_scattering)
-    CALL mpi_broadcast(in%casimir_length)
-    CALL mpi_broadcast(3, in%casimir_dir)
+    CALL mpi_broadcast(in%sample_length)
+    CALL mpi_broadcast(3, in%sample_dir)
     !
     CALL mpi_broadcast(3, in%nk)
     CALL mpi_broadcast(3, in%nk_in)
@@ -189,12 +190,15 @@ MODULE code_input
     REAL(DP),ALLOCATABLE :: isotopes_mass(:), isotopes_conc(:), auxm(:), auxs(:)
     INTEGER :: n_isotopes, atomic_N
     !
-    ! User border scattering via Casimir model (only tk calculations)
+    ! Border scattering by cutting off phonons with mfp>sample_length
+    LOGICAL  :: mfp_cutoff = .false.
+    ! Border scattering via Casimir model (only tk calculations)
     LOGICAL  :: casimir_scattering = .false.
-    REAL(DP) :: casimir_length_au = -1._dp ! length in bohr
-    REAL(DP) :: casimir_length_mu = -1._dp ! length in micrometres
-    REAL(DP) :: casimir_length_mm = -1._dp ! length in millimitres
-    REAL(DP) :: casimir_dir(3) = 0._dp
+    ! Applies to both casimit_scattering and mfp_cutoff:
+    REAL(DP) :: sample_length_au = -1._dp ! length in bohr
+    REAL(DP) :: sample_length_mu = -1._dp ! length in micrometres
+    REAL(DP) :: sample_length_mm = -1._dp ! length in millimitres
+    REAL(DP) :: sample_dir(3) = 0._dp
     !
     REAL(DP) :: volume_factor = 1._dp ! volume scaling, e.g. for 2D slabs
     !
@@ -231,7 +235,8 @@ MODULE code_input
       ne, de, e0, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
       isotopic_disorder, &
-      casimir_scattering, casimir_length_au, casimir_length_mu, casimir_length_mm, casimir_dir,&
+      casimir_scattering,  &
+      sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
       max_seconds, max_time
 
     NAMELIST  / tkinput / &
@@ -240,8 +245,8 @@ MODULE code_input
       thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
       isotopic_disorder, store_lw, &
-      casimir_scattering, casimir_dir, &
-      casimir_length_au, casimir_length_mu, casimir_length_mm, &
+      casimir_scattering, mfp_cutoff, sample_dir, &
+      sample_length_au, sample_length_mu, sample_length_mm, &
       volume_factor, &
       max_seconds, max_time, restart
 
@@ -331,7 +336,10 @@ MODULE code_input
     !
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
-    input%casimir_dir        = input%casimir_dir
+    input%mfp_cutoff         = mfp_cutoff
+    input%sample_dir        = input%sample_dir
+    IF(casimir_scattering .and. mfp_cutoff) &
+      CALL errore("code_input","don't use both casimir_scattering and mfp_cutoff",1)
     !
     input%thr_tk = thr_tk
     input%niter_max = niter_max
@@ -396,17 +404,17 @@ MODULE code_input
       CALL errore('READ_INPUT', "CGP calculation isn't properly implemented with bz grids", 1)
     !
     
-    IF(input%casimir_scattering)THEN
-      IF(COUNT((/casimir_length_au,casimir_length_mu,casimir_length_mm/)>=0._dp)>1) &
-        CALL errore('READ_INPUT', "You cannot specify more than one: casimir_length_{au,mu,mm}",1)
-      IF(casimir_length_au<0._dp .and. casimir_length_mu<0._dp .and. casimir_length_mm<0._dp) &
-        CALL errore('READ_INPUT', "You must specify one of: casimir_length_{au,mu,mm}",2)
-      IF(casimir_length_au>0._dp) input%casimir_length = casimir_length_au
-      IF(casimir_length_mu>0._dp) input%casimir_length = casimir_length_mu/(BOHR_RADIUS_SI*1.d+6)
-      IF(casimir_length_mm>0._dp) input%casimir_length = casimir_length_mm/(BOHR_RADIUS_SI*1.d+3)
-      ioWRITE(*,'(5x,a,1f12.0)') "Casimir length (bohr)", input%casimir_length
+    IF(input%casimir_scattering .or. input%mfp_cutoff)THEN
+      IF(COUNT((/sample_length_au,sample_length_mu,sample_length_mm/)>=0._dp)>1) &
+        CALL errore('READ_INPUT', "You cannot specify more than one: sample_length_{au,mu,mm}",1)
+      IF(sample_length_au<0._dp .and. sample_length_mu<0._dp .and. sample_length_mm<0._dp) &
+        CALL errore('READ_INPUT', "You must specify one of: sample_length_{au,mu,mm}",2)
+      IF(sample_length_au>0._dp) input%sample_length = sample_length_au
+      IF(sample_length_mu>0._dp) input%sample_length = sample_length_mu/(BOHR_RADIUS_SI*1.d+6)
+      IF(sample_length_mm>0._dp) input%sample_length = sample_length_mm/(BOHR_RADIUS_SI*1.d+3)
+      ioWRITE(*,'(5x,a,1f12.0)') "Sample length (bohr)", input%sample_length
     ELSE
-      input%casimir_length = 0._dp
+      input%sample_length = 0._dp
     ENDIF
     !
     READ(input_unit,'(a1024)', iostat=ios) line
