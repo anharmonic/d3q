@@ -10,7 +10,7 @@ MODULE final_state
   USE input_fc,        ONLY : ph_system_info, forceconst2_grid
   USE fc2_interpolate, ONLY : ip_cart2pat
   USE fc3_interpolate, ONLY : forceconst3
-  USE mpi_thermal,     ONLY : mpi_bsum, ionode
+  USE mpi_thermal,     ONLY : mpi_bsum, ionode, mpi_wait
 #include "mpi_thermal.h"
   !
   CONTAINS
@@ -64,9 +64,9 @@ MODULE final_state
     COMPLEX(DP),ALLOCATABLE :: fstate_q(:,:,:)
     !
     REAL(DP) :: sumaux(ne,S%nat3)
-    INTEGER     :: iqpath
+    INTEGER     :: iqpath, ibnd
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
-    REAL(DP),ALLOCATABLE    :: xqsum(:,:,:)
+    REAL(DP),ALLOCATABLE    :: xqsum(:,:,:), xqsumsum(:,:)
     REAL(DP) :: qbarweight
     REAL(DP) :: pl,dpl
     !
@@ -215,32 +215,85 @@ MODULE final_state
       timer_CALL t_qresolved_io%stop()
     ENDIF
     !
+    QSUMMED_IO : &
     IF(qsummed)THEN
       timer_CALL t_qsummed_io%start()
       CALL mpi_bsum(S%nat3,qpath%nq, nconf, xqsum)
       !
       WHERE(ABS(xqsum)<1.d-99) xqsum = 0._dp
-      !
-      IF(ionode)THEN
-      unit = find_free_unit()
+      ALLOCATE(xqsumsum(qpath%nq,nconf))
       DO it = 1,nconf
-        OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
-                        "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
-                        "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
-        WRITE(unit,'(a)') "# path_l/q_weight  q_x q_y q_z total band1 band2 ..."
-        DO iqpath = 1,qpath%nq
-          WRITE(unit,'(100e15.5)') &
-                          qpath%w(iqpath), qpath%xq(:,iqpath), &
-                          SUM(xqsum(:,iqpath,it)),  xqsum(:,iqpath,it)
-        ENDDO
-        CLOSE(unit)
+      DO iqpath = 1,qpath%nq
+        xqsumsum(iqpath,it) = SUM(xqsum(:,iqpath,it))
       ENDDO
-      ENDIF
-      DEALLOCATE(xqsum)
+      ENDDO
+      !
+      IONODE_IO : &
+      IF(ionode)THEN
+        unit = find_free_unit()
+        !
+        XCRYSDEN_ELSE : &
+        IF(qpath%type == 'xcrysden')THEN
+          !
+          DO it = 1,nconf
+            OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
+                            "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
+                            "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".bxsf")
+            WRITE(unit,*) "BEGIN_INFO"
+            WRITE(unit,*) "Fermi Energy:", MAXVAL(xqsum(:,:,it))*.9_dp
+            WRITE(unit,*) "END_INFO"
+            WRITE(unit,*) "BEGIN_BLOCK_BANDGRID_3D"
+            WRITE(unit,*) "final_state"
+            WRITE(unit,*) "BEGIN_BANDGRID_3D_BANDS"
+            WRITE(unit,*) S%nat3+1
+            WRITE(unit,*) qpath%n
+            WRITE(unit,*) qpath%xq0
+            WRITE(unit,*) S%bg(:,1)
+            WRITE(unit,*) S%bg(:,2)
+            WRITE(unit,*) S%bg(:,3)
+            DO ibnd = 1, S%nat3
+              WRITE(unit,*) "BAND:", ibnd
+              DO iqpath = 1,qpath%nq
+                WRITE(unit,'(1e15.5)') xqsum(ibnd,iqpath,it)
+              ENDDO
+            ENDDO
+            WRITE(unit,*) "BAND:", S%nat3+1
+            DO iqpath = 1,qpath%nq
+              WRITE(unit,'(1e15.5)') xqsumsum(iqpath,it)
+            ENDDO
+            WRITE(unit,*) "END_BANDGRID_3D"
+            WRITE(unit,*) "END_BLOCK_BANDGRID_3D"
+            !
+            CLOSE(unit)
+            !
+          ENDDO
+          !
+        ELSE XCRYSDEN_ELSE
+          !
+          DO it = 1,nconf
+            OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
+                            "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
+                            "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
+            WRITE(unit,'(a)') "# path_l/q_weight  q_x q_y q_z total band1 band2 ..."
+            DO iqpath = 1,qpath%nq
+              WRITE(unit,'(100e15.5)') qpath%w(iqpath), qpath%xq(:,iqpath), &
+                                      xqsumsum(iqpath,it),  xqsum(:,iqpath,it)
+            ENDDO
+            CLOSE(unit)
+          ENDDO
+        ENDIF &
+        XCRYSDEN_ELSE
+        !
+      ENDIF &
+      IONODE_IO
+      !
+      DEALLOCATE(xqsum, xqsumsum)
+      CALL mpi_wait()
       timer_CALL t_qsummed_io%stop()
-    ENDIF
-        
-        
+      !
+    ENDIF &
+    QSUMMED_IO
+    !
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf, fstate_q)
     final_state_q = -0.5_dp * fstate_q
     !
