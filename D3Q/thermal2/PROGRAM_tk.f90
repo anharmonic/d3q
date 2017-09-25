@@ -191,7 +191,6 @@ MODULE thermalk_program
         ENDIF
         ioWRITE(5000,'(3(99e20.10,3x))') vel(:,:)
         ioWRITE(6000,'(99e20.10)') freq(:)*RY_TO_CMM1
-        ioWRITE(7000,'(99e20.10)') freq(:)*RY_TO_CMM1
         ioWRITE(7000,'(4e20.10)') out_grid%xq(:,iq), out_grid%w(iq)
         timer_CALL t_lwinout%stop()
       ENDIF
@@ -230,7 +229,8 @@ MODULE thermalk_program
           !
           IF(input%mfp_cutoff)THEN
             IF(lw(nu,it)==0._dp) CYCLE MODE_LOOP
-            IF(DSQRT(SUM(vel(:,nu)**2))/(2*lw(nu,it)) > input%sample_length) THEN
+            ! Note: lw has already been multiplied by two
+            IF(DSQRT(SUM(vel(:,nu)**2))/lw(nu,it) > input%sample_length) THEN
               !write(*,'(i4,3e12.3)') iq, DSQRT(SUM(vel(:,nu)**2)), (2*lw(nu,it)), input%sample_length
               CYCLE MODE_LOOP
             ENDIF
