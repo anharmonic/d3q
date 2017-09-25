@@ -90,7 +90,7 @@ MODULE r2q_program
     ENDDO
     CLOSE(10000)
     !
-  END SUBROUTINE
+  END SUBROUTINE joint_dos
 
   SUBROUTINE rms(input, S, fc)
     USE code_input,       ONLY : code_input_type
@@ -154,7 +154,6 @@ PROGRAM r2q
                               forceconst2_grid, ph_system_info, &
                               multiply_mass_dyn, write_dyn
   USE asr2_module,      ONLY : impose_asr2
-  !USE q_grids,          ONLY : q_grid
   USE constants,        ONLY : RY_TO_CMM1
   USE fc2_interpolate,  ONLY : freq_phq, freq_phq_path, fftinterp_mat2
   USE q_grids,          ONLY : q_grid
@@ -162,6 +161,8 @@ PROGRAM r2q
   USE ph_velocity,      ONLY : velocity
   USE more_constants,   ONLY : print_citations_linewidth
   USE overlap,          ONLY : order_type
+  USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
+  USE nanoclock,        ONLY : init_nanoclock
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -178,7 +179,9 @@ PROGRAM r2q
   TYPE(order_type) :: order
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
-  CALL print_citations_linewidth()
+  CALL start_mpi()
+  CALL init_nanoclock()
+  IF(ionode) CALL print_citations_linewidth()
   !  
   CALL READ_INPUT("R2Q", input, qpath, S, fc2)
   !
@@ -240,5 +243,6 @@ PROGRAM r2q
     ENDIF
     !
   ENDIF
+  CALL stop_mpi()
   
 END PROGRAM r2q
