@@ -22,7 +22,7 @@ for dir in $dirs; do
     # set inter-directory dependencies - only directories containing
     # modules that are used, or files that are included, by routines
     # in directory DIR should be listed in DEPENDS
-    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../D3Q/src ../../UtilXlib"
+    DEPENDS=". ../../Modules ../../UtilXlib ../../D3Q/src ../../PHonon/PH" # ../../PW/src  ../../PHonon/PH ../../D3Q/src ../../UtilXlib"
 # ../../FFTXlib"
     # generate dependencies file (only for directories that are present)
     if test -d $DIR
@@ -36,29 +36,29 @@ for dir in $dirs; do
         # handle special cases
         sed '/@\/cineca\/prod\/hpm\/include\/f_hpm.h@/d' \
             make.depend > make.depend.tmp
-        sed '/@iso_c_binding@/d;/@ifcore@/d;/@iso_fortran_env@/d;/@fft_scalar@/d' make.depend.tmp > make.depend
+        sed '/@iso_c_binding@/d;/@ifcore@/d;/@iso_fortran_env@/d;/@fft_scalar@/d' make.depend.tmp |grep -v "[.][.]" > make.depend
 
-        if test "$DIR" = "Modules"
-        then
-            sed '/@mpi@/d' make.depend > make.depend.tmp
-            sed '/@elpa1@/d' make.depend.tmp > make.depend
-        fi
-
-        if test "$DIR" = "clib"
-        then
-            mv make.depend make.depend.tmp
-            sed 's/@fftw.c@/fftw.c/' make.depend.tmp > make.depend
-        fi
-
-        if test "$DIR" = "PW/src"
-        then
-            mv make.depend make.depend.tmp
-            sed '/@environ_base@/d' make.depend.tmp > make.depend
-        fi
-
-        rm -f make.depend.tmp
-
-        # check for missing dependencies 
+#        if test "$DIR" = "Modules"
+#        then
+#            sed '/@mpi@/d' make.depend > make.depend.tmp
+#            sed '/@elpa1@/d' make.depend.tmp > make.depend
+#        fi
+#
+#        if test "$DIR" = "clib"
+#        then
+#            mv make.depend make.depend.tmp
+#            sed 's/@fftw.c@/fftw.c/' make.depend.tmp > make.depend
+#        fi
+#
+#        if test "$DIR" = "PW/src"
+#        then
+#            mv make.depend make.depend.tmp
+#            sed '/@environ_base@/d' make.depend.tmp > make.depend
+#        fi
+#
+#        rm -f make.depend.tmp
+#
+#        # check for missing dependencies 
         if grep @ make.depend
         then
 	   notfound=1
