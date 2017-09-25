@@ -14,6 +14,7 @@ MODULE q_grids
   
   TYPE q_grid
     CHARACTER(len=9) :: basis = ''
+    CHARACTER(len=9) :: type = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
     INTEGER :: nqtot = 0
@@ -25,6 +26,7 @@ MODULE q_grids
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
     CONTAINS
       procedure :: scatter => q_grid_scatter
+      procedure :: destroy => q_grid_destroy
   END TYPE q_grid
   !
   TYPE  q_basis
@@ -42,6 +44,20 @@ MODULE q_grids
   !
   CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
+
+  SUBROUTINE q_grid_destroy(grid)
+    IMPLICIT NONE
+    CLASS(q_grid),INTENT(inout) :: grid
+    IF(allocated(grid%xq)) DEALLOCATE(grid%xq)
+    IF(allocated(grid%w)) DEALLOCATE(grid%w)
+    grid%n  = -1
+    grid%scattered = .false.
+    grid%shifted =  .false.
+    grid%nq = 0
+    grid%nqtot = 0
+    grid%iq0 = 0
+    grid%xq0 = 0._dp
+  END SUBROUTINE
 
   SUBROUTINE q_grid_scatter(grid)
     USE mpi_thermal, ONLY : scatteri_vec, scatteri_mat
@@ -116,6 +132,9 @@ MODULE q_grids
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
       ENDIF
+    ELSE IF(grid_type=="xcrysd")THEN
+      CALL setup_xcrysden_grid(bg, n1,n2,n3, grid, xq0)
+      IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random")THEN
       ! Do not add a random shift in the direction where 
       ! only on point is requested.
@@ -166,6 +185,7 @@ MODULE q_grids
     INTEGER,PARAMETER :: far=2
     REAL(DP),PARAMETER :: eps = 1.d-4
 
+    grid%type = 'bz'
     ! Do not put the optional xq0 shift here, I'll add it at the end to
     ! have a grid that is centered around xq0
     CALL setup_simple_grid(bg, n1,n2,n3, sg)
@@ -275,6 +295,8 @@ MODULE q_grids
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     !
     INTEGER :: i,j,k, idx
+    
+    grid%type = 'simple'
     grid%n(1) = n1
     grid%n(2) = n2
     grid%n(3) = n3
@@ -306,12 +328,65 @@ MODULE q_grids
       DO idx = 1,grid%nq
         grid%xq(:,idx) = grid%xq(:,idx) + xq0
       ENDDO
+      grid%xq0 = xq0
+    ELSE
+      grid%xq0 = 0._dp
     ENDIF
     !
     grid%nqtot = grid%nq
     !
   END SUBROUTINE setup_simple_grid
-  
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE setup_xcrysden_grid(bg, n1,n2,n3, grid, xq0)
+    USE input_fc, ONLY : ph_system_info 
+    IMPLICIT NONE
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
+    INTEGER,INTENT(in) :: n1,n2,n3
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
+    !
+    INTEGER :: i,j,k, idx
+    grid%n(1) = n1+1
+    grid%n(2) = n2+1
+    grid%n(3) = n3+1
+    grid%nq = (n1+1)*(n2+1)*(n3+1)
+    !
+    IF(allocated(grid%xq)) CALL errore("setup_xcrysden_grid", "grid is already allocated", 1)
+    ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    grid%w = 1._dp/(n1*n2*n3) ! Note: not 1/grid%nq
+    grid%type = 'xcrysden'
+    !
+    idx = 0
+    DO k = 0, n3
+    DO j = 0, n2
+    DO i = 0, n1
+      !
+      idx = idx+1
+      grid%xq(1,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
+      grid%xq(2,idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
+      grid%xq(3,idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
+      !
+    ENDDO
+    ENDDO
+    ENDDO
+    !
+    CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
+    grid%basis = 'cartesian'
+    !
+    IF(present(xq0)) THEN
+      DO idx = 1,grid%nq
+        grid%xq(:,idx) = grid%xq(:,idx) + xq0
+      ENDDO
+      grid%xq0 = xq0
+    ELSE
+      grid%xq0 = 0._dp
+    ENDIF
+    !
+    grid%nqtot = grid%nq
+    !
+  END SUBROUTINE setup_xcrysden_grid
   ! \/o\________\\\_________________________________________/^>
   ! Create a scattered grid without generating a full local grid first
   ! which becomes a memory bottleneck in some cases
@@ -331,6 +406,7 @@ MODULE q_grids
     grid%n(1) = n1
     grid%n(2) = n2
     grid%n(3) = n3
+    grid%type = 'simple'
     ! find the number of points for this cpu, the first cpus can have 
     ! an extra point if num_procs is not a divisor of nqtot
     nqtot = n1*n2*n3
@@ -412,12 +488,23 @@ MODULE q_grids
     LOGICAL ::  equiv
     !
     IF(nq_new==0) THEN
-      IF(path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 2)
+      IF(path%nq==0) &
+        CALL errore('setup_path', 'cannot bootstrap the path', 2)
       ioWRITE(*,'(2x,"Path skip point:    ",f12.6)') path%w(path%nq)
       !RETURN
     ENDIF
-    IF(nq_new>1 .and. path%nq==0)CALL errore('setup_path', 'cannot bootstrap the path', 1)
+    !
+    IF(nq_new>1 .and. path%nq==0) &
+      CALL errore('setup_path', 'cannot bootstrap the path', 1)
+    !
     IF(nq_new<-1) CALL errore("setup_path", "nq_new must be >= -1",1)
+    !
+    ! If I add a point to a grid, I get something strange
+    IF( path%nq==0)THEN
+      path%type = 'path'
+    ELSE
+      IF(path%type /= 'path') path%type = 'unknown'
+    ENDIF
     !
     ADD_TO_PATH : &
     IF(path%nq >0)THEN
@@ -650,7 +737,6 @@ MODULE q_grids
     !
   END FUNCTION B_right_hand_side
 
-  !
 END MODULE q_grids
 
 
