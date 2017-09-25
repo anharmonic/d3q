@@ -705,7 +705,7 @@ PROGRAM asr3
   USE kinds,           ONLY : DP
   USE input_fc,        ONLY : aux_system, ph_system_info
   USE fc3_interpolate, ONLY : grid
-  USE io_global,       ONLY : stdout
+!  USE io_global,       ONLY : *
   USE asr3_module
   USE more_constants,  ONLY : print_citations_linewidth
   USE wrappers,        ONLY : memstat
@@ -756,11 +756,11 @@ PROGRAM asr3
   WRITE(*,*) "Use option '-h' for more help."
   WRITE(*,*)
   !
-  WRITE(stdout,*) " --- PARAMETERS : ---"
-  WRITE(stdout,*) " power     ", pow
-  WRITE(stdout,*) " threshold ", threshold
-  WRITE(stdout,*) " niter_max ", niter_max
-  WRITE(stdout,*) " --- ------------ ---"
+  WRITE(*,*) " --- PARAMETERS : ---"
+  WRITE(*,*) " power     ", pow
+  WRITE(*,*) " threshold ", threshold
+  WRITE(*,*) " niter_max ", niter_max
+  WRITE(*,*) " --- ------------ ---"
   ! ----------------------------------------------------------------------------
     CALL t_asr3io%start()
   CALL fc%read(filein, S)
@@ -768,7 +768,7 @@ PROGRAM asr3
     CALL t_asr3io%stop()
   !
   CALL memstat(kb)
-  WRITE(stdout,*) "Reading : done. //  Mem used:", DBLE(kb)/1000._dp, "Mb"
+  WRITE(*,*) "Reading : done. //  Mem used:", DBLE(kb)/1000._dp, "Mb"
   !
   ! ----------------------------------------------------------------------------
     CALL t_asr3idx%start()
@@ -794,7 +794,7 @@ PROGRAM asr3
   CALL index_2R(idx2,idx3, fc, idR23)
   
   CALL memstat(kb)
-  WRITE(stdout,*) "R indexing : done. //  Mem used:", kb/1000, "Mb"
+  WRITE(*,*) "R indexing : done. //  Mem used:", kb/1000, "Mb"
   ! ----------------------------------------------------------------------------
   !
   ALLOCATE(fx(idx2%nR, idx3%nR))
@@ -802,10 +802,10 @@ PROGRAM asr3
   CALL reindex_fc3(S%nat,fc,idR23,idx2,idx3,fx,+1)
     CALL t_asr3idx%stop()
   CALL memstat(kb)
-  WRITE(stdout,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
+  WRITE(*,*) "FC3 reindex : done. //  Mem used:", kb/1000, "Mb"
 
 !   CALL upindex_fcx(S%nat, idx_wrap, fx, up)
-!   WRITE(stdout,*) "Upscale reindex : done. //  Mem used:", kb/1000, "Mb"
+!   WRITE(*,*) "Upscale reindex : done. //  Mem used:", kb/1000, "Mb"
 ! 
 !!  threshold = impose_asr3_mauri(S%nat,idx2,fx)
 
@@ -822,7 +822,7 @@ PROGRAM asr3
      ENDDO APPLY_ASR 
      !
    CALL memstat(kb)
-   WRITE(stdout,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
+   WRITE(*,*) "Impose asr3 : done. //  Mem used:", kb/1000, "Mb"
   ! ----------------------------------------------------------------------------
   !
     CALL t_asr3idx%start()
@@ -835,7 +835,7 @@ PROGRAM asr3
   !
   CALL print_citations_linewidth()
   !
-  WRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
+  WRITE(*,'("   * WALL : ",f12.4," s")') get_wall()
   CALL print_timers_header()
   CALL t_asr3a%print()
   CALL t_asr3s%print()
