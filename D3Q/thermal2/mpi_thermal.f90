@@ -103,6 +103,7 @@ MODULE mpi_thermal
   END SUBROUTINE
 
   SUBROUTINE abort_mpi(errorcode)
+        IMPLICIT NONE
         INTEGER :: ierr
         INTEGER, INTENT(IN):: errorcode
 #ifdef __MPI
@@ -110,6 +111,14 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
 
+  SUBROUTINE mpi_wait()
+        IMPLICIT NONE
+        INTEGER :: ierr
+#ifdef __MPI
+        CALL mpi_barrier(mpi_comm_world, ierr)
+#endif
+  END SUBROUTINE
+  
   SUBROUTINE mpi_any(lgc)
     IMPLICIT NONE
     LOGICAL,INTENT(inout) :: lgc
