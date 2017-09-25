@@ -170,11 +170,11 @@ MODULE nanoclock
       iter_time = (wall-iter_start)
       IF(pc>0._dp) THEN
         iter_end_time = 100*iter_time/pc
-        ioWRITE(stdout,'(f12.1,"% | STEP:",f12.1,"s | END: ",f12.1,"s &
+        ioWRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",f12.1,"s &
                       &| WALL:",f12.1,"s ")') &
                       pc, iter_time,iter_end_time, wall
       ELSE
-        ioWRITE(stdout,'(f12.1,"% | STEP:",f12.1,"s | END: ",9x,"-.-s &
+        ioWRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
                       &| WALL:",f12.1,"s ")') &
                       pc, iter_time, wall
       ENDIF
