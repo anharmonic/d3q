@@ -556,7 +556,8 @@ MODULE code_input
           READ_CONFIGS_MATRIX
           !
           nconf = nT_aux * nsigma_aux
-          ioWRITE(stdout,'(2x,4(a,i4))') "Building matrix of ", nconf, " configurations, from", nT_aux," temperature and ", nsigma_aux," smearings."
+          ioWRITE(stdout,'(2x,4(a,i4))') "Building matrix of ", nconf, " configurations, from",&
+                                          nT_aux," temperature and ", nsigma_aux," smearings."
           input%nconf = nconf
           ALLOCATE(input%sigma(nconf), input%T(nconf))
           ij = 0
