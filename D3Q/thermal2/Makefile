@@ -44,7 +44,7 @@ QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_
 EXTOBJS = ../src/libd3q.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
-TLDEPS= bindir mods libs pw-lib lrmods ph
+TLDEPS= bindir mods libs pw-lib lrmods ph-lib
 
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
