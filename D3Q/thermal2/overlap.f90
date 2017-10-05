@@ -54,7 +54,7 @@ MODULE overlap
     !
   END SUBROUTINE
   !
-  SUBROUTINE set_idx(self, nat3, w, e)
+  SUBROUTINE set_idx(self, nat3, w, e, keep_old_e)
     USE constants, ONLY : RY_TO_CMM1
     !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
@@ -63,6 +63,8 @@ MODULE overlap
     INTEGER,INTENT(in) :: nat3
     REAL(DP),INTENT(in) :: w(nat3)
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
+    LOGICAL,OPTIONAL,INTENT(in) :: keep_old_e
+    LOGICAL :: update_e
     !INTEGER :: order_out(nat3)
     !
     COMPLEX(DP) :: e_new(nat3,nat3)
@@ -73,8 +75,14 @@ MODULE overlap
     INTEGER    :: i,j,j_,jmax, orderx(nat3)
     LOGICAL    :: assigned(nat3)
     REAL(DP),PARAMETER :: olap_thr = 0._dp
-    REAL(DP),PARAMETER :: w_thr = 10000._dp/RY_TO_CMM1
+    REAL(DP),PARAMETER :: w_thr = 1.e+10_dp/RY_TO_CMM1
     REAL(DP),PARAMETER :: eps = 0._dp
+    !
+    IF(present(keep_old_e))THEN
+      update_e = .not. keep_old_e
+    ELSE
+      update_e = .true.
+    ENDIF
     !
     ! On first call, order is just 1..3*nat, then quick return
     IF(.not.ALLOCATED(self%e_prev))THEN
@@ -93,7 +101,7 @@ MODULE overlap
     !
     assigned = .false.
     !WRITE(*,'(99i2)') order
-    DO i = 1,nat3
+    DO i = nat3,1,-1
       maxx = -1._dp
       jmax = -1
       DO j_ = 1,nat3
@@ -120,7 +128,8 @@ MODULE overlap
       !IF(i/=jmax) print*, i, "->", jmax, maxx
       ! Destroy polarizations already assigned:
       !e_new(:,jmax) = 0._dp
-      self%e_prev(:,i) = e_new(:,jmax)
+      IF(update_e) self%e_prev(:,i) = e_new(:,jmax)
+      !
       assigned(jmax) = .true.
       orderx(i) = jmax !order(jmax)
     ENDDO
