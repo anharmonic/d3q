@@ -15,7 +15,7 @@ MODULE casimir_linewidth
   ! Computes Casimir linewidth at a certain q-point, i.e. it computes the velocity
   ! and then calls the other function to compute the linewidth
   ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION casimir_linewidth_q(xq0, l_casimir, casimir_dir, S, fc2) &
+  FUNCTION casimir_linewidth_q(xq0, l_sample, sample_dir, S, fc2) &
   RESULT(lw)
     !
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
@@ -26,8 +26,8 @@ MODULE casimir_linewidth
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq0(3)
-    REAL(DP),INTENT(in) :: l_casimir
-    REAL(DP),INTENT(in) :: casimir_dir(3)
+    REAL(DP),INTENT(in) :: l_sample
+    REAL(DP),INTENT(in) :: sample_dir(3)
     REAL(DP) :: vel(3,S%nat3)
     !
     !
@@ -35,21 +35,21 @@ MODULE casimir_linewidth
     REAL(DP) :: lw(S%nat3)
     !
     vel = velocity(S, fc2, xq0)
-    lw = casimir_linewidth_vel(vel, l_casimir, casimir_dir, S%nat3)
+    lw = casimir_linewidth_vel(vel, l_sample, sample_dir, S%nat3)
      !
   END FUNCTION casimir_linewidth_q
 
   ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
   ! due to Casimir scattering with grain boundary or sample boundary
   ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION casimir_linewidth_vel(vel, l_casimir, casimir_dir, nat3) &
+  FUNCTION casimir_linewidth_vel(vel, l_sample, sample_dir, nat3) &
   RESULT(lw)
     !
     IMPLICIT NONE
     !
     INTEGER,INTENT(in)  :: nat3
-    REAL(DP),INTENT(in) :: l_casimir
-    REAL(DP),INTENT(in) :: casimir_dir(3)
+    REAL(DP),INTENT(in) :: l_sample
+    REAL(DP),INTENT(in) :: sample_dir(3)
     REAL(DP),INTENT(in) :: vel(3,nat3)
     !
     !
@@ -59,16 +59,16 @@ MODULE casimir_linewidth
     INTEGER  :: nu
     REAL(DP),PARAMETER :: eps = 1.e-20_dp
     !
-    ! Case 1: Velocity projected along casimir_dir
-    IF (SUM(ABS(casimir_dir)) > eps) THEN
-      inv_lcas = 1/ l_casimir / DSQRT(SUM(casimir_dir**2))
+    ! Case 1: Velocity projected along sample_dir
+    IF (SUM(ABS(sample_dir)) > eps) THEN
+      inv_lcas = 1/ l_sample / DSQRT(SUM(sample_dir**2))
       DO nu = 1,nat3
-          lw(nu) = inv_lcas * ABS(DOT_PRODUCT(casimir_dir,vel(:,nu)))
+          lw(nu) = inv_lcas * ABS(DOT_PRODUCT(sample_dir,vel(:,nu)))
       ENDDO
     !
     ! Case 2: Modulus of velocity (as in PRB 87, 214303 (2013))
     ELSE
-      inv_lcas = 1/ l_casimir
+      inv_lcas = 1/ l_sample
       DO nu = 1,nat3
           lw(nu) = inv_lcas * DSQRT(SUM(vel(:,nu)**2))
       ENDDO
@@ -76,5 +76,44 @@ MODULE casimir_linewidth
     !
   END FUNCTION casimir_linewidth_vel
   !
+  ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
+  ! due to Casimir scattering with grain boundary or sample boundary
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  FUNCTION mfp_scatter_vel(vel, fwhm, l_sample, sample_dir) &
+  RESULT(scatter)
+    !
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: fwhm
+    REAL(DP),INTENT(in) :: l_sample
+    REAL(DP),INTENT(in) :: sample_dir(3)
+    REAL(DP),INTENT(in) :: vel(3)
+    ! FUNCTION RESULT:
+    LOGICAL :: scatter
+    REAL(DP) :: mfp
+    !
+    REAL(DP),PARAMETER :: eps = 1.e-20_dp
+    !
+    IF(fwhm==0._dp)THEN
+      scatter = .true.
+      RETURN
+    ENDIF
+    !
+    ! Case 1: Velocity projected along sample_dir
+    IF (SUM(ABS(sample_dir)) > eps) THEN
+      mfp = SUM( vel*sample_dir )
+    !
+    ! Case 2: Modulus of velocity
+    ELSE
+      mfp = DSQRT(SUM( vel**2 ))
+    ENDIF
+    !
+    IF (mfp/fwhm > l_sample) THEN
+      scatter = .true.
+    ELSE
+      scatter = .false.
+    ENDIF
+    !
+  END FUNCTION mfp_scatter_vel
+  !
 END MODULE casimir_linewidth
-!
