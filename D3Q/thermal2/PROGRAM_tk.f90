@@ -52,12 +52,13 @@ MODULE thermalk_program
     USE q_grids,            ONLY : q_grid, setup_grid
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
-    USE casimir_linewidth,  ONLY : casimir_linewidth_vel
+    USE casimir_linewidth,  ONLY : casimir_linewidth_vel, mfp_scatter_vel
     USE input_fc,           ONLY : ph_system_info
     USE code_input,         ONLY : code_input_type
     USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
     USE ph_velocity,        ONLY : velocity
     USE nanoclock,          ONLY : print_percent_wall
+    !USE overlap,            ONLY : order_type
     USE timers
     IMPLICIT NONE
     !
@@ -83,6 +84,7 @@ MODULE thermalk_program
     INTEGER  :: iq, it, a, b, nu
     !
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
+    !TYPE(order_type) :: order
     !
     sigma_ry = input%sigma/RY_TO_CMM1
     !
@@ -137,7 +139,6 @@ MODULE thermalk_program
     ENDIF
     !
     tk = 0._dp
-    !dq = S%Omega/out_grid%nq
     !
       timer_CALL t_tksma%start()
     QPOINT_LOOP : &
@@ -166,8 +167,11 @@ MODULE thermalk_program
         timer_CALL t_velcty%start()
       ! Velocity
       vel = velocity(S, fc2, out_grid%xq(:,iq))
-      CALL  freq_phq_safe(out_grid%xq(:,iq), S, fc2, freq, U)
         timer_CALL t_velcty%stop()
+      !
+      CALL  freq_phq_safe(out_grid%xq(:,iq), S, fc2, freq, U)
+      !
+      !CALL order%set(S%nat3, freq, U, keep_old_e=.true.)
       !
       ! Compute anisotropic Casimir linewidth
       IF(input%casimir_scattering) THEN
@@ -214,7 +218,8 @@ MODULE thermalk_program
           ! Check: if we have zero linewidth and non-zero velocity it is a problem
           ! lw can be NaN when T=0 and xq=0, check for lw>0 instead, because NaN/=0 is true
           IF(lw(nu,it)<0._dp)THEN ! true for NaN
-            WRITE(stdout,"(3x,a,e12.4,3i6)") "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
+            WRITE(stdout,"(3x,a,e12.4,3i6)") &
+               "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
             lw(nu,it) = - lw(nu,it)
           ENDIF
           IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
@@ -228,12 +233,10 @@ MODULE thermalk_program
           ENDIF
           !
           IF(input%mfp_cutoff)THEN
-            IF(lw(nu,it)==0._dp) CYCLE MODE_LOOP
-            ! Note: lw has already been multiplied by two
-            IF(DSQRT(SUM(vel(:,nu)**2))/lw(nu,it) > input%sample_length) THEN
-              !write(*,'(i4,3e12.3)') iq, DSQRT(SUM(vel(:,nu)**2)), (2*lw(nu,it)), input%sample_length
-              CYCLE MODE_LOOP
-            ENDIF
+            ! Note that lw is already multiplied by 2 here
+            IF( mfp_scatter_vel(vel(:,nu), lw(nu,it), &
+                            input%sample_length, input%sample_dir) ) &
+               CYCLE MODE_LOOP
           ENDIF
           !
           pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
@@ -244,10 +247,6 @@ MODULE thermalk_program
             tk(a,b,it) = tk(a,b,it) + pref*vel(a,nu)*vel(b,nu)
           ENDDO
           ENDDO
-!           write(*,'(3f12.3)') tk(:,1,1)*RY_TO_WATTMM1KM1
-!           write(*,'(3f12.3)') tk(:,2,1)*RY_TO_WATTMM1KM1
-!           write(*,'(3f12.3)') tk(:,3,1)*RY_TO_WATTMM1KM1          
-!           write(*,*)  
         ENDDO MODE_LOOP
         !
       ENDDO CONF_LOOP
@@ -554,7 +553,7 @@ MODULE thermalk_program
 #endif
     END SUBROUTINE TK_CG_prec
   END MODULE thermalk_program
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!             !               !               !               !               !               !
+!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM thermalk
 
