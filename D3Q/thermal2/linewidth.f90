@@ -622,7 +622,7 @@ MODULE linewidth
     REAL(DP) :: freqm1(S%nat3,3)
     !
     INTEGER :: i,j,k
-    REAL(DP) :: lw(S%nat3)
+    REAL(DP) :: lw(S%nat3)!, sigma_
     lw(:) = 0._dp
     !
     freqm1 = 0._dp
@@ -643,6 +643,8 @@ MODULE linewidth
         freqtotm1_23= freqm1(j,2) * freqm1(k,3)
         !
         DO i = 1,S%nat3
+          !
+          !sigma_= MIN(sigma, 0.5_dp*MAX(MAX(freq(i,1), freq(j,2)), freq(k,3)))
           !
           freqtotm1 = freqm1(i,1) * freqtotm1_23
           !IF(freqtot/=0._dp)THEN

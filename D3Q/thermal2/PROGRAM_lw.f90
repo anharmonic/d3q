@@ -24,6 +24,7 @@ MODULE linewidth_program
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
     USE q_grids,            ONLY : q_grid, setup_grid
+!     USE mc_grids,           ONLY : setup_mcjdos_grid
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -91,6 +92,9 @@ MODULE linewidth_program
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
     DO iq = 1,qpath%nq
+      !
+!       CALL grid%destroy()
+!       CALL setup_mcjdos_grid(input, S, fc2, grid, qpath%xq(:,iq), 10000, .true.)
       !ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
       CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
       !
@@ -99,7 +103,8 @@ MODULE linewidth_program
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
-      IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
+      IF(input%sort_freq=="overlap" .or. iq==1) &
+          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN

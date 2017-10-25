@@ -202,6 +202,7 @@ MODULE thermalk_program
         timer_CALL t_tksum%start()
       ! Casimir linewidth is temperature/smearing-independent, sum it to all configurations
       ! Also multiply by 2 in order to get the FULL width from the HALF width
+      ! thanks to Francesco Macheda for reporting this
       DO it = 1,input%nconf
         lw(:,it) = 2*(lw_phph(:,it) + lw_isotopic(:,it) + lw_casimir)
       ENDDO

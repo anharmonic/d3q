@@ -813,6 +813,7 @@ PROGRAM asr3
      APPLY_ASR : &
      DO j = 1,niter_max
        IF( impose_asr3_1idx(S%nat,idx2,fx,pow) < threshold) EXIT
+!        IF( impose_asr3_1idx_alt(S%nat,idx2,fx,pow) < threshold) EXIT
        
        OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
        IF(ios==0) THEN

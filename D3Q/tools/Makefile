@@ -8,16 +8,20 @@ STRIP = strip
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
 	  $(MOD_FLAG)../src $(MOD_FLAG).  
 
+IFLAGS+=-I../../FFTXlib -I../../UtilXlib -I../../include -I../../PHonon/PH
+
+PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
+LRMODS = ../../LR_Modules/liblrmod.a
+PWOBJS = ../../PW/src/libpw.a
+QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
+         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
+
 EXTOBJS = ../src/libd3q.a \
-../../PHonon/PH/libph.a \
-../../PW/src/libpw.a 
+          $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
-QEMODS = ../../Modules/libqemod.a
+TLDEPS= bindir mods libs pw-lib lrmods ph
 
-TLDEPS= bindir mods libs pw 
-
-#LIBOBJS        = ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
-LIBOBJS        = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a
+LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 D3QTOOLSOBJS = \
 diffd3.o \
