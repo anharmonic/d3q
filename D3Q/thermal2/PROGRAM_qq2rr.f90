@@ -26,7 +26,7 @@ PROGRAM qq2rr
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
   INTEGER :: far, ios
-  CHARACTER(len=512) :: argv, filename
+  CHARACTER(len=512) :: argv, filename, dummy
   CHARACTER(len=:),ALLOCATABLE :: cmdline
   LOGICAL :: write_diff, skip_test
 
@@ -54,6 +54,8 @@ PROGRAM qq2rr
   ENDIF
   
   cmdline = cmdline_residual()
+  READ(cmdline, *, iostat=ios) nq, dummy
+  IF(ios==0 .and. len(dummy)>0) CALL errore("qq2rr", "too many argument use command '-h' for help",1)
   READ(cmdline, *, iostat=ios) nq
   IF(ios/=0) CALL errore("qq2rr", "missing argument use command '-h' for help",1)
   !
