@@ -22,7 +22,7 @@ PROGRAM recenter
   USE cmdline_param_module
   IMPLICIT NONE
   INTEGER :: far, ios
-  CHARACTER(len=256) :: filein, fileout
+  CHARACTER(len=256) :: filein, fileout, dummy
   TYPE(grid) :: fc, fcb
   TYPE(ph_system_info) :: S
   !
@@ -50,6 +50,8 @@ PROGRAM recenter
   ENDIF
   !
   cmdline = cmdline_residual()
+  READ(cmdline, *, iostat=ios) nq, dummy
+  IF(ios==0 .and. len(dummy)>0) CALL errore("qq2rr", "too many argument use command '-h' for help",1)
   READ(cmdline, *, iostat=ios) nq
   IF(ios/=0) CALL errore("recenter", "missing argument use command '-h' for help",1)
   !
