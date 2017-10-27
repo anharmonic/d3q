@@ -112,7 +112,7 @@ MODULE f3_bwfft
       ENDIF
       !
       IF( format_version == "1.0.0") THEN
-        WRITE(*,*) "Workaround for d3q =< 1.7b: taking conplex conjugate of D3 matrix"
+        WRITE(*,*) "Workaround for d3q =< 1.7b: taking complex conjugate of D3 matrix"
         d3 = DCONJG(d3)
       ELSEIF ( format_version /= "1.1.0")THEN
         CALL errore("read_d3_matrices","unknow file format version: "//TRIM(format_version),1)
@@ -212,6 +212,7 @@ MODULE f3_bwfft
     USE constants,        ONLY : tpi
     USE fc3_interpolate,  ONLY : grid
     USE d3_basis,         ONLY : d3_6idx_2_3idx
+    USE functions,        ONLY : norm, cross
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3), nq_trip, nat
     REAL(DP),INTENT(in) :: tau(3,nat), at(3,3), bg(3,3)
@@ -232,7 +233,7 @@ MODULE f3_bwfft
     INTEGER :: nxr_list, nxr_list_old, rx_idx(nperix), iperi, nperi, PASS
     REAL(DP),PARAMETER :: eps_peri = 1.d-5, eps_imag = 1.d-5
     ! fft aux variable
-    REAL(DP) :: arg, norm
+    REAL(DP) :: arg, pref
     COMPLEX(DP) :: phase, fc(3,3,3)
     COMPLEX(DP),ALLOCATABLE :: mat(:,:,:, :,:,:, :), matx(:,:,:, :,:,:, :), fcx(:,:,:)
     ! test variables
@@ -274,7 +275,7 @@ MODULE f3_bwfft
     ! shortest perimeter. 
     ALLOCATE(farx_list(3,2,nperix)) 
     nxr_list = 0
-    norm = 1._dp/DBLE(nq_trip)
+    pref = 1._dp/DBLE(nq_trip)
     !
     TWO_PASS : &
     DO PASS = 1,2
@@ -300,7 +301,7 @@ MODULE f3_bwfft
             DO iq = 1, nq_trip
               arg = tpi * ( SUM( xr(:,ixr)*d3grid(iq)%xq2) + SUM(xr(:,jxr)*d3grid(iq)%xq3) )
               phase = CMPLX( Cos(arg), Sin(arg), kind=DP)
-              fc = fc + phase*norm* d3grid(iq)%d(:,:,:,iat,jat,kat)
+              fc = fc + phase*pref* d3grid(iq)%d(:,:,:,iat,jat,kat)
             ENDDO
           ENDIF
           !
@@ -317,8 +318,13 @@ MODULE f3_bwfft
             d1 = p1 - p2
             d2 = p2 - p3
             d3 = p3 - p1
+            ! Perimeter of the triangle
             perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
             !
+            ! Radius of the smallest sphere containing the three atoms
+            ! (or radius of the circle circumscribing the triangle)
+            !perix = 0.5_dp * norm(d1)*norm(d2)*norm(d3) / norm(cross(d1,d2))
+            !perix = MAX(MAX( norm(d1), norm(d2) ), norm(d3))
 !             p0 = (p1+p2+p3)/3._dp
 !             d1 = p0 - p1
 !             d2 = p0 - p2
@@ -360,7 +366,7 @@ MODULE f3_bwfft
 !             ENDDO
 !           ENDIF
           ! Add the 2*nperi vectors from farx list to rx_list, if they are 
-          ! not already in the list in any case, return the indeces 
+          ! not already in the list in any case, return the indexes 
           ! of the vectors in the list
           CALL update_rlist(nperi, farx_list, nxr_list, rx_list, rx_idx)
           !

@@ -70,6 +70,7 @@ PROGRAM recenter
   CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc, writed3)
   
   CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
+  fcb%nq = nq
   CALL fcb%write(fileout, S)
   !
   !

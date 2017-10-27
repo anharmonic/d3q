@@ -38,7 +38,7 @@ MODULE asr3_module
   
   INTEGER,SAVE :: iter = 1
   REAL(DP),PARAMETER :: eps  = 1.e-12_dp, eps2 = 1.e-24_dp
-  REAL(DP),PARAMETER :: eps0 = 1.e-30_dp
+  REAL(DP),PARAMETER :: eps0 = 1.e-20_dp
   
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -49,7 +49,7 @@ MODULE asr3_module
   ! The ordering is stable as long as the limits are the same.
   ! Furthermore, it finds the posion of -R for each R 
   ! and of R-R' for each R and R' (if it is in the list)
-  SUBROUTINE stable_index_R(nR0, R0, nR,nRx, nRi, R, idR, iRe0, idmR, idRmR, use_modulo)
+  SUBROUTINE stable_index_R(nR0, R0, nR,nRx, nRi, R, idR, iRe0, idmR, idRmR, nq, use_modulo)
     USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nR0, R0(3,nR0)
@@ -65,7 +65,8 @@ MODULE asr3_module
     INTEGER,ALLOCATABLE,INTENT(out) :: idRmR(:,:)! for each couple i,j=1,..nR
                                                  ! index of R_i-R_j
     INTEGER,INTENT(out) :: iRe0                  ! index of R = (0,0,0)      
-    LOGICAL,INTENT(in)  :: use_modulo
+    INTEGER,INTENT(in)  :: nq(3)      ! size of the initial grid, only used for use_modulo
+    LOGICAL,INTENT(in)  :: use_modulo ! use periodic boundary conditions to find R -> -R correspondences
     !
     INTEGER :: i, j, k, kk, n
     INTEGER,ALLOCATABLE :: nRi_(:) ! how many times each R2,R3 appears
@@ -135,7 +136,9 @@ MODULE asr3_module
     DO j = 1,nR
     DO i = 1,nR
       IF(use_modulo)THEN
-        IF(  ALL( MODULO(-R(:,i),2) == R(:,j) ) ) idmR(i) = j
+        IF((MODULO(-R(1,i),nq(1)) == R(1,j)) .and. &
+           (MODULO(-R(2,i),nq(2)) == R(2,j)) .and. &
+           (MODULO(-R(3,i),nq(3)) == R(3,j)) ) idmR(i) = j
       ELSE
         IF ( ALL(R(:,i) == -R(:,j)) ) idmR(i) = j
       ENDIF
@@ -149,7 +152,9 @@ MODULE asr3_module
     DO j = 1,nR
     DO i = 1,nR
       IF(use_modulo)THEN
-        IF(  ALL( MODULO(R(:,i)-R(:,j),2) == R(:,k) ) ) idRmR(i,j) = k
+        IF((MODULO(R(1,i)-R(1,j),nq(1)) == R(1,k)) .and. &
+           (MODULO(R(2,i)-R(2,j),nq(2)) == R(2,k)) .and. &
+           (MODULO(R(3,i)-R(3,j),nq(3)) == R(3,k)) ) idRmR(i,j) = k
       ELSE
         IF ( ALL(R(:,k) == R(:,i)-R(:,j)) ) idRmR(i,j) = k
       ENDIF
@@ -430,9 +435,9 @@ MODULE asr3_module
       iR2mR3 = idx%idRmR(iR2,iR3)
       iR3mR2 = idx%idRmR(iR3,iR2)
       !
-      IF(iR2mR3<0 .or. iR3mR2<0) THEN
-!         IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
-!           CALL errore('impose_asr3', 'this should be zero', 1)
+      IF(iR2mR3<0 .or. iR3mR2<0.or.mR3<0 .or. mR2<0) THEN
+        IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
+           CALL errore('impose_asr3', "A matrix element that should be zero isn't. If using non-center mat3R use option '-m' ", 1)
         fx(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
@@ -730,23 +735,27 @@ PROGRAM asr3
   TYPE(grid) :: fcb
   INTEGER :: nq(3), nq_trip
   CHARACTER(len=:),ALLOCATABLE :: cmdline
+  LOGICAL :: use_modulo
 
   filein   = cmdline_param_char("i", "mat3R")
   fileout  = cmdline_param_char("o", TRIM(filein)//".asr")
   threshold    = cmdline_param_dble("t", 1.d-12)
   niter_max   = cmdline_param_int("n", 1000)
   pow         = cmdline_param_dble("p", 2._dp)
+  use_modulo  = cmdline_param_logical("m")
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NITER] [-p POWER]"
+      WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NITER] [-p POWER] [-m]"
       WRITE(*,*) ""
-      WRITE(*,'(a)') "        FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
-      WRITE(*,'(a)') "        FILEOUT : output file with with sum rule applied (default: 'FILEIN.asr3')"
-      WRITE(*,'(a)') "                  "
-      WRITE(*,'(a)') "        THRESH  : stop when residual breakage of ASR is smaller than THRESH (default: 1.d-12)"
-      WRITE(*,'(a)') "        NITER   : maximum number of iterations (default: 1000)"
-      WRITE(*,'(a)') "        POWER   : apply the correction to each matrix element proportionally to itself "
-      WRITE(*,'(a)') "                  to power POWER (default: 2), the value 1 can be more effective some times,"
-      WRITE(*,'(a)') "                  fractional numbers (e.g. 1.5) are also accepted."
+      WRITE(*,'(a)') " FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
+      WRITE(*,'(a)') " FILEOUT : output file with with sum rule applied (default: 'FILEIN.asr3')"
+      WRITE(*,'(a)') "           "
+      WRITE(*,'(a)') " THRESH  : stop when residual breakage of ASR is smaller than THRESH (default: 1.d-12)"
+      WRITE(*,'(a)') " NITER   : maximum number of iterations (default: 1000)"
+      WRITE(*,'(a)') " POWER   : apply the correction to each matrix element proportionally to itself "
+      WRITE(*,'(a)') "           to power POWER (default: 2), the value 1 can be more effective some times,"
+      WRITE(*,'(a)') "           fractional numbers (e.g. 1.5) are also accepted."
+      WRITE(*,'(a)') " -m : use periodic boundary conditions when comparing supercell vectors,"
+      WRITE(*,'(a)') "      only use for non-centered mat3R files (wrong results in any other case)"
       STOP 1
   ENDIF
   
@@ -760,6 +769,7 @@ PROGRAM asr3
   WRITE(*,*) " power     ", pow
   WRITE(*,*) " threshold ", threshold
   WRITE(*,*) " niter_max ", niter_max
+  WRITE(*,*) " use modulo", use_modulo
   WRITE(*,*) " --- ------------ ---"
   ! ----------------------------------------------------------------------------
     CALL t_asr3io%start()
@@ -768,15 +778,16 @@ PROGRAM asr3
     CALL t_asr3io%stop()
   !
   CALL memstat(kb)
+  WRITE(*,*) " grid size", fc%nq 
   WRITE(*,*) "Reading : done. //  Mem used:", DBLE(kb)/1000._dp, "Mb"
   !
   ! ----------------------------------------------------------------------------
     CALL t_asr3idx%start()
   CALL stable_index_R(fc%n_R, fc%yR2, idx2%nR, idx2%nRx, idx2%nRi, &
-                idx2%yR, idx2%idR, idx2%iRe0, idx2%idmR, idx2%idRmR, .false.)
+                idx2%yR, idx2%idR, idx2%iRe0, idx2%idmR, idx2%idRmR, fc%nq, use_modulo)
   !
   CALL stable_index_R(fc%n_R, fc%yR3, idx3%nR, idx3%nRx, idx3%nRi, &
-                idx3%yR, idx3%idR, idx3%iRe0, idx3%idmR, idx3%idRmR, .false.)
+                idx3%yR, idx3%idR, idx3%iRe0, idx3%idmR, idx3%idRmR, fc%nq, use_modulo)
 
 !   CALL stable_index_R(fc%n_R, fc%yR3, idx_wrap%nR, idx_wrap%nRx, idx_wrap%nRi, &
 !           idx_wrap%yR, idx_wrap%idR, idx_wrap%iRe0, idx_wrap%idmR, idx_wrap%idRmR, .true.)
