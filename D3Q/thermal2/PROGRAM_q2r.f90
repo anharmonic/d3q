@@ -247,8 +247,10 @@ PROGRAM q2r
             IF (lrigid) THEN
               !WRITE(stdout,*) "quite rigid"
               ! Remove non-analytic part before doing the Fourier transform
-              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
-                            tau,epsil,zeu,bg,omega,-1.d0)
+              !CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
+              !              tau,epsil,zeu,bg,omega,-1.d0)
+              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(1,1,1,1,nq),q(1,nq), &
+                    tau,epsil,zeu,bg,omega,celldm(1), .false.,-1.d0) ! 2D added celldm and flag
             END IF
             nqtot = nqtot+1
             matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
