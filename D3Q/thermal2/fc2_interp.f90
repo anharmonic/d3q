@@ -265,7 +265,7 @@ MODULE fc2_interpolate
     ENDIF
     !
     CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
-                  S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.+1.d0)
+                  S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
     DO ja = 1,S%nat
     DO ia = 1,S%nat
       DO j = 1,3
