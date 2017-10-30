@@ -134,6 +134,7 @@ asr2.o : ./input_fc.o
 casimir.o : ./input_fc.o
 casimir.o : ./ph_velocity.o
 code_input.o : ./asr2.o
+code_input.o : ./cmdline_param.o
 code_input.o : ./fc3_interp.o
 code_input.o : ./input_fc.o
 code_input.o : ./more_constants.o
@@ -150,6 +151,7 @@ dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
 f3_bwfft.o : ./fc3_interp.o
+f3_bwfft.o : ./functions.o
 f3_bwfft.o : ./input_fc.o
 fc2_interp.o : ./functions.o
 fc2_interp.o : ./input_fc.o

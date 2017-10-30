@@ -48,6 +48,17 @@ MODULE cmdline_param_module
   ! Returns all that is left in the command line after stripping the command name
   ! (i.e. the executable name, argument 0). It also calls cmdline_check_exausted
   !
+  PUBLIC :: cmdline_to_namelist
+  !  cmdline_to_namelist(nname, nunit)
+  ! Creates and saves to nunit a file containing the namelist nname, the namelist will be
+  ! generated from the "--" command line arguments, like this:
+  !   --option value 
+  ! becomes
+  !   option = value
+  ! The code detects if value can be read as a number or a logical it will stay as is, otherwise
+  ! it will be put in quotes.  Setting array values like
+  !   --nk 1,1,1
+  ! Usually work, but it is a bit magic
   INTEGER :: length = -1
   CHARACTER(len=:),ALLOCATABLE :: command
   !
@@ -245,5 +256,48 @@ MODULE cmdline_param_module
     !print*, ".."//trim(command(1:length))//"<<"
     !
   END FUNCTION
+  !
+  SUBROUTINE cmdline_to_namelist(nname, nunit)
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: nname
+    INTEGER,INTENT(in) :: nunit
+    INTEGER :: nargs, i, ios, alen, astatus
+    CHARACTER(len=512) :: argv
+    REAL(dp) :: rdummy
+    LOGICAL  :: ldummy
+    nargs = COMMAND_ARGUMENT_COUNT()
+
+    WRITE(nunit,*) "&"//TRIM(ADJUSTL(nname))
+
+    DO i = 1, nargs
+      CALL GET_COMMAND_ARGUMENT(i,argv,alen,astatus)
+      IF(astatus<0) CALL errore("cmdline_to_namelist","truncated command",1)
+      IF(argv(1:2)=="--") THEN
+        IF(alen>=3) WRITE(unit=nunit,fmt="(3a)",advance='no') "  ",TRIM(argv(3:)), " = "
+      ELSE IF (argv(1:1) == "-") THEN
+        WRITE(unit=nunit,fmt="(3a)",advance='no') "  ! ",TRIM(argv)
+      ELSE
+
+        READ(argv,*,iostat=ios) rdummy
+        IF(ios==0) THEN
+           WRITE(nunit,*) TRIM(argv), ","
+          CYCLE
+        ENDIF
+
+        READ(argv,*,iostat=ios) ldummy
+        IF(ios==0) THEN
+          WRITE(nunit,*) TRIM(argv), ","
+          CYCLE
+        ENDIF
+
+        WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
+
+      ENDIF
+    ENDDO
+
+    WRITE(nunit,*) "/"
+
+  END SUBROUTINE
+  !
 END MODULE
 

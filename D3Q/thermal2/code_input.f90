@@ -141,6 +141,7 @@ MODULE code_input
     USE fc3_interpolate,ONLY : forceconst3
     USE nist_isotopes_db, ONLY : compute_gs
     USE input_fc,       ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
+    USE cmdline_param_module
     !
     IMPLICIT NONE
     !
@@ -220,7 +221,7 @@ MODULE code_input
     CHARACTER(len=512)  :: input_file
     CHARACTER(LEN=256), EXTERNAL :: TRIMCHECK
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-    INTEGER             :: input_unit
+    INTEGER             :: input_unit, aux_unit, PASS
     INTEGER,EXTERNAL :: find_free_unit
     !
     LOGICAL :: qpoints_ok=.false.,  &! true after reading QPOINTS
@@ -267,47 +268,60 @@ MODULE code_input
     input_file="input."//TRIM(code)
     CALL parse_command_line(input_file)
     !
-    IF(TRIM(input_file)=="-")THEN
-      ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
-      input_unit = 5
-    ELSE
-      ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
-      input_unit = find_free_unit()
-      OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
-    ENDIF
-    !
-    IF(code=="LW")THEN
-      calculation="lw"
-      READ(input_unit, lwinput)
-      ioWRITE(*, lwinput)
-    ELSE IF (code=="TK")THEN
-      calculation="sma"
-      do_grid = .true.
-      READ(input_unit, tkinput)
-      ioWRITE(*, tkinput)
-    ELSE IF (code=="DB")THEN
-      calculation="db"
-      READ(input_unit, dbinput)
-      ioWRITE(*, dbinput)
-    ELSE IF (code=="R2Q")THEN
-      calculation="freq"
-      READ(input_unit, r2qinput)
-      ioWRITE(*, r2qinput)
-      IF(calculation=="freq")THEN
-        ! Do not read, nconf and configs in the R2Q-freq case
-        IF(ANY(nk<=0)) nk=1
-        IF(nconf<=0)THEN
-          nconf=1
-          configs_ok = .true.
+    PASSES : DO PASS = 1,2
+      IF(PASS==1) THEN
+        IF(TRIM(input_file)=="-")THEN
+          ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
+          input_unit = 5
+        ELSE
+          ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
+          input_unit = find_free_unit()
+          aux_unit = input_unit
+          OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
         ENDIF
-      ELSEIF(calculation=="rms".or.calculation=="jdos")THEN
-        ! Do not read, QPOINTS in the R2Q-rms and jdos case
-        IF(nq<=0) nq = 1
-        qpoints_ok = .true.
+      ELSE IF (PASS==2) THEN
+        ioWRITE(stdout,'(2x,3a)') "merging with command line arguments"
+        aux_unit = find_free_unit()
+        OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
+        CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
+        REWIND(aux_unit)
       ENDIF
-    ELSE
-       CALL errore('READ_INPUT', 'Wrong code', 1)
-    ENDIF
+      !
+      IF(code=="LW")THEN
+        calculation="lw"
+        READ(aux_unit, lwinput)
+        IF(PASS==2.and.ionode) WRITE(*, lwinput)
+      ELSE IF (code=="TK")THEN
+        calculation="sma"
+        do_grid = .true.
+        READ(aux_unit, tkinput)
+        IF(PASS==2.and.ionode) WRITE(*, tkinput)
+      ELSE IF (code=="DB")THEN
+        calculation="db"
+        READ(aux_unit, dbinput)
+        IF(PASS==2.and.ionode) WRITE(*, dbinput)
+      ELSE IF (code=="R2Q")THEN
+        calculation="freq"
+        READ(aux_unit, r2qinput)
+        IF(PASS==2.and.ionode) WRITE(*, r2qinput)
+        IF(calculation=="freq")THEN
+          ! Do not read, nconf and configs in the R2Q-freq case
+          IF(ANY(nk<=0)) nk=1
+          IF(nconf<=0)THEN
+            nconf=1
+            configs_ok = .true.
+          ENDIF
+        ELSEIF(calculation=="rms".or.calculation=="jdos")THEN
+          ! Do not read, QPOINTS in the R2Q-rms and jdos case
+          IF(nq<=0) nq = 1
+          qpoints_ok = .true.
+        ENDIF
+      ELSE
+         CALL errore('READ_INPUT', 'Wrong code', 1)
+      ENDIF
+      IF(PASS==2) CLOSE(aux_unit,STATUS="DELETE")
+    ENDDO PASSES
+    !
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
     IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2

@@ -85,7 +85,7 @@ MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = tk lw asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter
+EXEC = db tk lw asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter
 
 all : tldeps d3q-libs thermal2-libs $(EXEC)
 
