@@ -275,7 +275,12 @@ MODULE cmdline_param_module
       IF(argv(1:2)=="--") THEN
         IF(alen>=3) WRITE(unit=nunit,fmt="(3a)",advance='no') "  ",TRIM(argv(3:)), " = "
       ELSE IF (argv(1:1) == "-") THEN
+        ! A simple way to get rid of single "-" options: they are put in the file as comments
         WRITE(unit=nunit,fmt="(3a)",advance='no') "  ! ",TRIM(argv)
+        IF(i<nargs)THEN
+          CALL GET_COMMAND_ARGUMENT(i+1,argv,alen,astatus)
+          IF(argv(1:1) == "-") WRITE(nunit,*)
+        ENDIF
       ELSE
 
         READ(argv,*,iostat=ios) rdummy
