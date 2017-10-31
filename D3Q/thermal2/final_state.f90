@@ -10,7 +10,7 @@ MODULE final_state
   USE input_fc,        ONLY : ph_system_info, forceconst2_grid
   USE fc2_interpolate, ONLY : ip_cart2pat
   USE fc3_interpolate, ONLY : forceconst3
-  USE mpi_thermal,     ONLY : mpi_bsum, ionode, mpi_wait
+  USE mpi_thermal,     ONLY : mpi_bsum, ionode, mpi_wbarrier
 #include "mpi_thermal.h"
   !
   CONTAINS
@@ -288,7 +288,7 @@ MODULE final_state
       IONODE_IO
       !
       DEALLOCATE(xqsum, xqsumsum)
-      CALL mpi_wait()
+      CALL mpi_wbarrier()
       timer_CALL t_qsummed_io%stop()
       !
     ENDIF &

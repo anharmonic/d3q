@@ -134,14 +134,15 @@ MODULE code_input
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     !USE io_global,      ONLY : stdout
-    USE q_grids,        ONLY : q_grid, setup_path, setup_grid
-    USE constants,      ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
-    USE more_constants, ONLY : INVALID, DHUGE, MASS_DALTON_TO_RY
-    USE wrappers,       ONLY : f_mkdir_safe
-    USE fc3_interpolate,ONLY : forceconst3
-    USE nist_isotopes_db, ONLY : compute_gs
-    USE input_fc,       ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
-    USE cmdline_param_module
+    USE q_grids,              ONLY : q_grid, setup_path, setup_grid
+    USE constants,            ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
+    USE more_constants,       ONLY : INVALID, DHUGE, MASS_DALTON_TO_RY
+    USE wrappers,             ONLY : f_mkdir_safe
+    USE fc3_interpolate,      ONLY : forceconst3
+    USE nist_isotopes_db,     ONLY : compute_gs
+    USE input_fc,             ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
+    USE mpi_thermal,          ONLY : ionode, mpi_wbarrier
+    USE cmdline_param_module, ONLY : cmdline_to_namelist
     !
     IMPLICIT NONE
     !
@@ -280,11 +281,17 @@ MODULE code_input
           OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
         ENDIF
       ELSE IF (PASS==2) THEN
-        ioWRITE(stdout,'(2x,3a)') "merging with command line arguments"
         aux_unit = find_free_unit()
-        OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
-        CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
-        REWIND(aux_unit)
+        IF(ionode) THEN
+          WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+          OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
+          CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
+          CALL mpi_wbarrier()
+          REWIND(aux_unit)
+        ELSE
+          CALL mpi_wbarrier()
+          OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READ")
+        ENDIF
       ENDIF
       !
       IF(code=="LW")THEN
@@ -319,7 +326,10 @@ MODULE code_input
       ELSE
          CALL errore('READ_INPUT', 'Wrong code', 1)
       ENDIF
-      IF(PASS==2) CLOSE(aux_unit,STATUS="DELETE")
+      !
+      IF(PASS==2.and..not.ionode) CLOSE(aux_unit,STATUS="KEEP")
+      CALL mpi_wbarrier()
+      IF(PASS==2.and.ionode) CLOSE(aux_unit,STATUS="DELETE")
     ENDDO PASSES
     !
     !

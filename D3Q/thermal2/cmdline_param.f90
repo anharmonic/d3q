@@ -301,6 +301,8 @@ MODULE cmdline_param_module
     ENDDO
 
     WRITE(nunit,*) "/"
+    WRITE(nunit,*) 
+    CALL FLUSH(nunit)
 
   END SUBROUTINE
   !

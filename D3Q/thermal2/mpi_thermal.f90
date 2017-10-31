@@ -111,7 +111,7 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
 
-  SUBROUTINE mpi_wait()
+  SUBROUTINE mpi_wbarrier()
         IMPLICIT NONE
         INTEGER :: ierr
 #ifdef __MPI
