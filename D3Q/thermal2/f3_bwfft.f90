@@ -319,25 +319,25 @@ MODULE f3_bwfft
             d2 = p2 - p3
             d3 = p3 - p1
             ! Perimeter of the triangle
-!            perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
+            perix = DSQRT(SUM(d1**2)) + DSQRT(SUM(d2**2)) + DSQRT(SUM(d3**2))
             !
-            ! Radius of the smallest sphere containing the three atoms
-            ! (or radius of the circle circumscribing the triangle)
-            perix = 1.d+6
-            ! If the triangle is acute, then the smallest sphere has the circumcircle at its equator,
-            ! this is the circumcircle radius according to Wikipedia:
-            IF(norm(cross(d1,d2)) > 0._dp) perix = MIN(perix,0.5_dp * norm(d1)*norm(d2)*norm(d3) / norm(cross(d1,d2)))
-            ! In obtuse triangles, the circumcenter falls outside the triangle, I can find a smaller
-            ! sphere which has its center in the mid point of the longest side, two points will be on the surface
-            ! of the sphere, one inside.
-            ! I check this by checking if the third point is inside the sphere with the center in the mid point of
-            ! the other two and passing through them.
-            ! These three condition also work in degenerate case, i.e. three points aligned, or some points coincide
-            IF(norm((p1+p2)/2 - p3) <= norm(d1)/2) perix=MIN(perix,norm(d1)/2)
-            IF(norm((p1+p3)/2 - p2) <= norm(d3)/2) perix=MIN(perix,norm(d3)/2)
-            IF(norm((p2+p3)/2 - p1) <= norm(d2)/2) perix=MIN(perix,norm(d2)/2)
-            ! Note that in the case of a right triangle, the circumcenter is the middle point of the
-            ! hypotenuse, the two methods give the same value!
+!            ! Radius of the smallest sphere containing the three atoms
+!            ! (or radius of the circle circumscribing the triangle)
+!            perix = 1.d+6
+!            ! If the triangle is acute, then the smallest sphere has the circumcircle at its equator,
+!            ! this is the circumcircle radius according to Wikipedia:
+!            IF(norm(cross(d1,d2)) > 0._dp) perix = MIN(perix,0.5_dp * norm(d1)*norm(d2)*norm(d3) / norm(cross(d1,d2)))
+!            ! In obtuse triangles, the circumcenter falls outside the triangle, I can find a smaller
+!            ! sphere which has its center in the mid point of the longest side, two points will be on the surface
+!            ! of the sphere, one inside.
+!            ! I check this by checking if the third point is inside the sphere with the center in the mid point of
+!            ! the other two and passing through them.
+!            ! These three condition also work in degenerate case, i.e. three points aligned, or some points coincide
+!            IF(norm((p1+p2)/2 - p3) <= norm(d1)/2) perix=MIN(perix,norm(d1)/2)
+!            IF(norm((p1+p3)/2 - p2) <= norm(d3)/2) perix=MIN(perix,norm(d3)/2)
+!            IF(norm((p2+p3)/2 - p1) <= norm(d2)/2) perix=MIN(perix,norm(d2)/2)
+!            ! Note that in the case of a right triangle, the circumcenter is the middle point of the
+!            ! hypotenuse, the two methods give the same value!
             !
 !             p0 = (p1+p2+p3)/3._dp
 !             d1 = p0 - p1
