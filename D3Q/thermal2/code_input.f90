@@ -77,60 +77,6 @@ MODULE code_input
   !
   CONTAINS
   !
-  ! FIXME: currently all CPUs read input, this should replace it eventually
-  SUBROUTINE bcast_input_type(in)
-    USE mpi_thermal,        ONLY : ionode, mpi_broadcast
-    IMPLICIT NONE
-    TYPE(code_input_type),INTENT(inout) :: in
-    CALL mpi_broadcast(in%calculation)
-    CALL mpi_broadcast(in%mode)
-    CALL mpi_broadcast(in%outdir)
-    CALL mpi_broadcast(in%prefix)
-    !
-    CALL mpi_broadcast(in%exp_t_factor)
-    CALL mpi_broadcast(in%sort_freq)
-    !
-    CALL mpi_broadcast(in%file_mat3)
-    CALL mpi_broadcast(in%file_mat2)
-    CALL mpi_broadcast(in%file_mat2_final)
-    CALL mpi_broadcast(in%asr2)
-    !
-    CALL mpi_broadcast(in%start_q)
-    CALL mpi_broadcast(in%nconf)
-    IF(.not. ionode) THEN
-     ALLOCATE(in%T(in%nconf), in%sigma(in%nconf))
-    ENDIF
-    CALL mpi_broadcast(in%nconf, in%T)
-    CALL mpi_broadcast(in%nconf, in%sigma)
-    
-    CALL mpi_broadcast(in%ne)
-    CALL mpi_broadcast(in%e0)
-    CALL mpi_broadcast(in%de)
-    CALL mpi_broadcast(in%e_initial)
-    CALL mpi_broadcast(3, in%q_initial)
-    CALL mpi_broadcast(in%q_resolved)
-    CALL mpi_broadcast(in%sigmaq)
-    
-    CALL mpi_broadcast(in%isotopic_disorder)
-
-    CALL mpi_broadcast(in%casimir_scattering)
-    CALL mpi_broadcast(in%sample_length)
-    CALL mpi_broadcast(3, in%sample_dir)
-    !
-    CALL mpi_broadcast(3, in%nk)
-    CALL mpi_broadcast(3, in%nk_in)
-    !
-    CALL mpi_broadcast(in%thr_tk)
-    CALL mpi_broadcast(in%niter_max)
-
-    CALL mpi_broadcast(in%grid_type)
-    CALL mpi_broadcast(in%print_dynmat)
-    CALL mpi_broadcast(in%print_velocity)
-    CALL mpi_broadcast(in%store_lw)
-    !
-    CALL mpi_broadcast(in%restart)
-  END SUBROUTINE
-  !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     !USE io_global,      ONLY : stdout
@@ -141,7 +87,7 @@ MODULE code_input
     USE fc3_interpolate,      ONLY : forceconst3
     USE nist_isotopes_db,     ONLY : compute_gs
     USE input_fc,             ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
-    USE mpi_thermal,          ONLY : ionode, mpi_wbarrier
+    USE mpi_thermal,          ONLY : ionode, mpi_broadcast
     USE cmdline_param_module, ONLY : cmdline_to_namelist
     !
     IMPLICIT NONE
@@ -266,72 +212,83 @@ MODULE code_input
       nk, nconf, grid_type, xk0, &
       print_dynmat, print_velocity
       !
-    input_file="input."//TRIM(code)
-    CALL parse_command_line(input_file)
-    !
-    PASSES : DO PASS = 1,2
-      IF(PASS==1) THEN
-        IF(TRIM(input_file)=="-")THEN
-          ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
-          input_unit = 5
-        ELSE
-          ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
-          input_unit = find_free_unit()
-          aux_unit = input_unit
-          OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
-        ENDIF
-      ELSE IF (PASS==2) THEN
-        aux_unit = find_free_unit()
-        IF(ionode) THEN
-          WRITE(stdout,'(2x,3a)') "merging with command line arguments"
-          OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
-          CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
-          CALL mpi_wbarrier()
-          REWIND(aux_unit)
-        ELSE
-          CALL mpi_wbarrier()
-          OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READ")
-        ENDIF
-      ENDIF
+    IONODE_READS_INPUT_FILE : &
+    IF(ionode)THEN
+      input_file="input."//TRIM(code)
+      CALL parse_command_line(input_file)
       !
-      IF(code=="LW")THEN
-        calculation="lw"
-        READ(aux_unit, lwinput)
-        IF(PASS==2.and.ionode) WRITE(*, lwinput)
-      ELSE IF (code=="TK")THEN
-        calculation="sma"
-        do_grid = .true.
-        READ(aux_unit, tkinput)
-        IF(PASS==2.and.ionode) WRITE(*, tkinput)
-      ELSE IF (code=="DB")THEN
-        calculation="db"
-        READ(aux_unit, dbinput)
-        IF(PASS==2.and.ionode) WRITE(*, dbinput)
-      ELSE IF (code=="R2Q")THEN
-        calculation="freq"
-        READ(aux_unit, r2qinput)
-        IF(PASS==2.and.ionode) WRITE(*, r2qinput)
-        IF(calculation=="freq")THEN
-          ! Do not read, nconf and configs in the R2Q-freq case
-          IF(ANY(nk<=0)) nk=1
-          IF(nconf<=0)THEN
-            nconf=1
-            configs_ok = .true.
+      PASSES : DO PASS = 1,2
+        IF(PASS==1) THEN
+          IF(TRIM(input_file)=="-")THEN
+            ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
+            input_unit = 5
+          ELSE
+            ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
+            input_unit = find_free_unit()
+            aux_unit = input_unit
+            OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
           ENDIF
-        ELSEIF(calculation=="rms".or.calculation=="jdos")THEN
-          ! Do not read, QPOINTS in the R2Q-rms and jdos case
-          IF(nq<=0) nq = 1
-          qpoints_ok = .true.
+        ELSE IF (PASS==2) THEN
+          aux_unit = find_free_unit()
+!           IF(ionode) THEN
+            WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+            !OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="SCRATCH", action="READWRITE")
+            OPEN(unit=aux_unit, status="SCRATCH", action="READWRITE")
+            CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
+!             CALL mpi_wbarrier()
+            REWIND(aux_unit)
+!           ELSE
+!             CALL mpi_wbarrier()
+!             OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READ")
+!           ENDIF
         ENDIF
-      ELSE
-         CALL errore('READ_INPUT', 'Wrong code', 1)
-      ENDIF
+        !
+        IF(code=="LW")THEN
+          IF(PASS==1) calculation="lw"
+          READ(aux_unit, lwinput)
+          IF(PASS==2.and.ionode) WRITE(*, lwinput)
+        ELSE IF (code=="TK")THEN
+          IF(PASS==1) calculation="sma"
+          do_grid = .true.
+          READ(aux_unit, tkinput)
+          IF(PASS==2.and.ionode) WRITE(*, tkinput)
+        ELSE IF (code=="DB")THEN
+          IF(PASS==1) calculation="db"
+          READ(aux_unit, dbinput)
+          IF(PASS==2.and.ionode) WRITE(*, dbinput)
+        ELSE IF (code=="R2Q")THEN
+          IF(PASS==1) calculation="freq"
+          READ(aux_unit, r2qinput)
+          IF(PASS==2.and.ionode) WRITE(*, r2qinput)
+          IF(calculation=="freq" .and. PASS==1)THEN
+            ! Do not read, nconf and configs in the R2Q-freq case
+            IF(ANY(nk<=0)) nk=1
+            IF(nconf<=0)THEN
+              nconf=1
+              configs_ok = .true.
+            ENDIF
+          ELSEIF(calculation=="rms".or.calculation=="jdos" .and. PASS==1)THEN
+            ! Do not read, QPOINTS in the R2Q-rms and jdos case
+            IF(nq<=0) nq = 1
+            qpoints_ok = .true.
+          ENDIF
+        ELSE
+          CALL errore('READ_INPUT', 'Wrong code', 1)
+        ENDIF
+        !
+!         IF(PASS==2.and..not.ionode) CLOSE(aux_unit,STATUS="KEEP")
+!         CALL mpi_wbarrier()
+!         IF(PASS==2.and.ionode) CLOSE(aux_unit,STATUS="DELETE")
+        !IF(PASS==2) CLOSE(aux_unit,STATUS="DELETE")
+      ENDDO PASSES
       !
-      IF(PASS==2.and..not.ionode) CLOSE(aux_unit,STATUS="KEEP")
-      CALL mpi_wbarrier()
-      IF(PASS==2.and.ionode) CLOSE(aux_unit,STATUS="DELETE")
-    ENDDO PASSES
+    ENDIF &
+    IONODE_READS_INPUT_FILE 
     !
+    CALL broadcast_namelist_variables()
+    CALL mpi_broadcast(do_grid)
+    CALL mpi_broadcast(configs_ok)
+    CALL mpi_broadcast(qpoints_ok)
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
     IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
@@ -441,13 +398,20 @@ MODULE code_input
       input%sample_length = 0._dp
     ENDIF
     !
-    READ(input_unit,'(a1024)', iostat=ios) line
+    IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
+    CALL mpi_broadcast(line)
+    CALL mpi_broadcast(ios)
+    !
     READ_CARDS : &
     DO WHILE (ios==0)
       !
+      !print*, ionode, ">>", TRIM(line)
       READ(line,*,iostat=ios2) word
       IF(ios2/=0) THEN
-        READ(input_unit,'(a1024)', iostat=ios) line
+        IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
+        CALL mpi_broadcast(line)
+        CALL mpi_broadcast(ios)
+        !
         CYCLE READ_CARDS 
       ENDIF
       !
@@ -479,7 +443,11 @@ MODULE code_input
           qpts%basis = "cartesian"
           do_grid = .true.
           !
-          READ(input_unit,*,iostat=ios) nq1, nq2, nq3
+          IF(ionode) READ(input_unit,*,iostat=ios) nq1, nq2, nq3
+          CALL mpi_broadcast(ios)
+          CALL mpi_broadcast(nq1)
+          CALL mpi_broadcast(nq2)
+          CALL mpi_broadcast(nq3)
           xq0 = 0.5_dp * xk0 / (/ nq1, nq2, nq3 /)
           CALL cryst_to_cart(1,xq0,S%bg, +1)
           IF(ios/=0) CALL errore("READ_INPUT", "Reading QPOINTS nq1, nq2, nq3 for grid calculation", 1)
@@ -492,14 +460,18 @@ MODULE code_input
         ! Read the number of q-points, if not specified in the namelist
         IF(nq<0) THEN 
           READ(input_unit,*, iostat=ios) nq
+          CALL mpi_broadcast(ios)
           IF(ios/=0) CALL errore("READ_INPUT","Expecting number of q-points.", 1)
+          CALL mpi_broadcast(nq)
         ENDIF
         !
         ! REad the q-points, one by one, add to path
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
-          READ(input_unit,'(a1024)', iostat=ios) line
+          IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
+          CALL mpi_broadcast(ios)
           IF(ios/=0) CALL errore("READ_INPUT","Expecting q point: input error.", 1)
+          CALL mpi_broadcast(line)
           !
           ! Try to read point and number of points
           READ(line,*, iostat=ios2) xq(1), xq(2), xq(3), naux
@@ -546,8 +518,11 @@ MODULE code_input
           nsigma_aux = -1
           READ_CONFIGS_MATRIX : &
           DO
-            READ(input_unit,"(a1024)", iostat=ios2) line
+            IF(ionode) READ(input_unit,"(a1024)", iostat=ios2) line
+            CALL mpi_broadcast(ios2)
             IF(ios2/= 0) CALL errore("READ_INPUT","Error configs matrix.", 1)
+            CALL mpi_broadcast(line)
+            !
             READ(line,*, iostat=ios2)  word2, naux
             IF(ios2/=0)THEN
               READ(line,*, iostat=ios2)  word2
@@ -556,19 +531,21 @@ MODULE code_input
             ENDIF
             !
             IF(TRIM(word2)=="T")THEN
-              !READ(input_unit,*, iostat=ios2) nT_aux
               nT_aux = naux
               IF(nT_aux < 0) CALL errore("READ_INPUT","Bad number of temperatures.", 1)
               ALLOCATE(T_aux(nT_aux))
-              READ(input_unit,*, iostat=ios2) T_aux
+              IF(ionode) READ(input_unit,*, iostat=ios2) T_aux
+              CALL mpi_broadcast(ios2)
               IF(ios/= 0) CALL errore("READ_INPUT","Error reading temperatures.", 1)
+              CALL mpi_broadcast(nT_aux, T_aux)
             ELSE IF (TRIM(word2)=="sigma") THEN
-              !READ(input_unit,*, iostat=ios2) nsigma_aux
               nsigma_aux = naux
               IF(nsigma_aux < 0) CALL errore("READ_INPUT","Bad number of sigmas.", 1)
               ALLOCATE(sigma_aux(nsigma_aux))
-              READ(input_unit,*, iostat=ios2) sigma_aux
+              IF(ionode) READ(input_unit,*, iostat=ios2) sigma_aux
+              CALL mpi_broadcast(ios2)
               IF(ios/= 0) CALL errore("READ_INPUT","Error reading sigmas.", 1)
+              CALL mpi_broadcast(nsigma_aux, sigma_aux)
             ELSE IF (TRIM(word2)=="" .or. word2(1:1) =='!')THEN
               CYCLE READ_CONFIGS_MATRIX
             ELSE
@@ -597,8 +574,10 @@ MODULE code_input
         ELSE IF (TRIM(word3)=="list")THEN
           !
           IF(nconf<0) THEN
-            READ(input_unit,*, iostat=ios2) nconf
+            IF(ionode) READ(input_unit,*, iostat=ios2) nconf
+            CALL mpi_broadcast(ios2)
             IF(ios2/=0 .or. nconf<1) CALL errore("READ_INPUT","Expecting number of configs.", 1)
+            CALL mpi_broadcast(nconf)
             input%nconf = nconf
           ENDIF
           !
@@ -606,8 +585,10 @@ MODULE code_input
           !
           ioWRITE(stdout,*) "Reading CONFIGS", nconf
           DO i = 1,nconf
-            READ(input_unit,'(a1024)', iostat=ios2) line
+            IF(ionode) READ(input_unit,'(a1024)', iostat=ios2) line
+            CALL mpi_broadcast(ios2)
             IF(ios2/=0) CALL errore("READ_INPUT","Expecting configuration: input error.", 1)
+            CALL mpi_broadcast(line)
             !
             ! try to read sigma and temperature
             READ(line,*,iostat=ios2) input%sigma(i), input%T(i)
@@ -645,8 +626,10 @@ MODULE code_input
         !
         ISOTOPE_TYPE_LOOP : &
         DO i = 1,S%ntyp
-          READ(input_unit,'(a1024)', iostat=ios2) line
+          IF(ionode) READ(input_unit,'(a1024)', iostat=ios2) line
+          CALL mpi_broadcast(ios2)
           IF(ios2/=0) CALL errore("READ_INPUT","Expecting isotope: input error.", 1)
+          CALL mpi_broadcast(line)
           !
           ! Try to read isotope name and method
           READ(line,*,iostat=ios2) word2, word3
@@ -679,9 +662,13 @@ MODULE code_input
             READ(line,*,iostat=ios2) word2, word3, n_isotopes
             ALLOCATE(isotopes_mass(n_isotopes), isotopes_conc(n_isotopes))
             DO j = 1,n_isotopes
-              READ(input_unit,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
+              IF(ionode) READ(input_unit,*, iostat=ios2) isotopes_mass(j), isotopes_conc(j)
+              CALL mpi_broadcast(ios2)
               IF(ios2/=0) CALL errore("READ_INPUT","Reading isotope line: input error.", 4)
             ENDDO
+            CALL mpi_broadcast(n_isotopes, isotopes_mass)
+            CALL mpi_broadcast(n_isotopes, isotopes_conc)
+            !
             CALL compute_gs(auxm(i), auxs(i), word2, atomic_N, n_isotopes, isotopes_mass, isotopes_conc)
             DEALLOCATE(isotopes_mass, isotopes_conc)
           ELSE IF (word3=="manual") THEN
@@ -704,7 +691,9 @@ MODULE code_input
         ENDIF
       END SELECT
       !
-      READ(input_unit,'(a1024)', iostat=ios) line
+      IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
+      CALL mpi_broadcast(ios)
+      CALL mpi_broadcast(line)
       word = ''
       !
     ENDDO &
@@ -754,6 +743,54 @@ MODULE code_input
     !
     IF(input_unit/=5) CLOSE(input_unit)
     !
+    CONTAINS 
+    !
+    SUBROUTINE broadcast_namelist_variables()
+      USE mpi_thermal, ONLY : mpi_broadcast
+      IMPLICIT NONE
+      CALL mpi_broadcast(asr2)
+      CALL mpi_broadcast(calculation)
+      CALL mpi_broadcast(casimir_scattering)
+      CALL mpi_broadcast(de)
+      CALL mpi_broadcast(e0)
+      CALL mpi_broadcast(e_initial)
+      CALL mpi_broadcast(exp_t_factor)
+      CALL mpi_broadcast(file_mat2)
+      CALL mpi_broadcast(file_mat2_final)
+      CALL mpi_broadcast(file_mat3)
+      CALL mpi_broadcast(grid_type)
+      CALL mpi_broadcast(grid_type_in)
+      CALL mpi_broadcast(isotopic_disorder)
+      CALL mpi_broadcast(max_seconds)
+      CALL mpi_broadcast(max_time)
+      CALL mpi_broadcast(mfp_cutoff)
+      CALL mpi_broadcast(nconf)
+      CALL mpi_broadcast(ne)
+      CALL mpi_broadcast(niter_max)
+      CALL mpi_broadcast(3,nk)
+      CALL mpi_broadcast(3,nk_in)
+      CALL mpi_broadcast(nq)
+      CALL mpi_broadcast(outdir)
+      CALL mpi_broadcast(prefix)
+      CALL mpi_broadcast(print_dynmat)
+      CALL mpi_broadcast(print_velocity)
+      CALL mpi_broadcast(3,q_initial)
+      CALL mpi_broadcast(q_resolved)
+      CALL mpi_broadcast(q_summed)
+      CALL mpi_broadcast(restart)
+      CALL mpi_broadcast(3,sample_dir)
+      CALL mpi_broadcast(sample_length_au)
+      CALL mpi_broadcast(sample_length_mm)
+      CALL mpi_broadcast(sample_length_mu)
+      CALL mpi_broadcast(sigmaq)
+      CALL mpi_broadcast(sort_freq)
+      CALL mpi_broadcast(start_q)
+      CALL mpi_broadcast(store_lw)
+      CALL mpi_broadcast(thr_tk)
+      CALL mpi_broadcast(volume_factor)
+      CALL mpi_broadcast(3,xk0)
+      CALL mpi_broadcast(3,xk0_in)
+    END SUBROUTINE
   END SUBROUTINE READ_INPUT
   !
   ! <<^V^\\=========================================//-//-//========//O\\//
