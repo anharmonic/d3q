@@ -225,15 +225,15 @@ MODULE code_input
           ELSE
             ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
             input_unit = find_free_unit()
-            aux_unit = input_unit
             OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
           ENDIF
+          aux_unit = input_unit
         ELSE IF (PASS==2) THEN
           aux_unit = find_free_unit()
 !           IF(ionode) THEN
             WRITE(stdout,'(2x,3a)') "merging with command line arguments"
-            !OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="SCRATCH", action="READWRITE")
-            OPEN(unit=aux_unit, status="SCRATCH", action="READWRITE")
+            OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
+            !OPEN(unit=aux_unit, status="SCRATCH", action="READWRITE")
             CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
 !             CALL mpi_wbarrier()
             REWIND(aux_unit)
@@ -279,7 +279,7 @@ MODULE code_input
 !         IF(PASS==2.and..not.ionode) CLOSE(aux_unit,STATUS="KEEP")
 !         CALL mpi_wbarrier()
 !         IF(PASS==2.and.ionode) CLOSE(aux_unit,STATUS="DELETE")
-        !IF(PASS==2) CLOSE(aux_unit,STATUS="DELETE")
+        IF(PASS==2) CLOSE(aux_unit,STATUS="DELETE")
       ENDDO PASSES
       !
     ENDIF &
@@ -576,8 +576,9 @@ MODULE code_input
           IF(nconf<0) THEN
             IF(ionode) READ(input_unit,*, iostat=ios2) nconf
             CALL mpi_broadcast(ios2)
-            IF(ios2/=0 .or. nconf<1) CALL errore("READ_INPUT","Expecting number of configs.", 1)
+            IF(ios2/=0) CALL errore("READ_INPUT","Expecting number of configs.", 1)
             CALL mpi_broadcast(nconf)
+            IF(nconf<1) CALL errore("READ_INPUT","Wrong number of configs.", 1)
             input%nconf = nconf
           ENDIF
           !

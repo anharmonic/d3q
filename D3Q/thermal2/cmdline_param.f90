@@ -300,6 +300,7 @@ MODULE cmdline_param_module
       ENDIF
     ENDDO
 
+    WRITE(nunit,*) 
     WRITE(nunit,*) "/"
     WRITE(nunit,*) 
     CALL FLUSH(nunit)
