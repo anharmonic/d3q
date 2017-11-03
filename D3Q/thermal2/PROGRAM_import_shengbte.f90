@@ -179,6 +179,7 @@ PROGRAM import_shengbte
     ! this produces a new set of FCs (fcb) which are fit for Fourier interpolation.
     !
     CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
+    fcb%nq = fc%nq
     CALL fcb%write(fileout_good, S)
   ENDIF
   !
