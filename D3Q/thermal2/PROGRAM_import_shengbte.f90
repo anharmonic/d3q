@@ -15,7 +15,7 @@ MODULE import_shengbte_module
   ! Read FORCE_CONSTANTS_3RD files created by ShengBTE "thirdorder" 
   ! (and possibly Phono_shengbte) as documented at 
   ! <https://bitbucket.org/sousaw/shengbte/src/master/README.md>
-  SUBROUTINE read__shengbte(filefc3, fc, S)
+  SUBROUTINE read_shengbte(filefc3, fc, S)
     USE fc3_interpolate,  ONLY : grid
     USE input_fc,         ONLY : ph_system_info
     USE constants,        ONLY : ANGSTROM_AU, RYTOEV
@@ -23,7 +23,7 @@ MODULE import_shengbte_module
     CHARACTER(len=*),INTENT(in) :: filefc3
     TYPE(grid), INTENT(inout) :: fc
     TYPE(ph_system_info),INTENT(in) :: S
-    CHARACTER(len=8) :: sub = "read__shengbte"
+    CHARACTER(len=8) :: sub = "read_shengbte"
     INTEGER :: u, iR, iR2, n_R
     REAL(DP) :: R2(3), R3(3), F
     INTEGER :: i1,i2,i3, j1,j2,j3, na1,na2,na3, jn1,jn2,jn3
@@ -152,27 +152,35 @@ PROGRAM import_shengbte
   S%lrigid = .false.
   CLOSE(999)
   !
-  !CALL scan__shengbte(filefc3, S)
-  CALL read__shengbte(filefc3, fc, S)
-  !CALL fc%write(fileout_bad, S)
-  !
-  !
+  !CALL scan_shengbte(filefc3, S)
+  CALL read_shengbte(filefc3, fc, S)
+
   WRITE(*,*)
 
-  ! Here we do a forward FFT from the force constants to the equivalent grid 
-  ! of triplets. We are just doing Fourier transform here, not Fourier interpolation.
-  ! Hence, hhe grid nq must be of the same size as the number of neighbours of FC, 
-  ! or this will introduce huge aliasing errors!
-  !
-  nq_trip = (nq(1)*nq(2)*nq(3))**2
-  ALLOCATE(d3grid(nq_trip))
-  CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc, writed3)
-  !
-  ! Now we take the grid of triplets and do a backward FFT with recentering,
-  ! this produces a new set of FCs (fcb) which are fit for Fourier interpolation.
-  !
-  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
-  CALL fcb%write(fileout_good, S)
+  IF(far==0)THEN
+    ! In this case, recentering is not required, we can dump the force constants as is
+    WRITE(*,*) "Skipping recentering and saving 3-body FCs to file."
+    CALL fc%write(fileout_good, S)
+  ELSE 
+    !
+    !
+    ! Here we do a forward FFT from the force constants to the equivalent grid 
+    ! of triplets. We are just doing Fourier transform here, not Fourier interpolation.
+    ! Hence, hhe grid nq must be of the same size as the number of neighbours of FC, 
+    ! or this will introduce huge aliasing errors!
+    !
+    WRITE(*,*) "Doing a back-and-forward Fourier transform to center the 3-body FCs."
+    !
+    nq_trip = (nq(1)*nq(2)*nq(3))**2
+    ALLOCATE(d3grid(nq_trip))
+    CALL regen_fwfft_d3(nq, nq_trip, S, d3grid, fc, writed3)
+    !
+    ! Now we take the grid of triplets and do a backward FFT with recentering,
+    ! this produces a new set of FCs (fcb) which are fit for Fourier interpolation.
+    !
+    CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
+    CALL fcb%write(fileout_good, S)
+  ENDIF
   !
   !
 END PROGRAM
