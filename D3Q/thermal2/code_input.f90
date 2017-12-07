@@ -232,7 +232,7 @@ MODULE code_input
           aux_unit = find_free_unit()
 !           IF(ionode) THEN
             WRITE(stdout,'(2x,3a)') "merging with command line arguments"
-            OPEN(unit=aux_unit, file="."//TRIM(input_file)//".tmp", status="UNKNOWN", action="READWRITE")
+            OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
             !OPEN(unit=aux_unit, status="SCRATCH", action="READWRITE")
             CALL cmdline_to_namelist(TRIM(code)//"input", aux_unit)
 !             CALL mpi_wbarrier()
