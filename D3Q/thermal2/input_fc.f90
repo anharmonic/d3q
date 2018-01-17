@@ -222,7 +222,7 @@ MODULE input_fc
   SUBROUTINE write_dyn (filename, xq, d2, S)
     USE kinds, ONLY : DP
     IMPLICIT NONE
-    CHARACTER(len=512) :: filename
+    CHARACTER(len=*),INTENT(in) :: filename
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
     COMPLEX(DP),INTENT(in) :: d2(S%nat3, S%nat3)!  the dynamical matrix
     REAL(DP),INTENT(in) :: xq (3)! the q vector
