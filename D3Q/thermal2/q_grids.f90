@@ -50,7 +50,7 @@ MODULE q_grids
     CLASS(q_grid),INTENT(inout) :: grid
     IF(allocated(grid%xq)) DEALLOCATE(grid%xq)
     IF(allocated(grid%w)) DEALLOCATE(grid%w)
-    grid%n  = -1
+    grid%n  = 0
     grid%scattered = .false.
     grid%shifted =  .false.
     grid%nq = 0
@@ -59,10 +59,12 @@ MODULE q_grids
     grid%xq0 = 0._dp
   END SUBROUTINE
 
-  SUBROUTINE q_grid_scatter(grid)
+  SUBROUTINE q_grid_scatter(grid, quiet)
     USE mpi_thermal, ONLY : scatteri_vec, scatteri_mat
+    USE functions,   ONLY : default_if_not_present
     IMPLICIT NONE
     CLASS(q_grid),INTENT(inout) :: grid
+    LOGICAL,OPTIONAL,INTENT(in) :: quiet
     INTEGER :: nq
     IF(grid%scattered) RETURN
     nq = grid%nq
@@ -71,7 +73,8 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    ioWRITE(stdout,"(2x,a)") "Grid scattered with MPI"
+    IF (.not.default_if_not_present(.true.,quiet) .and. ionode) & 
+          WRITE(stdout,"(2x,a)") "Grid scattered with MPI"
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.
@@ -96,9 +99,10 @@ MODULE q_grids
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !    END SUBROUTINE setup_symmetry
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0, scatter)
-    USE input_fc, ONLY : ph_system_info
+  SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0, scatter, quiet)
+    USE input_fc,         ONLY : ph_system_info
     USE random_numbers,   ONLY : randy
+    USE functions,        ONLY : default_if_not_present
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in)     :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
@@ -106,6 +110,7 @@ MODULE q_grids
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     LOGICAL,OPTIONAL,INTENT(in) :: scatter
+    LOGICAL,OPTIONAL,INTENT(in) :: quiet
     INTEGER :: ipol
     !
     LOGICAL  :: do_scatter
@@ -165,7 +170,9 @@ MODULE q_grids
     ELSE
       CALL errore("setup_grid", "wrong grid type '"//TRIM(grid_type)//"'", 1)
     ENDIF
-    ioWRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
+    IF (.not.default_if_not_present(.true.,quiet) .and. ionode) & 
+       WRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
+
   END SUBROUTINE setup_grid
 
   ! \/o\________\\\_________________________________________/^>
