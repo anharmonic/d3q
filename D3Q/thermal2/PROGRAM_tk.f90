@@ -415,8 +415,8 @@ MODULE thermalk_program
     !
     !
     ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
-    ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
-                          "    K_x              K_y              K_z              "
+    !ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
+    !                      "    K_x              K_y              K_z              "
     !
     IF(.not. restart_ok) THEN
       ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
