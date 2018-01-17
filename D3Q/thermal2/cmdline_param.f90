@@ -265,6 +265,7 @@ MODULE cmdline_param_module
     CHARACTER(len=512) :: argv
     REAL(dp) :: rdummy
     LOGICAL  :: ldummy
+    LOGICAL, EXTERNAL :: matches
     nargs = COMMAND_ARGUMENT_COUNT()
 
     WRITE(nunit,*) "&"//TRIM(ADJUSTL(nname))
@@ -273,7 +274,9 @@ MODULE cmdline_param_module
       CALL GET_COMMAND_ARGUMENT(i,argv,alen,astatus)
       IF(astatus<0) CALL errore("cmdline_to_namelist","truncated command",1)
       IF(argv(1:2)=="--") THEN
-        IF(alen>=3) WRITE(unit=nunit,fmt="(3a)",advance='no') "  ",TRIM(argv(3:)), " = "
+        IF(alen>=3) WRITE(unit=nunit,fmt="(2a)",advance='no') "  ",TRIM(argv(3:))
+        ! write an "=" if it is not already in the argument
+        IF(.not.matches("=",argv)) WRITE(unit=nunit,fmt="(a)",advance='no') " = "
       ELSE IF (argv(1:1) == "-") THEN
         ! A simple way to get rid of single "-" options: they are put in the file as comments
         WRITE(unit=nunit,fmt="(3a)",advance='no') "  ! ",TRIM(argv)
