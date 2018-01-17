@@ -20,6 +20,7 @@ MODULE add_bubble_program
     USE dynbubble,        ONLY : dynbubble_q
     USE constants,        ONLY : RY_TO_CMM1
     USE more_constants,   ONLY : write_conf
+    USE functions,        ONLY : bubble_sort
     IMPLICIT NONE
     TYPE(forceconst2_grid) :: fc2, fc2b
     CLASS(forceconst3),INTENT(in) :: fc3
@@ -286,28 +287,6 @@ MODULE add_bubble_program
   END SUBROUTINE DYNSPECTRE_PATH
 
 ! RAF
-
-SUBROUTINE Bubble_Sort(a)
-REAL(DP), INTENT(inout), DIMENSION(:) :: a
-  REAL(DP) :: temp
-  INTEGER :: i, j
-  LOGICAL :: swapped
-         
-  DO j = SIZE(a)-1, 1, -1
-    swapped = .FALSE.
-    DO i = 1, j
-      IF (a(i) > a(i+1)) THEN
-       temp = a(i)
-       a(i) = a(i+1)
-       a(i+1) = temp
-       swapped = .TRUE.
-      END IF
-    END DO
-    IF (.NOT. swapped) EXIT
-  END DO
-END SUBROUTINE  Bubble_Sort 
-
-
 END MODULE add_bubble_program
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!

@@ -212,7 +212,119 @@ MODULE functions
     REAL(DP),INTENT(in) :: a(3)
     norm = DSQRT(SUM(a**2))
   END FUNCTION
+
+  SUBROUTINE Bubble_Sort(a)
+  REAL(DP), INTENT(inout), DIMENSION(:) :: a
+    REAL(DP) :: temp
+    INTEGER :: i, j
+    LOGICAL :: swapped
   
+    DO j = SIZE(a)-1, 1, -1
+      swapped = .FALSE.
+      DO i = 1, j
+        IF (a(i) > a(i+1)) THEN
+         temp = a(i)
+         a(i) = a(i+1)
+         a(i+1) = temp
+         swapped = .TRUE.
+        END IF
+      END DO
+      IF (.NOT. swapped) EXIT
+    END DO
+  END SUBROUTINE  Bubble_Sort
+
+  SUBROUTINE Bubble_Sort_idx(a, idx)
+  REAL(DP), INTENT(inout), DIMENSION(:) :: a
+  INTEGER, INTENT(out), DIMENSION(:) :: idx
+    REAL(DP) :: temp
+    INTEGER :: i, j, itmp
+    LOGICAL :: swapped
+
+    IF(size(idx)<size(a)) CALL errore("bubble_idx","not enough room for index",1)
+    FORALL(i=1:size(a)) idx(i) = i
+
+    DO j = SIZE(a)-1, 1, -1
+      swapped = .FALSE.
+      DO i = 1, j
+        IF (a(i) > a(i+1)) THEN
+         temp = a(i)
+         a(i) = a(i+1)
+         a(i+1) = temp
+         swapped = .TRUE.
+ 
+         itmp = idx(i)
+         idx(i) = idx(i+1)
+         idx(i+1) = itmp
+        END IF
+      END DO
+      IF (.NOT. swapped) EXIT
+    END DO
+  END SUBROUTINE  Bubble_Sort_idx
+
+! Implementaton of quicksort from https://gist.github.com/t-nissie/479f0f16966925fa29ea
+! Author: t-nissie@github.com
+! Licence GPLv3
+recursive subroutine quicksort(a, first, last)
+  implicit none
+  real*8  a(*), x, t
+  integer first, last
+  integer i, j
+
+  x = a( (first+last) / 2 )
+  i = first
+  j = last
+  do
+     do while (a(i) < x)
+        i=i+1
+     end do
+     do while (x < a(j))
+        j=j-1
+     end do
+     if (i >= j) exit
+     t = a(i);  a(i) = a(j);  a(j) = t
+     i=i+1
+     j=j-1
+  end do
+  if (first < i-1) call quicksort(a, first, i-1)
+  if (j+1 < last)  call quicksort(a, j+1, last)
+end subroutine quicksort
+
+recursive subroutine quicksort_idx(a, idx, first, last)
+  implicit none
+  real(dp) :: a(*), x, t
+  integer :: idx(*), first, last
+  integer :: i, j, n
+  x = a( (first+last) / 2 )
+  i = first
+  j = last
+  do
+     do while (a(i) < x)
+        i=i+1
+     end do
+     do while (x < a(j))
+        j=j-1
+     end do
+     if (i >= j) exit
+     t = a(i);  a(i) = a(j);  a(j) = t
+     n = idx(i);  idx(i) = idx(j);  idx(j) = n
+     i=i+1
+     j=j-1
+  end do
+  if (first < i-1) call quicksort_idx(a, idx, first, i-1)
+  if (j+1 < last)  call quicksort_idx(a, idx, j+1, last)
+end subroutine quicksort_idx
+
+  LOGICAL FUNCTION default_if_not_present(deft, arg)
+    LOGICAL,INTENT(in) :: deft
+    LOGICAL,OPTIONAL,INTENT(in) :: arg
+    IF(present(arg)) THEN
+      default_if_not_present = arg
+    ELSE
+      default_if_not_present = deft
+    ENDIF
+    
+  END FUNCTION
+
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 
