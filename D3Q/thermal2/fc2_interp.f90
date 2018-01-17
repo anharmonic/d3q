@@ -10,6 +10,7 @@ MODULE fc2_interpolate
   !
   USE kinds,    ONLY : DP
   USE nanoclock
+  USE rigid, ONLY : rgd_blk
 #include "mpi_thermal.h"  
   !
   ! I take forceconst2_grid globally in this module so I can USE it from here 
