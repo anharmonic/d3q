@@ -324,6 +324,7 @@ MODULE variational_tk
     REAL(DP) :: norm_a, norm_c
     REAL(DP) :: sum_a, sum_c, sum_ac
     REAL(DP) :: freqm1(nat3,4)
+    !REAL(DP),SAVE :: leftover_e = 0._dp
     !
     INTEGER :: i,j,k
     REAL(DP) :: sum_A_out(nat3)
@@ -363,6 +364,8 @@ MODULE variational_tk
           !
           sum_ac = sum_a + 0.5_dp*sum_c
           sum_A_out(i) = sum_A_out(i) + sum_ac
+          !
+         !leftover_e = sum_a*dom_a + 0.5_dp*sum_c*dom_c
           !
         ENDDO
       ENDDO
@@ -713,6 +716,7 @@ MODULE variational_tk
     REAL(DP) :: norm_a, norm_bc
     REAL(DP) :: sum_a, sum_bc, sum_abc
     REAL(DP) :: freqm1(nat3,4)
+    !REAL(DP),SAVE :: leftover_e = 0._dp
     !
     INTEGER :: i,j,k
     REAL(DP) :: p(nat3,nat3)
@@ -745,6 +749,9 @@ MODULE variational_tk
           ctm_a = bose_a *  f_gauss(dom_a, sigma)
           ctm_b = bose_b *  f_gauss(dom_b, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
+          !ctm_a = bose_a *  f_gauss(dom_a+leftover_e, sigma)
+          !ctm_b = bose_b *  f_gauss(dom_b+leftover_e, sigma)
+          !ctm_c = bose_c *  f_gauss(dom_c+leftover_e, sigma)
           !
           norm_a  = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
@@ -754,6 +761,8 @@ MODULE variational_tk
           !
           sum_abc = - sum_a + sum_bc
           p(i,j) = p(i,j) + sum_abc
+          !
+          !leftover_e = dom_a*sum_a + (dom_b*ctm_b + dom_c*ctm_c)*norm_bc*V3Bsq(i,j,k)
           !
         ENDDO
       ENDDO

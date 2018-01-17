@@ -620,6 +620,7 @@ MODULE linewidth
     REAL(DP) :: ctm_C, ctm_X   !
     REAL(DP) :: freqtotm1, freqtotm1_23
     REAL(DP) :: freqm1(S%nat3,3)
+    !REAL(DP),SAVE :: leftover_e
     !
     INTEGER :: i,j,k
     REAL(DP) :: lw(S%nat3)!, sigma_
@@ -656,6 +657,8 @@ MODULE linewidth
           ctm_X = bose_X * f_gauss(dom_X, sigma)
           !
           lw(i) = lw(i) - pi*freqtotm1 * (ctm_C + ctm_X) * V3sq(i,j,k)
+          !
+          !leftover_e = pi*freqtotm1 * (ctm_C*dom_C + ctm_X*dom_X) * V3sq(i,j,k)
           !ENDIF
           !
         ENDDO
