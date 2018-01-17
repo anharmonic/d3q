@@ -69,6 +69,7 @@ PROGRAM q2r
   USE environment, ONLY : environment_start, environment_end
   USE quter_module,       ONLY : quter
   USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2
+  USE rigid, ONLY : rgd_blk
   !
   IMPLICIT NONE
   !
