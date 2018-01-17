@@ -24,7 +24,7 @@ MODULE linewidth_program
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
     USE q_grids,            ONLY : q_grid, setup_grid
-!     USE mc_grids,           ONLY : setup_mcjdos_grid
+    USE mc_grids,           ONLY : setup_optimized_grid, print_optimized_stats
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -53,9 +53,11 @@ MODULE linewidth_program
     CHARACTER(len=15) :: f1, f2
     CHARACTER(len=256) :: filename
     !
-    ioWRITE(*,*) "--> Setting up inner grid"
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
-    !CALL grid%scatter()
+    IF(.not. input%optimize_grid)THEN
+      ioWRITE(*,*) "--> Setting up inner grid"
+      CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), &
+                      grid, scatter=.true., xq0=input%xk0, quiet=.false.)
+    ENDIF
     !
     IF(ionode)THEN
       DO it = 1,input%nconf
@@ -93,10 +95,12 @@ MODULE linewidth_program
     !
     DO iq = 1,qpath%nq
       !
-!       CALL grid%destroy()
-!       CALL setup_mcjdos_grid(input, S, fc2, grid, qpath%xq(:,iq), 10000, .true.)
-      !ioWRITE(*,'(i6,3f15.8)') iq, qpath%xq(:,iq)
       CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
+      IF(input%optimize_grid)THEN
+        CALL grid%destroy()
+        CALL setup_optimized_grid(input, S, fc2, grid, qpath%xq(:,iq), &
+                                  input%optimize_grid_thr, scatter=.true.)
+      ENDIF
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
       !
@@ -216,6 +220,8 @@ MODULE linewidth_program
       CALL t_fc3rot%print() 
       CALL t_mpicom%print() 
       CALL t_merged%print()
+      CALL t_optimize%print()
+      CALL print_optimized_stats()
 #endif
     !
   END SUBROUTINE LW_QBZ_LINE
@@ -471,7 +477,8 @@ MODULE linewidth_program
       CALL t_fc3rot%print() 
       CALL t_mpicom%print() 
       CALL t_merged%print()
-#endif    !
+#endif
+    !
   END SUBROUTINE FINAL_STATE_LINE
   !   
   END MODULE linewidth_program

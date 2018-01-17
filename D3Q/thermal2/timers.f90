@@ -50,6 +50,8 @@ MODULE timers
                      t_qsummed      = nanotimer("q-resolved spf"), &
                      t_qsummed_io   = nanotimer("q-resolved i/o & comm")
                      
+  TYPE(nanotimer) :: t_optimize     = nanotimer("optimize grid"), &
+                     t_sorting      = nanotimer("sorting for optimization")
                     
 
   CONTAINS
@@ -94,6 +96,10 @@ MODULE timers
     CALL t_qresolved_io%print()
     CALL t_qsummed%print()
     CALL t_qsummed_io%print()
+    !
+    CALL t_optimize%print()
+    CALL t_sorting%print()
+    
   END SUBROUTINE
   !
   SUBROUTINE set_time_limit(max_seconds, max_time)

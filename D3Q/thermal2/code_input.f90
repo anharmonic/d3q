@@ -72,6 +72,9 @@ MODULE code_input
     !
     LOGICAL :: store_lw ! for tk-sma, save the linewidth to file
     !
+    LOGICAL :: optimize_grid
+    REAL(DP) :: optimize_grid_thr
+    !
     LOGICAL :: restart
   END TYPE code_input_type
   !
@@ -158,6 +161,9 @@ MODULE code_input
     !
     LOGICAL :: restart = .false.
     !
+    LOGICAL :: optimize_grid = .false.
+    REAL(DP) :: optimize_grid_thr = 1.d-2
+    !
     ! Local variables use to read the list or grid of q-points required by lw
     REAL(DP) :: xq(3), xq0(3)
     INTEGER  :: ios, ios2, i, j, ij, naux, nq1, nq2, nq3, nT_aux, nsigma_aux
@@ -180,6 +186,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
       nconf, start_q, nq, nk, grid_type, xk0, &
+      optimize_grid, optimize_grid_thr, &
       ne, de, e0, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
       isotopic_disorder, &
@@ -192,6 +199,7 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
+      optimize_grid, optimize_grid_thr, &
       isotopic_disorder, store_lw, &
       casimir_scattering, mfp_cutoff, sample_dir, &
       sample_length_au, sample_length_mu, sample_length_mm, &
@@ -325,6 +333,9 @@ MODULE code_input
     input%thr_tk = thr_tk
     input%niter_max = niter_max
     input%restart = restart
+    !
+    input%optimize_grid = optimize_grid
+    input%optimize_grid_thr = optimize_grid_thr
     !
     IF(ANY(nk_in<0)) nk_in = nk
     input%nk_in = nk_in
@@ -791,6 +802,8 @@ MODULE code_input
       CALL mpi_broadcast(volume_factor)
       CALL mpi_broadcast(3,xk0)
       CALL mpi_broadcast(3,xk0_in)
+      CALL mpi_broadcast(optimize_grid)
+      CALL mpi_broadcast(optimize_grid_thr)
     END SUBROUTINE
   END SUBROUTINE READ_INPUT
   !

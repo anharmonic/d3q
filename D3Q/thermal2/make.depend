@@ -1,6 +1,7 @@
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
 PROGRAM_import_shengbte.o : mpi_thermal.o
+PROGRAM_interpolate2.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
@@ -14,6 +15,8 @@ casimir.o : mpi_thermal.o
 cmdline_param.o : mpi_thermal.o
 code_input.o : mpi_thermal.o
 dynbubble.o : mpi_thermal.o
+f3_bwfft.BAK.o : mpi_thermal.o
+f3_bwfft.bak.o : mpi_thermal.o
 f3_bwfft.o : mpi_thermal.o
 fc2_interp.o : mpi_thermal.o
 fc3_interp.o : mpi_thermal.o
@@ -48,6 +51,7 @@ PROGRAM_db.o : ./code_input.o
 PROGRAM_db.o : ./dynbubble.o
 PROGRAM_db.o : ./fc2_interp.o
 PROGRAM_db.o : ./fc3_interp.o
+PROGRAM_db.o : ./functions.o
 PROGRAM_db.o : ./input_fc.o
 PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
@@ -55,10 +59,17 @@ PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
 PROGRAM_import_shengbte.o : ./PROGRAM_import_shengbte.o
 PROGRAM_import_shengbte.o : ./cmdline_param.o
-PROGRAM_import_shengbte.o : ./f3_bwfft.o
+PROGRAM_import_shengbte.o : ./f3_bwfft.BAK.o
 PROGRAM_import_shengbte.o : ./fc3_interp.o
 PROGRAM_import_shengbte.o : ./input_fc.o
 PROGRAM_import_shengbte.o : ./ph_system.o
+PROGRAM_interpolate2.o : ./PROGRAM_interpolate2.o
+PROGRAM_interpolate2.o : ./asr2.o
+PROGRAM_interpolate2.o : ./cmdline_param.o
+PROGRAM_interpolate2.o : ./fc2_interp.o
+PROGRAM_interpolate2.o : ./input_fc.o
+PROGRAM_interpolate2.o : ./ph_system.o
+PROGRAM_interpolate2.o : ./quter.o
 PROGRAM_lw.o : ./PROGRAM_lw.o
 PROGRAM_lw.o : ./casimir.o
 PROGRAM_lw.o : ./code_input.o
@@ -68,6 +79,7 @@ PROGRAM_lw.o : ./final_state.o
 PROGRAM_lw.o : ./input_fc.o
 PROGRAM_lw.o : ./isotopes.o
 PROGRAM_lw.o : ./linewidth.o
+PROGRAM_lw.o : ./mc_grids.o
 PROGRAM_lw.o : ./more_constants.o
 PROGRAM_lw.o : ./mpi_thermal.o
 PROGRAM_lw.o : ./nanoclock.o
@@ -77,7 +89,7 @@ PROGRAM_lw.o : ./timers.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
 PROGRAM_qq2rr.o : ./cmdline_param.o
-PROGRAM_qq2rr.o : ./f3_bwfft.o
+PROGRAM_qq2rr.o : ./f3_bwfft.BAK.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
@@ -94,7 +106,7 @@ PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
 PROGRAM_recenter.o : ./PROGRAM_recenter.o
 PROGRAM_recenter.o : ./cmdline_param.o
-PROGRAM_recenter.o : ./f3_bwfft.o
+PROGRAM_recenter.o : ./f3_bwfft.BAK.o
 PROGRAM_recenter.o : ./fc3_interp.o
 PROGRAM_recenter.o : ./input_fc.o
 PROGRAM_recenter.o : ./ph_system.o
@@ -150,6 +162,12 @@ dynbubble.o : ./more_constants.o
 dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
+f3_bwfft.BAK.o : ./fc3_interp.o
+f3_bwfft.BAK.o : ./functions.o
+f3_bwfft.BAK.o : ./input_fc.o
+f3_bwfft.bak.o : ./fc3_interp.o
+f3_bwfft.bak.o : ./functions.o
+f3_bwfft.bak.o : ./input_fc.o
 f3_bwfft.o : ./fc3_interp.o
 f3_bwfft.o : ./functions.o
 f3_bwfft.o : ./input_fc.o
@@ -188,10 +206,14 @@ linewidth.o : ./nanoclock.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 mc_grids.o : ./code_input.o
+mc_grids.o : ./fc2_interp.o
+mc_grids.o : ./functions.o
 mc_grids.o : ./input_fc.o
+mc_grids.o : ./linewidth.o
 mc_grids.o : ./mpi_thermal.o
 mc_grids.o : ./ph_dos.o
 mc_grids.o : ./q_grids.o
+mc_grids.o : ./timers.o
 merge_degenerate.o : ./timers.o
 nanoclock.o : ./mpi_thermal.o
 ph_dos.o : ./code_input.o
@@ -207,6 +229,7 @@ ph_velocity.o : ./merge_degenerate.o
 posix_signal.o : ./mpi_thermal.o
 posix_signal.o : ./timers.o
 q_grids.o : ./fc2_interp.o
+q_grids.o : ./functions.o
 q_grids.o : ./input_fc.o
 q_grids.o : ./mpi_thermal.o
 q_grids.o : ./ph_velocity.o
@@ -229,6 +252,7 @@ variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 PROGRAM_db.o : 
 PROGRAM_import_shengbte.o : 
+PROGRAM_interpolate2.o : 
 PROGRAM_lw.o : 
 PROGRAM_r2q.o : 
 PROGRAM_recenter.o : 
