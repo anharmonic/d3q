@@ -21,7 +21,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   USE ions_base,  ONLY : nat, ityp, tau
   USE kinds,      ONLY : DP
   USE constants,  ONLY : tpi
-  USE gvect,      ONLY : ngm, g, nl
+  USE gvect,      ONLY : ngm, g !, nl
   USE cell_base,  ONLY : tpiba2, tpiba, omega
   USE fft_base,   ONLY : dfftp
   USE fft_interfaces, ONLY: fwfft
@@ -68,7 +68,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
   FORALL(ig=1:dfftp%nnr) vxc_g(ig) = CMPLX(vxc(ig),0._dp,kind=DP)
   DEALLOCATE(vxc)
   !
-  CALL fwfft('Dense', vxc_g, dfftp)
+  CALL fwfft('Rho', vxc_g, dfftp)
   !
   drc_exp  = (0._dp, 0._dp)
   DO na = 1, nat
@@ -94,7 +94,7 @@ SUBROUTINE d3_nlcc_0(d3dyn)
         work = (0._dp, 0._dp)
         DO ig = 1, ngm
           work = work + (0._dp, 1._dp) * g(i_cart,ig)*g(j_cart,ig)*g(k_cart,ig) &
-                        * CONJG(vxc_g(nl(ig))) * drc_exp (ig, na)
+                        * CONJG(vxc_g(dfftp%nl(ig))) * drc_exp (ig, na)
         ENDDO
         !
         d3dyn0 (na_i, na_j, na_k) = pref*work
@@ -150,7 +150,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
   USE ions_base,  ONLY : nat, ityp, tau
   USE kinds,      ONLY : DP
   USE constants,  ONLY : tpi
-  USE gvect,      ONLY : ngm, g, nl
+  USE gvect,      ONLY : ngm, g !, nl
   USE cell_base,  ONLY : tpiba2, omega
   USE fft_base,   ONLY : dfftp
   USE fft_interfaces, ONLY: fwfft
@@ -227,7 +227,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
       !
       FORALL(ir=1:dfftp%nnr) drho_dmu(ir) = drho_dmu(ir) * dmuxc(ir, 1, 1)
       !
-      CALL fwfft('Dense', drho_dmu, dfftp)
+      CALL fwfft('Rho', drho_dmu, dfftp)
       !
       DO na = 1, nat
         DO i_cart = 1, 3
@@ -238,7 +238,7 @@ SUBROUTINE d3_nlcc_123(iq_drho, iq_cci, iq_ccj, d3dyn)
             !
             work = (0._dp, 0._dp)
             DO ig = 1, ngm
-                work = work - CONJG(drho_dmu(nl(ig))) * drc_exp(ig, na) &
+                work = work - CONJG(drho_dmu(dfftp%nl(ig))) * drc_exp(ig, na) &
                             *(g(i_cart, ig) + kplusq(iq_drho)%xq(i_cart)) &
                             *(g(j_cart, ig) + kplusq(iq_drho)%xq(j_cart))
             ENDDO

@@ -55,7 +55,13 @@ SUBROUTINE run_nscf_d3(do_band)
   USE d3matrix_io,     ONLY : d3matrix_filename
   USE kplus3q,         ONLY : kplusq
   USE d3_control,      ONLY : d3dir
-  !
+  USE cell_base,       ONLY : at, bg
+  USE gvect,           ONLY : gcutm
+  USE gvecs,           ONLY : gcutms
+  USE fft_base,        ONLY : dffts, dfftp
+  USE fft_types,       ONLY : fft_type_allocate
+  USE mp_bands,        ONLY : intra_bgrp_comm, nyfft
+
   IMPLICIT NONE
   !
   LOGICAL, INTENT(IN) :: do_band
@@ -86,10 +92,13 @@ SUBROUTINE run_nscf_d3(do_band)
   startingconfig    = 'input'
   starting_pot      = 'file'
   starting_wfc      = 'atomic'
-  pw_restart        = .false.
+  !pw_restart        = .false.
   pseudo_dir= TRIM(tmp_dir_save) // TRIM(prefix) // '.save'
   !CALL restart_from_file()
   conv_ions=.true.
+  !
+  CALL fft_type_allocate ( dfftp, at, bg, gcutm, intra_bgrp_comm, nyfft=nyfft )
+  CALL fft_type_allocate ( dffts, at, bg, gcutms, intra_bgrp_comm, nyfft=nyfft)
   !
   CALL setup_nscf_d3()
   !
@@ -106,7 +115,7 @@ SUBROUTINE run_nscf_d3(do_band)
   !
   ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   CALL init_run()
-  CALL non_scf ( )
+  CALL non_scf()
   ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   !
   IF(ionode)THEN

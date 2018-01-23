@@ -27,7 +27,7 @@ SUBROUTINE h_psiq (lda, n, m, psi, hpsi, spsi)
   USE lsda_mod, ONLY : current_spin
   USE fft_base, ONLY : dffts
   USE fft_interfaces, ONLY: fwfft, invfft
-  USE gvecs, ONLY: nls
+  !USE gvecs, ONLY: nls
   USE spin_orb, ONLY : domag
   USE scf,    ONLY : vrs
   USE uspp,   ONLY : vkb
@@ -109,15 +109,15 @@ CONTAINS
      IF (noncolin) THEN
         psic_nc = (0.0_dp, 0.0_dp)
         DO j = 1, n
-           psic_nc(nls(igkq(j)),1) = psi (j, ibnd)
-           psic_nc(nls(igkq(j)),2) = psi (j+lda, ibnd)
+           psic_nc(dffts%nl(igkq(j)),1) = psi (j, ibnd)
+           psic_nc(dffts%nl(igkq(j)),2) = psi (j+lda, ibnd)
         ENDDO
         CALL invfft ('Wave', psic_nc(:,1), dffts)
         CALL invfft ('Wave', psic_nc(:,2), dffts)
      ELSE
         psic(:) = (0.0_dp, 0.0_dp)
         DO j = 1, n
-           psic (nls(igkq(j))) = psi (j, ibnd)
+           psic (dffts%nl(igkq(j))) = psi (j, ibnd)
         ENDDO
         CALL invfft ('Wave', psic, dffts)
      ENDIF
@@ -157,8 +157,8 @@ CONTAINS
      !   addition to the total product
      !
         DO j = 1, n
-           hpsi (j, ibnd) = hpsi (j, ibnd) + psic_nc (nls(igkq(j)), 1)
-           hpsi (j+lda, ibnd) = hpsi (j+lda, ibnd) + psic_nc (nls(igkq(j)), 2)
+           hpsi (j, ibnd) = hpsi (j, ibnd) + psic_nc (dffts%nl(igkq(j)), 1)
+           hpsi (j+lda, ibnd) = hpsi (j+lda, ibnd) + psic_nc (dffts%nl(igkq(j)), 2)
         ENDDO
      ELSE
         CALL fwfft ('Wave', psic, dffts)
@@ -166,7 +166,7 @@ CONTAINS
      !   addition to the total product
      !
         DO j = 1, n
-           hpsi (j, ibnd) = hpsi (j, ibnd) + psic (nls(igkq(j)))
+           hpsi (j, ibnd) = hpsi (j, ibnd) + psic (dffts%nl(igkq(j)))
         ENDDO
      ENDIF
      CALL stop_clock ('secondfft')

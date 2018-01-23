@@ -177,24 +177,25 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   !    It reads from a file the charge variation due to perturbation
   !    and calculates variation of the wavefunctions.
   !
-  USE kinds,      ONLY : DP
-  USE ions_base,  ONLY : nat
-  USE cell_base,  ONLY : tpiba2
-  USE fft_base,   ONLY : dfftp
-  USE io_global,  ONLY : stdout
-  USE gvect,      ONLY : g, gstart
-  USE ener,       ONLY : ef
-  USE klist,      ONLY : xk, degauss, ngauss
-  USE wvfct,      ONLY : nbnd, npwx, et
-  USE uspp,       ONLY : nkb
-  USE control_lr, ONLY : nbnd_occ
-  USE qpoint,     ONLY : nksq
-  USE units_ph,   ONLY : iuwfc, lrwfc, lrdwf
-  USE d3com,      ONLY : ethr_ph
-  USE kplus3q,    ONLY : kplusq, q_sum_rule, nbnd_max
-  USE mp_pools,   ONLY : inter_pool_comm, intra_pool_comm
-  USE mp,         ONLY : mp_sum
-  USE d3_iofiles, ONLY : lrpdqvp
+  USE kinds,          ONLY : DP
+  USE ions_base,      ONLY : nat
+  USE cell_base,      ONLY : tpiba2
+  USE fft_base,       ONLY : dfftp, dffts
+  USE fft_interfaces, ONLY : fft_interpolate
+  USE io_global,      ONLY : stdout
+  USE gvect,          ONLY : g, gstart
+  USE ener,           ONLY : ef
+  USE klist,          ONLY : xk, degauss, ngauss
+  USE wvfct,          ONLY : nbnd, npwx, et
+  USE uspp,           ONLY : nkb
+  USE control_lr,     ONLY : nbnd_occ
+  USE qpoint,         ONLY : nksq
+  USE units_ph,       ONLY : iuwfc, lrwfc, lrdwf
+  USE d3com,          ONLY : ethr_ph
+  USE kplus3q,        ONLY : kplusq, q_sum_rule, nbnd_max
+  USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
+  USE mp,             ONLY : mp_sum
+  USE d3_iofiles,     ONLY : lrpdqvp
   !
   ! D3 subroutines called:
   USE dvdpsi_module
@@ -513,7 +514,8 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   !
   IF (lmetq0) THEN
      DO ipert = 1, npe
-        CALL cinterpolate (drhoscf (1, ipert), drhoscf (1, ipert), 1)
+        !CALL cinterpolate (drhoscf (1, ipert), drhoscf (1, ipert), 1)
+        CALL fft_interpolate (dffts, drhoscf (:, ipert), dfftp,  drhoscf (:, ipert))
      ENDDO
   ENDIF
 #ifdef __MPI

@@ -22,7 +22,7 @@ SUBROUTINE rhodq123v(d3dyn)
   USE fft_interfaces, ONLY : fwfft
   USE uspp,           ONLY : dvan, nkb
   USE scf,            ONLY : rho
-  USE gvect,          ONLY : g, ngm, nl, igtongl
+  USE gvect,          ONLY : g, ngm, igtongl !, nl
   USE wvfct,          ONLY : npwx, nbnd, wg
   USE vlocal,         ONLY : vloc
   USE klist,          ONLY : xk
@@ -68,7 +68,7 @@ SUBROUTINE rhodq123v(d3dyn)
   !
   FORALL(ir=1:dfftp%nnr) rhog(ir) = CMPLX(rho%of_r(ir, 1), 0._dp, kind=DP)
   !
-  CALL fwfft('Dense', rhog, dfftp)
+  CALL fwfft('Rho', rhog, dfftp)
   !
   !     Contribution deriving from the local part of the potential
   !
@@ -86,8 +86,8 @@ SUBROUTINE rhodq123v(d3dyn)
               gtau = tpi * SUM(g(:, ng)*tau(:, na))
               !
               fac = pref * vloc (igtongl (ng), ityp (na)) &
-                   * (  DBLE(rhog(nl(ng))) * SIN(gtau)  &
-                      +AIMAG(rhog(nl(ng))) * COS(gtau) )
+                   * (  DBLE(rhog(dfftp%nl(ng))) * SIN(gtau)  &
+                      +AIMAG(rhog(dfftp%nl(ng))) * COS(gtau) )
               !
               d3dynwrk (na_i, na_j, na_k) = d3dynwrk (na_i, na_j, na_k) &
                     + fac * g(icart, ng) * g(jcart, ng) * g(kcart, ng)

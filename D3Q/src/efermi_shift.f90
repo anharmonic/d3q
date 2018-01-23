@@ -31,7 +31,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   USE pwcom,          ONLY : nbnd, degauss, ngauss, et, ef
   USE fft_interfaces, ONLY : fwfft
   USE fft_base,       ONLY : dfftp
-  USE gvect,          ONLY : gg, nl
+  USE gvect,          ONLY : gg !, nl
   USE qpoint,         ONLY : nksq
   USE modes,          ONLY : npertx
   USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
@@ -91,13 +91,13 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
   ! determines Fermi energy shift (such that each pertubation is neutral)
   !
   DO ipert = 1, npe
-     call  fwfft('Dense', drhoscf(:,ipert), dfftp)
+     call  fwfft('Rho', drhoscf(:,ipert), dfftp)
 #ifdef __MPI
      delta_n = (0._dp, 0._dp)
-     IF (gg(1) < eps8) delta_n = omega * drhoscf (nl(1), ipert)
+     IF (gg(1) < eps8) delta_n = omega * drhoscf (dfftp%nl(1), ipert)
      call mp_sum ( delta_n, intra_pool_comm )
 #else
-     delta_n = omega * drhoscf(nl(1), ipert)
+     delta_n = omega * drhoscf(ndfftp%l(1), ipert)
 #endif
 !      print*, ipert, delta_n, dos_ef, drhoscf (nl(1), ipert)
      def(ipert) = - delta_n/dos_ef

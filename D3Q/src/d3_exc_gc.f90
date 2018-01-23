@@ -22,7 +22,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   USE lsda_mod,     ONLY : nspin
   USE funct,        ONLY : dft_is_gradient
   USE fft_base,     ONLY : dfftp
-  USE gvect,        ONLY : g, ngm, nl
+  USE gvect,        ONLY : g, ngm !, nl
   USE qpoint,       ONLY : xq
   USE gc_lr,        ONLY : grho, dvxc_s, dvxc_sr, dvxc_ss
   USE gc_d3,        ONLY : dvxc_rrr, dvxc_srr, &
@@ -34,6 +34,8 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   USE d3_iofiles,   ONLY : read_drho
   USE kplus3q,      ONLY : kplusq, q_names
   USE units_ph,     ONLY : lrdrho, iudrho
+  USE mp_world, ONLY : mpime
+  USE dgradcorr_module, ONLY : dgradcorr, qgradient, qgrad_dot
   !
   IMPLICIT NONE
   !
@@ -94,7 +96,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
     DO ipert = 1, 3*nat
       !
       CALL read_drho(drho_dipert, iq_i, ipert, with_core=.true., pool_only = .true.)
-      CALL qgradient(kplusq(iq_i)%xq, dfftp%nnr, drho_dipert, ngm, g, nl, &
+      CALL qgradient(kplusq(iq_i)%xq, dfftp%nnr, drho_dipert, ngm, g, dfftp%nl, &
                     alat, gdrdi )
       FORALL(ir = 1:dfftp%nnr) gr_gdrdi(ir) = DOT_PRODUCT(grho(:,ir,1), gdrdi(:,ir))
       !
@@ -102,7 +104,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
       DO jpert = 1, 3*nat
           !
           CALL read_drho(drho_djpert, iq_j, jpert, with_core=.true., pool_only = .true.)
-          CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert, ngm, g, nl, &
+          CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert, ngm, g, dfftp%nl, &
                           alat, gdrdj )
           FORALL(ir = 1:dfftp%nnr) gr_gdrdj(ir) = SUM(grho(:,ir,1) * gdrdj(:,ir))
           !
@@ -134,7 +136,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
             ENDIF
           ENDDO
           !
-          CALL qgrad_dot(kplusq(-iq_k)%xq, dfftp%nnr, aux2, ngm, g, nl, alat, aux1)
+          CALL qgrad_dot(kplusq(-iq_k)%xq, dfftp%nnr, aux2, ngm, g, dfftp%nl, alat, aux1)
           !
           DO ir = 1, dfftp%nnr
             !

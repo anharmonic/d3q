@@ -90,7 +90,7 @@ SUBROUTINE dq1rhodq23v(iq_drho, iq_dva, iq_dvb, d3dyn)
       ! Read drho_q and takes it Fourier transform
       ALLOCATE(drhoscf(dfftp%nnr))
       CALL read_drho(drhoscf, iq_drho, nu_drho, with_core=.false., pool_only=.true.)
-      CALL fwfft('Dense', drhoscf, dfftp)
+      CALL fwfft('Rho', drhoscf, dfftp)
       ! Compute the local part of \int dq1 rho dq2q3 v
       CALL dq23v_local(iq_drho, drhoscf, d23_loc)
       ! drho is no more necessary: we can free some ram
@@ -194,7 +194,7 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
   USE constants,    ONLY : tpi
   USE ions_base,    ONLY : nat, ityp, tau
   USE fft_base,     ONLY : dfftp
-  USE gvect,        ONLY : ngm, g, nl
+  USE gvect,        ONLY : ngm, g !, nl
   USE cell_base,    ONLY : tpiba2, omega
   USE mp_pools,     ONLY : intra_pool_comm
   USE mp,           ONLY : mp_sum
@@ -240,7 +240,7 @@ SUBROUTINE dq23v_local (iq_drho, drhoscf_G, d3dyn_d23v)
         DO ng = 1, ngm
           d3dyn_wrk(na_icart, na_jcart) = d3dyn_wrk(na_icart, na_jcart) &
                 + (xq(icart) + g(icart, ng)) * (xq(jcart) + g(jcart, ng)) &
-                *  d3v(iq_drho)%loc(ng, ityp(na)) * struct_factor(ng) * drhoscf_G(nl(ng))
+                *  d3v(iq_drho)%loc(ng, ityp(na)) * struct_factor(ng) * drhoscf_G(dfftp%nl(ng))
         ENDDO
         !
       ENDDO

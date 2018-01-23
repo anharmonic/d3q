@@ -28,7 +28,7 @@ MODULE gc_d3
     !
     !
     USE constants,            ONLY : e2
-    USE gvect,                ONLY : ngm, g, nl
+    USE gvect,                ONLY : ngm, g !, nl
     USE lsda_mod,             ONLY : nspin
     USE spin_orb,             ONLY : domag
     USE scf,                  ONLY : rho, rho_core, rhog_core
@@ -107,9 +107,10 @@ MODULE gc_d3
       !
       DO is = 1, nspin0
         psic(:) = rho_tot_r(:,is)
-        CALL fwfft ('Dense', psic, dfftp)
-        rho_tot_g(:,is) = psic(nl(:))
-        CALL gradrho( dfftp%nnr, rho_tot_g(1,is), ngm, g, nl, grho(:,:,is) )
+        CALL fwfft ('Rho', psic, dfftp)
+        rho_tot_g(:,is) = psic(dfftp%nl(:))
+        !CALL gradrho( dfftp%nnr, rho_tot_g(1,is), ngm, g, dfftp%nl, grho(:,:,is) )
+        CALL fft_gradient_g2r( dfftp, rho_tot_g(:,is), g, grho(:,:,is) )
       ENDDO
       !
     END IF

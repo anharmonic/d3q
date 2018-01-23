@@ -57,9 +57,9 @@ MODULE dq_vscf_module
     USE constants,        ONLY : fpi, tpi, e2
     USE ions_base,        ONLY : nat, ityp, tau
     USE cell_base,        ONLY : tpiba, tpiba2, alat
-    USE gvect,            ONLY : ngm, g, nl
+    USE gvect,            ONLY : ngm, g !, nl
     USE gvecs,            ONLY :  doublegrid
-    USE fft_base,         ONLY : dfftp
+    USE fft_base,         ONLY : dfftp, dffts
     USE fft_interfaces,   ONLY : fwfft, invfft
     USE uspp_param,       ONLY : upf
     USE uspp,             ONLY : nlcc_any
@@ -73,6 +73,8 @@ MODULE dq_vscf_module
     USE noncollin_module, ONLY : nspin_lsda, nspin_gga
     USE pwcom,            ONLY : nspin
     USE funct,            ONLY : dft_is_gradient
+    USE fft_interfaces,   ONLY : fft_interpolate
+    USE dgradcorr_module, ONLY : dgradcorr
     !
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nu_i ! index of the mode (1...3*nat)
@@ -137,7 +139,7 @@ MODULE dq_vscf_module
 !        write(90005, '(2e16.6)') dvxc_ss
 !        write(90006, '(2e16.6)') dvxc_s
       CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-                    drho_tot, dfftp%nnr, nspin, nspin_gga, nl, ngm, g, alat, &
+                    drho_tot, dfftp%nnr, nspin, nspin_gga, dfftp%nl, ngm, g, alat, &
                     dvloc)
       DEALLOCATE(rho_tot)
     ENDIF
@@ -152,22 +154,22 @@ MODULE dq_vscf_module
     !if (nspin == 2) drho_tot(:,1) = drho_tot(:,1) + drho_tot(:,2) 
     !
     !CALL cft3 (drho_tot(:), nr1, nr2, nr3, nrx1, nrx2, nrx3, -1)
-    CALL fwfft('Dense', drho_tot, dfftp) 
+    CALL fwfft('Rho', drho_tot, dfftp) 
     !
 !     DO is = 1, nspin_lsda
       !
       ! Transforms the potential to G space
       !
       !CALL cft3 (dvloc, nr1, nr2, nr3, nrx1, nrx2, nrx3, - 1)
-      !CALL fwfft('Dense', dvloc, dfftp) 
+      !CALL fwfft('Rho', dvloc, dfftp) 
       dvloc_g = 0._dp
       !
       ! Hartree contribution in G space
       DO ig = 1, ngm
           qg2 = (g(1,ig)+xq_x(1))**2 + (g(2,ig)+xq_x(2))**2 + (g(3,ig)+xq_x(3))**2
           IF (qg2 > 1.d-8) THEN
-            dvloc_g(nl(ig)) = dvloc_g(nl(ig)) + &
-                                e2 * fpi * drho_tot(nl(ig)) / (tpiba2 * qg2)
+            dvloc_g(dfftp%nl(ig)) = dvloc_g(dfftp%nl(ig)) + &
+                                e2 * fpi * drho_tot(dfftp%nl(ig)) / (tpiba2 * qg2)
           ENDIF
       ENDDO
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -184,7 +186,7 @@ MODULE dq_vscf_module
                                   (g(2,ig) + xq_x(2)) * u_x(mu+2,nu_i) + &
                                   (g(3,ig) + xq_x(3)) * u_x(mu+3,nu_i) ) &
                      * CMPLX(0.d0,-1.d0) * CMPLX(cos(gtau),-sin(gtau),kind=DP)
-                dvloc_g(nl(ig)) = dvloc_g(nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
+                dvloc_g(dfftp%nl(ig)) = dvloc_g(dfftp%nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
             ENDDO
           ENDIF
       ENDDO
@@ -192,12 +194,13 @@ MODULE dq_vscf_module
       !  Transforms back to real space
       !
       !CALL cft3 (dvloc, nr1, nr2, nr3, nrx1, nrx2, nrx3, +1)
-      CALL  invfft('Dense', dvloc_g, dfftp)
+      CALL  invfft('Rho', dvloc_g, dfftp)
       !
       ! Add all the terms
       dvloc = dvloc + dvloc_g
       !
-      if (doublegrid) CALL cinterpolate (dvloc, dvloc, - 1)
+      !if (doublegrid) CALL cinterpolate (dvloc, dvloc, - 1)
+      if (doublegrid) CALL fft_interpolate (dfftp, dvloc, dffts, dvloc)
 !     ENDDO
 
 
@@ -218,9 +221,9 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE constants,   ONLY : fpi, tpi, e2
   USE ions_base,   ONLY : nat, ityp, tau
   USE cell_base,   ONLY : alat
-  USE gvect,       ONLY : ngm, g, nl
+  USE gvect,       ONLY : ngm, g !, nl
   USE gvecs,       ONLY :  doublegrid
-  USE fft_base,    ONLY : dfftp
+  USE fft_base,    ONLY : dfftp, dffts
   USE fft_interfaces, ONLY: fwfft, invfft
   USE cell_base,   ONLY : tpiba, tpiba2
   USE uspp_param,  ONLY : upf
@@ -232,6 +235,8 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE scf,          ONLY : rho, rho_core
   USE funct,        ONLY : dft_is_gradient
   USE noncollin_module, ONLY : nspin_gga, nspin_mag, nspin_lsda
+  USE fft_interfaces,        ONLY : fft_interpolate
+  USE dgradcorr_module, ONLY : dgradcorr
   !
   IMPLICIT NONE
   INTEGER,INTENT(in)     :: nu_i ! mode under consideration
@@ -264,13 +269,13 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   CALL read_drho(aux2, iq_x, nu_i, with_core=.false.)
   !
   dvloc(:) = aux2(:) * dmuxc(:,1,1)
-  CALL fwfft('Dense', aux2, dfftp) 
+  CALL fwfft('Rho', aux2, dfftp) 
 
   aux1 = (0._dp, 0._dp)
   DO ig = 1, ngm
      qg2 = (g(1,ig)+xq_x(1))**2 + (g(2,ig)+xq_x(2))**2 + (g(3,ig)+xq_x(3))**2
      IF (qg2 > 1.d-8) THEN
-        aux1(nl(ig)) = e2 * fpi * aux2(nl(ig)) / (tpiba2 * qg2)
+        aux1(dfftp%nl(ig)) = e2 * fpi * aux2(dfftp%nl(ig)) / (tpiba2 * qg2)
      ENDIF
   ENDDO
 
@@ -291,20 +296,20 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
                              (g(3,ig) + xq_x(3)) * u_x(mu+3,nu_i) ) &
                          * mii * CMPLX(COS(gtau), -SIN(gtau),kind=DP)
                          !EXP( mii * gtau)
-           aux1 (nl(ig)) = aux1 (nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
+           aux1 (dfftp%nl(ig)) = aux1 (dfftp%nl(ig)) + d3v(iq_x)%loc(ig,nt) * guexp
            IF (upf(nt)%nlcc) THEN
-              aux2 (nl(ig)) = aux2 (nl(ig)) + d3c(iq_x)%drc(ig,nt) * guexp
+              aux2 (dfftp%nl(ig)) = aux2 (dfftp%nl(ig)) + d3c(iq_x)%drc(ig,nt) * guexp
            END IF
         ENDDO
      ENDIF
 
   ENDDO
   !
-  CALL  invfft('Dense', aux1, dfftp)
+  CALL  invfft('Rho', aux1, dfftp)
 
   dvloc(:) = dvloc(:) + aux1 (:)
   IF (nlcc_any) THEN
-     CALL invfft('Dense', aux2, dfftp)
+     CALL invfft('Rho', aux2, dfftp)
      dvloc (:) = dvloc(:) + aux2 (:) * dmuxc(:,1,1)
   ENDIF
   !
@@ -319,7 +324,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
     ENDIF
     
     CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-                   aux2, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvloc)
+                   aux2, dfftp%nnr, nspin_mag, nspin_gga, dfftp%nl, ngm, g, alat, dvloc)
 !        write(80100, *) size(rho_tot), size(rho_core), size(rho%of_r)
 !        DO nt = 1,8
 !         WRITE(80000, '(2i6,3f12.6)') nu_i, iq_x, xq_x
@@ -336,7 +341,8 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
     DEALLOCATE(rho_tot)
   ENDIF
 
-  IF (doublegrid) call cinterpolate (dvloc, dvloc, - 1)
+  !IF (doublegrid) call cinterpolate (dvloc, dvloc, - 1)
+  if (doublegrid) CALL fft_interpolate (dfftp, dvloc, dffts, dvloc)
   !
   !
   DEALLOCATE (aux1, aux2)

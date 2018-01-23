@@ -114,34 +114,37 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   ! to copy rho:
   USE lsda_mod,         ONLY : nspin
   USE scf,              ONLY : rho
-!  USE xml_io_base,      ONLY : write_rho
   USE io_rho_xml,       ONLY : write_scf
-  USE mp_world,      ONLY : world_comm
+  USE mp_world,         ONLY : world_comm
+  !USE xml_io_base,     ONLY : write_rho
+
   !
   IMPLICIT NONE
   REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
   INTEGER :: iq !, ios=-1
   CHARACTER(len=16),PARAMETER :: sub = "setup_d3_iofiles"
-  CHARACTER(len=512) :: dirname
+  !CHARACTER(len=512) :: dirname
   LOGICAL :: exists, parallel_fs
   !
   ! Generate a prefix for the D3 calculation which depends on the q point, to prevent overwrites:
-!  IF(ionode)THEN
+  IF(ionode)THEN
     tmp_dir_d3 = TRIM(d3matrix_filename(xq1, xq2, xq3, at, TRIM(d3dir)//"/D3"))//"/"
     WRITE(stdout, '(5x,a,/,7x,a)') "Temporary directory set to:", TRIM(tmp_dir_d3)
     tmp_dir = tmp_dir_d3
     wfc_dir = tmp_dir_d3
-!  ENDIF
+  ENDIF
   CALL mp_bcast(tmp_dir,    ionode_id, world_comm)
   CALL mp_bcast(wfc_dir,    ionode_id, world_comm)
   CALL mp_bcast(tmp_dir_d3, ionode_id, world_comm)
   !
   CALL check_tempdir(tmp_dir_d3, exists, parallel_fs)
-!  CALL write_rho( rho, nspin )a
-!  dirname = TRIM( tmp_dir ) // TRIM( prefix ) // '.save/'
-!  CALL check_tempdir(dirname, exists, parallel_fs)
-!  CALL write_rho( dirname, rho%of_r, nspin )
+!  CALL write_rho( rho, nspin )
   CALL write_scf(rho, nspin)
+
+  !dirname = TRIM( tmp_dir ) // TRIM( prefix ) // '.save/'
+  !CALL check_tempdir(dirname, exists, parallel_fs)
+  !CALL write_rho( dirname, rho%of_r, nspin )
+
   WRITE(stdout,'(5x,a)') "SCF rho copied to D3 tmp dir"
   !
   ! Set up fildrho names must be done AFTER read_file
@@ -719,7 +722,7 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
   USE mp_pools,  ONLY : inter_pool_comm, intra_pool_comm, me_pool, root_pool
   !USE mp_global,    ONLY : intra_pool_comm, inter_pool_comm, me_pool, root_pool 
   USE mp,           ONLY : mp_bcast, mp_barrier
-  USE scatter_mod,  ONLY : gather_grid
+  USE scatter_mod,  ONLY : gather_grid, scatter_grid
   !
   IMPLICIT NONE
   !
@@ -752,23 +755,27 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
      ! First task of the pool reads ddrho, and broadcasts to all the
      ! processors of the pool
      !
+     !print*, "davcioing", intra_pool_only
      IF(.not. intra_pool_only) THEN
         IF ( ionode ) CALL davcio (ddrho, lrec, iunit, nrec, -1)
         CALL mp_bcast( ddrho, ionode_id, inter_pool_comm )
      ELSE
         IF ( me_pool == 0 ) CALL davcio (ddrho, lrec, iunit, nrec, -1)
      ENDIF
-     CALL mp_bcast( ddrho, root_pool, intra_pool_comm )
-     !
-     ! Distributes ddrho between between the tasks of the pool
-     itmp = 1
-     DO proc = 1, me_pool
-        !itmp = itmp + dfftp%nnp * dfftp%npp (proc)
-        itmp = itmp + dfftp%nnp * dfftp%my_nr3p
-     ENDDO
-     drho (:) = (0.d0, 0.d0)
-     !CALL zcopy (dfftp%nnp * dfftp%npp (me_pool+1), ddrho (itmp), 1, drho, 1)
-     CALL zcopy (dfftp%nnp * dfftp%my_nr3p, ddrho (itmp), 1, drho, 1)
+
+     CALL scatter_grid ( dfftp, ddrho(:), drho(:) )
+
+!     CALL mp_bcast( ddrho, root_pool, intra_pool_comm )
+!     !
+!     ! Distributes ddrho between between the tasks of the pool
+!     itmp = 1
+!     DO proc = 1, me_pool
+!        !itmp = itmp + dfftp%nnp * dfftp%npp (proc)
+!        itmp = itmp + dfftp%nnp * dfftp%my_nr3p
+!     ENDDO
+!     drho (:) = (0.d0, 0.d0)
+!     !CALL zcopy (dfftp%nnp * dfftp%npp (me_pool+1), ddrho (itmp), 1, drho, 1)
+!     CALL zcopy (dfftp%nnp * dfftp%my_nr3p, ddrho (itmp), 1, drho, 1)
   ENDIF
 
   DEALLOCATE(ddrho)
@@ -781,6 +788,7 @@ SUBROUTINE davcio_drho_d3( drho, lrec, iunit, nrec, isw, pool_only )
   !----------------------------------------------------------------------------
 END SUBROUTINE davcio_drho_d3
 !----------------------------------------------------------------------------
+
 !-----------------------------------------------------------------------
 SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
   !-----------------------------------------------------------------------
@@ -796,7 +804,7 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
   use cell_base, only: tpiba
   use fft_base,  only: dfftp
   use fft_interfaces, only: invfft
-  use gvect, only: ngm, nl, mill, eigts1, eigts2, eigts3, g
+  use gvect, only: ngm, mill, eigts1, eigts2, eigts3, g !, nl
   use uspp, only: nlcc_any
   implicit none
 
@@ -851,7 +859,8 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
                    * eigts2 (mill (2,ig), na) &
                    * eigts3 (mill (3,ig), na)
               gu = gu0 + g (1, ig) * u1 + g (2, ig) * u2 + g (3, ig) * u3
-              coreg (nl (ig) ) = coreg(nl(ig)) &
+              !coreg (nl (ig) ) = coreg(nl(ig)) &
+              coreg (dfftp%nl (ig) ) = coreg(dfftp%nl(ig)) &
                                + factor * drc (ig, nt) * gu * fact * gtau
            enddo
         endif
@@ -860,7 +869,7 @@ SUBROUTINE addcore_d3(xq, u, mode, drc, drhoc, factor)
   !
   !   transform to real space
   !
-  CALL invfft ('Dense', coreg, dfftp)
+  CALL invfft ('Rho', coreg, dfftp)
   
   drhoc = drhoc+coreg
   DEALLOCATE(coreg)
@@ -895,5 +904,4 @@ END FUNCTION
 !-----------------------------------------------------------------------
 END MODULE d3_iofiles
 !-----------------------------------------------------------------------
-
 

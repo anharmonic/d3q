@@ -64,7 +64,7 @@ PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
-         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
+         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../dft-d3/libdftd3qe.a
 
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a
 

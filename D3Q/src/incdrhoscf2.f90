@@ -22,7 +22,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
   USE pwcom,          ONLY : npwx, nbnd
   USE cell_base,      ONLY : omega
   USE control_lr,     ONLY : nbnd_occ
-  USE gvecs,          ONLY : nls
+  !USE gvecs,          ONLY : nls
   USE fft_base,       ONLY : dffts
   USE fft_interfaces, ONLY : invfft
   USE uspp,           ONLY : okvan
@@ -77,7 +77,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
   do ibnd = 1, nbnd_max !_occ(ikk)
      psic (:) = (0.d0, 0.d0)
      do ig = 1, npw
-        psic (nls (igk (ig) ) ) = psi(ig, ibnd)
+        psic (dffts%nl (igk (ig) ) ) = psi(ig, ibnd)
      enddo
      call invfft('Wave', psic, dffts)
      dpsic(:) =(0.d0, 0.d0)
@@ -102,7 +102,7 @@ SUBROUTINE incdrhoscf2(drhoscf, npw, igk, psi, npwd, igkd, dpsi, weight, ikk, mo
      endif
 
      do ig = 1, npwd
-        dpsic(nls(igkd(ig))) = dpsi(ig, ibnd)
+        dpsic(dffts%nl(igkd(ig))) = dpsi(ig, ibnd)
      enddo
      call invfft('Wave', dpsic, dffts)
 

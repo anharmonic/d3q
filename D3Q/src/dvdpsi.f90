@@ -22,7 +22,7 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
   USE fft_base,  ONLY : dfftp, dffts
   USE fft_interfaces, ONLY: invfft, fwfft
   USE gvect,    ONLY : g
-  USE gvecs,    ONLY : nls
+  !USE gvecs,    ONLY : nls
   USE wvfct,    ONLY : nbnd, npwx !, igk !, npw
   USE uspp,     ONLY : nkb, dvan
   USE uspp_param, ONLY : nh
@@ -56,7 +56,7 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
   DO ibnd = 1, nbnd
     aux = (0._dp, 0._dp)
     ! order correctly the plane waves in dpsi
-    aux(nls(igk_rgt(1:npw_rgt))) = dpsi(1:npw_rgt, ibnd)
+    aux(dffts%nl(igk_rgt(1:npw_rgt))) = dpsi(1:npw_rgt, ibnd)
     ! take dpsi to real space
     CALL invfft('Wave', aux, dffts)
     ! compute vloc*dpsi in real-space (this changes the periodicity)
@@ -64,7 +64,7 @@ SUBROUTINE dvdpsi (nu_i, u_x, xq_dv, dvloc, npw_rgt, igk_rgt, npw_lft, &
     ! take vloc*dpsi back to g-space
     CALL fwfft('Wave', aux, dffts)
     ! reset the order of plane waves according to the new periodicity
-    dvpsi(1:npw_lft, ibnd) = aux(nls(igk_lft(1:npw_lft)))
+    dvpsi(1:npw_lft, ibnd) = aux(dffts%nl(igk_lft(1:npw_lft)))
   ENDDO
   !
   DEALLOCATE(aux)
