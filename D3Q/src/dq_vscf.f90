@@ -74,7 +74,7 @@ MODULE dq_vscf_module
     USE pwcom,            ONLY : nspin
     USE funct,            ONLY : dft_is_gradient
     USE fft_interfaces,   ONLY : fft_interpolate
-    USE dgradcorr_module, ONLY : dgradcorr
+    !USE dgradcorr_module, ONLY : dgradcorr
     !
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: nu_i ! index of the mode (1...3*nat)
@@ -236,7 +236,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE funct,        ONLY : dft_is_gradient
   USE noncollin_module, ONLY : nspin_gga, nspin_mag, nspin_lsda
   USE fft_interfaces,        ONLY : fft_interpolate
-  USE dgradcorr_module, ONLY : dgradcorr
+  !USE dgradcorr_module, ONLY : dgradcorr
   !
   IMPLICIT NONE
   INTEGER,INTENT(in)     :: nu_i ! mode under consideration

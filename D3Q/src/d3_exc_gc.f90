@@ -35,7 +35,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   USE kplus3q,      ONLY : kplusq, q_names
   USE units_ph,     ONLY : lrdrho, iudrho
   USE mp_world, ONLY : mpime
-  USE dgradcorr_module, ONLY : dgradcorr, qgradient, qgrad_dot
+!  USE dgradcorr_module, ONLY : dgradcorr, qgradient, qgrad_dot
   !
   IMPLICIT NONE
   !
