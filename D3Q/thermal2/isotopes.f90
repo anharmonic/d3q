@@ -17,7 +17,7 @@ MODULE isotopes_linewidth
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
   ! due to isotope-isotope scattering
-  FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2)
+  FUNCTION isotopic_linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, freq1, U1)
   !RESULT(lw)
     !
     USE nanoclock
@@ -38,6 +38,9 @@ MODULE isotopes_linewidth
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
+    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
+    !
     ! FUNCTION RESULT:
     REAL(DP) :: isotopic_linewidth_q(S%nat3,nconf)
     REAL(DP) :: lw(S%nat3,nconf)
@@ -51,7 +54,12 @@ MODULE isotopes_linewidth
     lw = 0._dp
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
-    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+     IF(present(freq1) .and. present(U1)) THEN
+      freq(:,1) = freq1
+      U(:,:,1)    = U1
+    ELSE
+      CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    ENDIF
     !
     DO iq = 1, grid%nq
       !
