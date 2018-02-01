@@ -21,25 +21,137 @@ MODULE r2q_program
     USE fc2_interpolate,  ONLY : freq_phq
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
+    USE nanoclock,        ONLY : print_percent_wall
+    USE mpi_thermal,      ONLY :  mpi_bsum
     IMPLICIT NONE
     TYPE(code_input_type) :: input
     TYPE(ph_system_info)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     !
-    TYPE(q_grid)  :: qgrid, sgrid
-    TYPE(q_basis) :: qbasis, sbasis
+    TYPE(q_grid)  :: out_grid, in_grid
     !
-    REAL(DP) :: freqj(S%nat3), freqk(S%nat3)
-    REAL(DP) :: bosej(S%nat3), bosek(S%nat3)
+    REAL(DP) :: freqi(S%nat3), freqj(S%nat3), freqk(S%nat3)
     COMPLEX(DP) :: U(S%nat3, S%nat3)
     !
-    REAL(DP) :: xq0(3) = (/ 0._dp, 0._dp, 0._dp /)
+    REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), &
+                xq_i(3), xq_j(3), xq_k(3)
+    REAL(DP) :: sigma_ry, weight
+    REAL(DP) :: dom(input%ne), ctm(input%ne), jdos_X(input%ne), jdos_C(input%ne)
+    REAL(DP) :: dom_C(S%nat3), dom_X(S%nat3)
+    REAL(DP) :: ctm_C(S%nat3), ctm_X(S%nat3)
+    INTEGER :: iq, jq, k,j,i
+    CHARACTER (LEN=6), EXTERNAL :: int_to_char
+    !
+    !
+    FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
+    nrg = nrg/RY_TO_CMM1
+    !
+    sigma_ry = input%sigma(1)/RY_TO_CMM1
+    !xq0 = input%q_initial
+
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+                out_grid, scatter=.false., quiet=.false.)
+!     CALL setup_grid("simple", S%bg, 1,1,1, &
+!                 out_grid, xq0=input%xk0, scatter=.false., quiet=.false.)
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+                in_grid, scatter=.true., quiet=.false.)
+    jdos_X = 0._dp
+    jdos_C = 0._dp
+    !
+    IQ_LOOP : &
+    DO iq = 1, out_grid%nq
+      !
+      CALL print_percent_wall(10._dp, 300._dp, iq, out_grid%nq, (iq==1))
+      !
+      xq_i = out_grid%xq(:,iq)
+      CALL freq_phq(xq_i, S, fc, freqi, U)
+      !
+      DO jq = 1, in_grid%nq
+        xq_j = in_grid%xq(:,jq)
+        CALL freq_phq(xq_j, S, fc, freqj, U)
+        
+        xq_k = -(xq_i + xq_j)
+        CALL freq_phq(xq_k, S, fc, freqk, U)
+        !
+        weight = out_grid%w(iq)*in_grid%w(jq)*(input%de/RY_TO_CMM1)
+          !
+          ctm_C = 0._dp
+          ctm_X = 0._dp
+          !
+          DO k = 1,S%nat3
+          DO j = 1,S%nat3
+            dom_C(:) = freqi(:)+freqj(j)-freqk(k) ! cohalescence
+            ctm_C(:) = ctm_C(:)+f_gauss(dom_C, sigma_ry) !delta 
+            !
+            dom_X(:) = freqi(:)-freqj(j)-freqk(k) ! scattering/decay
+            ctm_X(:) = ctm_X(:)+f_gauss(dom_X, sigma_ry) !delta
+            !
+          ENDDO
+          ENDDO
+          !
+          !
+      ENDDO
+      !
+      ctm_X = ctm_X*weight
+      ctm_C = ctm_C*weight
+      CALL mpi_bsum(S%nat3,ctm_X)
+      CALL mpi_bsum(S%nat3,ctm_C)
+      !
+      DO i = 1, S%nat3
+        dom(:) = freqi(i)-nrg(:)
+        !ctm(:) = ctm(:) + (ctm_C(i)+ctm_X(i))*weight*f_gauss(dom, sigma_ry) 
+        ctm(:) = f_gauss(dom, sigma_ry) 
+        jdos_X(:) = jdos_X(:)+ctm(:)*ctm_X(i)
+        jdos_C(:) = jdos_C(:)+ctm(:)*ctm_C(i)
+        !
+        OPEN(unit=10000, file=TRIM(input%prefix)//"_nu"//&
+                         trim(int_to_char(i))//".out", status="UNKNOWN")
+        WRITE(10000,'(a)') " # energy (cmm1)       total jdos"//&
+                           "            jdos (scattering)     jdos (cohalescence)"
+        DO j = 1,input%ne
+          WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(j),ctm(j)*(ctm_X(i)+ctm_C(i)),&
+                                   ctm(j)*ctm_X(i),ctm(j)*ctm_C(i)
+        ENDDO
+        CLOSE(10000)
+      ENDDO
+      !
+    ENDDO IQ_LOOP
+    !
+    OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
+    WRITE(10000,'(a)') " # energy (cmm1)       total jdos            jdos (scattering)     jdos (cohalescence)"
+    DO i = 1,input%ne
+      WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(i),jdos_X(i)+jdos_C(i),jdos_X(i),jdos_C(i)
+    ENDDO
+    CLOSE(10000)
+    !
+  END SUBROUTINE joint_dos
+
+
+  SUBROUTINE ph_dos(input, S, fc)
+    USE code_input,       ONLY : code_input_type
+    USE kinds,            ONLY : DP
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    USE q_grids,          ONLY : q_grid, q_basis, setup_grid, prepare_q_basis
+    USE constants,        ONLY : RY_TO_CMM1, pi
+    USE functions,        ONLY : f_bose, f_gauss
+    USE fc2_interpolate,  ONLY : freq_phq
+    USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
+    USE random_numbers,   ONLY : randy
+    IMPLICIT NONE
+    TYPE(code_input_type) :: input
+    TYPE(ph_system_info)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    !
+    TYPE(q_grid)  :: qgrid
+    !
+    REAL(DP) :: freqj(S%nat3)
+    COMPLEX(DP) :: U(S%nat3, S%nat3)
+    !
     !REAL(DP) :: xq_random(3)
     !
-    REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), xq_j(3), xq_k(3)
-    REAL(DP) :: sigma_ry
-    REAL(DP) :: dom_C(input%ne), dom_X(input%ne)
-    REAL(DP) ::  ctm_C(input%ne), ctm_X(input%ne), bose_C, bose_X
+    REAL(DP) :: nrg(input%ne), xq_j(3)
+    REAL(DP) :: sigma_ry, weight
+    REAL(DP) :: dos(input%ne), dom(input%ne)
     INTEGER :: jq, k,j,i
     !
     !
@@ -48,8 +160,7 @@ MODULE r2q_program
     !
     sigma_ry = input%sigma(1)/RY_TO_CMM1
     
-    jd_C = 0._dp
-    jd_X = 0._dp
+    dos = 0._dp
 
     !xq_random  = (/ randy(), randy(), randy() /)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
@@ -58,40 +169,27 @@ MODULE r2q_program
     DO jq = 1, qgrid%nq
       xq_j = qgrid%xq(:,jq)
       CALL freq_phq(xq_j, S, fc, freqj, U)
-      bosej(:) = f_bose(freqj, input%T(1))
-      !WRITE(20001, '(6f14.6)') freqj*RY_TO_CMM1
-      
-      xq_k = -(xq0 + xq_j)
-      CALL freq_phq(xq_k, S, fc, freqk, U)
-      bosek(:) = f_bose(freqk, input%T(1))
       !
-      DO k = 1,S%nat3
-        DO j = 1,S%nat3
-          !
-          bose_C = 2*(bosej(j) - bosek(k))
-          dom_C(:) =nrg(:)+freqj(j)-freqk(k) ! cohalescence
-          ctm_C = bose_C * f_gauss(dom_C, sigma_ry) !delta 
-          !
-          bose_X = bosej(j) + bosek(k) + 1
-          dom_X(:) =nrg(:)-freqj(j)-freqk(k) ! scattering/decay
-          ctm_X = bose_X * f_gauss(dom_X, sigma_ry) !delta
-          !
-          jd_C(:) = jd_C(:) + qgrid%w(jq)*ctm_C(:)
-          jd_X(:) = jd_X(:) + qgrid%w(jq)*ctm_X(:)
-          !
-        ENDDO
+      weight = qgrid%w(jq)*(input%de/RY_TO_CMM1)
+      !
+      DO j = 1,S%nat3
+        !
+        dom(:) =freqj(j)-nrg(:)
+        dos = dos + weight * f_gauss(dom, sigma_ry) 
+        !
       ENDDO
       !
     ENDDO
     !
-    OPEN(unit=10000, file=TRIM(input%prefix)//".jdos", status="UNKNOWN")
+    OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
     DO i = 1,input%ne
-      WRITE(10000,'(4e24.15)') RY_TO_CMM1*nrg(i),jd_C(i)+jd_X(i),jd_C(i),jd_X(i)
+      WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(i),dos(i)
     ENDDO
     CLOSE(10000)
     !
-  END SUBROUTINE joint_dos
-
+  END SUBROUTINE ph_dos
+  
+  
   SUBROUTINE rms(input, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
@@ -189,7 +287,9 @@ PROGRAM r2q
     CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
   ENDIF
 
-  IF( input%calculation=="jdos") THEN
+  IF( input%calculation=="dos") THEN
+    CALL ph_dos(input,S,fc2)
+  ELSE IF( input%calculation=="jdos") THEN
     CALL joint_dos(input,S,fc2)
   ELSE IF ( input%calculation=="rms") THEN
     CALL rms(input, S, fc2)
