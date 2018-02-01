@@ -123,7 +123,7 @@ MODULE linewidth_program
         IF(input%isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
           lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,&
-                                         sigma_ry, S, grid, fc2)
+                                         sigma_ry, S, grid, fc2, w2, D)
             timer_CALL t_lwisot%stop()
         ENDIF
         !
@@ -167,7 +167,7 @@ MODULE linewidth_program
         IF(input%isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
           lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T, &
-                                         sigma_ry, S, grid, fc2)
+                                         sigma_ry, S, grid, fc2, w2, D)
             timer_CALL t_lwisot%stop()
         ENDIF
         IF(input%casimir_scattering)THEN
@@ -220,8 +220,11 @@ MODULE linewidth_program
       CALL t_fc3rot%print() 
       CALL t_mpicom%print() 
       CALL t_merged%print()
+      IF(input%optimize_grid)THEN
+      ioWRITE(*,'(a)') "*** * q-points grid optimization time:"
       CALL t_optimize%print()
       CALL print_optimized_stats()
+      ENDIF
 #endif
     !
   END SUBROUTINE LW_QBZ_LINE
@@ -376,7 +379,7 @@ MODULE linewidth_program
   !  
   SUBROUTINE FINAL_STATE_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,  ONLY : fftinterp_mat2, mat2_diag
-    USE final_state,      ONLY : final_state_q
+    USE final_state,      ONLY : final_state_q, NTERMS, TOT, X, C
     USE constants,        ONLY : RY_TO_CMM1
     USE q_grids,          ONLY : q_grid, setup_grid
     USE more_constants,   ONLY : write_conf
@@ -400,10 +403,10 @@ MODULE linewidth_program
     !
     REAL(DP),PARAMETER :: inv2_RY_TO_CMM1 = 1/(RY_TO_CMM1)**2
     !
-    REAL(DP),ALLOCATABLE :: ener(:), fstate(:,:,:)
+    REAL(DP),ALLOCATABLE :: ener(:), fstate(:,:,:,:)
     CHARACTER(len=256) :: filename
     !
-    ALLOCATE(fstate(input%ne,S%nat3,input%nconf))
+    ALLOCATE(fstate(input%ne,S%nat3,NTERMS,input%nconf))
     !
     ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
@@ -424,7 +427,8 @@ MODULE linewidth_program
       OPEN(unit=1000+it, file=filename)
       ioWRITE(*,*) "opening ", TRIM(filename)
       ioWRITE(1000+it, *) "# final state decompositions, mode: ", input%mode
-      ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
+      ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# conf:", it, "  T=",input%T(it), "   sigma=", input%sigma(it)
+      ioWRITE(1000+it, '(a,3f12.4)') "# xq:", input%q_initial
       ioWRITE(1000+it, *) "# energy (cm^-1)         total      band1      band2    ....     "
       ioFLUSH(1000+it)
     ENDDO
@@ -434,15 +438,16 @@ MODULE linewidth_program
                                 input%q_initial, "  energy:", input%e_initial, "cm^-1"
     
       !
-      fstate = final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
-                             S, grid, fc2, fc3, e_inital_ry, input%ne, ener, &
+      fstate = input%de*final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
+                             S, grid, fc2, fc3, e_inital_ry, input%ne, ener, input%sigma_e/RY_TO_CMM1, &
                              input%q_resolved, input%q_summed, input%sigmaq, &
                              input%outdir, input%prefix)
       !
       DO it = 1,input%nconf
         DO ie = 1,input%ne
           ioWRITE(1000+it, '(1f14.8,100e18.6e3)') &
-               ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,it)), fstate(ie,:,it)
+               ener(ie)*RY_TO_CMM1, SUM(fstate(ie,:,TOT,it)), SUM(fstate(ie,:,C,it)), SUM(fstate(ie,:,X,it)), &
+               fstate(ie,:,TOT,it),  fstate(ie,:,C,it), fstate(ie,:,X,it)
           ioFLUSH(1000+it)
         ENDDO
       ENDDO
@@ -466,7 +471,7 @@ MODULE linewidth_program
       CALL t_qresolved_io%print()
     CALL t_qsummed_io%print()
       CALL t_readdt%print()
-      ioWRITE(*,'(a)') "*** * Contributions to spectra function time:"
+      ioWRITE(*,'(a)') "*** * Contributions to spectral function time:"
       CALL t_qresolved%print()
       CALL t_qsummed%print()
       CALL t_freq%print() 
