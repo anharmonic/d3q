@@ -43,6 +43,7 @@ MODULE code_input
     ! for spectral function:
     INTEGER :: ne
     REAL(DP) :: e0, de
+    REAL(DP) :: sigma_e 
     ! for final state:
     REAL(DP) :: e_initial
     REAL(DP) :: q_initial(3)
@@ -128,7 +129,8 @@ MODULE code_input
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
-    REAL(DP) :: de = 1._dp, e0 = 0._dp  ! energie step and minimum
+    REAL(DP) :: de = 1._dp, e0 = 0._dp  ! energy step and minimum
+    REAL(DP) :: sigma_e  = -1._dp       ! smearing used for delta of e in plots, like jdos, phdos and final state decomposition
     REAL(DP) :: e_initial = -1._dp      ! initial energy for final state decomposition
     REAL(DP) :: q_initial(3) = 0._dp    ! initial q for final state decomp
     LOGICAL  :: q_resolved = .false.    ! save the final state function of q and e as well
@@ -187,7 +189,7 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       nconf, start_q, nq, nk, grid_type, xk0, &
       optimize_grid, optimize_grid_thr, &
-      ne, de, e0, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
+      ne, de, e0, sigma_e, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
       isotopic_disorder, &
       casimir_scattering,  &
@@ -210,7 +212,7 @@ MODULE code_input
       calculation, outdir, prefix, &
       file_mat2, file_mat3, file_mat2_final, asr2, &
       nconf, nk, nq, xk0, grid_type, print_dynmat, &
-      ne, de, e0, &
+      ne, de, e0, sigma_e, &
       max_seconds, max_time
 
     NAMELIST  / r2qinput / &
@@ -275,7 +277,8 @@ MODULE code_input
               nconf=1
               configs_ok = .true.
             ENDIF
-          ELSEIF(calculation=="rms".or.calculation=="jdos" .and. PASS==1)THEN
+          ELSEIF(calculation=="rms".or.calculation=="jdos" .or. calculation=="dos" &
+                 .and. PASS==1)THEN
             ! Do not read, QPOINTS in the R2Q-rms and jdos case
             IF(nq<=0) nq = 1
             qpoints_ok = .true.
@@ -380,9 +383,15 @@ MODULE code_input
     !
     IF(TRIM(input%calculation) == 'spf' .and. ne < 0) &
       CALL errore('READ_INPUT', 'Missing ne for spf calculation', 1)    
+
     input%ne = ne
     input%de = de
     input%e0 = e0
+    IF(sigma_e<0._dp)THEN
+      input%sigma_e = 5*de
+    ELSE
+      input%sigma_e = sigma_e
+    ENDIF
     !
     IF(TRIM(input%calculation) == 'final' .and. e_initial < 0) &
       CALL errore('READ_INPUT', 'Missing e_initial for final state calculation', 1)    
@@ -426,10 +435,15 @@ MODULE code_input
         CYCLE READ_CARDS 
       ENDIF
       !
+      CARD_FOUND_CASE : &
       SELECT CASE (TRIM(word))
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE ("QPOINTS")
-        IF(qpoints_ok) CALL errore("READ_INPUT", "Won't reads q-points twice", 1)
+        IF(qpoints_ok) THEN
+          !CALL errore("READ_INPUT", "Won't reads q-points twice", 1)
+          ioWRITE(*,*) "WARNING! Ignoring QPOINTS (duplicated, or not required)"
+          CYCLE READ_CARDS
+        ENDIF
         qpoints_ok = .true.
         !
         IF(code=="TK") THEN
@@ -701,7 +715,7 @@ MODULE code_input
         IF(TRIM(line) /= '') THEN
           ioWRITE(*,*) "Skip:", TRIM(line)
         ENDIF
-      END SELECT
+      END SELECT CARD_FOUND_CASE 
       !
       IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
       CALL mpi_broadcast(ios)
@@ -765,6 +779,7 @@ MODULE code_input
       CALL mpi_broadcast(casimir_scattering)
       CALL mpi_broadcast(de)
       CALL mpi_broadcast(e0)
+      CALL mpi_broadcast(sigma_e)
       CALL mpi_broadcast(e_initial)
       CALL mpi_broadcast(exp_t_factor)
       CALL mpi_broadcast(file_mat2)
