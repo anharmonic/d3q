@@ -73,7 +73,7 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    IF (.not.default_if_not_present(.true.,quiet) .and. ionode) & 
+    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
           WRITE(stdout,"(2x,a)") "Grid scattered with MPI"
   END SUBROUTINE
 !   !
@@ -150,7 +150,8 @@ MODULE q_grids
       IF(n3>1) grid%xq0(3) = randy()/DBLE(n3)
       CALL cryst_to_cart(1,grid%xq0,bg, +1)
       grid%shifted = .true.
-      ioWRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
+      IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
+        WRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
       !
       IF(.not.do_scatter)THEN
         ! If the grid is not mpi-scattered I use the simple subroutine
@@ -170,7 +171,7 @@ MODULE q_grids
     ELSE
       CALL errore("setup_grid", "wrong grid type '"//TRIM(grid_type)//"'", 1)
     ENDIF
-    IF (.not.default_if_not_present(.true.,quiet) .and. ionode) & 
+    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
        WRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
 
   END SUBROUTINE setup_grid

@@ -1,3 +1,11 @@
+!
+! Written by Lorenzo Paulatto (2017-2018) IMPMC @ Universite' Sorbonne / CNRS UMR7590
+!  Dual licenced under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
+! <<^V^\\=========================================//-//-//========//O\\//
 MODULE mc_grids
   !
   USE q_grids
@@ -176,11 +184,11 @@ MODULE mc_grids
     totfklw = SUM(contributions)
     targetfklw = (1._dp-prec) * totfklw
     ALLOCATE(idx(grid0%nq))
-    CALL t_sorting%start()
+    !CALL t_sorting%start()
     !CALL bubble_sort_idx(contributions,idx)
     FORALL(iq=1:grid0%nq) idx(iq) = iq
     CALL quicksort_idx(contributions,idx, 1, grid0%nq)
-    CALL t_sorting%stop()
+    !CALL t_sorting%stop()
     !
     partialfklw = 0._dp
     DO iq = 1,grid0%nq
@@ -191,7 +199,7 @@ MODULE mc_grids
     ENDDO
     DEALLOCATE(contributions)
     !
-    WRITE(stdout,'(f8.2,f12.6)'), DBLE(iq)/grid0%nq*100, partialfklw/totfklw*100
+    !WRITE(stdout,'(f8.2,f12.6)'), DBLE(iq)/grid0%nq*100, partialfklw/totfklw*100
     grid%nq = iq
     grid%nqtot = iq
     ALLOCATE(grid%xq(3,grid%nq))
@@ -216,14 +224,24 @@ MODULE mc_grids
   END SUBROUTINE setup_optimized_grid
 
   SUBROUTINE print_optimized_stats()
+    USE nanoclock, ONLY : get_wall
+    USE timers
     IMPLICIT NONE
+    REAL(DP) :: wall_time, my_time, acceptance, estimated_time
     IF(avg_tested_npoints<1._dp) RETURN
 
+    wall_time = get_wall()
+    my_time = t_optimize%read()
+
+    acceptance = avg_npoints/avg_tested_npoints
+    ! estimated time required if we were not using optimize_grid:
+    estimated_time = (wall_time-my_time)/acceptance
+
     ioWRITE(*,'(a)') "*** * Grid optimization statistics:"
-    ioWRITE(*,'(2x," * ",a24," * ",f15.0," / ",f15.0," * ",a15," = ",f15.2," * ", a10, " = ", es10.0," *")') &
-      "avg #points in grid:", avg_npoints, avg_tested_npoints, &
-      "speedup (%)", 100*(1-avg_npoints/avg_tested_npoints), &
-      "threshold", saved_threshold
+    ioWRITE(*,'(2x," * ",a27," * ",f12.0," / ",f12.0," * ",a21," = ",f6.2," * ", a18, " = ", f6.2" *")') &
+      "avg used/initial points:", avg_npoints, avg_tested_npoints, &
+      "avg acceptance (%))", 100*acceptance, &
+      "speedup (est.)", estimated_time/wall_time
   END SUBROUTINE
 
 END MODULE mc_grids
