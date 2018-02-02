@@ -287,10 +287,10 @@ MODULE mc_grids
       DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc, freq(:,jq), U(:,:,jq))
-        CALL bose_phq(input%T(1),S%nat3, freq(:,jq), bose(:,jq))
+        CALL bose_phq(MAXVAL(input%T),S%nat3, freq(:,jq), bose(:,jq))
       ENDDO
 
-      fklw = sum_linewidth_modes(S, input%sigma(1)/RY_TO_CMM1, freq, bose, V3sq, nu0)
+      fklw = sum_linewidth_modes(S, MAXVAL(input%sigma)/RY_TO_CMM1, freq, bose, V3sq, nu0)
       contributions(:,iq) = ABS(fklw)
       totfklw(:) =  totfklw(:) + contributions(:,iq)
     ENDDO
