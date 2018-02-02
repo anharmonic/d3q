@@ -5,6 +5,14 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
+! hack:
+#if defined(__XLF)
+SUBROUTINE FLUSH(un)
+ INTEGER :: un
+ RETURN
+END SUBROUTINE
+#endif
+
 MODULE mpi_thermal
   USE kinds,  ONLY : DP
   !USE timers, ONLY : t_mpicom
@@ -50,6 +58,7 @@ MODULE mpi_thermal
   !
   INTERFACE mpi_bsum
      MODULE PROCEDURE mpi_bsum_int
+     MODULE PROCEDURE mpi_bsum_ivec
 
      MODULE PROCEDURE mpi_bsum_scl
      MODULE PROCEDURE mpi_bsum_vec
@@ -147,6 +156,17 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
+  !
+  SUBROUTINE mpi_bsum_ivec(nn, vec)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: nn
+    INTEGER,INTENT(inout) :: vec(nn)
+#ifdef __MPI
+    CALL MPI_ALLREDUCE(MPI_IN_PLACE, vec, nn, MPI_INTEGER, MPI_SUM,&
+                       MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+
   !
   SUBROUTINE mpi_bsum_scl(scl)
     IMPLICIT NONE
@@ -349,11 +369,40 @@ MODULE mpi_thermal
     ALLOCATE(vec(nn_recv))
     vec(1:nn_recv) = vec_recv(1:nn_recv)
     nn = nn_recv
+    DEALLOCATE(vec_send, vec_recv)
 #else
     ! do nothing
 #endif
   END SUBROUTINE
 
+!  ! Scatter in-place a vector
+!  SUBROUTINE gatheri_vec(nn, vec, ii)
+!    IMPLICIT NONE
+!    INTEGER,INTENT(inout)  :: nn
+!    REAL(DP),INTENT(inout),ALLOCATABLE :: vec(:)
+!    INTEGER,OPTIONAL,INTENT(out)  :: ii
+!    !
+!    INTEGER  :: nn_send, nn_recv
+!    REAL(DP),ALLOCATABLE :: vec_send(:), vec_recv(:)
+!    !
+!    IF(.not.allocated(vec)) CALL errore('scatteri_vec', 'input vector must be allocated', 1)
+!    IF(size(vec)/=nn)      CALL errore('scatteri_vec', 'input vector must be of size nn', 2)
+!    !
+!#ifdef __MPI
+!    nn_send = nn
+!    ALLOCATE(vec_send(nn_send))
+!    vec_send(1:nn_send) = vec(1:nn_send)
+!    CALL gather_vec(nn_send, vec_send, nn_recv, vec_recv, ii)
+!    DEALLOCATE(vec)
+!    ALLOCATE(vec(nn_recv))
+!    vec(1:nn_recv) = vec_recv(1:nn_recv)
+!    nn = nn_recv
+!#else
+!    ! do nothing
+!#endif
+!  END SUBROUTINE
+  
+  
    ! Scatter in-place a matrix, along the second dimension
   SUBROUTINE scatteri_mat(mm, nn, mat)
     IMPLICIT NONE
@@ -377,6 +426,7 @@ MODULE mpi_thermal
     ALLOCATE(mat(mm,nn_recv))
     mat(:,1:nn_recv) = mat_recv(:,1:nn_recv)
     nn = nn_recv
+    DEALLOCATE(mat_send, mat_recv)
 #else
     ! do nothing
 #endif
@@ -419,6 +469,7 @@ MODULE mpi_thermal
     CALL MPI_scatterv(vec_send, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
                       vec_recv, nn_recv, MPI_DOUBLE_PRECISION, &
                       0, MPI_COMM_WORLD, ierr )
+    DEALLOCATE(nn_scatt, ii_scatt)
 #else
     nn_recv = nn_send
     IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
@@ -428,6 +479,110 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
 
+  ! Divide a vector among all the CPUs
+  SUBROUTINE gather_vec(nn_send, vec_send, vec_recv) !, ii_recv)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: nn_send
+    REAL(DP),INTENT(in) :: vec_send(nn_send)
+    REAL(DP),ALLOCATABLE,INTENT(out) :: vec_recv(:) 
+    !INTEGER,OPTIONAL,INTENT(out)  :: ii_recv
+    !
+    !INTEGER :: nn_summed, i
+    INTEGER :: i, nn_recv
+    INTEGER,ALLOCATABLE  :: nn_scatt(:), ii_scatt(:)
+    CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
+    !
+    IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
+    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+
+#ifdef __MPI
+    ALLOCATE(nn_scatt(num_procs))
+    ALLOCATE(ii_scatt(num_procs))
+
+    nn_scatt = 0
+    nn_scatt(my_id+1) = nn_send
+    CALL mpi_bsum(num_procs, nn_scatt)
+    ii_scatt = 0
+    ii_scatt(my_id+1) = SUM(nn_scatt(1:my_id))
+    CALL mpi_bsum(num_procs, ii_scatt)
+    nn_recv = nn_send
+    CALL mpi_bsum(nn_recv)
+
+    IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    IF(my_id==0) THEN
+      ALLOCATE(vec_recv(nn_recv))
+    ELSE
+      ALLOCATE(vec_recv(0))
+    ENDIF
+    !WRITE(*,'(99i6)'), my_id, nn_scatt, ii_scatt
+    !WRITE(*,'(99i6)'), my_id, nn_send, size(vec_send)
+    
+
+    CALL MPI_gatherv(vec_send, nn_send, MPI_DOUBLE_PRECISION, &
+                      vec_recv, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
+                      0, MPI_COMM_WORLD, ierr )
+#else
+    nn_recv = nn_send
+    IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    ALLOCATE(vec_recv(nn_recv))
+    vec_recv = vec_send
+#endif
+  END SUBROUTINE
+  !
+  ! Divide a vector among all the CPUs
+  SUBROUTINE gather_mat(mm, nn_send, vec_send, vec_recv) !, ii_recv)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: mm, nn_send
+    REAL(DP),INTENT(in) :: vec_send(nn_send)
+    REAL(DP),ALLOCATABLE,INTENT(out) :: vec_recv(:,:) 
+    !INTEGER,OPTIONAL,INTENT(out)  :: ii_recv
+    !
+    !INTEGER :: nn_summed, i
+    INTEGER :: i, nn_recv, mmnn_send
+    INTEGER,ALLOCATABLE  :: nn_scatt(:), ii_scatt(:)
+    CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
+    !
+    IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
+    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+
+#ifdef __MPI
+    ALLOCATE(nn_scatt(num_procs))
+    ALLOCATE(ii_scatt(num_procs))
+
+    nn_scatt = 0
+    nn_scatt(my_id+1) = nn_send
+    CALL mpi_bsum(num_procs, nn_scatt)
+    ii_scatt = 0
+    ii_scatt(my_id+1) = SUM(nn_scatt(1:my_id))
+    CALL mpi_bsum(num_procs, ii_scatt)
+    nn_recv = nn_send
+    CALL mpi_bsum(nn_recv)
+    
+
+    IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    IF(my_id==0) THEN
+      ALLOCATE(vec_recv(mm,nn_recv))
+    ELSE
+      ALLOCATE(vec_recv(0,0))
+    ENDIF
+    !WRITE(*,'(99i6)'), my_id, nn_scatt, ii_scatt
+    !WRITE(*,'(99i6)'), my_id, nn_send, size(vec_send)
+    
+    nn_scatt = nn_scatt*mm
+    ii_scatt = ii_scatt*mm
+    mmnn_send = nn_send*mm
+
+    CALL MPI_gatherv(vec_send, mmnn_send, MPI_DOUBLE_PRECISION, &
+                     vec_recv, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
+                     0, MPI_COMM_WORLD, ierr )
+#else
+    nn_recv = nn_send
+    IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    ALLOCATE(vec_recv(mm,nn_recv))
+    vec_recv = vec_send
+#endif
+  END SUBROUTINE  
+    
   ! Divide a matrix, along the last dimension, among all the CPUs
   SUBROUTINE scatter_mat(mm, nn_send, mat_send, nn_recv, mat_recv)
     IMPLICIT NONE

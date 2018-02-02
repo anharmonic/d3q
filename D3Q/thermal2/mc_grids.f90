@@ -222,6 +222,160 @@ MODULE mc_grids
 
     !
   END SUBROUTINE setup_optimized_grid
+ 
+  
+  
+  SUBROUTINE setup_poptimized_grid(input, S, fc, grid, xq0, prec, scatter)
+    USE code_input,       ONLY : code_input_type
+    USE input_fc,         ONLY : ph_system_info, forceconst2_grid
+    USE ph_dos,           ONLY : joint_dos_q
+    USE random_numbers,   ONLY : randy
+    USE constants,        ONLY : RY_TO_CMM1
+    USE fc2_interpolate,  ONLY : freq_phq_safe, set_nu0, bose_phq
+    USE functions,        ONLY : bubble_sort_idx, quicksort_idx
+    USE linewidth,        ONLY : sum_linewidth_modes
+    USE mpi_thermal
+    USE timers
+    IMPLICIT NONE
+    TYPE(code_input_type),INTENT(in)  :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),INTENT(in) :: xq0(3)
+    REAL(DP),INTENT(in) :: prec
+    LOGICAL,INTENT(in) :: scatter
+    !
+    !
+    TYPE(q_grid) :: grid0
+    INTEGER :: i, iq, jq, nu0(3)
+    REAL(DP) :: xq(3,3), totfklw(S%nat3), partialfklw, targetfklw
+    REAL(DP),ALLOCATABLE :: V3sq(:,:,:), contributions(:,:), contributions_sum(:), &
+                            freq(:,:), bose(:,:), &
+                            fklw(:), contributions_tot(:), xq_tot(:,:), w_tot(:), &
+                             xq_sort(:,:), w_sort(:)
+    COMPLEX(DP),ALLOCATABLE :: U(:,:,:)
+    INTEGER,ALLOCATABLE  :: idx(:)
+
+    CALL t_optimize%start()
+
+    grid%type = 'optimized'
+    grid%scattered = .false.
+
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid0, &
+                    xq0=input%xk0, scatter=.true., quiet=.true.)
+    !CALL setup_grid("simple", S%bg, input%nk(1),input%nk(2),input%nk(3), &
+    !            grid0, scatter=.false.)
+
+    ALLOCATE(contributions(S%nat3,grid0%nq))
+    ALLOCATE(contributions_sum(grid0%nq))
+    ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(U(S%nat3, S%nat3, 3))
+    ALLOCATE(freq(S%nat3, 3))
+    ALLOCATE(bose(S%nat3, 3))
+    ALLOCATE(fklw(S%nat3))
+    V3sq = 1._dp
+    xq(:,1) = xq0
+    nu0(1)  = set_nu0(xq(:,1), S%at)
+    CALL freq_phq_safe(xq(:,1), S, fc, freq(:,1), U(:,:,1))
+    CALL bose_phq(input%T(1),S%nat3, freq(:,1), bose(:,1))
+
+    totfklw = 0._dp
+    DO iq = 1, grid0%nq
+
+      xq(:,2) = grid0%xq(:,iq)
+      xq(:,3) = -(xq(:,2)+xq(:,1))
+      DO jq = 2,3
+        nu0(jq) = set_nu0(xq(:,jq), S%at)
+        CALL freq_phq_safe(xq(:,jq), S, fc, freq(:,jq), U(:,:,jq))
+        CALL bose_phq(input%T(1),S%nat3, freq(:,jq), bose(:,jq))
+      ENDDO
+
+      fklw = sum_linewidth_modes(S, input%sigma(1)/RY_TO_CMM1, freq, bose, V3sq, nu0)
+      contributions(:,iq) = ABS(fklw)
+      totfklw(:) =  totfklw(:) + contributions(:,iq)
+    ENDDO
+    DEALLOCATE(V3sq, U, freq, bose, fklw)
+    !
+    CALL mpi_bsum(S%nat3, totfklw)
+    !
+    ! We normalize the contrivution of each band, otehrwise the bands with a large linewith
+    ! dominate and can compromise the precision of the other bands
+    totfklw = 1._dp/(totfklw*S%nat3)
+    DO iq = 1,grid0%nq
+      contributions(:,iq) = contributions(:,iq)*totfklw(:)
+    ENDDO
+    DO iq = 1, grid0%nq
+      contributions_sum(iq) = SUM(contributions(:,iq))
+    ENDDO
+    DEALLOCATE(contributions)
+    !
+    CALL gather_vec(grid0%nq, contributions_sum, contributions_tot)
+    !
+    DEALLOCATE(contributions_sum)
+    !
+    IF(ionode)THEN
+      ALLOCATE(idx(grid0%nqtot))
+      FORALL(iq=1:grid0%nqtot) idx(iq) = iq
+      CALL quicksort_idx(contributions_tot, idx, 1, grid0%nqtot)
+      !
+      partialfklw = 0._dp
+
+!       targetfklw = (1._dp-prec) * totfklw
+!       DO iq = 1,grid0%nqtot
+!         jq = grid0%nqtot-iq+1
+!         partialfklw = partialfklw + contributions_tot(jq)
+!         IF(partialfklw>targetfklw) EXIT
+!       ENDDO
+!       grid%nqtot = iq
+      
+      !targetfklw = prec * totfklw
+      DO iq = 1,grid0%nqtot
+        partialfklw = partialfklw + contributions_tot(iq)
+        IF(partialfklw>prec) EXIT
+      ENDDO
+      grid%nqtot = grid0%nqtot-iq+1
+    ENDIF
+    !
+    DEALLOCATE(contributions_tot)
+    !
+    CALL mpi_bcast_integer(grid%nqtot)
+    !
+    CALL gather_mat(3, grid0%nq, grid0%xq, xq_tot)
+    CALL gather_vec(grid0%nq, grid0%w, w_tot)
+    !
+    IF(ionode)THEN
+      ALLOCATE(xq_sort(3,grid%nqtot))
+      ALLOCATE(w_sort(grid%nqtot))
+      ! set point from less important to more, to reduce roundoff errors
+      DO iq = 1,grid%nqtot
+        jq = grid0%nqtot-iq+1
+        xq_sort(:,iq) = xq_tot(:,idx(jq))
+        w_sort(iq) = w_tot(idx(jq))
+      ENDDO
+    ELSE
+      ALLOCATE(xq_sort(0,0))
+      ALLOCATE(w_sort(0))
+    ENDIF
+    !
+    DEALLOCATE(xq_tot, w_tot)
+    !
+    CALL scatter_vec(grid%nqtot, w_sort, grid%nq, grid%w, grid%iq0)
+    CALL scatter_mat(3, grid%nqtot, xq_sort, grid%nq, grid%xq)
+    grid%scattered = .true.
+    !
+    DEALLOCATE(xq_sort, w_sort)
+    ! 
+    avg_npoints = (avg_npoints*ngrids_optimized + grid%nqtot)&
+                  /DBLE(ngrids_optimized+1)
+    avg_tested_npoints = (avg_tested_npoints*ngrids_optimized + grid0%nqtot)&
+                         /DBLE(ngrids_optimized+1)
+    saved_threshold = input%optimize_grid_thr
+    ngrids_optimized = ngrids_optimized+1
+
+    CALL t_optimize%stop()
+
+    !
+  END SUBROUTINE setup_poptimized_grid
 
   SUBROUTINE print_optimized_stats()
     USE nanoclock, ONLY : get_wall
@@ -244,4 +398,5 @@ MODULE mc_grids
       "speedup (est.)", estimated_time/wall_time
   END SUBROUTINE
 
+  
 END MODULE mc_grids

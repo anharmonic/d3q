@@ -24,7 +24,7 @@ MODULE linewidth_program
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
     USE q_grids,            ONLY : q_grid, setup_grid
-    USE mc_grids,           ONLY : setup_optimized_grid, print_optimized_stats
+    USE mc_grids,           ONLY : setup_poptimized_grid, print_optimized_stats
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -52,6 +52,7 @@ MODULE linewidth_program
     REAL(DP)   :: sigma_ry(input%nconf)
     CHARACTER(len=15) :: f1, f2
     CHARACTER(len=256) :: filename
+    CHARACTER(len=6) :: pos 
     !
     IF(.not. input%optimize_grid)THEN
       ioWRITE(*,*) "--> Setting up inner grid"
@@ -60,11 +61,12 @@ MODULE linewidth_program
     ENDIF
     !
     IF(ionode)THEN
+      IF(input%skip_q>0) THEN; pos="append"; ELSE; pos = "asis"; ENDIF
       DO it = 1,input%nconf
         filename=TRIM(input%outdir)//"/"//&
                 TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                   "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
-        OPEN(unit=1000+it, file=filename)
+        OPEN(unit=1000+it, file=filename, position=pos)
         IF (TRIM(input%mode) == "full") THEN
           ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
         ELSE
@@ -93,12 +95,12 @@ MODULE linewidth_program
     !
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
-    DO iq = 1,qpath%nq
+    DO iq = input%skip_q +1,qpath%nq
       !
       CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
       IF(input%optimize_grid)THEN
         CALL grid%destroy()
-        CALL setup_optimized_grid(input, S, fc2, grid, qpath%xq(:,iq), &
+        CALL setup_poptimized_grid(input, S, fc2, grid, qpath%xq(:,iq), &
                                   input%optimize_grid_thr, scatter=.true.)
       ENDIF
       !
@@ -290,6 +292,7 @@ MODULE linewidth_program
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
     CHARACTER(len=6), EXTERNAL :: int_to_char
+    CHARACTER(len=6) :: pos
     ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
     !
     ioWRITE(*,*) "--> Setting up inner grid"
@@ -302,21 +305,23 @@ MODULE linewidth_program
     sigma_ry = input%sigma/RY_TO_CMM1
     !
     IF(ionode)THEN
-    newfile=0
-    DO it = 1,input%nconf
-      OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                              TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                              "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-      ioWRITE(1000+it, *) "# spectral function mode: ", input%mode
-      ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
-      ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
-      ioFLUSH(1000+it)
-    ENDDO
+      IF(input%skip_q>0) THEN; pos="append"; ELSE; pos = "asis"; ENDIF
+      newfile=0
+      DO it = 1,input%nconf
+        OPEN(unit=1000+it, position=pos, &
+                  file=TRIM(input%outdir)//"/"//TRIM(input%prefix)//&
+                       "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                       "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+        ioWRITE(1000+it, *) "# spectral function mode: ", input%mode
+        ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
+        ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
+        ioFLUSH(1000+it)
+      ENDDO
     ENDIF
     !
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (2)"
     
-    DO iq = 1,qpath%nq
+    DO iq = input%skip_q +1,qpath%nq
       !CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
@@ -326,10 +331,11 @@ MODULE linewidth_program
         IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) THEN
           CLOSE(1000+it)
           newfile = newfile+1
-          OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-            TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-            "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
-            "_p"//TRIM(int_to_char(newfile))//".out")       
+          OPEN(unit=1000+it, position=pos, &
+                    file=TRIM(input%outdir)//"/"//TRIM(input%prefix)//&
+                         "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                         "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
+                         "_p"//TRIM(int_to_char(newfile))//".out")       
         ENDIF
         ioWRITE(1000+it, *)
         ioWRITE(1000+it, '(a,i6,3f15.8,5x,100(/,"#",6f12.6))') "#  xq",  iq, qpath%xq(:,iq), w2*RY_TO_CMM1

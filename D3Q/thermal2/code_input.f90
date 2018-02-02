@@ -37,7 +37,7 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat2_final
     CHARACTER(len=8)   :: asr2
     !
-    INTEGER            :: start_q
+    INTEGER            :: skip_q
     INTEGER            :: nconf
     REAL(DP),ALLOCATABLE :: T(:), sigma(:)
     ! for spectral function:
@@ -114,7 +114,7 @@ MODULE code_input
     CHARACTER(len=8)   :: asr2 = "no"                ! apply sum rule to phonon force constants
     INTEGER            :: nconf = -1                 ! number of smearing/temperature couples
     INTEGER            :: nq = -1                    ! number of q-point to read, only for lw 
-    INTEGER            :: start_q = 1                ! skip the preceeding points when computing a BZ path
+    INTEGER            :: skip_q = 0                 ! skip this many points when computing a BZ path
     INTEGER            :: nk(3) = (/-1, -1, -1/)     ! integration grid for lw, db and tk, (the outer one for tk_sma)
     REAL(DP)           :: xk0(3) = 0._dp             ! grid shift as fraction of half grid step
     REAL(DP)           :: xk0_in(3) = (/ DHUGE, DHUGE, DHUGE/)          ! grid shift as fraction of half grid step
@@ -187,7 +187,7 @@ MODULE code_input
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
-      nconf, start_q, nq, nk, grid_type, xk0, &
+      nconf, skip_q, nq, nk, grid_type, xk0, &
       optimize_grid, optimize_grid_thr, &
       ne, de, e0, sigma_e, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
@@ -315,7 +315,7 @@ MODULE code_input
     input%file_mat3 = file_mat3
     input%outdir    = TRIMCHECK(outdir)
     input%asr2      = asr2
-    input%start_q   = start_q
+    input%skip_q   = skip_q
     input%nconf     = nconf
     input%nk        = nk
     input%grid_type = grid_type
@@ -811,7 +811,7 @@ MODULE code_input
       CALL mpi_broadcast(sample_length_mu)
       CALL mpi_broadcast(sigmaq)
       CALL mpi_broadcast(sort_freq)
-      CALL mpi_broadcast(start_q)
+      CALL mpi_broadcast(skip_q)
       CALL mpi_broadcast(store_lw)
       CALL mpi_broadcast(thr_tk)
       CALL mpi_broadcast(volume_factor)
