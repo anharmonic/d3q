@@ -495,14 +495,17 @@ MODULE code_input
           IF(ionode) READ(input_unit,*,iostat=ios) e1
           CALL mpi_broadcast(ios)
           IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+          CALL mpi_broadcast(3, e1)
           
           IF(ionode) READ(input_unit,*,iostat=ios) e2
           CALL mpi_broadcast(ios)
           IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+          CALL mpi_broadcast(3, e2)
 
           IF(ionode) READ(input_unit,*,iostat=ios) xq0
           CALL mpi_broadcast(ios)
           IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+          CALL mpi_broadcast(3, xq0)
           
           line=''
           !this is done later
