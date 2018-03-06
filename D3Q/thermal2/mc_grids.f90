@@ -248,7 +248,7 @@ MODULE mc_grids
     !
     TYPE(q_grid) :: grid0
     INTEGER :: i, iq, jq, nu0(3)
-    REAL(DP) :: xq(3,3), totfklw(S%nat3), partialfklw, targetfklw
+    REAL(DP) :: xq(3,3), totfklw(S%nat3), partialfklw !, targetfklw
     REAL(DP),ALLOCATABLE :: V3sq(:,:,:), contributions(:,:), contributions_sum(:), &
                             freq(:,:), bose(:,:), &
                             fklw(:), contributions_tot(:), xq_tot(:,:), w_tot(:), &
@@ -267,7 +267,6 @@ MODULE mc_grids
     !            grid0, scatter=.false.)
 
     ALLOCATE(contributions(S%nat3,grid0%nq))
-    ALLOCATE(contributions_sum(grid0%nq))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(U(S%nat3, S%nat3, 3))
     ALLOCATE(freq(S%nat3, 3))
@@ -300,6 +299,7 @@ MODULE mc_grids
     !
     ! We normalize the contrivution of each band, otehrwise the bands with a large linewith
     ! dominate and can compromise the precision of the other bands
+    ALLOCATE(contributions_sum(grid0%nq))
     totfklw = 1._dp/(totfklw*S%nat3)
     DO iq = 1,grid0%nq
       contributions(:,iq) = contributions(:,iq)*totfklw(:)
@@ -373,7 +373,7 @@ MODULE mc_grids
     ngrids_optimized = ngrids_optimized+1
 
     CALL t_optimize%stop()
-
+    !
     !
   END SUBROUTINE setup_poptimized_grid
 
