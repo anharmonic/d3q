@@ -98,7 +98,49 @@ MODULE q_grids
 !     CALL find_sym ( S%nat, S%tau, S%ityp, 6,6,6, .false., m_loc )
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !    END SUBROUTINE setup_symmetry
-  ! \/o\________\\\_________________________________________/^>
+
+  SUBROUTINE setup_plane_grid(grid_type, bg, n1,n2, e1, e2, xq0, grid)
+    USE input_fc,         ONLY : ph_system_info
+    USE random_numbers,   ONLY : randy
+    USE functions,        ONLY : default_if_not_present
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in)     :: grid_type
+    REAL(DP),INTENT(in)   :: bg(3,3)
+    INTEGER,INTENT(in) :: n1,n2
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),OPTIONAl,INTENT(in) :: e1(3), e2(3), xq0(3)
+
+    INTEGER :: i,j,k, idx
+    
+    grid%type = "plane"
+    grid%n(1) = 0
+    grid%n(2) = 0
+    grid%n(3) = 0
+    grid%nq = n1*n2
+    !
+    IF(allocated(grid%xq)) &
+        CALL errore("setup_plane_grid", "grid is already allocated", 1)
+    ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    grid%w = 1._dp
+    !
+    idx = 0
+    DO i = 0, n1-1
+    DO j = 0, n2-1
+      !
+      idx = idx+1
+      grid%xq(:,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)*e1 &
+                      +REAL(j,kind=DP)/REAL(n2,kind=DP)*e2 &
+                      +xq0
+      !
+    ENDDO
+    ENDDO
+    
+    IF(idx/=grid%nq) CALL errore("setup_plane_grid","wrong nq",1)
+    
+  END SUBROUTINE
+
+! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_grid(grid_type, bg, n1,n2,n3, grid, xq0, scatter, quiet)
     USE input_fc,         ONLY : ph_system_info
     USE random_numbers,   ONLY : randy

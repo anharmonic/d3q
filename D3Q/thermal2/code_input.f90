@@ -84,7 +84,7 @@ MODULE code_input
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT(code, input, qpts, S, fc2, fc3)
     !USE io_global,      ONLY : stdout
-    USE q_grids,              ONLY : q_grid, setup_path, setup_grid
+    USE q_grids,              ONLY : q_grid, setup_path, setup_grid, setup_plane_grid
     USE constants,            ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
     USE more_constants,       ONLY : INVALID, DHUGE, MASS_DALTON_TO_RY
     USE wrappers,             ONLY : f_mkdir_safe
@@ -167,7 +167,7 @@ MODULE code_input
     REAL(DP) :: optimize_grid_thr = 1.d-2
     !
     ! Local variables use to read the list or grid of q-points required by lw
-    REAL(DP) :: xq(3), xq0(3)
+    REAL(DP) :: xq(3), xq0(3), e1(3), e2(3)
     INTEGER  :: ios, ios2, i, j, ij, naux, nq1, nq2, nq3, nT_aux, nsigma_aux
     REAL(DP),ALLOCATABLE :: T_aux(:), sigma_aux(:)
     !
@@ -480,6 +480,34 @@ MODULE code_input
           !this is done later
           !CALL setup_grid(input%grid_type, S%bg, nq1,nq2,nq3, qpts)
           CYCLE READ_CARDS
+        ELSE IF(TRIM(qpts%basis) == "plane") THEN
+          !
+          grid_type = qpts%basis
+          qpts%basis = "cartesian"
+          do_grid = .false.
+          !
+          IF(ionode) READ(input_unit,*,iostat=ios) nq1, nq2
+          CALL mpi_broadcast(ios)
+          IF(ios/=0) CALL errore("READ_INPUT", "plane 0", 1)
+          CALL mpi_broadcast(nq1)
+          CALL mpi_broadcast(nq2)
+          
+          IF(ionode) READ(input_unit,*,iostat=ios) e1
+          CALL mpi_broadcast(ios)
+          IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+          
+          IF(ionode) READ(input_unit,*,iostat=ios) e2
+          CALL mpi_broadcast(ios)
+          IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+
+          IF(ionode) READ(input_unit,*,iostat=ios) xq0
+          CALL mpi_broadcast(ios)
+          IF(ios/=0) CALL errore("READ_INPUT", "plane 1", 1)
+          
+          line=''
+          !this is done later
+          CALL setup_plane_grid(grid_type, S%bg, nq1,nq2, e1, e2, xq0, qpts)
+          CYCLE READ_CARDS
         ENDIF
         !
         ! Read the number of q-points, if not specified in the namelist
@@ -490,7 +518,7 @@ MODULE code_input
           CALL mpi_broadcast(nq)
         ENDIF
         !
-        ! REad the q-points, one by one, add to path
+        ! Read the q-points, one by one, add to path
         QPOINT_LOOP : & ! ..............................................................
         DO i = 1, nq
           IF(ionode) READ(input_unit,'(a1024)', iostat=ios) line
