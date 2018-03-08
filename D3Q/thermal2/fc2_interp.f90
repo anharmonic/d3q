@@ -230,6 +230,7 @@ MODULE fc2_interpolate
   !
   SUBROUTINE add_rgd_blk(xq, S, fc, D, xq_hat)
     USE random_numbers,   ONLY : randy
+    USE rigid,            ONLY : nonanal
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
@@ -246,27 +247,29 @@ MODULE fc2_interpolate
     !
     phi = 0._dp
     ! Non-analitical is only for q=0 and depends on the direction.
-    ! I'm setting it to a random direction (this can mess up line plots in some special
-    ! cases where LO-TO split is direction-dependent)
+    ! If it is not present in input, it will be set to a random direction
+    ! this can break symmetry in crystals where there is a non-analytical
+    ! LT-TO splitting at Gamma
     IF(ALL(ABS(xq)<1.d-12))THEN
       IF(present(xq_hat)) THEN
         qhat = xq_hat
-        !print*, "hatting with", qhat
       ELSE
         qhat = 0._dp
-        IF(fc%nq(1)>1) qhat(1) = randy() ! if only one q-point, do not set the versor this way
-        IF(fc%nq(2)>1) qhat(2) = randy()
-        IF(fc%nq(3)>1) qhat(3) = randy()
+        qhat(1) = randy()
+        qhat(2) = randy()
+        qhat(3) = randy()
       ENDIF
       qnorm = DSQRT(SUM(qhat**2))
       IF(qnorm>0._dp) qhat = qhat/qnorm
       FORALL(i=1:S%nat) itau(i) = i
       !
-      !CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+      CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
     ENDIF
     !
+    ! Add the long-range term rom effective charges
     CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
                   S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
+    !
     DO ja = 1,S%nat
     DO ia = 1,S%nat
       DO j = 1,3
@@ -487,10 +490,14 @@ MODULE fc2_interpolate
     !
     ! Check for exactly Gamma, even a tiny displacement works already
     IF(ALL(ABS(xq(:,iq))< 1.d-12 .and. nq>1))THEN
-      IF(iq==1) THEN
+      IF(nq == 0)THEN
+        xq_hat = 0._dp
+      ELSE IF(nq == 1)THEN
+        xq_hat = xq(:,1)
+      ELSE IF(iq==1) THEN
         xq_hat = xq(:,2)-xq(:,1)
       ELSE
-        xq_hat = xq(:,iq) - xq(:,iq-1)
+        xq_hat = xq(:,iq) - xq(:,iq-1) ! <- the most common case
       ENDIF
     ELSE
       xq_hat = 0._dp
@@ -500,7 +507,8 @@ MODULE fc2_interpolate
     ! Instead of computing the non-analitical contribution (which seemed to be missing some
     ! piece that I did not manage to track down) I'm computing the frequencies at 
     ! a tiny displacement out of Gamma
-    CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
+    !CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
+    CALL fftinterp_mat2(xq(:,iq), S, fc2, U, xq_hat)
     !
     CALL mat2_diag(S%nat3, U, freq)
     !U = CONJG(U)
