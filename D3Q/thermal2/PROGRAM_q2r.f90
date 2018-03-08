@@ -296,17 +296,17 @@ PROGRAM q2r
      S%tau   = tau
      
      ! simple sum rule on effective charges
-     do i=1,3
-        do j=1,3
-           esum=0.0d0
-           do na=1,nat
-              esum = esum + zeu(i,j,na)
-           end do
-           do na=1,nat
-              zeu(i,j,na) = zeu(i,j,na) - esum/nat
-           end do
-        end do
-     end do
+!     do i=1,3
+!        do j=1,3
+!           esum=0.0d0
+!           do na=1,nat
+!              esum = esum + zeu(i,j,na)
+!           end do
+!           do na=1,nat
+!              zeu(i,j,na) = zeu(i,j,na) - esum/nat
+!           end do
+!        end do
+!     end do
      !
      S%zeu   = zeu
      S%ityp  = ityp
