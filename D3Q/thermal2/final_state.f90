@@ -21,7 +21,7 @@ MODULE final_state
     USE fc2_interpolate,      ONLY : bose_phq, freq_phq_safe, set_nu0
     USE linewidth,            ONLY : sum_selfnrg_modes
     USE q_grids,              ONLY : q_grid
-    USE functions,            ONLY : refold_bz, refold_bz_mod, f_gauss
+    USE functions,            ONLY : refold_bz, refold_bz_mod, f_gauss, quicksort
     USE constants,            ONLY : RY_TO_CMM1
     USE more_constants,       ONLY : write_conf
     USE nanoclock,            ONLY : print_percent_wall
@@ -67,9 +67,12 @@ MODULE final_state
     REAL(DP) :: sumaux(ne,S%nat3,NTERMS)
     INTEGER     :: iqpath, ibnd
     REAL(DP),ALLOCATABLE    :: xqbar(:,:,:,:)
-    REAL(DP),ALLOCATABLE    :: xqsum(:,:,:), xqsumsum(:,:)
+    REAL(DP),ALLOCATABLE    :: xqsum(:,:,:), xqsumsum(:,:), aux_sumsum(:)
+    LOGICAL :: found(4)
+    REAL(DP) :: sum_aux, aux
     REAL(DP) :: qbarweight
     REAL(DP) :: pl,dpl
+    CHARACTER(LEN=6), EXTERNAL :: int_to_char
     !
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
@@ -195,7 +198,7 @@ MODULE final_state
       CALL mpi_bsum(ne,S%nat3,qpath%nq, nconf, xqbar)
       !
       ! To avoid messy graphs because many softwares do not understand 1.00-120 (i.e. 10^{-120})
-      WHERE(ABS(xqbar)<1.d-99) xqbar = 0._dp
+      !WHERE(ABS(xqbar)<1.d-99) xqbar = 0._dp
       IF(ionode)THEN
       unit = find_free_unit()
       DO it = 1,nconf
@@ -205,7 +208,7 @@ MODULE final_state
         WRITE(unit,'(a)') "# ener  path_l/q_weight  q_x q_y q_z total band1 band2 ..."
         DO iqpath = 1,qpath%nq
           DO ie = 1,ne
-            WRITE(unit,'(100e15.5)') qpath%w(iqpath), &
+            WRITE(unit,'(100ES27.15E3)') qpath%w(iqpath), &
                             ener(ie)*RY_TO_CMM1, qpath%xq(:,iqpath), &
                             SUM(xqbar(ie,:,iqpath,it)),  xqbar(ie,:,iqpath,it)
           ENDDO
@@ -224,7 +227,7 @@ MODULE final_state
       timer_CALL t_qsummed_io%start()
       CALL mpi_bsum(S%nat3,qpath%nq, nconf, xqsum)
       !
-      WHERE(ABS(xqsum)<1.d-99) xqsum = 0._dp
+      !WHERE(ABS(xqsum)<1.d-99) xqsum = 0._dp
       ALLOCATE(xqsumsum(qpath%nq,nconf))
       DO it = 1,nconf
       DO iqpath = 1,qpath%nq
@@ -237,9 +240,31 @@ MODULE final_state
         unit = find_free_unit()
         !
         XCRYSDEN_ELSE : &
-        IF(qpath%type == 'xcrysden')THEN
+        IF(qpath%type == 'bxsf')THEN
           !
           DO it = 1,nconf
+            ! Find the level which defines an iso-surface to has 90%
+            ! of LW contribution inside
+            ALLOCATE(aux_sumsum(qpath%nq))
+              aux_sumsum(:) = xqsumsum(:,it)
+              sum_aux = SUM(aux_sumsum)
+              CALL quicksort(aux_sumsum,1, qpath%nq)
+              aux = 0._dp
+               found(:) = .false.
+              WRITE(*,*) "Scanning for isovalues defining surfaces.."
+              WRITE(*,*) "Inside surface Fraction of contribution to Gamma, isovalue, fraction of points inside:"
+              SEEK_90_PERCENT : &
+              DO iqpath = qpath%nq,1,-1
+                aux = aux + aux_sumsum(iqpath)
+                IF(aux>.25_dp*sum_aux .and. .not. found(1)) THEN; found(1)=.true.; WRITE(*,*) "25%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
+                IF(aux>.50_dp*sum_aux .and. .not. found(2)) THEN; found(2)=.true.; WRITE(*,*) "50%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
+                IF(aux>.75_dp*sum_aux .and. .not. found(3)) THEN; found(3)=.true.; WRITE(*,*) "75%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
+                IF(aux>.9_dp*sum_aux  .and. .not. found(4)) THEN; found(4)=.true.; WRITE(*,*) "90%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
+                IF(all(found)) EXIT SEEK_90_PERCENT
+              ENDDO SEEK_90_PERCENT 
+              WRITE(*,*)
+            DEALLOCATE(aux_sumsum)
+            !
             OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
                             "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
                             "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".bxsf")
@@ -249,7 +274,7 @@ MODULE final_state
             WRITE(unit,*) "BEGIN_BLOCK_BANDGRID_3D"
             WRITE(unit,*) "final_state"
             WRITE(unit,*) "BEGIN_BANDGRID_3D_BANDS"
-            WRITE(unit,*) S%nat3+1
+            WRITE(unit,*) S%nat3+2
             WRITE(unit,*) qpath%n
             WRITE(unit,*) qpath%xq0
             WRITE(unit,*) S%bg(:,1)
@@ -258,15 +283,66 @@ MODULE final_state
             DO ibnd = 1, S%nat3
               WRITE(unit,*) "BAND:", ibnd
               DO iqpath = 1,qpath%nq
-                WRITE(unit,'(1e15.5)') xqsum(ibnd,iqpath,it)
+                WRITE(unit,'(1ES27.15E3)') xqsum(ibnd,iqpath,it)
               ENDDO
             ENDDO
             WRITE(unit,*) "BAND:", S%nat3+1
             DO iqpath = 1,qpath%nq
-              WRITE(unit,'(1e15.5)') xqsumsum(iqpath,it)
+              WRITE(unit,'(1ES27.15E3)') xqsumsum(iqpath,it)
+            ENDDO
+            WRITE(unit,*) "BAND:", S%nat3+2
+            DO iqpath = 1,qpath%nq
+              qbarweight = & !qpath%w(iqpath)*&
+                f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq0, S%bg), sigmaq)
+              WRITE(unit,'(1ES27.15E3)') qbarweight 
             ENDDO
             WRITE(unit,*) "END_BANDGRID_3D"
             WRITE(unit,*) "END_BLOCK_BANDGRID_3D"
+            !
+            CLOSE(unit)
+            !
+          ENDDO
+          !
+        ELSE IF(qpath%type == 'xsf')THEN XCRYSDEN_ELSE
+          !
+          DO it = 1,nconf
+            OPEN(unit, file=TRIM(outdir)//"/"//TRIM(prefix)//&
+                            "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
+                            "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".xsf")
+            WRITE(unit,'(a)') "CRYSTAL"
+            WRITE(unit,'(a)') "PRIMVEC"
+            WRITE(unit,'(3f12.6)') S%bg(:,1)
+            WRITE(unit,'(3f12.6)') S%bg(:,2)
+            WRITE(unit,'(3f12.6)') S%bg(:,3)
+            WRITE(unit,'(a)') "PRIMCOORD"
+            WRITE(unit,'(2i2)') 1, 1
+            WRITE(unit,'(i4,3f12.6)') 1, xq0
+
+            WRITE(unit,'(a)') "BEGIN_BLOCK_DATAGRID_3D"
+            WRITE(unit,'(a)') "  final_state_conf_"//int_to_char(it)
+            DO ibnd = 0, S%nat3
+            !WRITE(unit,'(a)') "DATAGRID_3D_UNKNOWN"
+            IF(ibnd==0)THEN
+               WRITE(unit,'(a)') "  DATAGRID_3D_final_state_sum"
+            ELSE
+               WRITE(unit,'(a)') "  DATAGRID_3D_final_state_"//int_to_char(ibnd)
+            ENDIF
+            WRITE(unit,'(3i4)') qpath%n
+            WRITE(unit,'(3f12.6)') 0.0, 0.0, 0.0
+            WRITE(unit,'(3f12.6)') S%bg(:,1)
+            WRITE(unit,'(3f12.6)') S%bg(:,2)
+            WRITE(unit,'(3f12.6)') S%bg(:,3)
+            DO iqpath = 1,qpath%nq
+              IF(ibnd==0)THEN
+                  WRITE(unit,'(1ES27.15E3)') SUM(xqsum(:,iqpath,it))
+              ELSE
+                  WRITE(unit,'(1ES27.15E3)') xqsum(ibnd,iqpath,it)
+              ENDIF
+              IF(mod(iqpath, qpath%n(1)*qpath%n(2))==0 .and. iqpath<qpath%nq) WRITE(unit, *) 
+            ENDDO
+            WRITE(unit,'(a)') "  END_DATAGRID_3D"
+            ENDDO
+            WRITE(unit,'(a)') "END_BLOCK_DATAGRID_3D"
             !
             CLOSE(unit)
             !
@@ -280,7 +356,7 @@ MODULE final_state
                             "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".out")
             WRITE(unit,'(a)') "# path_l/q_weight  q_x q_y q_z total band1 band2 ..."
             DO iqpath = 1,qpath%nq
-              WRITE(unit,'(100e15.5)') qpath%w(iqpath), qpath%xq(:,iqpath), &
+              WRITE(unit,'(100ES27.15E3)') qpath%w(iqpath), qpath%xq(:,iqpath), &
                                       xqsumsum(iqpath,it),  xqsum(:,iqpath,it)
             ENDDO
             CLOSE(unit)

@@ -78,7 +78,7 @@ MODULE linewidth_program
       ENDDO
       ! Prepare formats to write out data
       ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
-      ioWRITE(f2,'(i6,a)') S%nat3, "e15.5,6x,"
+      ioWRITE(f2,'(i6,a)') S%nat3, "ES27.15E3,6x,"
     ENDIF
     !
     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
@@ -148,8 +148,8 @@ MODULE linewidth_program
             lsx = lsx + w2
           ENDIF
   
-          WHERE(ABS(DBLE(lsx)) <1.d-99) lsx = DCMPLX(0._dp, DIMAG(lsx))
-          WHERE(ABS(DIMAG(lsx))<1.d-99) lsx = DCMPLX(DBLE(lsx), 0._dp)
+          !WHERE(ABS(DBLE(lsx)) <1.d-99) lsx = DCMPLX(0._dp, DIMAG(lsx))
+          !WHERE(ABS(DIMAG(lsx))<1.d-99) lsx = DCMPLX(DBLE(lsx), 0._dp)
           IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), w2(order%idx(:))*RY_TO_CMM1, &
@@ -182,7 +182,7 @@ MODULE linewidth_program
             timer_CALL t_lwcasi%stop()
         ENDIF
         
-        WHERE(ABS(lw)<1.d-99) lw= 0._dp
+        !WHERE(ABS(lw)<1.d-99) lw= 0._dp
         DO it = 1,input%nconf
           !
           ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &

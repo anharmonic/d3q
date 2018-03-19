@@ -179,8 +179,8 @@ MODULE q_grids
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
       ENDIF
-    ELSE IF(grid_type=="xcrysd")THEN
-      CALL setup_xcrysden_grid(bg, n1,n2,n3, grid, xq0)
+    ELSE IF(grid_type=="bxsf" .or. grid_type=="xsf")THEN
+      CALL setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
       IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random")THEN
       ! Do not add a random shift in the direction where 
@@ -388,9 +388,10 @@ MODULE q_grids
   END SUBROUTINE setup_simple_grid
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE setup_xcrysden_grid(bg, n1,n2,n3, grid, xq0)
+  SUBROUTINE setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
     USE input_fc, ONLY : ph_system_info 
     IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
@@ -406,7 +407,7 @@ MODULE q_grids
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
     grid%w = 1._dp/(n1*n2*n3) ! Note: not 1/grid%nq
-    grid%type = 'xcrysden'
+    grid%type = grid_type
     !
     idx = 0
     DO k = 0, n3
