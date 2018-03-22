@@ -407,7 +407,7 @@ MODULE final_state
     REAL(DP) :: freqtot, freqtotm1
     REAL(DP) :: omega_X,  omega_C   ! \delta\omega
     REAL(DP) :: omega_X2, omega_C2  ! \delta\omega
-    REAL(DP) :: wfinal(ne)
+    REAL(DP) :: wfinal3(ne)
     COMPLEX(DP) :: ctm_X, ctm_C, reg, num
     !
     INTEGER :: i,j,k, ie
@@ -424,13 +424,13 @@ MODULE final_state
     !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP             PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,omega_X2,omega_C2,&
-!$OMP                     ctm_X,ctm_C,reg,freqtot,freqtotm1,wfinal) &
+!$OMP                     ctm_X,ctm_C,reg,freqtot,freqtotm1,wfinal3) &
 !$OMP             REDUCTION(+: fsdf) COLLAPSE(2)
     DO k = 1,S%nat3
       DO j = 1,S%nat3
         !
-        FORALL(i=1:ne) wfinal(i) = f_gauss((ener(i)-freq(j,2)), de)
-        !FORALL(i=1:ne) wfinal(i) = f_gauss((ener(i)-freq(j,3)), de)
+        FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,2)), de)
+        !FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,3)), de)
         !
 
         bose_X   = 1 + bose(j,2) + bose(k,3)
@@ -495,7 +495,7 @@ MODULE final_state
               !ctm_X = 2 * bose_X *omega_X/(omega_X2-reg)
               !ctm_C = 2 * bose_C *omega_C/(omega_C2-reg)
               !
-              fsdf(ie,i) = fsdf(ie,i) + wfinal(ie)*(ctm_X + ctm_C) * V3sq(i,j,k) * freqtotm1
+              fsdf(ie,i) = fsdf(ie,i) + wfinal3(ie)*(ctm_X + ctm_C) * V3sq(i,j,k) * freqtotm1
             ENDDO
           ENDIF
           !
@@ -542,7 +542,7 @@ MODULE final_state
     REAL(DP) :: dom_C, dom_X   ! \delta\omega
     REAL(DP) :: ctm_C, ctm_X   !
     REAL(DP) :: pref_C, pref_X
-    REAL(DP) :: wfinal(ne)
+    REAL(DP) :: wfinal3(ne), wfinal2(ne), wfinal(ne)
     REAL(DP) :: freqm1(S%nat3,3)
     !
     INTEGER :: i,j,k, ie
@@ -562,13 +562,18 @@ MODULE final_state
     ENDDO    !
 !$OMP PARALLEL DO DEFAULT(SHARED) &
 !$OMP PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,dom_X,dom_C,pref_X,pref_C,&
-!$OMP         ctm_X,ctm_C,freqtot,freqtotm1,FREQTOTM1_23,wfinal) &
+!$OMP         ctm_X,ctm_C,freqtot,freqtotm1,FREQTOTM1_23,wfinal3) &
 !$OMP REDUCTION(+: fsdf) COLLAPSE(1)
     DO k = 1,S%nat3
-      FORALL(i=1:ne) wfinal(i) = f_gauss((ener(i)-freq(k,3)), sigma_e)
+      FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(k,3)), sigma_e)
       DO j = 1,S%nat3
         !
-        !FORALL(i=1:ne) wfinal(i) = f_gauss((ener(i)-freq(j,2)), sigma_e)
+        FORALL(i=1:ne) wfinal2(i) = f_gauss((ener(i)-freq(j,2)), sigma_e)
+        !
+        ! I define a final energy for Coalescence process which is symmetric in the
+        ! exchange of q2 with q3. 
+        ! The scattering (X) part is already symmetric, I could just take wfinal3
+        wfinal = (wfinal2+wfinal3)/2
         !
         bose_C = 2* (bose(j,2) - bose(k,3))
         bose_X = bose(j,2) + bose(k,3) + 1

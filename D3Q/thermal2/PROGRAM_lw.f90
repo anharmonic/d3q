@@ -50,7 +50,7 @@ MODULE linewidth_program
     REAL(DP)   :: lw(S%nat3,input%nconf)
     REAL(DP)   :: lw_casimir(S%nat3)
     REAL(DP)   :: sigma_ry(input%nconf)
-    CHARACTER(len=15) :: f1, f2
+    CHARACTER(len=32) :: f1, f2
     CHARACTER(len=256) :: filename
     CHARACTER(len=6) :: pos 
     !
@@ -432,10 +432,11 @@ MODULE linewidth_program
                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
       OPEN(unit=1000+it, file=filename)
       ioWRITE(*,*) "opening ", TRIM(filename)
-      ioWRITE(1000+it, *) "# final state decompositions, mode: ", input%mode
+      ioWRITE(1000+it, '(2a)') "# final state decompositions, mode: ", input%mode
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# conf:", it, "  T=",input%T(it), "   sigma=", input%sigma(it)
       ioWRITE(1000+it, '(a,3f12.4)') "# xq:", input%q_initial
-      ioWRITE(1000+it, *) "# energy (cm^-1)         total      band1      band2    ....     "
+      ioWRITE(1000+it, '(a)') "# energy (cm^-1)    total   tot_X tot_C  " &
+                          //"C( band1  band2 ... )  X(band1 band2 ... ) "
       ioFLUSH(1000+it)
     ENDDO
     ENDIF
