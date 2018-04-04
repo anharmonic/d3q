@@ -17,7 +17,7 @@ MODULE final_state
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3,&
-                         ei, ne, ener, sigma_e, qresolved, qsummed, sigmaq, outdir, prefix)
+                         nui, ei, ne, ener, sigma_e, qresolved, qsummed, sigmaq, outdir, prefix)
     USE fc2_interpolate,      ONLY : bose_phq, freq_phq_safe, set_nu0
     USE linewidth,            ONLY : sum_selfnrg_modes
     USE q_grids,              ONLY : q_grid
@@ -34,7 +34,8 @@ MODULE final_state
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     !
-    REAL(DP),INTENT(in) :: ei       ! energy to examine (cm^-1)
+    INTEGER,INTENT(in)  :: nui      ! mode of initial energy, 0=get the sum of all modes
+    REAL(DP),INTENT(in) :: ei       ! energy to examine (cm^-1), if <0 and nui>0 get omega_nui
     !
     INTEGER,INTENT(in)  :: ne       ! number of final state energies
     REAL(DP),INTENT(in) :: ener(ne) ! the final state energies
@@ -81,10 +82,10 @@ MODULE final_state
     !
     fstate_q = 0._dp
     !
-    IF(qresolved .or. qsummed)THEN
-      ioWRITE(*,'(2x,a,3f12.4,a,f12.6,a)') "Q-resolved final state", xq0, &
-                                       " energy = ", ei*RY_TO_CMM1, "cm^-1"
-    ENDIF
+!     IF(qresolved .or. qsummed)THEN
+!       ioWRITE(*,'(2x,a,3f12.4,a,f12.6,a)') "Q-resolved final state", xq0, &
+!                                        " energy = ", ei*RY_TO_CMM1, "cm^-1"
+!     ENDIF
     !
     IF(qresolved)THEN
       timer_CALL t_qresolved_io%start()
@@ -93,7 +94,7 @@ MODULE final_state
         ioWRITE(*,'(///,5x,a,f6.3,a,//,5x,a)') "Trying to allocate: ", &
           DBLE(ne)*DBLE(S%nat3)*DBLE(qpath%nq)*DBLE(nconf)*DBLE(DP)/2._dp**30, &
           " GB", "Use less configurations/q-points/energies "&
-               //"to do q-resolved final state."
+               //"to do q-resolved final state!"
         CALL errore("final_state_q","out of memory",1)
       ENDIF
       xqbar = 0._dp
@@ -109,6 +110,12 @@ MODULE final_state
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    !
+    ! Next check moved to sum_final_state_e
+!     IF(ei<0._dp)THEN
+!       IF(nui>0 .and. nui<=S%nat3) ei=freq(nui,1)
+!       IF(ei<0) CALL errore("final_state_q","you must set initial mode or initial energy (or both)",1)
+!     ENDIF
     !
     GRID_LOOP : &
     DO iq = 1, grid%nq
@@ -148,8 +155,9 @@ MODULE final_state
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
         sumaux = grid%w(iq) * &
-            sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, ei, ne, ener, sigma_e, nu0 )
-            !sum_final_iselfnrg_e( S, sigma(it), T(it),freq, bose, V3sq, ei, ne, ener )
+            sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, &
+                               nui, ei, ne, ener, sigma_e, nu0 )
+        !
         fstate_q(:,:,:,it) = fstate_q(:,:,:,it) + sumaux(:,:,:)
           timer_CALL t_sum%stop()
         !
@@ -243,23 +251,36 @@ MODULE final_state
         IF(qpath%type == 'bxsf')THEN
           !
           DO it = 1,nconf
-            ! Find the level which defines an iso-surface to has 90%
-            ! of LW contribution inside
+            ! Find the value which defines an isovalue-surface that has 25%, 50% 
+            ! 75% and 90% of contribution to linewidth inside
+            !
             ALLOCATE(aux_sumsum(qpath%nq))
               aux_sumsum(:) = xqsumsum(:,it)
               sum_aux = SUM(aux_sumsum)
               CALL quicksort(aux_sumsum,1, qpath%nq)
               aux = 0._dp
-               found(:) = .false.
-              WRITE(*,*) "Scanning for isovalues defining surfaces.."
-              WRITE(*,*) "Inside surface Fraction of contribution to Gamma, isovalue, fraction of points inside:"
+              found(:) = .false.
+              WRITE(*,"(a)") "Scanning for isovalues:"
+              WRITE(*,"(a)") "% Gamma, isovalue, % points inside:"
               SEEK_90_PERCENT : &
               DO iqpath = qpath%nq,1,-1
                 aux = aux + aux_sumsum(iqpath)
-                IF(aux>.25_dp*sum_aux .and. .not. found(1)) THEN; found(1)=.true.; WRITE(*,*) "25%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
-                IF(aux>.50_dp*sum_aux .and. .not. found(2)) THEN; found(2)=.true.; WRITE(*,*) "50%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
-                IF(aux>.75_dp*sum_aux .and. .not. found(3)) THEN; found(3)=.true.; WRITE(*,*) "75%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
-                IF(aux>.9_dp*sum_aux  .and. .not. found(4)) THEN; found(4)=.true.; WRITE(*,*) "90%", aux_sumsum(iqpath), 1-DBLE(iqpath)/qpath%nq; ENDIF
+                IF(aux>.25_dp*sum_aux .and. .not. found(1)) THEN
+                  found(1)=.true.
+                  WRITE(*,'(4x,a,2f12.6)') "25%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                ENDIF
+                IF(aux>.50_dp*sum_aux .and. .not. found(2)) THEN
+                  found(2)=.true.
+                  WRITE(*,'(4x,a,2f12.6)') "50%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                ENDIF
+                IF(aux>.75_dp*sum_aux .and. .not. found(3)) THEN
+                  found(3)=.true.
+                  WRITE(*,'(4x,a,2f12.6)') "75%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                ENDIF
+                IF(aux>.90_dp*sum_aux .and. .not. found(4)) THEN
+                  found(4)=.true.
+                  WRITE(*,'(4x,a,2f12.6)') "90%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                ENDIF
                 IF(all(found)) EXIT SEEK_90_PERCENT
               ENDDO SEEK_90_PERCENT 
               WRITE(*,*)
@@ -383,141 +404,150 @@ MODULE final_state
   !
   ! Sum the self energy at the provided ener(ne) input energies
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_final_iselfnrg_e(S, sigma, T, freq, bose, V3sq, freq_initial, ne, ener, sigma_e, nu0)
-!  FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, freq_initial, ne, ener, sigma_e, nu0)
-    USE functions,        ONLY : f_gauss, df_bose
-    USE merge_degenerate, ONLY : merge_degen
-    IMPLICIT NONE
-    TYPE(ph_system_info),INTENT(in)   :: S
-    REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
-    REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
-    REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
-    REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
-    !
-    REAL(DP),INTENT(in) :: freq_initial ! the energy of the state under scrutiny
-    !
-    INTEGER,INTENT(in)  :: ne           ! number of energies on which to decompose the final state
-    REAL(DP),INTENT(in) :: ener(ne)     ! the energies
-    REAL(DP)            :: de
-    REAL(DP),INTENT(in) :: sigma_e      ! smearing for the energy axis
-    INTEGER,INTENT(in)  :: nu0(3)
-    !
-    ! _X -> scattering, _C -> cohalescence
-    REAL(DP) :: bose_X, bose_C      ! final/initial state populations 
-    REAL(DP) :: freqtot, freqtotm1
-    REAL(DP) :: omega_X,  omega_C   ! \delta\omega
-    REAL(DP) :: omega_X2, omega_C2  ! \delta\omega
-    REAL(DP) :: wfinal3(ne)
-    COMPLEX(DP) :: ctm_X, ctm_C, reg, num
-    !
-    INTEGER :: i,j,k, ie
-    !
-    ! Note: using the function result in an OMP reduction causes crash with ifort 14
-    REAL(DP) :: sum_final_iselfnrg_e(ne,S%nat3,NTERMS)
-    COMPLEX(DP),ALLOCATABLE :: fsdf(:,:) ! final state decay function
-    !
-    ALLOCATE(fsdf(ne,S%nat3))
-    fsdf = (0._dp, 0._dp)
-    !
-    de = ABS(ener(2)-ener(ne))/100._dp ! FIXME
-    !
-    !
-!$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,omega_X2,omega_C2,&
-!$OMP                     ctm_X,ctm_C,reg,freqtot,freqtotm1,wfinal3) &
-!$OMP             REDUCTION(+: fsdf) COLLAPSE(2)
-    DO k = 1,S%nat3
-      DO j = 1,S%nat3
-        !
-        FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,2)), de)
-        !FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,3)), de)
-        !
-
-        bose_X   = 1 + bose(j,2) + bose(k,3)
-        omega_X  = freq(j,2)+freq(k,3)
-        !
-        bose_C   = bose(k,3) - bose(j,2)
-        omega_C  = freq(j,2)-freq(k,3)
-        !
-        IF(sigma>0._dp)THEN
-          omega_X2 = omega_X**2
-          omega_C2 = omega_C**2
-        ELSE IF(sigma<0._dp)THEN
-          ctm_X = 2 * bose_X *omega_X/(omega_X**2+sigma**2)
-          ctm_C = 2 * bose_C *omega_C/(omega_C**2+sigma**2)
-        ELSE !IF (sigma==0._dp)THEN
-          !
-          IF(omega_X>0._dp)THEN
-            ctm_X = 2 * bose_X /omega_X
-          ELSE
-            ctm_X = 0._dp
-          ENDIF
-          !
-          IF(ABS(omega_C)>1.e-2_dp)THEN
-            ctm_C = 2 * bose_C /omega_C
-          ELSE
-            IF(T>0._dp)THEN
-              ctm_C = -2* df_bose(0.5_dp * omega_X, T)
-            ELSE
-              ctm_C = 0._dp
-            ENDIF
-          ENDIF
-          !
-        ENDIF
-        !bose_X   = 1 + bose(j,2) + bose(k,3)
-        !omega_X  = freq(j,2)+freq(k,3)
-        !omega_X2 = omega_X**2
-        !
-        !bose_C   = bose(k,3) - bose(j,2)
-        !omega_C  = freq(j,2)-freq(k,3)
-        !omega_C2 = omega_C**2
-        !
-        DO i = 1,S%nat3
-!           i = 6
-          !
-          ! This comes from the definition of u_qj, Ref. 1. in linewidth.f90
-          freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
-          !
-          IF (freqtot/=0._dp) THEN
-            freqtotm1 = 1 / freqtot
-            !
-            DO ie = 1, ne
-            ! regularization:
-              !
-              ! regularization:
-              IF(sigma>0._dp)THEN
-                reg = CMPLX(freq_initial, sigma, kind=DP)**2
-                !reg = CMPLX(freq(i,1), sigma, kind=DP)**2
-                ctm_X = 2 * bose_X *omega_X/(omega_X2-reg )
-                ctm_C = 2 * bose_C *omega_C/(omega_C2-reg )
-              ENDIF
-
-              !ctm_X = 2 * bose_X *omega_X/(omega_X2-reg)
-              !ctm_C = 2 * bose_C *omega_C/(omega_C2-reg)
-              !
-              fsdf(ie,i) = fsdf(ie,i) + wfinal3(ie)*(ctm_X + ctm_C) * V3sq(i,j,k) * freqtotm1
-            ENDDO
-          ENDIF
-          !
-        ENDDO
-      ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
-    !
-!    CALL merge_degen(ne, S%nat3, fsdf, freq(:,1))
-    !
-    sum_final_iselfnrg_e(:,:,LW) = -DIMAG(fsdf)
-    sum_final_iselfnrg_e(:,:,LS) = DBLE(fsdf)
-    !sum_final_iselfnrg_e = -DIMAG(fsdf)
-    !sum_final_iselfnrg_e = REAL(fsdf)
-    DEALLOCATE(fsdf)
-    !
-  END FUNCTION sum_final_iselfnrg_e
+!   FUNCTION sum_final_iselfnrg_e(S, sigma, T, freq, bose, V3sq, nu_initial, e_initial, ne, ener, sigma_e, nu0)
+! !  FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, e_initial, ne, ener, sigma_e, nu0)
+!     USE functions,        ONLY : f_gauss, df_bose
+!     USE merge_degenerate, ONLY : merge_degen
+!     IMPLICIT NONE
+!     TYPE(ph_system_info),INTENT(in)   :: S
+!     REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
+!     REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
+!     REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
+!     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
+!     !
+!     REAL(DP),INTENT(in) :: e_initial ! the energy of the state under scrutiny
+!     !
+!     INTEGER,INTENT(in)  :: ne           ! number of energies on which to decompose the final state
+!     REAL(DP),INTENT(in) :: ener(ne)     ! the energies
+!     REAL(DP)            :: de
+!     REAL(DP),INTENT(in) :: sigma_e      ! smearing for the energy axis
+!     INTEGER,INTENT(in)  :: nu0(3)
+!     !
+!     ! _X -> scattering, _C -> cohalescence
+!     REAL(DP) :: bose_X, bose_C      ! final/initial state populations 
+!     REAL(DP) :: freqtot, freqtotm1
+!     REAL(DP) :: omega_X,  omega_C   ! \delta\omega
+!     REAL(DP) :: omega_X2, omega_C2  ! \delta\omega
+!     REAL(DP) :: wfinal3(ne)
+!     COMPLEX(DP) :: ctm_X, ctm_C, reg, num
+!     !
+!     INTEGER :: i,j,k, ie
+!     !
+!     ! Note: using the function result in an OMP reduction causes crash with ifort 14
+!     REAL(DP) :: sum_final_iselfnrg_e(ne,S%nat3,NTERMS)
+!     COMPLEX(DP),ALLOCATABLE :: fsdf(:,:) ! final state decay function
+!     !
+!     ALLOCATE(fsdf(ne,S%nat3))
+!     fsdf = (0._dp, 0._dp)
+!     !
+!     de = ABS(ener(2)-ener(ne))/100._dp ! FIXME
+!     !
+!     !
+! !$OMP PARALLEL DO DEFAULT(SHARED) &
+! !$OMP             PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,omega_X2,omega_C2,&
+! !$OMP                     ctm_X,ctm_C,reg,freqtot,freqtotm1,wfinal3) &
+! !$OMP             REDUCTION(+: fsdf) COLLAPSE(2)
+!     DO k = 1,S%nat3
+!       DO j = 1,S%nat3
+!         !
+!         FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,2)), de)
+!         !FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(j,3)), de)
+!         !
+! 
+!         bose_X   = 1 + bose(j,2) + bose(k,3)
+!         omega_X  = freq(j,2)+freq(k,3)
+!         !
+!         bose_C   = bose(k,3) - bose(j,2)
+!         omega_C  = freq(j,2)-freq(k,3)
+!         !
+!         IF(sigma>0._dp)THEN
+!           omega_X2 = omega_X**2
+!           omega_C2 = omega_C**2
+!         ELSE IF(sigma<0._dp)THEN
+!           ctm_X = 2 * bose_X *omega_X/(omega_X**2+sigma**2)
+!           ctm_C = 2 * bose_C *omega_C/(omega_C**2+sigma**2)
+!         ELSE !IF (sigma==0._dp)THEN
+!           !
+!           IF(omega_X>0._dp)THEN
+!             ctm_X = 2 * bose_X /omega_X
+!           ELSE
+!             ctm_X = 0._dp
+!           ENDIF
+!           !
+!           IF(ABS(omega_C)>1.e-2_dp)THEN
+!             ctm_C = 2 * bose_C /omega_C
+!           ELSE
+!             IF(T>0._dp)THEN
+!               ctm_C = -2* df_bose(0.5_dp * omega_X, T)
+!             ELSE
+!               ctm_C = 0._dp
+!             ENDIF
+!           ENDIF
+!           !
+!         ENDIF
+!         !bose_X   = 1 + bose(j,2) + bose(k,3)
+!         !omega_X  = freq(j,2)+freq(k,3)
+!         !omega_X2 = omega_X**2
+!         !
+!         !bose_C   = bose(k,3) - bose(j,2)
+!         !omega_C  = freq(j,2)-freq(k,3)
+!         !omega_C2 = omega_C**2
+!         !
+!         DO i = 1,S%nat3
+! !           i = 6
+!           !
+!           ! This comes from the definition of u_qj, Ref. 1. in linewidth.f90
+!           freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
+!           !
+!           IF (freqtot/=0._dp) THEN
+!             freqtotm1 = 1 / freqtot
+!             !
+!             DO ie = 1, ne
+!             ! regularization:
+!               !
+!               ! regularization:
+!               IF(sigma>0._dp)THEN
+!                 reg = CMPLX(e_initial, sigma, kind=DP)**2
+!                 !reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+!                 ctm_X = 2 * bose_X *omega_X/(omega_X2-reg )
+!                 ctm_C = 2 * bose_C *omega_C/(omega_C2-reg )
+!               ENDIF
+! 
+!               !ctm_X = 2 * bose_X *omega_X/(omega_X2-reg)
+!               !ctm_C = 2 * bose_C *omega_C/(omega_C2-reg)
+!               !
+!               fsdf(ie,i) = fsdf(ie,i) + wfinal3(ie)*(ctm_X + ctm_C) * V3sq(i,j,k) * freqtotm1
+!             ENDDO
+!           ENDIF
+!           !
+!         ENDDO
+!       ENDDO
+!     ENDDO
+! !$OMP END PARALLEL DO
+!     !
+! !    CALL merge_degen(ne, S%nat3, fsdf, freq(:,1))
+!     !
+!     sum_final_iselfnrg_e(:,:,LW) = -DIMAG(fsdf)
+!     sum_final_iselfnrg_e(:,:,LS) = DBLE(fsdf)
+!     !sum_final_iselfnrg_e = -DIMAG(fsdf)
+!     !sum_final_iselfnrg_e = REAL(fsdf)
+!     DEALLOCATE(fsdf)
+!     !
+!   END FUNCTION sum_final_iselfnrg_e
 
   !
-  ! Sum the self energy at the provided ener(ne) input energies
+  ! Compute the decomposition of gamma over the final states. 
+  ! If nu_initial is provided, then it will compute d\gamma_{nu_initial} and will 
+  ! set e_initial to omega_{nu_initial}, unless a different value of e_initial is required
+  ! In this case the different columns of the return array will correspond to the different
+  ! final states
+  !
+  ! If nu_initial is set to zero, it will return \sum_nu d\gamma_nu
+  ! In this case, the different columns will correspond to \gamma_{1..nat3}
+  !
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, freq_initial, ne, ener, sigma_e, nu0)
+  FUNCTION sum_final_state_e(S, sigma, T, freq, bose, V3sq, nu_initial, e_initial, &
+                             ne, ener, sigma_e, nu0)
     USE functions,        ONLY : f_gauss, df_bose
     USE merge_degenerate, ONLY : merge_degen
     USE constants,        ONLY : pi
@@ -528,12 +558,13 @@ MODULE final_state
     REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
     !
-    REAL(DP),INTENT(in) :: freq_initial ! the initial energy
+    REAL(DP),INTENT(in) :: e_initial ! the initial energy
     !
     INTEGER,INTENT(in)  :: ne           ! number of energies on which to decompose the final state
     REAL(DP),INTENT(in) :: ener(ne)     ! the energies
     REAL(DP),INTENT(in) :: sigma_e      ! smearing for the energy axis
     INTEGER,INTENT(in)  :: nu0(3)
+    INTEGER,INTENT(in),OPTIONAL  :: nu_initial
     !
     ! _X -> scattering, _C -> cohalescence
     REAL(DP) :: bose_X, bose_C      ! final/initial state populations 
@@ -543,13 +574,34 @@ MODULE final_state
     REAL(DP) :: ctm_C, ctm_X   !
     REAL(DP) :: pref_C, pref_X
     REAL(DP) :: wfinal3(ne), wfinal2(ne), wfinal(ne)
-    REAL(DP) :: freqm1(S%nat3,3)
+    REAL(DP) :: freqm1(S%nat3,3), freq_initial
     !
-    INTEGER :: i,j,k, ie
+    INTEGER,TARGET :: i,j,k
+    INTEGER :: ie, start_i, end_i
+    INTEGER,POINTER :: i_final
     !
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
     REAL(DP) :: sum_final_state_e(ne,S%nat3,3)
     REAL(DP),ALLOCATABLE :: fsdf(:,:,:) ! final state decay function
+    !
+    IF(nu_initial>0 .and. nu_initial<=S%nat3) THEN
+      start_i = nu_initial
+      end_i   = nu_initial
+      i_final => j
+      IF(e_initial<0._dp) THEN
+        freq_initial = freq(nu_initial,1)
+      ELSE
+        freq_initial = e_initial
+      ENDIF
+    ELSE
+      start_i = 1
+      end_i   = S%nat3
+      i_final => i
+      freq_initial = e_initial
+      IF(freq_initial<0._dp) CALL errore("sum_final_state_e","nu_initial was unset" &
+                                  //" or invalid and e_initial was not specified", 1)
+    ENDIF
+    !
     !
     ALLOCATE(fsdf(ne,S%nat3,3))
     fsdf = (0._dp, 0._dp)
@@ -565,10 +617,10 @@ MODULE final_state
 !$OMP         ctm_X,ctm_C,freqtot,freqtotm1,FREQTOTM1_23,wfinal3) &
 !$OMP REDUCTION(+: fsdf) COLLAPSE(1)
     DO k = 1,S%nat3
-      FORALL(i=1:ne) wfinal3(i) = f_gauss((ener(i)-freq(k,3)), sigma_e)
+      FORALL(ie=1:ne) wfinal3(ie) = f_gauss((ener(ie)-freq(k,3)), sigma_e)
       DO j = 1,S%nat3
         !
-        FORALL(i=1:ne) wfinal2(i) = f_gauss((ener(i)-freq(j,2)), sigma_e)
+        FORALL(ie=1:ne) wfinal2(ie) = f_gauss((ener(ie)-freq(j,2)), sigma_e)
         !
         ! I define a final energy for Coalescence process which is symmetric in the
         ! exchange of q2 with q3. 
@@ -579,8 +631,7 @@ MODULE final_state
         bose_X = bose(j,2) + bose(k,3) + 1
         freqtotm1_23= freqm1(j,2) * freqm1(k,3)
         !
-        DO i = 1,S%nat3
-          !sigma_= MIN(sigma, 0.5_dp*MAX(MAX(freq(i,1), freq(j,2)), freq(k,3)))
+        DO i = start_i, end_i !1,S%nat3
           !
           freqtotm1 = freqm1(i,1) * freqtotm1_23
           !IF(freqtot/=0._dp)THEN
@@ -597,15 +648,19 @@ MODULE final_state
           pref_X =  -pi*ctm_X * V3sq(i,j,k) * freqtotm1
           !DO ie = 1, ne
             !lw(i) = lw(i) - pi*freqtotm1 * (ctm_C + ctm_X) * V3sq(i,j,k)
-            fsdf(:,i,C) = fsdf(:,i,C) +pref_C* wfinal(:)
-            fsdf(:,i,X) = fsdf(:,i,X) +pref_X* wfinal(:)
-            fsdf(:,i,TOT) = fsdf(:,i,C)+fsdf(:,i,X)
+            fsdf(:,i_final,C) = fsdf(:,i_final,C) +pref_C* wfinal(:)
+            fsdf(:,i_final,X) = fsdf(:,i_final,X) +pref_X* wfinal(:)
+           !fsdf(:,i_final,TOT) = fsdf(:,i_final,C)+fsdf(:,i_final,X)
           !ENDDO
           !
         ENDDO
+        !
+        !
       ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+    
+    fsdf(:,:,TOT) = fsdf(:,:,C)+fsdf(:,:,X)
     !
 !    CALL merge_degen(ne, S%nat3, 3, fsdf, freq(:,1))
     !

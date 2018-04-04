@@ -224,7 +224,7 @@ MODULE linewidth
   END FUNCTION selfnrg_q  
   ! \/o\________\\\_________________________________________/^>
   ! Simple spectral function, computed as a superposition of Lorentzian functions
-  FUNCTION simple_spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener) &
+  FUNCTION simple_spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, shift) &
   RESULT(spectralf)
     USE q_grids,            ONLY : q_grid
     USE constants,          ONLY : RY_TO_CMM1
@@ -243,16 +243,16 @@ MODULE linewidth
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
-    ! FUNCTION RESULT:
-    REAL(DP) :: spectralf(ne,S%nat3,nconf)
-    ! Local variables
     INTEGER,INTENT(in)  :: ne
     REAL(DP),INTENT(in) :: ener(ne)
+    LOGICAL,INTENT(in)  :: shift
+    ! FUNCTION RESULT:
+    REAL(DP) :: spectralf(ne,S%nat3,nconf)
     !
     COMPLEX(DP) :: selfnrg(S%nat3,nconf)
     !
     INTEGER :: it, i, ie
-    REAL(DP) :: gamma, delta, omega, denom
+    REAL(DP) :: gamma(S%nat3,nconf), delta(S%nat3,nconf), omega, denom
     COMPLEX(DP) :: U(S%nat3, S%nat3)
     REAL(DP) :: freq(S%nat3)
       !
@@ -260,22 +260,30 @@ MODULE linewidth
     CALL freq_phq_safe(xq0, S, fc2, freq, U)
     !
     ! use lineshift to compute 3rd order linewidth and lineshift
-    selfnrg = selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)    
+    IF(shift)THEN
+      selfnrg = selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)    
+      gamma(:,:) = -DIMAG(selfnrg(:,:))
+      delta(:,:) =   DBLE(selfnrg(:,:))
+    ELSE
+      gamma = linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3)    
+      delta = 0._dp
+    ENDIF
+    !
     DO it = 1,nconf
-      WRITE(*,'(30x,6e12.2,5x,6e12.2)') -DIMAG(selfnrg(:,it))*RY_TO_CMM1, DBLE(selfnrg(:,it))*RY_TO_CMM1
+      WRITE(*,'(30x,6e12.2,5x,6e12.2)') gamma(:,it)*RY_TO_CMM1,delta(:,it)*RY_TO_CMM1
     ENDDO
     !
+    delta = 0._dp
     ! Compute and superpose the Lorentzian functions corresponding to each band
     DO it = 1,nconf
       DO i = 1,S%nat3
         DO ie = 1, ne
-          gamma =  -DIMAG(selfnrg(i,it))
-          delta =   DBLE(selfnrg(i,it))
+          ! Only apply shift (i.e. real part of self nrg) if requested
           omega = freq(i)
-          denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
-                   + 4*omega**2 *gamma**2 
+          denom =   (ener(ie)**2 -omega**2 -2*omega*delta(i,it))**2 &
+                   + 4*omega**2 *gamma(i,it)**2 
           IF(ABS(denom)/=0._dp)THEN
-            spectralf(ie,i,it) = 2*omega*gamma / denom
+            spectralf(ie,i,it) = 2*omega*gamma(i,it) / denom
           ELSE
             spectralf(ie,i,it) = 0._dp
           ENDIF
@@ -332,13 +340,16 @@ MODULE linewidth
     selfnrg = (0._dp, 0._dp)
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
+      timer_CALL t_freq%start()
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      timer_CALL t_freq%stop()
     !
     DO iq = 1, grid%nq
       CALL print_percent_wall(33.333_dp, 300._dp, iq, grid%nq, (iq==1))
       !
+        timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
@@ -347,29 +358,43 @@ MODULE linewidth
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
+        timer_CALL t_freq%stop()
       !
       !
       ! ------ start of CALL scatter_3q(S,fc2,fc3, xq(:,1),xq(:,2),xq(:,3), V3sq)
+        timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+        timer_CALL t_fc3int%stop()
+        timer_CALL t_fc3rot%start()
       CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+        timer_CALL t_fc3rot%stop()
+        timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+        timer_CALL t_fc3m2%stop()
       !
       DO it = 1,nconf
         ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+          timer_CALL t_bose%start()
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
         DO jq = 1,3
           CALL bose_phq(T(it),s%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
+          timer_CALL t_bose%stop()
+          timer_CALL t_sum%start()
         selfnrg(:,:,it) = selfnrg(:,:,it) + grid%w(iq)*sum_selfnrg_spectre( S, sigma(it), freq, bose, V3sq, ne, ener, nu0 )
+          timer_CALL t_sum%stop()
         !
       ENDDO
       !
     ENDDO
     !
+      timer_CALL t_mpicom%start()
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf,selfnrg)
+      timer_CALL t_mpicom%stop()
     selfnrg = -0.5_dp * selfnrg
     !
+      timer_CALL t_mkspf%start()
     DO it = 1,nconf
       DO i = 1,S%nat3
         DO ie = 1, ne
@@ -390,6 +415,7 @@ MODULE linewidth
         ENDDO
       ENDDO
     ENDDO
+      timer_CALL t_mkspf%stop()
     !
     DEALLOCATE(U, V3sq, D3, selfnrg)
     !

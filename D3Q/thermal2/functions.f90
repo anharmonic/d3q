@@ -69,6 +69,22 @@ MODULE functions
     f_lorentzi = one_over_pi*gm1 / (1 + (x*gm1)**2)
   END FUNCTION
   !
+  ! Pseudo-voigt is a linear combination of a Gaussian and a Lorentian with the
+  ! same width, the sigma of the Gussian has to be adapted
+  REAL(DP) ELEMENTAL & ! <`\.......''..','
+  FUNCTION f_psvoigt(x,f,eta)
+    IMPLICIT NONE
+    REAL(DP), PARAMETER :: sigma_to_fwhm = 2*DSQRT(2*DLOG(2._dp))
+    REAL(DP), PARAMETER :: gamma_to_fwhm = 2
+    REAL(DP),INTENT(in) :: x,f,eta
+    REAL(DP) :: sigmam1, gammam1
+    sigmam1 = sigma_to_fwhm/f
+    gammam1 = gamma_to_fwhm/f
+    !
+    f_psvoigt = eta * f_lorentzi(x,gammam1) + (1-eta) * f_ngaussi(x,sigmam1)
+    !
+  END FUNCTION
+  !
   !  3. BOSE-EINSTEIN DISTRIBUTIONS
   REAL(DP) ELEMENTAL & ! <`\.......''..','
   FUNCTION f_bose(x,T)

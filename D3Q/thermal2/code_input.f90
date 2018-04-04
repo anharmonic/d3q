@@ -45,6 +45,7 @@ MODULE code_input
     REAL(DP) :: e0, de
     REAL(DP) :: sigma_e 
     ! for final state:
+    INTEGER  :: nu_initial
     REAL(DP) :: e_initial
     REAL(DP) :: q_initial(3)
     LOGICAL  :: q_resolved, q_summed
@@ -131,7 +132,10 @@ MODULE code_input
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
     REAL(DP) :: de = 1._dp, e0 = 0._dp  ! energy step and minimum
     REAL(DP) :: sigma_e  = -1._dp       ! smearing used for delta of e in plots, like jdos, phdos and final state decomposition
+    INTEGER  :: nu_initial = 0          ! initial mode for final state decomposition, set to
+                                        ! zero to get the sum of all modes at e_initial
     REAL(DP) :: e_initial = -1._dp      ! initial energy for final state decomposition
+                                        ! may default to omega_{nu_initial} if not not set
     REAL(DP) :: q_initial(3) = 0._dp    ! initial q for final state decomp
     LOGICAL  :: q_resolved = .false.    ! save the final state function of q and e as well
                                         ! in different files
@@ -189,7 +193,8 @@ MODULE code_input
       file_mat2, file_mat3, asr2, &
       nconf, skip_q, nq, nk, grid_type, xk0, &
       optimize_grid, optimize_grid_thr, &
-      ne, de, e0, sigma_e, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
+      ne, de, e0, sigma_e, &
+      nu_initial, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
       exp_t_factor, sort_freq, &
       isotopic_disorder, &
       casimir_scattering,  &
@@ -393,10 +398,11 @@ MODULE code_input
       input%sigma_e = sigma_e
     ENDIF
     !
-    IF(TRIM(input%calculation) == 'final' .and. e_initial < 0) &
+    IF(TRIM(input%calculation) == 'final' .and. (e_initial < 0 .and. nu_initial==0)) &
       CALL errore('READ_INPUT', 'Missing e_initial for final state calculation', 1)    
-    input%e_initial = e_initial
-    input%q_initial = q_initial
+    input%nu_initial = nu_initial
+    input%e_initial  = e_initial
+    input%q_initial  = q_initial
     ! if we also want the q of the final state:
     input%q_resolved = q_resolved
     input%q_summed = q_summed
@@ -812,6 +818,7 @@ MODULE code_input
       CALL mpi_broadcast(de)
       CALL mpi_broadcast(e0)
       CALL mpi_broadcast(sigma_e)
+      CALL mpi_broadcast(nu_initial)
       CALL mpi_broadcast(e_initial)
       CALL mpi_broadcast(exp_t_factor)
       CALL mpi_broadcast(file_mat2)

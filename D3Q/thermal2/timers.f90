@@ -26,7 +26,8 @@ MODULE timers
                      t_velcty = nanotimer("ph group velocity"), &
                      t_mpicom = nanotimer("mpi communication"), &
                      t_readdt = nanotimer("read fc data"), &
-                     t_merged = nanotimer("merge degenerate")
+                     t_merged = nanotimer("merge degenerate"), &
+                     t_mkspf  = nanotimer("spectral function")
 
   TYPE(nanotimer) :: t_tksma   = nanotimer("sma thermalk"), &
                      t_tksum   = nanotimer("sum of tk terms"), &
@@ -85,6 +86,7 @@ MODULE timers
     CALL t_tktld%print()
     CALL t_xain%print()
     CALL t_merged%print()
+    CALL t_mkspf%print()
     ! ASR timers:
     CALL t_asr3a%print()
     CALL t_asr3s%print()

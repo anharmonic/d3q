@@ -347,9 +347,10 @@ MODULE linewidth_program
       ELSE IF (TRIM(input%mode) == "imag") THEN
         spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                                   S, grid, fc2, fc3, input%ne, ener, shift=.false.)
-      ELSE IF (TRIM(input%mode) == "simple") THEN
+      ELSE IF (TRIM(input%mode) == "simple" .or. TRIM(input%mode) == "isimple") THEN
         spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener)
+                                  S, grid, fc2, fc3, input%ne, ener, &
+                                  (TRIM(input%mode) == "simple") )
       ELSE
         CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
       ENDIF
@@ -441,12 +442,16 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-    ioWRITE(*,'(2x,a,3f12.6,a,1f12.6,a)') "Going to compute final state decomposition for", &
-                                input%q_initial, "  energy:", input%e_initial, "cm^-1"
+    ioWRITE(*,'(2x,a,3f12.6,a,i4,a,1f12.6,a)') &
+        "Going to compute final state decomposition for", input%q_initial, &
+        "  mode:", input%nu_initial, &
+        "  energy:", input%e_initial, "cm^-1"
     
       !
-      fstate = input%de*final_state_q(input%q_initial, qpath, input%nconf, input%T, sigma_ry, &
-                             S, grid, fc2, fc3, e_inital_ry, input%ne, ener, input%sigma_e/RY_TO_CMM1, &
+      fstate = input%de*final_state_q(input%q_initial, qpath, input%nconf, input%T, &
+                             sigma_ry, S, grid, fc2, fc3, &
+                             input%nu_initial, e_inital_ry, &
+                             input%ne, ener, input%sigma_e/RY_TO_CMM1, &
                              input%q_resolved, input%q_summed, input%sigmaq, &
                              input%outdir, input%prefix)
       !
