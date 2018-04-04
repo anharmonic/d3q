@@ -39,8 +39,8 @@ MODULE sqom_program
     ! for spectral function:
     LOGICAL  :: convolution
     REAL(DP) :: qq(3)
-    REAL(DP) :: neutron_res_frac
-    REAL(DP) :: neutron_res0_cmm1 ! resolution at zero energy (cm-1)
+    REAL(DP) :: res_frac
+    REAL(DP) :: res0_cmm1 ! resolution at zero energy (cm-1)
   END TYPE sqom_input_type
   !
   CONTAINS
@@ -73,8 +73,8 @@ MODULE sqom_program
     !
     INTEGER             :: ne = -1, nq = -1, n_files = 1
     !
-    REAL(DP)  :: neutron_res_frac = 0.025_dp ! fraction of the energy
-    REAL(DP)  :: neutron_res0_cmm1 = 0.4 ! base resolution in cmm1
+    REAL(DP)  :: res_frac = 0.025_dp ! fraction of the energy
+    REAL(DP)  :: res0_cmm1 = 0.4 ! base resolution in cmm1
     REAL(DP)  :: T = 300._dp ! temperature for elastic peak
     INTEGER :: i, input_unit
     CHARACTER(len=256)  :: input_file
@@ -82,11 +82,11 @@ MODULE sqom_program
     INTEGER,EXTERNAL :: find_free_unit
     !
     NAMELIST  / sqominput / &
-      calculation, outdir, &
+      calculation, outdir, postfix, &
       file_mat2, asr2, &
       n_files, &
       convolution, &
-      neutron_res_frac, neutron_res0_cmm1, &
+      res_frac, res0_cmm1, &
       qq, &
       elastic_peak, T
       
@@ -113,11 +113,20 @@ MODULE sqom_program
     ENDDO
     CLOSE(input_unit)
 
-    IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
-    IF(TRIM(postfix) == INVALID) THEN
-      postfix = "_"//TRIM(int_to_char(NINT(qq(1))))//&
-                     TRIM(int_to_char(NINT(qq(2))))//&
-                     TRIM(int_to_char(NINT(qq(3))))
+    IF(TRIM(file_mat2) == INVALID) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
+    
+    IF(calculation=="neutron") THEN
+      IF(TRIM(postfix) == INVALID) THEN
+        postfix = TRIM(int_to_char(NINT(qq(1))))//&
+                  TRIM(int_to_char(NINT(qq(2))))//&
+                  TRIM(int_to_char(NINT(qq(3))))
+      ENDIF
+      
+    
+    ELSE IF (calculation=="ixs") THEN
+      IF(TRIM(postfix) == INVALID) postfix="ixs"
+    ELSE
+      CALL errore("read_input", 'unknown calculation', 1)
     ENDIF
 
     input%calculation         = calculation
@@ -130,8 +139,8 @@ MODULE sqom_program
     input%T                   = T
     input%convolution         = convolution
     input%qq                  = qq
-    input%neutron_res_frac    = neutron_res_frac
-    input%neutron_res0_cmm1   = neutron_res0_cmm1
+    input%res_frac    = res_frac
+    input%res0_cmm1   = res0_cmm1
     !
     CALL READ_DATA(input, s, fc2)
     !
@@ -413,6 +422,117 @@ MODULE sqom_program
     !
   END SUBROUTINE neutron_function_convolution
   !
+  ! Compute convoluting function
+  SUBROUTINE ixs_function_convolution_fft(S, res_cmm1, ne, ee, spf)
+    USE fft_scalar,     ONLY : cft_1z
+    USE functions,      ONLY : f_ngauss, f_psvoigt
+    USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
+    USE fc2_interpolate,     ONLY : freq_phq_safe
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: res_cmm1
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ee(ne)
+    REAL(DP),INTENT(inout) :: spf(ne,S%nat3)
+    !
+    INTEGER     :: nu, ie, je, je_range
+    !
+    REAL(DP) :: F, Sq(ne,S%nat3)
+    COMPLEX(DP) :: aux(2*ne), auxg(2*ne)
+    COMPLEX(DP), SAVE, ALLOCATABLE :: psvoigtg(:)
+    LOGICAL, SAVE :: first = .true.
+    REAL(DP) :: sigma, fwhm, e_avg
+    REAL(DP) :: dee
+    !
+    dee = (ee(ne)-ee(1))/(ne-1)
+    !
+    IF(first)THEN
+      first = .false.
+      ALLOCATE(psvoigtg(2*ne))
+      fwhm = res_cmm1/RY_TO_CMM1
+      e_avg = (ee(ne)+ee(1))*0.5_dp
+      DO ie = 1,ne
+        aux(ie) = f_psvoigt(ee(ie)-e_avg,fwhm,0.3_dp)
+      ENDDO
+      aux(ne+1) = 0._dp
+      CALL cft_1z(aux, 1, 2*ne, 1, -1, psvoigtg)
+      psvoigtg = 2*ne*dee*psvoigtg
+    ENDIF
+    !
+    DO nu = 1,S%nat3
+      aux(1:ne) = spf(1:ne,nu)
+      aux(ne+1:2*ne) = 0._dp
+      CALL cft_1z(aux,  1, 2*ne, 1, -1, auxg)
+      auxg = auxg*psvoigtg
+      CALL cft_1z(auxg, 1, 2*ne, 1, +1, aux)
+      Sq(1:ne,nu)  = DBLE(aux(ne/2:ne/2+ne-1))
+      !Sq(ne/2:ne,nu) = dee*DBLE(aux(1:ne/2))
+      !Sq(:,nu) = DBLE(aux)
+    ENDDO
+    !
+    ! Put back and eventually add the weight
+    spf = sq
+    !
+  END SUBROUTINE ixs_function_convolution_fft
+  
+  ! Compute convoluting function
+  SUBROUTINE ixs_function_convolution(S, res_cmm1, ne, ee, spf)
+    USE fft_scalar,     ONLY : cft_1z
+    USE functions,      ONLY : f_psvoigt
+    USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
+    USE fc2_interpolate,ONLY : freq_phq_safe
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: res_cmm1
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ee(ne)
+    REAL(DP),INTENT(inout) :: spf(ne,S%nat3)
+    !
+    INTEGER  :: nu, ie, je, je_range_dw, je_range_up
+    REAL(DP) :: F, dee, fwhm
+    !
+    COMPLEX(DP), SAVE, ALLOCATABLE :: psvoigt(:)
+    INTEGER, SAVE :: je_range = -1
+    LOGICAL, SAVE :: first = .true.
+    !
+    REAL(DP) :: Sq(ne,S%nat3)
+    !
+    dee = (ee(ne)-ee(1))/(ne-1)
+    !
+    IF(first)THEN
+      first = .false.
+      fwhm = res_cmm1/RY_TO_CMM1
+      je_range = 30*fwhm/dee
+      ALLOCATE(psvoigt(-je_range:je_range))
+      !
+      DO je = -je_range, je_range
+        psvoigt(je) = dee*f_psvoigt(dee*je,fwhm,0.3_dp)
+      ENDDO
+      !
+    ENDIF
+    !
+    Sq = 0._dp
+    !
+    ! Doing the convolution with a gaussian in the least efficient way possible
+    DO nu = 1,S%nat3
+      DO ie=1,ne
+        je_range_dw = MIN(je_range, ie-1)
+        je_range_up = MIN(je_range, ne-ie)
+        DO je=-je_range_dw, je_range_up
+          !
+          ! I use spf*e which seems to be the correctly normalizable form
+          Sq(ie,nu)=Sq(ie,nu)+spf(ie+je,nu)*psvoigt(je)
+          !
+        ENDDO
+      ENDDO
+    ENDDO
+    !
+    ! Put back and eventually add the weight
+    spf = sq
+    !
+  END SUBROUTINE ixs_function_convolution
+  
+  !
   SUBROUTINE scan_spf(filename, nq, ne, nat3)
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in) :: filename
@@ -590,9 +710,11 @@ PROGRAM sqom
   !
   IF(ionode)THEN
     CALL scan_spf(sqi%e_file(1), nq, ne, S%nat3)
-    DO it = 1, S%ntyp
-      ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
-    ENDDO
+    IF(sqi%calculation == "neutron")THEN
+      DO it = 1, S%ntyp
+        ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
+      ENDDO
+    ENDIF
     !ff=ff/MAXVAL(ff)
   ENDIF
   CALL mpi_broadcast(nq)
@@ -613,20 +735,33 @@ PROGRAM sqom
     !
     CALL read_spf(sqi%e_file(ifile), nq, ne, S%nat3, xq, w, ee, spf)
     !
-    IF( sqi%convolution ) THEN
-!       IF(ifile==1+my_id)THEN
-!       !S%atm(2)="D"
-!         DO it = 1, S%ntyp
-!           ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
-!         ENDDO        
-!       ENDIF
+    CALCULATION_TYPE : &
+    IF(sqi%calculation == "neutron")THEN
+      IF( sqi%convolution ) THEN
+  !       IF(ifile==1+my_id)THEN
+  !       !S%atm(2)="D"
+  !         DO it = 1, S%ntyp
+  !           ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
+  !         ENDDO        
+  !       ENDIF
+        DO iq = 1, nq
+          CALL neutron_function_convolution(w(iq), xq(:,iq), sqi%qq, &
+          sqi%elastic_peak, sqi%T, S, fc2, ff, &
+          sqi%res_frac, sqi%res0_cmm1, &
+          ne, ee, spf(:,:,iq))
+        ENDDO
+      ENDIF
+      !
+    ELSE IF(sqi%calculation == "ixs")THEN
       DO iq = 1, nq
-        CALL neutron_function_convolution(w(iq), xq(:,iq), sqi%qq, &
-        sqi%elastic_peak, sqi%T, S, fc2, ff, &
-        sqi%neutron_res_frac, sqi%neutron_res0_cmm1, &
-        ne, ee, spf(:,:,iq))
+      !(w, xq, S, res_cmm1, ne, ee, spf)
+        !CALL ixs_function_convolution(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
+        CALL ixs_function_convolution_fft(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
       ENDDO
-    ENDIF
+      !
+    ELSE
+      CALL errore("sqom", "not a valid type of calculation: "//TRIM(sqi%calculation))
+    ENDIF CALCULATION_TYPE
     !
     spf_merge = spf_merge + spf
     !
@@ -636,13 +771,13 @@ PROGRAM sqom
   spf_merge = spf_merge / DBLE(sqi%n_files)
   !
   IF(ionode)THEN
-    OPEN(998, file=TRIM(sqi%e_file(1))//trim(sqi%postfix))
+    OPEN(998, file=TRIM(sqi%e_file(1))//"_"//trim(sqi%postfix))
     DO iq = 1, nq
       WRITE(998, '(2(a,3f12.6))') "# xq = ", xq(:,iq)
       WRITE(998, '("#")')
       WRITE(998, '("#")')
       DO ie = 1, ne
-        WRITE(998,'(2f12.6,100e20.10e4)') w(iq), ee(ie)*RY_TO_CMM1,&
+        WRITE(998,'(2f12.6,100e20.10e3)') w(iq), ee(ie)*RY_TO_CMM1,&
                 SUM(spf_merge(ie,:,iq)), spf_merge(ie,:,iq)
       ENDDO
       WRITE(998,*)
