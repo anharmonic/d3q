@@ -96,16 +96,18 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
     DO ipert = 1, 3*nat
       !
       CALL read_drho(drho_dipert, iq_i, ipert, with_core=.true., pool_only = .true.)
-      CALL qgradient(kplusq(iq_i)%xq, dfftp%nnr, drho_dipert, ngm, g, dfftp%nl, &
-                    alat, gdrdi )
+!      CALL qgradient(kplusq(iq_i)%xq, dfftp%nnr, drho_dipert, ngm, g, dfftp%nl, &
+!                    alat, gdrdi )
+      CALL fft_qgradient (dfftp, drho_dipert, kplusq(iq_i)%xq, g, gdrdi)
       FORALL(ir = 1:dfftp%nnr) gr_gdrdi(ir) = DOT_PRODUCT(grho(:,ir,1), gdrdi(:,ir))
       !
       JPERT_LOOP : &
       DO jpert = 1, 3*nat
           !
           CALL read_drho(drho_djpert, iq_j, jpert, with_core=.true., pool_only = .true.)
-          CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert, ngm, g, dfftp%nl, &
-                          alat, gdrdj )
+!          CALL qgradient (kplusq(iq_j)%xq, dfftp%nnr, drho_djpert, ngm, g, dfftp%nl, &
+!                          alat, gdrdj )
+          CALL fft_qgradient (dfftp, drho_djpert, kplusq(iq_j)%xq, g, gdrdj)
           FORALL(ir = 1:dfftp%nnr) gr_gdrdj(ir) = SUM(grho(:,ir,1) * gdrdj(:,ir))
           !
           DO ir = 1, dfftp%nnr
@@ -136,7 +138,8 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
             ENDIF
           ENDDO
           !
-          CALL qgrad_dot(kplusq(-iq_k)%xq, dfftp%nnr, aux2, ngm, g, dfftp%nl, alat, aux1)
+!          CALL qgrad_dot(kplusq(-iq_k)%xq, dfftp%nnr, aux2, ngm, g, dfftp%nl, alat, aux1)
+          CALL fft_qgraddot(dfftp, aux2, kplusq(-iq_k)%xq, g, aux1)
           !
           DO ir = 1, dfftp%nnr
             !

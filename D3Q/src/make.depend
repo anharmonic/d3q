@@ -41,6 +41,7 @@ d3_exc_gc.o : ../../Modules/io_global.o
 d3_exc_gc.o : ../../Modules/ions_base.o
 d3_exc_gc.o : ../../Modules/kind.o
 d3_exc_gc.o : ../../Modules/mp_pools.o
+d3_exc_gc.o : ../../Modules/mp_world.o
 d3_exc_gc.o : ../../Modules/recvec.o
 d3_exc_gc.o : ../../PHonon/PH/phcom.o
 d3_exc_gc.o : ../../PW/src/pwcom.o
@@ -170,7 +171,6 @@ d3_reset.o : ./set_kplus3q.o
 d3_restart.o : ../../Modules/io_files.o
 d3_restart.o : ../../Modules/io_global.o
 d3_restart.o : ../../Modules/kind.o
-d3_restart.o : ../../Modules/mp_global.o
 d3_restart.o : ../../Modules/mp_world.o
 d3_restart.o : ../../UtilXlib/mp.o
 d3_restart.o : ./d3_iofiles.o
@@ -217,7 +217,6 @@ d3_valence.o : ../../LR_Modules/lrcom.o
 d3_valence.o : ../../Modules/io_global.o
 d3_valence.o : ../../Modules/ions_base.o
 d3_valence.o : ../../Modules/kind.o
-d3_valence.o : ../../Modules/mp_global.o
 d3_valence.o : ../../Modules/mp_pools.o
 d3_valence.o : ../../Modules/mp_world.o
 d3_valence.o : ../../PW/src/pwcom.o
@@ -303,7 +302,7 @@ dpsi1dpsi2dv3.o : ../../LR_Modules/lrcom.o
 dpsi1dpsi2dv3.o : ../../Modules/io_global.o
 dpsi1dpsi2dv3.o : ../../Modules/ions_base.o
 dpsi1dpsi2dv3.o : ../../Modules/kind.o
-dpsi1dpsi2dv3.o : ../../Modules/mp_global.o
+dpsi1dpsi2dv3.o : ../../Modules/mp_pools.o
 dpsi1dpsi2dv3.o : ../../PHonon/PH/phcom.o
 dpsi1dpsi2dv3.o : ../../PW/src/pwcom.o
 dpsi1dpsi2dv3.o : ../../UtilXlib/mp.o
@@ -315,7 +314,7 @@ dpsi1dv2dpsi3.o : ../../Modules/fft_base.o
 dpsi1dv2dpsi3.o : ../../Modules/io_global.o
 dpsi1dv2dpsi3.o : ../../Modules/ions_base.o
 dpsi1dv2dpsi3.o : ../../Modules/kind.o
-dpsi1dv2dpsi3.o : ../../Modules/mp_global.o
+dpsi1dv2dpsi3.o : ../../Modules/mp_pools.o
 dpsi1dv2dpsi3.o : ../../Modules/uspp.o
 dpsi1dv2dpsi3.o : ../../PHonon/PH/phcom.o
 dpsi1dv2dpsi3.o : ../../PW/src/pwcom.o
@@ -333,7 +332,7 @@ dq1rhodq23v.o : ../../Modules/fft_base.o
 dq1rhodq23v.o : ../../Modules/io_global.o
 dq1rhodq23v.o : ../../Modules/ions_base.o
 dq1rhodq23v.o : ../../Modules/kind.o
-dq1rhodq23v.o : ../../Modules/mp_global.o
+dq1rhodq23v.o : ../../Modules/mp_pools.o
 dq1rhodq23v.o : ../../Modules/recvec.o
 dq1rhodq23v.o : ../../Modules/uspp.o
 dq1rhodq23v.o : ../../PHonon/PH/phcom.o
@@ -370,7 +369,7 @@ dvdpsi.o : ../../Modules/cell_base.o
 dvdpsi.o : ../../Modules/fft_base.o
 dvdpsi.o : ../../Modules/ions_base.o
 dvdpsi.o : ../../Modules/kind.o
-dvdpsi.o : ../../Modules/mp_global.o
+dvdpsi.o : ../../Modules/mp_pools.o
 dvdpsi.o : ../../Modules/recvec.o
 dvdpsi.o : ../../Modules/uspp.o
 dvdpsi.o : ../../PW/src/pwcom.o
@@ -395,7 +394,7 @@ gen_dpdvp.o : ../../Modules/fft_base.o
 gen_dpdvp.o : ../../Modules/io_global.o
 gen_dpdvp.o : ../../Modules/ions_base.o
 gen_dpdvp.o : ../../Modules/kind.o
-gen_dpdvp.o : ../../Modules/mp_global.o
+gen_dpdvp.o : ../../Modules/mp_pools.o
 gen_dpdvp.o : ../../Modules/uspp.o
 gen_dpdvp.o : ../../PHonon/PH/phcom.o
 gen_dpdvp.o : ../../PW/src/pwcom.o
@@ -424,7 +423,6 @@ incdrhoscf2.o : ../../LR_Modules/lrcom.o
 incdrhoscf2.o : ../../Modules/cell_base.o
 incdrhoscf2.o : ../../Modules/fft_base.o
 incdrhoscf2.o : ../../Modules/kind.o
-incdrhoscf2.o : ../../Modules/recvec.o
 incdrhoscf2.o : ../../Modules/uspp.o
 incdrhoscf2.o : ../../PW/src/pwcom.o
 incdrhoscf2.o : ./set_kplus3q.o
@@ -437,7 +435,7 @@ rhodq123v.o : ../../Modules/constants.o
 rhodq123v.o : ../../Modules/fft_base.o
 rhodq123v.o : ../../Modules/ions_base.o
 rhodq123v.o : ../../Modules/kind.o
-rhodq123v.o : ../../Modules/mp_global.o
+rhodq123v.o : ../../Modules/mp_pools.o
 rhodq123v.o : ../../Modules/recvec.o
 rhodq123v.o : ../../Modules/uspp.o
 rhodq123v.o : ../../PHonon/PH/phcom.o
@@ -450,6 +448,7 @@ rhodq123v.o : ./d3com.o
 rhodq123v.o : ./set_kplus3q.o
 rotate_d3.o : ../../Modules/constants.o
 rotate_d3.o : ../../Modules/kind.o
+run_nscf_d3.o : ../../FFTXlib/fft_types.o
 run_nscf_d3.o : ../../LR_Modules/lrcom.o
 run_nscf_d3.o : ../../Modules/cell_base.o
 run_nscf_d3.o : ../../Modules/check_stop.o
@@ -461,7 +460,8 @@ run_nscf_d3.o : ../../Modules/io_files.o
 run_nscf_d3.o : ../../Modules/io_global.o
 run_nscf_d3.o : ../../Modules/ions_base.o
 run_nscf_d3.o : ../../Modules/kind.o
-run_nscf_d3.o : ../../Modules/mp_global.o
+run_nscf_d3.o : ../../Modules/mp_bands.o
+run_nscf_d3.o : ../../Modules/mp_pools.o
 run_nscf_d3.o : ../../Modules/noncol.o
 run_nscf_d3.o : ../../Modules/parameters.o
 run_nscf_d3.o : ../../Modules/recvec.o
@@ -499,13 +499,14 @@ setup_d3gc.o : ../../Modules/uspp.o
 setup_d3gc.o : ../../Modules/wavefunctions.o
 setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o
+solve_linter_d3q.o : ../../FFTXlib/fft_interfaces.o
 solve_linter_d3q.o : ../../LR_Modules/lrcom.o
 solve_linter_d3q.o : ../../Modules/cell_base.o
 solve_linter_d3q.o : ../../Modules/fft_base.o
 solve_linter_d3q.o : ../../Modules/io_global.o
 solve_linter_d3q.o : ../../Modules/ions_base.o
 solve_linter_d3q.o : ../../Modules/kind.o
-solve_linter_d3q.o : ../../Modules/mp_global.o
+solve_linter_d3q.o : ../../Modules/mp_pools.o
 solve_linter_d3q.o : ../../Modules/mp_world.o
 solve_linter_d3q.o : ../../Modules/recvec.o
 solve_linter_d3q.o : ../../Modules/uspp.o

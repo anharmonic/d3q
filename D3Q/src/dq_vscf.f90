@@ -70,7 +70,7 @@ MODULE dq_vscf_module
     USE gc_lr,            ONLY : grho
     USE gc_d3,            ONLY : dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s
     USE d3com,            ONLY : d3c
-    USE noncollin_module, ONLY : nspin_lsda, nspin_gga
+    USE noncollin_module, ONLY : nspin_lsda, nspin_gga, nspin_mag
     USE pwcom,            ONLY : nspin
     USE funct,            ONLY : dft_is_gradient
     USE fft_interfaces,   ONLY : fft_interpolate
@@ -138,9 +138,18 @@ MODULE dq_vscf_module
 !        write(90004, '(2e16.6)') dvxc_sr
 !        write(90005, '(2e16.6)') dvxc_ss
 !        write(90006, '(2e16.6)') dvxc_s
-      CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-                    drho_tot, dfftp%nnr, nspin, nspin_gga, dfftp%nl, ngm, g, alat, &
-                    dvloc)
+!call dgradcorr &
+!       (dfftp, rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq, &
+!       dvscf, nspin_mag, nspin_gga, g, dvaux)
+!call dgradcorr &
+!       (rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq, &
+!       dvscf, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvaux)
+
+!      CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+!                    drho_tot, dfftp%nnr, nspin, nspin_gga, dfftp%nl, ngm, g, alat, &
+!                    dvloc)
+       CALL dgradcorr(dfftp, rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+                      drho_tot, nspin_mag, nspin_gga, g, dvloc)
       DEALLOCATE(rho_tot)
     ENDIF
     !
@@ -322,9 +331,16 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
     IF (nlcc_any) THEN
           rho_tot(:) = rho_tot(:) + fac * rho_core (:)
     ENDIF
-    
-    CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
-                   aux2, dfftp%nnr, nspin_mag, nspin_gga, dfftp%nl, ngm, g, alat, dvloc)
+ !call dgradcorr &
+!       (dfftp, rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq, &
+!       dvscf, nspin_mag, nspin_gga, g, dvaux)
+!call dgradcorr &
+!       (rho%of_r, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq, &
+!       dvscf, dfftp%nnr, nspin_mag, nspin_gga, nl, ngm, g, alat, dvaux)
+!    CALL dgradcorr(rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+!                   aux2, dfftp%nnr, nspin_mag, nspin_gga, dfftp%nl, ngm, g, alat, dvloc)
+       CALL dgradcorr(dfftp, rho_tot, grho, dvxc_rr, dvxc_sr, dvxc_ss, dvxc_s, xq_x, &
+                      aux2, nspin_mag, nspin_gga, g, dvloc)
 !        write(80100, *) size(rho_tot), size(rho_core), size(rho%of_r)
 !        DO nt = 1,8
 !         WRITE(80000, '(2i6,3f12.6)') nu_i, iq_x, xq_x
