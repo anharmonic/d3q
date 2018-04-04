@@ -33,7 +33,7 @@ echo "computing 2-body force constants"
 $bin/d3_q2r.x < q2r.in > d3_q2r.out
 
 echo "computing 3-body force constants"
-ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 1 mat3R > d3_qq2rr.out
+ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 1 -o mat3R > d3_qq2rr.out
 
 echo "appying sum rules 3-body force constants"
 $bin/d3_asr3.x -i mat3R -o mat3R.asr -t 1.e-12 -n 10000 -p 1 > d3_asr3.out
