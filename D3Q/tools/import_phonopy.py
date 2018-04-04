@@ -4,8 +4,8 @@ print """
 
 This is a very rough script that imports the FORCE_CONSTANT
 file produced by phonopy (by A. Togo). It assumes that the
-file has been produced by a VASP calculation, it will try to
-read three files:
+file has been produced by a VASP calculation, (i.e. units eV/A^2)
+it will try to read three files:
 1. POSCAR with the unit cell
 2. SPOSCAR with the super-cell (without any displacement)
 3. FORCE_CONSTANTS with the force costants
@@ -16,8 +16,8 @@ it with:
 or by hand (https://wiki.fysik.dtu.dk/ase/).
 
 I do not have time to add support for any other code,
-you should be able to do it yourself. Please not that the
-units of measur used inside FORCE_CONSTANTS seems to depend
+you should be able to do it yourself. Please note that the
+units of measure used inside FORCE_CONSTANTS depend
 on the code used to compute them.
 
 The resulting FC file will be saved as 'fc'.
@@ -26,7 +26,6 @@ NOTE THAT THE fc FILE IS NOT SUITABLE FOR USE IN THERMAL2
 BECAUSE IT IS NOT OPTIMIZED FOR FOURIER INTERPOLATION
 YOU WILL HAVE TO CONVERT IT TO THERMAL2 USING THE SCRIPT
 fc2mat2R.sh FROM THE TOOLS DIRECTORY!
-
 
 """
 
@@ -195,8 +194,5 @@ for alpha in range(3):
 
 fout.close()
 print "Force constants written to file 'fc'"
-
-
-
 
 
