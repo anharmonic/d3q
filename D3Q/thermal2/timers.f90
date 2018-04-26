@@ -27,7 +27,8 @@ MODULE timers
                      t_mpicom = nanotimer("mpi communication"), &
                      t_readdt = nanotimer("read fc data"), &
                      t_merged = nanotimer("merge degenerate"), &
-                     t_mkspf  = nanotimer("spectral function")
+                     t_mkspf  = nanotimer("spectral function"), &
+                     t_iodata = nanotimer("read data")
 
   TYPE(nanotimer) :: t_tksma   = nanotimer("sma thermalk"), &
                      t_tksum   = nanotimer("sum of tk terms"), &
@@ -65,6 +66,7 @@ MODULE timers
     CALL t_tkaout%print()
     CALL t_tkain%print()
     CALL t_tkcg%print()
+    CALL t_iodata%print()
     ioWRITE(stdout,'("   * lw contribs ")')
     CALL t_lwphph%print()
     CALL t_lwisot%print()

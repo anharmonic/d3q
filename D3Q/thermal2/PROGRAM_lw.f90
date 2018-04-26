@@ -213,6 +213,7 @@ MODULE linewidth_program
       CALL t_lwisot%print()
       CALL t_lwcasi%print()
       CALL t_lwphph%print()
+      CALL t_iodata%print()
       ioWRITE(*,'(a)') "*** * Contributions to ph-ph linewidth time:"
       CALL t_freq%print() 
       CALL t_bose%print() 
@@ -481,8 +482,9 @@ MODULE linewidth_program
       CALL print_timers_header()
       CALL t_spf%print()
       CALL t_qresolved_io%print()
-    CALL t_qsummed_io%print()
+      CALL t_qsummed_io%print()
       CALL t_readdt%print()
+      CALL t_iodata%print()
       ioWRITE(*,'(a)') "*** * Contributions to spectral function time:"
       CALL t_qresolved%print()
       CALL t_qsummed%print()

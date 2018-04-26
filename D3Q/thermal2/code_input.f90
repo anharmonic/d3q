@@ -94,6 +94,7 @@ MODULE code_input
     USE input_fc,             ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
     USE mpi_thermal,          ONLY : ionode, mpi_broadcast
     USE cmdline_param_module, ONLY : cmdline_to_namelist
+    USE timers
     !
     IMPLICIT NONE
     !
@@ -227,6 +228,9 @@ MODULE code_input
       nk, nconf, grid_type, xk0, &
       print_dynmat, print_velocity
       !
+      
+    timer_CALL t_iodata%start()
+    
     IONODE_READS_INPUT_FILE : &
     IF(ionode)THEN
       input_file="input."//TRIM(code)
@@ -806,6 +810,8 @@ MODULE code_input
                                     &(it may have been eaten by the preceeding card)", 1)
     !
     IF(input_unit/=5) CLOSE(input_unit)
+    !
+    timer_CALL t_iodata%stop()
     !
     CONTAINS 
     !
