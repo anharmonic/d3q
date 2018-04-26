@@ -226,7 +226,7 @@ MODULE thermalk_program
           IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
             IF(ANY(ABS(vel(:,nu))>eps_vel ))THEN
               WRITE(stdout,'(3i6,1e20.10,5x,3e20.10)') iq, nu, it, lw(nu,it), vel(:,nu)
-              CALL errore("TK_SMA", "cannot treat this case", 1)
+              CALL errore("TK_SMA", "Zero or NaN linewidth, with non-zero velocity", 1)
             ELSE
               !ioWRITE(stdout,"(3x,a,3i6)") "skip (iq,nu,it):", iq, nu, it
               CYCLE MODE_LOOP
@@ -236,7 +236,7 @@ MODULE thermalk_program
           IF(input%mfp_cutoff)THEN
             ! Note that lw is already multiplied by 2 here
             IF( mfp_scatter_vel(vel(:,nu), lw(nu,it), &
-                            input%sample_length, input%sample_dir) ) &
+                         input%sample_length, input%sample_dir) ) &
                CYCLE MODE_LOOP
           ENDIF
           !

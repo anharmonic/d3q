@@ -59,8 +59,8 @@ PROGRAM recenter
     CALL errore("recenter","filein and fileout are the same, I refuse to do that",1)
   !
   WRITE(*,*) "Number of neighbours to check for BZ", far
-  WRITE(*,*) "Input file", TRIM(filein)
-  WRITE(*,*) "Output file", TRIM(fileout)
+  WRITE(*,*) "Input file ", TRIM(filein)
+  WRITE(*,*) "Output file ", TRIM(fileout)
   
   CALL fc%read(filein, S)
   CALL aux_system(s)
