@@ -462,6 +462,7 @@ MODULE asr3_module
                     )
 
             delta = delta + (fx(iR2,iR3)%F(a,b,c, i,j,k) - avg)**2
+
             fx(iR2,iR3)%F(a,b,c, i,j,k) = avg
             fx(iR3,   iR2   )%F(a,c,b, i,k,j) = avg
             fx(mR2,   iR3mR2)%F(b,a,c, j,i,k) = avg
@@ -744,12 +745,12 @@ PROGRAM asr3
   pow         = cmdline_param_dble("p", 2._dp)
   use_modulo  = cmdline_param_logical("m")
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THRESH] [-n NITER] [-p POWER] [-m]"
+      WRITE(*,*) "Syntax: d3_asr3.x [-i FILEIN] [-o FILEOUT] [-t THR] [-n NITER] [-p POWER] [-m]"
       WRITE(*,*) ""
       WRITE(*,'(a)') " FILEIN  : input 3rd order force constants in grid form (default: mat3R)"
       WRITE(*,'(a)') " FILEOUT : output file with with sum rule applied (default: 'FILEIN.asr3')"
       WRITE(*,'(a)') "           "
-      WRITE(*,'(a)') " THRESH  : stop when residual breakage of ASR is smaller than THRESH (default: 1.d-12)"
+      WRITE(*,'(a)') " THR     : stop when residual violation of ASR is smaller than THR (default: 1.d-12)"
       WRITE(*,'(a)') " NITER   : maximum number of iterations (default: 1000)"
       WRITE(*,'(a)') " POWER   : apply the correction to each matrix element proportionally to itself "
       WRITE(*,'(a)') "           to power POWER (default: 2), the value 1 can be more effective some times,"
@@ -821,11 +822,11 @@ PROGRAM asr3
 !!  threshold = impose_asr3_mauri(S%nat,idx2,fx)
 
 
+     WRITE(*,*) "Pre-symmetrization:", perm_symmetrize_fc3(S%nat,idx2,fx)
+     !
      APPLY_ASR : &
      DO j = 1,niter_max
        IF( impose_asr3_1idx(S%nat,idx2,fx,pow) < threshold) EXIT
-!        IF( impose_asr3_1idx_alt(S%nat,idx2,fx,pow) < threshold) EXIT
-       
        OPEN(unit=100, file="STOP", status='OLD', iostat=ios)
        IF(ios==0) THEN
          CLOSE(100,status="DELETE")
