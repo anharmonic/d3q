@@ -104,7 +104,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   USE kinds,            ONLY : DP
   USE cell_base,        ONLY : at
   USE dfile_autoname,   ONLY : dfile_name
-  USE io_files,         ONLY : prefix
+  USE io_files,         ONLY : prefix, check_tempdir
   USE io_global,        ONLY : stdout, ionode, ionode_id
   USE mp,               ONLY : mp_bcast, mp_barrier
   USE d3matrix_io,      ONLY : d3matrix_filename
