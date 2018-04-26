@@ -29,7 +29,7 @@ for dir in $dirs; do
     then
 	cd $DIR
 
-	ls *.f90|grep -v mpi_thermal.f90|sed -e 's/.f90/.o : mpi_thermal.o/' > make.depend       
+	ls *.f90|grep -v mpi_thermal.f90|grep -Ev "[.](BAK|bak|tmp|TMP)"|sed -e 's/.f90/.o : mpi_thermal.o/' > make.depend       
 	$TOPDIR/moduledep.sh $DEPENDS >> make.depend
 	$TOPDIR/includedep.sh $DEPENDS >> make.depend
 
