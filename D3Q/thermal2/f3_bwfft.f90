@@ -53,7 +53,8 @@ MODULE f3_bwfft
     USE d3_basis,    ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE parameters,  ONLY : ntypx
     USE input_fc,    ONLY : ph_system_info, same_system, aux_system
-    USE write_d3dyn_ascii, ONLY : write_d3dyn_XXX, zero_d3dyn_XXX
+    !USE write_d3dyn_ascii, ONLY : write_d3dyn_XXX, zero_d3dyn_XXX
+    USE functions,   ONLY : refold_bz
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3), nq_trip
     TYPE(ph_system_info),INTENT(out) :: S
@@ -118,6 +119,10 @@ MODULE f3_bwfft
         CALL errore("read_d3_matrices","unknow file format version: "//TRIM(format_version),1)
       ENDIF
       !
+      xq(:,1) = refold_bz(xq(:,1), S%bg)
+      xq(:,2) = refold_bz(xq(:,2), S%bg)
+      xq(:,3) = refold_bz(xq(:,3), S%bg)
+      
       PERM_LOOP : &
       DO iperm = 1,nperms
         a = d3perms_order2(1,iperm)
@@ -559,15 +564,15 @@ MODULE f3_bwfft
       CALL d3_6idx_2_3idx(S%nat, d3grid(iq)%d, P3)
       rmaxi = MAXVAL(ABS(DBLE(D3)-DBLE(P3)))
       imaxi = MAXVAL(ABS(DIMAG(D3)-DIMAG(P3)))
-      IF(rmaxi > 1.d-6) THEN
+      IF(rmaxi > 1.d-5) THEN
         found = .true.
         WRITE(*,'("    Real:",i8,3(3f12.4,3x),es20.8)') iq, d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, rmaxi
       ENDIF
-      IF(imaxi > 1.d-6) THEN
+      IF(imaxi > 1.d-5) THEN
         found = .true.
         WRITE(*,'("    Imag:",i8,3(3f12.4,3x),es20.8)') iq, d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, imaxi
       ENDIF
-      IF(write_diff .and. (rmaxi>1.d-6 .or. imaxi>1.d-6) )THEN
+      IF(write_diff .and. (rmaxi>1.d-5 .or. imaxi>1.d-5) )THEN
         CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
         CALL write_d3dyn_xml(trim(write_diff_prefix), &
                             d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
@@ -582,7 +587,9 @@ MODULE f3_bwfft
         WRITE(*,*) "  This indicates a serious problem with D3 matrices "
         STOP 1
       ELSE
-        WRITE(*,*) "  WARNING! BW/FW FFT discrepancy was found! "
+        WRITE(*,*) "  BEWARE! Possibly harmless BW/FW FFT discrepancy was found! "
+        WRITE(*,*) "  This can be caused by low cutoff energy and/or translational symmetry"
+        WRITE(*,*) "  violation by GGA/PBE functionals. "
       ENDIF
     ELSE
       WRITE(*,*) "  BW/FW FFT fine."
@@ -600,6 +607,7 @@ MODULE f3_bwfft
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
     USE d3matrix_io,      ONLY : write_d3dyn_xml
+    USE functions,        ONLY : refold_bz
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3)
     INTEGER,INTENT(in) :: nq_trip
@@ -629,6 +637,10 @@ MODULE f3_bwfft
         d3grid(iq)%xq1 = i1*bgi(:,1) + j1*bgi(:,2) + k1*bgi(:,3)
         d3grid(iq)%xq2 = i2*bgi(:,1) + j2*bgi(:,2) + k2*bgi(:,3)
         d3grid(iq)%xq3 = -d3grid(iq)%xq1-d3grid(iq)%xq2
+        ! refold in the Brillouin zone
+        d3grid(iq)%xq1 = refold_bz(d3grid(iq)%xq1, S%bg)
+        d3grid(iq)%xq2 = refold_bz(d3grid(iq)%xq2, S%bg)
+        d3grid(iq)%xq3 = refold_bz(d3grid(iq)%xq3, S%bg)
       ENDDO
       ENDDO
       ENDDO
