@@ -57,7 +57,7 @@ MODULE casimir_linewidth
     REAL(DP) :: lw(nat3)
     REAL(DP) :: inv_lcas
     INTEGER  :: nu
-    REAL(DP),PARAMETER :: eps = 1.e-20_dp
+    REAL(DP),PARAMETER :: eps = 1.e-10_dp
     !
     ! Case 1: Velocity projected along sample_dir
     IF (SUM(ABS(sample_dir)) > eps) THEN
@@ -76,39 +76,39 @@ MODULE casimir_linewidth
     !
   END FUNCTION casimir_linewidth_vel
   !
-  ! Returns the HALF width half maximum (note the 0.5 factor) of phonon modes
-  ! due to Casimir scattering with grain boundary or sample boundary
+  ! Returns .true. if the phonon mean free path is longer than l_sample
   ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION mfp_scatter_vel(vel, fwhm, l_sample, sample_dir) &
+  FUNCTION mfp_scatter_vel(vel, inverse_lifetime, l_sample, sample_dir) &
   RESULT(scatter)
     !
     IMPLICIT NONE
     !
-    REAL(DP),INTENT(in) :: fwhm
+    ! inverse_lifetime should be 1/(2*gamma)
+    REAL(DP),INTENT(in) :: inverse_lifetime
     REAL(DP),INTENT(in) :: l_sample
     REAL(DP),INTENT(in) :: sample_dir(3)
     REAL(DP),INTENT(in) :: vel(3)
     ! FUNCTION RESULT:
     LOGICAL :: scatter
-    REAL(DP) :: mfp
+    REAL(DP) :: effective_vel
     !
-    REAL(DP),PARAMETER :: eps = 1.e-20_dp
+    REAL(DP),PARAMETER :: eps = 1.e-10_dp
     !
-    IF(fwhm==0._dp)THEN
-      scatter = .true.
-      RETURN
-    ENDIF
+!     IF(inverse_lifetime==0._dp)THEN
+!       scatter = .true.
+!       RETURN
+!     ENDIF
     !
     ! Case 1: Velocity projected along sample_dir
     IF (SUM(ABS(sample_dir)) > eps) THEN
-      mfp = SUM( vel*sample_dir )
+      effective_vel = ABS(SUM( vel*sample_dir ))
     !
     ! Case 2: Modulus of velocity
     ELSE
-      mfp = DSQRT(SUM( vel**2 ))
+      effective_vel = DSQRT(SUM( vel**2 ))
     ENDIF
     !
-    IF (mfp/fwhm > l_sample) THEN
+    IF (effective_vel > l_sample*inverse_lifetime) THEN
       scatter = .true.
     ELSE
       scatter = .false.
