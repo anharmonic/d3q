@@ -7,35 +7,36 @@
 !
 MODULE r2q_program
 
- ! this space unintentionally left non-blank
 #include "mpi_thermal.h"
   CONTAINS
 
-  SUBROUTINE joint_dos(input, S, fc)
+  SUBROUTINE joint_dos(input, out_grid, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
     USE input_fc,         ONLY : forceconst2_grid, ph_system_info
     USE q_grids,          ONLY : q_grid, q_basis, setup_grid, prepare_q_basis
     USE constants,        ONLY : RY_TO_CMM1, pi
     USE functions,        ONLY : f_bose, f_gauss
-    USE fc2_interpolate,  ONLY : freq_phq
+    USE fc2_interpolate,  ONLY : freq_phq, bose_phq
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
     USE nanoclock,        ONLY : print_percent_wall
     USE mpi_thermal,      ONLY :  mpi_bsum
     IMPLICIT NONE
-    TYPE(code_input_type) :: input
-    TYPE(ph_system_info)   :: S
+    TYPE(code_input_type)    :: input
+    TYPE(q_grid), INTENT(in) :: out_grid
+    TYPE(ph_system_info)     :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
     !
-    TYPE(q_grid)  :: out_grid, in_grid
+    TYPE(q_grid)  :: in_grid
     !
-    REAL(DP) :: freqi(S%nat3), freqj(S%nat3), freqk(S%nat3)
     COMPLEX(DP) :: U(S%nat3, S%nat3)
     !
     REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), &
                 xq_i(3), xq_j(3), xq_k(3)
     REAL(DP) :: sigma_ry, weight
+    REAL(DP) :: freqi(S%nat3), freqj(S%nat3), freqk(S%nat3)
+    REAL(DP) :: bosej(S%nat3), bosek(S%nat3), bose_C, bose_X
     REAL(DP) :: dom(input%ne), ctm(input%ne), jdos_X(input%ne), jdos_C(input%ne)
     REAL(DP) :: dom_C(S%nat3), dom_X(S%nat3)
     REAL(DP) :: ctm_C(S%nat3), ctm_X(S%nat3)
@@ -49,8 +50,8 @@ MODULE r2q_program
     sigma_ry = input%sigma(1)/RY_TO_CMM1
     !xq0 = input%q_initial
 
-    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
-                out_grid, scatter=.false., quiet=.false.)
+!     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+!                 out_grid, scatter=.false., quiet=.false.)
 !     CALL setup_grid("simple", S%bg, 1,1,1, &
 !                 out_grid, xq0=input%xk0, scatter=.false., quiet=.false.)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
@@ -58,6 +59,7 @@ MODULE r2q_program
     jdos_X = 0._dp
     jdos_C = 0._dp
     !
+
     IQ_LOOP : &
     DO iq = 1, out_grid%nq
       !
@@ -66,36 +68,44 @@ MODULE r2q_program
       xq_i = out_grid%xq(:,iq)
       CALL freq_phq(xq_i, S, fc, freqi, U)
       !
+      ctm_C = 0._dp
+      ctm_X = 0._dp
+      !
       DO jq = 1, in_grid%nq
         xq_j = in_grid%xq(:,jq)
         CALL freq_phq(xq_j, S, fc, freqj, U)
+        CALL bose_phq(input%T(1),S%nat3, freqj(:), bosej(:))
         
         xq_k = -(xq_i + xq_j)
         CALL freq_phq(xq_k, S, fc, freqk, U)
+        CALL bose_phq(input%T(1),S%nat3, freqk(:), bosek(:))
         !
-        weight = out_grid%w(iq)*in_grid%w(jq)*(input%de/RY_TO_CMM1)
+        DO k = 1,S%nat3
+        DO j = 1,S%nat3
+          IF( ALL((/k,j/)==(/1,2/)) .or. ALL((/k,j/)==(/2,1/)) ) THEN
+          bose_C = 2* (bosej(j) - bosek(k))
+          dom_C(:) = freqi(:)+freqj(j)-freqk(k) ! cohalescence
+          ctm_C(:) = ctm_C(:)+ in_grid%w(jq)*bose_C*f_gauss(dom_C, sigma_ry) !delta 
           !
-          ctm_C = 0._dp
-          ctm_X = 0._dp
+          bose_X = bosej(j) + bosek(k) + 1
+          dom_X(:) = freqi(:)-freqj(j)-freqk(k) ! scattering/decay
+          ctm_X(:) = ctm_X(:)+ in_grid%w(jq)*bose_X*f_gauss(dom_X, sigma_ry) !delta
+          ENDIF
           !
-          DO k = 1,S%nat3
-          DO j = 1,S%nat3
-            dom_C(:) = freqi(:)+freqj(j)-freqk(k) ! cohalescence
-            ctm_C(:) = ctm_C(:)+f_gauss(dom_C, sigma_ry) !delta 
-            !
-            dom_X(:) = freqi(:)-freqj(j)-freqk(k) ! scattering/decay
-            ctm_X(:) = ctm_X(:)+f_gauss(dom_X, sigma_ry) !delta
-            !
-          ENDDO
-          ENDDO
-          !
-          !
+        ENDDO
+        ENDDO
+        !
       ENDDO
       !
-      ctm_X = ctm_X*weight
-      ctm_C = ctm_C*weight
       CALL mpi_bsum(S%nat3,ctm_X)
       CALL mpi_bsum(S%nat3,ctm_C)
+      !
+      WRITE(30000, '(99e14.6)') out_grid%w(iq), freqi*RY_TO_CMM1, &
+                                (ctm_X+ctm_C), ctm_X, ctm_C
+      !
+      weight = out_grid%w(jq)*(input%de/RY_TO_CMM1)
+      ctm_X = ctm_X*weight
+      ctm_C = ctm_C*weight
       !
       DO i = 1, S%nat3
         dom(:) = freqi(i)-nrg(:)
@@ -290,7 +300,7 @@ PROGRAM r2q
   IF( input%calculation=="dos") THEN
     CALL ph_dos(input,S,fc2)
   ELSE IF( input%calculation=="jdos") THEN
-    CALL joint_dos(input,S,fc2)
+    CALL joint_dos(input,qpath,S,fc2)
   ELSE IF ( input%calculation=="rms") THEN
     CALL rms(input, S, fc2)
   ELSE
