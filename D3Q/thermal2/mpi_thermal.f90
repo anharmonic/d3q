@@ -446,7 +446,7 @@ MODULE mpi_thermal
     CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
     !
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
-    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+!    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
 #ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
@@ -493,7 +493,7 @@ MODULE mpi_thermal
     CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
     !
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
-    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+!    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
 #ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
@@ -543,7 +543,7 @@ MODULE mpi_thermal
     CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
     !
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
-    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+!    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
 #ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
@@ -596,7 +596,7 @@ MODULE mpi_thermal
     CHARACTER(len=11),PARAMETER :: sub='scatter_mat'
     !
     IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
-    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+!    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
 
 #ifdef __MPI
     ALLOCATE(nn_scatt(num_procs))
