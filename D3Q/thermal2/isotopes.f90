@@ -107,15 +107,11 @@ MODULE isotopes_linewidth
     REAL(DP) :: lw(nat3)
     lw(:) = 0._dp
     !
-!    czz1 = CONJG(zz(:,:,1))
-!    zz2 = zz(:,:,2)
-    !
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,ia,it,ix,nu,freq_f,sum_zz,sum_zz2) &
 !$OMP REDUCTION(+:lw) COLLAPSE(2)
     DO i = 1,nat3
       DO j = 1,nat3
         !
-        !dfreq = f_gauss(freq(i,1)-freq(j,2), sigma)
         freq_f = freq(i,1)*freq(j,2) * f_gauss(freq(i,1)-freq(j,2), sigma)
         !
         !IF(freq_f > 1.d-8)THEN
@@ -128,7 +124,6 @@ MODULE isotopes_linewidth
             nu = nu + 1
             !
             sum_zz =  sum_zz + CONJG(zz(nu,i,1)) * zz(nu,j,2)
-            !sum_zz =  sum_zz + czz1(nu,i) * zz2(nu,j)
             !
           ENDDO
           sum_zz2 = sum_zz2 + gs2(it)*REAL(CONJG(sum_zz)*sum_zz, kind=DP)
@@ -197,7 +192,7 @@ MODULE isotopes_linewidth
         P(i,j) = P(i,j) + bose_f*freq_f*sum_zz2
       ENDDO
     ENDDO
-! !$OMP END PARALLEL DO 
+!$OMP END PARALLEL DO 
     !
     sum_isotope_scattering_modes = 0.5_dp*pi*P
     !

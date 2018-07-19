@@ -224,7 +224,8 @@ MODULE mc_grids
   END SUBROUTINE setup_optimized_grid
  
   
-  
+  ! As optimize grid, but tries to do everything in parallel to avoid memory bottleneck
+  ! (currently sort is done in serial)
   SUBROUTINE setup_poptimized_grid(input, S, fc, grid, xq0, prec, scatter)
     USE code_input,       ONLY : code_input_type
     USE input_fc,         ONLY : ph_system_info, forceconst2_grid
@@ -297,7 +298,7 @@ MODULE mc_grids
     !
     CALL mpi_bsum(S%nat3, totfklw)
     !
-    ! We normalize the contrivution of each band, otehrwise the bands with a large linewith
+    ! We normalize the contribution of each band, otherwise the bands with a large joint dos
     ! dominate and can compromise the precision of the other bands
     ALLOCATE(contributions_sum(grid0%nq))
     totfklw = 1._dp/(totfklw*S%nat3)
