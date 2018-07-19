@@ -49,7 +49,7 @@ MODULE sqom_program
   SUBROUTINE READ_INPUT(input, S, fc2)
     USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1
-    USE more_constants, ONLY : INVALID
+    USE more_constants, ONLY : INVALID, write_conf
     USE wrappers,       ONLY : f_mkdir_safe
     USE code_input,     ONLY : parse_command_line
     !
@@ -114,12 +114,15 @@ MODULE sqom_program
     CLOSE(input_unit)
 
     IF(TRIM(file_mat2) == INVALID) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
-    
+
     IF(calculation=="neutron") THEN
       IF(TRIM(postfix) == INVALID) THEN
-        postfix = TRIM(int_to_char(NINT(qq(1))))//&
-                  TRIM(int_to_char(NINT(qq(2))))//&
-                  TRIM(int_to_char(NINT(qq(3))))
+!         postfix = TRIM(int_to_char(NINT(qq(1))))//&
+!                   TRIM(int_to_char(NINT(qq(2))))//&
+!                   TRIM(int_to_char(NINT(qq(3))))
+        postfix=TRIM(write_conf(1, 3, qq))//"_"&
+              //TRIM(write_conf(2, 3, qq))//"_"&
+              //TRIM(write_conf(3, 3, qq))
       ENDIF
       
     
@@ -134,15 +137,18 @@ MODULE sqom_program
     input%outdir              = outdir
     input%file_mat2           = file_mat2
     input%asr2                = asr2
+    !
     input%n_files             = n_files
     input%elastic_peak        = elastic_peak
     input%T                   = T
     input%convolution         = convolution
-    input%qq                  = qq
     input%res_frac    = res_frac
     input%res0_cmm1   = res0_cmm1
     !
     CALL READ_DATA(input, s, fc2)
+    CALL cryst_to_cart(1,qq,S%bg, +1)
+    input%qq                  = qq
+    WRITE(*,'(a,3f12.6)') "qq in 2pi/alat: ", qq
     !
   END SUBROUTINE READ_INPUT
   !
@@ -203,7 +209,7 @@ MODULE sqom_program
     factors = ffac( "", 0._dp, 0._dp, 0._dp)
     ! Hydrogen:
 !     factors(0,1) = ffac( "H", 1.008_dp, -3.7390_dp)
-!     factors(1,1) = ffac( "H", 1._dp,-3.7406_dp)
+!    ` factors(1,1) = ffac( "H", 1._dp,-3.7406_dp)
 !     factors(2,1) = ffac( "D", 2._dp, 6.671_dp)
 !     factors(3,1) = ffac( "T", 3._dp, 4.792_dp)
 !     ! Palladium
@@ -214,6 +220,19 @@ MODULE sqom_program
 !     factors(4,46) = ffac( "Pd", 106._dp, 6.4_dp)
 !     factors(5,46) = ffac( "Pd", 108._dp, 4.1_dp)
 !     factors(6,46) = ffac( "Pd", 110._dp, 7.7_dp)
+    !
+    ! Selenium
+    factors(0,34) = ffac("Se", 78.971_dp, 7.970_dp, 7.98_dp)
+    factors(1,34) = ffac("Se", 74_dp,     0.8_dp,   0.1_dp)
+    factors(2,34) = ffac("Se", 76_dp,     12.2_dp,  18.7_dp)
+    factors(3,34) = ffac("Se", 77_dp,     8.25_dp,  8.6_dp)
+    factors(4,34) = ffac("Se", 78_dp,     8.24_dp,  8.5_dp)
+    factors(5,34) = ffac("Se", 80_dp,     7.48_dp,  7.03_dp)
+    factors(6,34) = ffac("Se", 82_dp,     6.34_dp,  5.05_dp)
+    !
+    ! Bismuth
+    factors(0,83) = ffac("Bi", 208.9804_dp, 8.532_dp, 9.148_dp)
+    factors(1,83) = ffac("Bi", 209._dp,     8.532_dp, 9.148_dp)
     !
     ! Tellurium
     factors(0,52) = ffac( "Te", 127.6_dp, 5.80_dp, 4.23_dp)
@@ -234,6 +253,7 @@ MODULE sqom_program
     factors(4,82) = ffac( "Pb", 208._dp, 9.50_dp, 11.34_dp)
     
     IF(.not. present(amass)) THEN
+      WRITE(*,*) "Looking for ", TRIM(aname)
       !
       ! Deuterium an Tritium are special:
       IF( aname == "D" ) THEN
@@ -253,6 +273,7 @@ MODULE sqom_program
       !
     ELSE
       !
+      WRITE(*,*) "Looking for ", TRIM(aname), "with mass", amass
       ! Scan with both symbol and mass:
       DO i_type = 1,n_types
       DO i_iso  = 1,n_iso
@@ -289,13 +310,13 @@ MODULE sqom_program
     REAL(DP),INTENT(inout) :: spf(ne,S%nat3)
     !
     COMPLEX(DP) :: cscal, cscal2, csum
-    INTEGER     :: nu, ia, idx, ie, je
+    INTEGER     :: nu, ia, idx, ie, je, je_range, je_range_dw, je_range_up
     !
     REAL(DP) :: freq(S%nat3)
     COMPLEX(DP) :: zz(S%nat3, S%nat3)
     !
     REAL(DP) :: G(S%nat3), F, Sq(ne,S%nat3)
-    REAL(DP) :: sigma, sigma_p, sigma_m, norm, xqq(3)
+    REAL(DP) :: sigma, sigma_p, sigma_m, xqq(3), norm, new_norm
     REAL(DP) :: dee(ne), peak0(ne)
     REAL(DP),PARAMETER :: FWHM_TO_SIGMA = 0.42466_dp !=( 2 *  sqrt(2._dp *log(2._dp)) )**-1
     !
@@ -305,6 +326,7 @@ MODULE sqom_program
 !     WRITE(*,'(a,3f12.6)') "            g-point: ",  xg
 
     xqq = xq+xg
+    write(*,"(3f12.6)") xqq
     !
     CALL freq_phq_safe(xqq, S, fc2, freq, zz)
     !
@@ -319,11 +341,10 @@ MODULE sqom_program
     ! for Simpson integration
     dee(1:ne-1) = ee(2:ne)-ee(1:ne-1)
     dee(ne) = dee(ne-1)
-    !dee(1) = dee(1)
-    DO nu=1,S%nat3
-      CALL simpson(ne, spf(:,nu), dee, norm)
-!       print*, "norm", nu, norm
-    ENDDO
+    !DO nu=1,S%nat3
+    !  CALL simpson(ne, spf(:,nu), dee, norm)
+    !   print*, "norm", nu, norm
+    !ENDDO
     !
     !print*, ff
     DO nu=1,S%nat3
@@ -332,7 +353,7 @@ MODULE sqom_program
       DO ia=1,S%nat
           idx=(ia-1)*3
           ! 2 \pi i q \dot \tau
-          cscal  = CMPLX(0._dp, tpi*SUM(xq*S%tau(:,ia)), kind=DP) 
+          cscal  = CMPLX(0._dp, tpi*SUM(xqq*S%tau(:,ia)), kind=DP) 
           ! 2 \pi q \dot zz^{ia}_nu
           cscal2 = tpi* ( xqq(1)*zz(idx+1,nu) &
                          +xqq(2)*zz(idx+2,nu) &
@@ -377,24 +398,33 @@ MODULE sqom_program
 !     spf = Sq
     !
     !
-    Sq = 0._dp
     !
     ! Doing the convolution with a gaussian in the least efficient way possible
-    DO ie=1,ne
+    IF(.true.)THEN
+      Sq = 0._dp
+      DO ie=1,ne
       !
-      DO je=1,ne
-        !
-        DO nu = 1,S%nat3
-          sigma = MAX(ABS(res_frac*ee(je)), res0_cmm1/RY_TO_CMM1)*FWHM_TO_SIGMA
-          F = f_ngauss(ee(ie)-ee(je),sigma)
+      sigma = MAX(ABS(res_frac*ee(ie)), res0_cmm1/RY_TO_CMM1)*FWHM_TO_SIGMA
+      je_range = 5*sigma/dee(ie)
+      je_range_dw = MIN(je_range, ie-1)
+      je_range_up = MIN(je_range, ne-ie)
+      
+        DO je = ie-je_range_dw, ie+je_range_up
           !
-          ! I use spf*e which seems to be the correctly normalizable form
+          DO nu = 1,S%nat3
+            F = f_ngauss(ee(ie)-ee(je),sigma)
+            !
+            ! I use spf*e which seems to be the correctly normalizable form
   !         Sq(je,nu)=Sq(je,nu)+de*ee(ie)*spf(ie,nu)*F
-          Sq(je,nu)=Sq(je,nu)+dee(ie)*spf(ie,nu)*F
-          !
+            Sq(je,nu)=Sq(je,nu)+dee(ie)*spf(ie,nu)*F
+            !
+          ENDDO
         ENDDO
       ENDDO
-    ENDDO
+    ELSE
+      Sq = spf
+    ENDIF
+
 !     DO nu=1,S%nat3
 !       CALL simpson(ne, RY_TO_CMM1*ee*spf(:,nu)*2/pi, dee, norm)
 !       print*, "norm3", nu, norm
@@ -567,8 +597,6 @@ MODULE sqom_program
       IF(ios/=0) CYCLE READING_LOOP
       
       IF(a1=="#" .and. a2 == "xq" )THEN
-        READ(u,*)
-        READ(u,*)
         a1=""; a2=""
         iq = iq+1
         READ(buffer,*,iostat=ios) a1, a2, iq_, xq
@@ -576,7 +604,10 @@ MODULE sqom_program
 !         WRITE(*,'(a,i6,3f12.6)') "Found q-point: ",  iq, xq
         !
         DO WHILE(reading_ee)
-          READ(u, '(a4096)', iostat=ios) buffer
+          SKIP_COMMENTS : DO
+            READ(u, '(a4096)', iostat=ios) buffer
+            IF(buffer(1:1) /= "#") EXIT SKIP_COMMENTS
+          ENDDO SKIP_COMMENTS
           IF(ios/=0) EXIT READING_LOOP
           !
           READ(buffer,*,iostat=ios) r1, r2, r3, (r4(j), j =1,nat3)
@@ -652,7 +683,11 @@ MODULE sqom_program
 !         WRITE(*,'(a,i6,3f12.6)') "Read q-point: ",  iq, xq(:,iq)
         !
         DO ie = 1,ne
-          READ(u, '(a4096)', iostat=ios) buffer
+          !READ(u, '(a4096)', iostat=ios) buffer
+          SKIP_COMMENTS : DO
+            READ(u, '(a4096)', iostat=ios) buffer
+            IF(buffer(1:1) /= "#") EXIT SKIP_COMMENTS
+          ENDDO SKIP_COMMENTS
           IF(ios/=0) CALL errore("read_spf", "error reading spf line", ie)
           READ(buffer,*,iostat=ios) w(iq), ee(ie), r2, (spf(ie,j,iq), j =1,nat3)
           IF(ios/=0) CALL errore("read_spf", "error reading from spf line "//TRIM(buffer), ie)
@@ -694,7 +729,7 @@ PROGRAM sqom
   REAL(DP),ALLOCATABLE :: ee(:)
   INTEGER :: nq, ne, iq, ie, ifile, it
   !
-  REAL(DP) :: ff(ntypx)
+  REAL(DP) :: ff(ntypx), norm_g
   !
   
 !   print*, neutron_form_factor("H")
@@ -770,6 +805,7 @@ PROGRAM sqom
   CALL mpi_bsum(ne,S%nat3,nq,spf_merge)
   spf_merge = spf_merge / DBLE(sqi%n_files)
   !
+  norm_g = DSQRT(SUM(sqi%qq**2))
   IF(ionode)THEN
     OPEN(998, file=TRIM(sqi%e_file(1))//"_"//trim(sqi%postfix))
     DO iq = 1, nq
@@ -777,7 +813,7 @@ PROGRAM sqom
       WRITE(998, '("#")')
       WRITE(998, '("#")')
       DO ie = 1, ne
-        WRITE(998,'(2f12.6,100e20.10e3)') w(iq), ee(ie)*RY_TO_CMM1,&
+        WRITE(998,'(2f12.6,100e20.10e3)') w(iq)+norm_g, ee(ie)*RY_TO_CMM1,&
                 SUM(spf_merge(ie,:,iq)), spf_merge(ie,:,iq)
       ENDDO
       WRITE(998,*)
