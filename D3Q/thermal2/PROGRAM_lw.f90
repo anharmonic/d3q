@@ -47,7 +47,7 @@ MODULE linewidth_program
     INTEGER :: iq, it
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
-    REAL(DP)   :: lw(S%nat3,input%nconf)
+    REAL(DP)   :: lw(S%nat3,input%nconf), lw_isot(S%nat3,input%nconf)
     REAL(DP)   :: lw_casimir(S%nat3)
     REAL(DP)   :: sigma_ry(input%nconf)
     CHARACTER(len=32) :: f1, f2
@@ -112,6 +112,26 @@ MODULE linewidth_program
       IF(input%sort_freq=="overlap" .or. iq==1) &
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
       !
+      ! Pre-compute isotopic linewidth
+      IF(input%isotopic_disorder)THEN
+          timer_CALL t_lwisot%start()
+        lw_isot = isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,&
+                                        sigma_ry, S, grid, fc2, w2, D)
+          timer_CALL t_lwisot%stop()
+      ELSE
+        lw_isot = 0._dp
+      ENDIF
+      !
+      ! Pre-compute Casimir finite sample size linewidth
+      IF(input%casimir_scattering)THEN
+          timer_CALL t_lwcasi%start()
+        lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
+                                      input%sample_dir, S, fc2)
+        timer_CALL t_lwcasi%stop()
+      ELSE
+        lw_casimir = 0._dp
+      ENDIF
+      !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
       
@@ -120,27 +140,9 @@ MODULE linewidth_program
                         S, grid, fc2, fc3, w2, D)
           timer_CALL t_lwphph%stop()
         !
-        ! Add contribution of isotopes, scattering here:
-        lw = 0._dp
-        IF(input%isotopic_disorder)THEN
-            timer_CALL t_lwisot%start()
-          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,&
-                                         sigma_ry, S, grid, fc2, w2, D)
-            timer_CALL t_lwisot%stop()
-        ENDIF
-        !
-        IF(input%casimir_scattering)THEN
-            timer_CALL t_lwcasi%start()
-          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
-                                        input%sample_dir, S, fc2)
-          DO it = 1,input%nconf
-            lw(:,it) = lw(:,it) + lw_casimir
-          ENDDO
-          timer_CALL t_lwcasi%stop()
-        ENDIF
-        !
         DO it = 1,input%nconf
-          lsx = ls(:,it) - CMPLX(0._dp, lw(:,it),kind=DP)
+          ! Add isotopes and Casimir to the imaginary part of ls
+          lsx = ls(:,it) - CMPLX(0._dp, lw_isot(:,it)+lw_casimir(:),kind=DP)
           !
           IF(TRIM(input%sort_freq)=="shifted") THEN
             CALL resort_w_ls(S%nat3, w2, lsx)
@@ -148,13 +150,13 @@ MODULE linewidth_program
             lsx = lsx + w2
           ENDIF
   
-          !WHERE(ABS(DBLE(lsx)) <1.d-99) lsx = DCMPLX(0._dp, DIMAG(lsx))
-          !WHERE(ABS(DIMAG(lsx))<1.d-99) lsx = DCMPLX(DBLE(lsx), 0._dp)
           IF(qpath%w(iq)==0._dp .and. iq>1 .and. ionode) WRITE(1000+it, *)
-          ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//'x)') &
+          ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), w2(order%idx(:))*RY_TO_CMM1, &
                 -DIMAG(lsx(order%idx(:)))*RY_TO_CMM1, &
-                  DBLE(lsx(order%idx(:)))*RY_TO_CMM1
+                  DBLE(lsx(order%idx(:)))*RY_TO_CMM1, &
+                  lw_isot(order%idx(:),it)*RY_TO_CMM1, &
+                  lw_casimir(order%idx(:))*RY_TO_CMM1
           
           ioFLUSH(1000+it)
         ENDDO
@@ -166,32 +168,19 @@ MODULE linewidth_program
         lw = linewidth_q(qpath%xq(:,iq), input%nconf, input%T,  sigma_ry, &
                         S, grid, fc2, fc3, w2, D)
           timer_CALL t_lwphph%stop()
-        IF(input%isotopic_disorder)THEN
-            timer_CALL t_lwisot%start()
-          lw = lw + isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T, &
-                                         sigma_ry, S, grid, fc2, w2, D)
-            timer_CALL t_lwisot%stop()
-        ENDIF
-        IF(input%casimir_scattering)THEN
-            timer_CALL t_lwcasi%start()
-          lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
-                                           input%sample_dir, S, fc2)
-          DO it = 1,input%nconf
-            lw(:,it) = lw(:,it) + lw_casimir
-          ENDDO
-            timer_CALL t_lwcasi%stop()
-        ENDIF
-        
-        !WHERE(ABS(lw)<1.d-99) lw= 0._dp
+        !
         DO it = 1,input%nconf
           !
-          ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//'x)') &
+          ! Add isotopic and casimir linewidths
+          lw(:,it) = lw(:,it) + lw_isot(:,it) + lw_casimir
+          !
+          ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//f2//'x)') &
                 iq,qpath%w(iq),qpath%xq(:,iq), &
-                w2(order%idx(:))*RY_TO_CMM1, lw(order%idx(:),it)*RY_TO_CMM1
+                w2(order%idx(:))*RY_TO_CMM1, lw(order%idx(:),it)*RY_TO_CMM1, &
+                lw_isot(order%idx(:),it)*RY_TO_CMM1, lw_casimir(order%idx(:))*RY_TO_CMM1
           ioFLUSH(1000+it)
         ENDDO
       !
-      ! MODE_SELECTION !
       ELSE
       !
         CALL errore('LW_QBZ_LINE', 'wrong mode (imag or full)', 1)
@@ -215,8 +204,8 @@ MODULE linewidth_program
       CALL t_lwphph%print()
       CALL t_iodata%print()
       ioWRITE(*,'(a)') "*** * Contributions to ph-ph linewidth time:"
-      CALL t_freq%print() 
-      CALL t_bose%print() 
+      CALL t_freq%print()
+      CALL t_bose%print()
       CALL t_sum%print() 
       CALL t_fc3int%print() 
       CALL t_fc3m2%print() 
@@ -344,14 +333,14 @@ MODULE linewidth_program
       !
       IF (TRIM(input%mode) == "full") THEN
         spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, shift=.true.)
+                                  S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.true.)
       ELSE IF (TRIM(input%mode) == "imag") THEN
         spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, shift=.false.)
+                                  S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.false.)
       ELSE IF (TRIM(input%mode) == "simple" .or. TRIM(input%mode) == "isimple") THEN
         spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, &
-                                  (TRIM(input%mode) == "simple") )
+                                  S, grid, fc2, fc3, input%ne, ener, w2, D, &
+                                  shift=(TRIM(input%mode) == "simple") )
       ELSE
         CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
       ENDIF
