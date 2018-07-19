@@ -10,7 +10,7 @@ MODULE r2q_program
 #include "mpi_thermal.h"
   CONTAINS
 
-  SUBROUTINE joint_dos(input, out_grid, S, fc)
+  SUBROUTINE JOINT_DOS(input, out_grid, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
     USE input_fc,         ONLY : forceconst2_grid, ph_system_info
@@ -22,6 +22,7 @@ MODULE r2q_program
     USE random_numbers,   ONLY : randy
     USE nanoclock,        ONLY : print_percent_wall
     USE mpi_thermal,      ONLY :  mpi_bsum
+    USE more_constants,   ONLY : write_conf
     IMPLICIT NONE
     TYPE(code_input_type)    :: input
     TYPE(q_grid), INTENT(in) :: out_grid
@@ -34,32 +35,39 @@ MODULE r2q_program
     !
     REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), &
                 xq_i(3), xq_j(3), xq_k(3)
-    REAL(DP) :: sigma_ry, weight
+    REAL(DP) :: sigma_ry, weight, e0_ry, de_ry, sigma_e_ry
     REAL(DP) :: freqi(S%nat3), freqj(S%nat3), freqk(S%nat3)
     REAL(DP) :: bosej(S%nat3), bosek(S%nat3), bose_C, bose_X
     REAL(DP) :: dom(input%ne), ctm(input%ne), jdos_X(input%ne), jdos_C(input%ne)
     REAL(DP) :: dom_C(S%nat3), dom_X(S%nat3)
     REAL(DP) :: ctm_C(S%nat3), ctm_X(S%nat3)
-    INTEGER :: iq, jq, k,j,i
+    REAL(DP) :: herring_C(S%nat3), aux(S%nat3)
+    INTEGER :: iq, jq, k,j,i, SLOW, FAST
     CHARACTER (LEN=6), EXTERNAL :: int_to_char
+    CHARACTER(len=256) :: filename
     !
     !
     FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
     nrg = nrg/RY_TO_CMM1
     !
     sigma_ry = input%sigma(1)/RY_TO_CMM1
+    sigma_e_ry = input%sigma_e/RY_TO_CMM1
+    e0_ry = input%e0/RY_TO_CMM1
+    de_ry = input%de/RY_TO_CMM1
     !xq0 = input%q_initial
 
-!     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
-!                 out_grid, scatter=.false., quiet=.false.)
-!     CALL setup_grid("simple", S%bg, 1,1,1, &
-!                 out_grid, xq0=input%xk0, scatter=.false., quiet=.false.)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
                 in_grid, scatter=.true., quiet=.false.)
     jdos_X = 0._dp
     jdos_C = 0._dp
     !
-
+    filename=TRIM(input%outdir)//"/"//&
+            TRIM(input%prefix)//"_T"//TRIM(write_conf(1,input%nconf,input%T))//&
+                  "_s"//TRIM(write_conf(1,input%nconf,input%sigma))//".out"
+    OPEN(unit=10000, file=filename, status="UNKNOWN")
+    !
+    ! out_grid should be a proper grid when computing the total energy-dependent JDOS, 
+    ! or a path in reciprocal space when doing the local JDOS
     IQ_LOOP : &
     DO iq = 1, out_grid%nq
       !
@@ -70,26 +78,51 @@ MODULE r2q_program
       !
       ctm_C = 0._dp
       ctm_X = 0._dp
+      herring_C = 0._dp
       !
       DO jq = 1, in_grid%nq
         xq_j = in_grid%xq(:,jq)
         CALL freq_phq(xq_j, S, fc, freqj, U)
-        CALL bose_phq(input%T(1),S%nat3, freqj(:), bosej(:))
         
         xq_k = -(xq_i + xq_j)
         CALL freq_phq(xq_k, S, fc, freqk, U)
-        CALL bose_phq(input%T(1),S%nat3, freqk(:), bosek(:))
+        
+        IF(input%T(1)>0)THEN
+          CALL bose_phq(input%T(1),S%nat3, freqj(:), bosej(:))
+          CALL bose_phq(input%T(1),S%nat3, freqk(:), bosek(:))
+        ENDIF
         !
         DO k = 1,S%nat3
         DO j = 1,S%nat3
-          IF( ALL((/k,j/)==(/1,2/)) .or. ALL((/k,j/)==(/2,1/)) ) THEN
-          bose_C = 2* (bosej(j) - bosek(k))
-          dom_C(:) = freqi(:)+freqj(j)-freqk(k) ! cohalescence
-          ctm_C(:) = ctm_C(:)+ in_grid%w(jq)*bose_C*f_gauss(dom_C, sigma_ry) !delta 
           !
-          bose_X = bosej(j) + bosek(k) + 1
+          IF(input%T(1)>0)THEN
+            bose_C = 2* (bosej(j) - bosek(k))
+            bose_X = bosej(j) + bosek(k) + 1
+          ELSE
+            bose_C = 1._dp
+            bose_X = 1._dp
+          ENDIF
+          
+          dom_C(:) = freqi(:)+freqj(j)-freqk(k) ! cohalescence
+          aux(:) = in_grid%w(jq)*bose_C*f_gauss(dom_C, sigma_ry) !delta 
+          ctm_C(:) = ctm_C(:)+ aux
+          !
           dom_X(:) = freqi(:)-freqj(j)-freqk(k) ! scattering/decay
           ctm_X(:) = ctm_X(:)+ in_grid%w(jq)*bose_X*f_gauss(dom_X, sigma_ry) !delta
+          !
+          ! Herring processes are important at very low frequency: when the LA mode
+          ! collides with a slow TA to form a fast TA. This code only works
+          ! assumes that modes 1 and 2 are TA and mode 3 is LA (i.e. GaAs and Silicon)
+          IF(freqk(k)>=freqj(j) .and. (j==1.and.k==2).or.(j==2.and.k==1)) THEN
+            SLOW=j
+            FAST=k
+          ELSE
+            SLOW=-99
+            FAST=-99
+          ENDIF
+          !
+          IF( ALL((/j,k/)==(/SLOW,FAST/)) ) THEN
+            herring_C(:) = herring_C(:) + aux
           ENDIF
           !
         ENDDO
@@ -99,33 +132,39 @@ MODULE r2q_program
       !
       CALL mpi_bsum(S%nat3,ctm_X)
       CALL mpi_bsum(S%nat3,ctm_C)
+      CALL mpi_bsum(S%nat3,herring_C)
       !
-      WRITE(30000, '(99e14.6)') out_grid%w(iq), freqi*RY_TO_CMM1, &
-                                (ctm_X+ctm_C), ctm_X, ctm_C
+      WRITE(30000, '(i9,4f12.6,99e14.6)') iq, out_grid%w(iq), out_grid%xq(:,iq), &
+              freqi*RY_TO_CMM1, (ctm_X+ctm_C), ctm_X, ctm_C, herring_C(:)
       !
-      weight = out_grid%w(jq)*(input%de/RY_TO_CMM1)
-      ctm_X = ctm_X*weight
-      ctm_C = ctm_C*weight
+!       weight = out_grid%w(iq)*(input%de/RY_TO_CMM1)
+!       ctm_X = ctm_X*weight
+!       ctm_C = ctm_C*weight
       !
-      DO i = 1, S%nat3
-        dom(:) = freqi(i)-nrg(:)
-        !ctm(:) = ctm(:) + (ctm_C(i)+ctm_X(i))*weight*f_gauss(dom, sigma_ry) 
-        ctm(:) = f_gauss(dom, sigma_ry) 
-        jdos_X(:) = jdos_X(:)+ctm(:)*ctm_X(i)
-        jdos_C(:) = jdos_C(:)+ctm(:)*ctm_C(i)
-        !
-        OPEN(unit=10000, file=TRIM(input%prefix)//"_nu"//&
-                         trim(int_to_char(i))//".out", status="UNKNOWN")
-        WRITE(10000,'(a)') " # energy (cmm1)       total jdos"//&
-                           "            jdos (scattering)     jdos (cohalescence)"
-        DO j = 1,input%ne
-          WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(j),ctm(j)*(ctm_X(i)+ctm_C(i)),&
-                                   ctm(j)*ctm_X(i),ctm(j)*ctm_C(i)
-        ENDDO
-        CLOSE(10000)
-      ENDDO
+!       DO i = 1, S%nat3
+!         !
+!         ! Only sum a +/- 5 sigma range around the delta
+!         fmin = MAX(1,        NINT((freqi(i)-e0_ry-5*sigma_e_ry)/de_ry))
+!         fmax = MIN(input%ne, NINT((freqi(i)-e0_ry+5*sigma_e_ry)/de_ry))
+!         dom(fmin:fmax) = freqi(i)-nrg(fmin:fmax)
+!         !ctm(:) = ctm(:) + (ctm_C(i)+ctm_X(i))*weight*f_gauss(dom, sigma_e_ry) 
+!         ctm(fmin:fmax) = f_gauss(dom(fmin:fmax), sigma_e_ry) 
+!         jdos_X(fmin:fmax) = jdos_X(fmin:fmax)+ctm(fmin:fmax)*ctm_X(i)
+!         jdos_C(fmin:fmax) = jdos_C(fmin:fmax)+ctm(fmin:fmax)*ctm_C(i)
+!         !
+!         OPEN(unit=10000, file=TRIM(input%prefix)//"_nu"//&
+!                          trim(int_to_char(i))//".out", status="UNKNOWN")
+!         WRITE(10000,'(a)') " # energy (cmm1)       total jdos"//&
+!                            "            jdos (scattering)     jdos (cohalescence)"
+!         DO j = 1,input%ne
+!           WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(j),ctm(j)*(ctm_X(i)+ctm_C(i)),&
+!                                    ctm(j)*ctm_X(i),ctm(j)*ctm_C(i)
+!         ENDDO
+!         CLOSE(10000)
+!       ENDDO
       !
     ENDDO IQ_LOOP
+    CLOSE(30000)
     !
     OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
     WRITE(10000,'(a)') " # energy (cmm1)       total jdos            jdos (scattering)     jdos (cohalescence)"
@@ -134,10 +173,124 @@ MODULE r2q_program
     ENDDO
     CLOSE(10000)
     !
-  END SUBROUTINE joint_dos
-
-
-  SUBROUTINE ph_dos(input, S, fc)
+  END SUBROUTINE JOINT_DOS
+  !
+  !
+  !
+  SUBROUTINE EXTRINSIC_LW(input, qpath, S, fc2)
+    USE kinds,              ONLY : DP
+    USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, freq_phq_path
+    USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
+    USE constants,          ONLY : RY_TO_CMM1
+    USE q_grids,            ONLY : q_grid, setup_grid
+    USE more_constants,     ONLY : write_conf
+    USE isotopes_linewidth, ONLY : isotopic_linewidth_q
+    USE casimir_linewidth,  ONLY : casimir_linewidth_q
+    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
+    USE code_input,         ONLY : code_input_type
+    USE nanoclock,          ONLY : print_percent_wall
+    USE overlap,            ONLY : order_type
+    USE timers
+    IMPLICIT NONE
+    !
+    TYPE(code_input_type),INTENT(in)     :: input
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: qpath
+    !
+    TYPE(order_type) :: order
+    COMPLEX(DP) :: D(S%nat3, S%nat3)
+    REAL(DP) :: w2(S%nat3)
+    INTEGER :: iq, it
+    TYPE(q_grid) :: grid
+    REAL(DP)   :: lw(S%nat3,input%nconf), lw_isot(S%nat3,input%nconf)
+    REAL(DP)   :: lw_casimir(S%nat3)
+    REAL(DP)   :: sigma_ry(input%nconf)
+    CHARACTER(len=32) :: f1, f2
+    CHARACTER(len=256) :: filename
+    CHARACTER(len=6) :: pos 
+    !
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), &
+                    grid, scatter=.true., xq0=input%xk0, quiet=.false.)
+    !
+    IF(ionode)THEN
+      IF(input%skip_q>0) THEN; pos="append"; ELSE; pos = "asis"; ENDIF
+      DO it = 1,input%nconf
+        filename=TRIM(input%outdir)//"/"//&
+                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+        OPEN(unit=1000+it, file=filename, position=pos)
+        ioWRITE(1000+it, *) "# calculation of extrinsic linewidth: total ... isotopes ... casimir"
+        ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, &
+                         "     T=",input%T(it), "    sigma=", input%sigma(it)
+        ioFLUSH(1000+it)
+      ENDDO
+      ! Prepare formats to write out data
+      ioWRITE(f1,'(i6,a)') S%nat3, "f12.6,6x,"
+      ioWRITE(f2,'(i6,a)') S%nat3, "ES27.15E3,6x,"
+    ENDIF
+    !
+    sigma_ry = input%sigma/RY_TO_CMM1
+    !
+    ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
+    !
+    DO iq = input%skip_q +1,qpath%nq
+      !
+      CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
+      !
+      CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)
+      !
+      ! If necessary, compute the ordering of the bands to assure modes continuity;
+      ! on first call, it just returns the trivial 1...3*nat order
+      !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
+      IF(input%sort_freq=="overlap" .or. iq==1) &
+          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
+      !
+      ! Compute isotopic linewidth
+      IF(input%isotopic_disorder)THEN
+          timer_CALL t_lwisot%start()
+        lw_isot = isotopic_linewidth_q(qpath%xq(:,iq), input%nconf, input%T,&
+                                        sigma_ry, S, grid, fc2, w2, D)
+          timer_CALL t_lwisot%stop()
+      ENDIF
+      !
+      ! Compute Casimir finite sample size linewidth
+      IF(input%casimir_scattering)THEN
+          timer_CALL t_lwcasi%start()
+        lw_casimir = casimir_linewidth_q(qpath%xq(:,iq), input%sample_length, &
+                                      input%sample_dir, S, fc2)
+        timer_CALL t_lwcasi%stop()
+      ENDIF
+      !
+      DO it = 1,input%nconf
+        !
+        ! Add isotopic and casimir linewidths
+        lw(:,it) = lw_isot(:,it) + lw_casimir
+        !
+        ioWRITE(1000+it, '(i4,f12.6,2x,3f12.6,2x,'//f1//f2//f2//f2//'x)') &
+              iq,qpath%w(iq),qpath%xq(:,iq), &
+              w2(order%idx(:))*RY_TO_CMM1, lw(order%idx(:),it)*RY_TO_CMM1, &
+              lw_isot(order%idx(:),it)*RY_TO_CMM1, lw_casimir(order%idx(:))*RY_TO_CMM1
+        ioFLUSH(1000+it)
+      ENDDO
+      !
+      !
+    ENDDO
+    !
+    !
+    IF(ionode)THEN
+    DO it = 1,input%nconf
+      CLOSE(unit=1000+it)
+    ENDDO
+    ENDIF
+    !
+    CALL print_all_timers()
+    !
+  END SUBROUTINE EXTRINSIC_LW
+  !
+  !
+  !
+  SUBROUTINE PH_DOS(input, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
     USE input_fc,         ONLY : forceconst2_grid, ph_system_info
@@ -160,21 +313,23 @@ MODULE r2q_program
     !REAL(DP) :: xq_random(3)
     !
     REAL(DP) :: nrg(input%ne), xq_j(3)
-    REAL(DP) :: sigma_ry, weight
+    REAL(DP) :: sigma_ry, weight, e0_ry, de_ry
     REAL(DP) :: dos(input%ne), dom(input%ne)
-    INTEGER :: jq, k,j,i
+    INTEGER :: jq, k,j,i, fmin, fmax
     !
     !
     FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
     nrg = nrg/RY_TO_CMM1
     !
     sigma_ry = input%sigma(1)/RY_TO_CMM1
+    e0_ry = input%e0/RY_TO_CMM1
+    de_ry = input%de/RY_TO_CMM1
     
     dos = 0._dp
 
     !xq_random  = (/ randy(), randy(), randy() /)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
-                qgrid, scatter=.false.)
+                qgrid, scatter=.true.)
     
     DO jq = 1, qgrid%nq
       xq_j = qgrid%xq(:,jq)
@@ -184,12 +339,17 @@ MODULE r2q_program
       !
       DO j = 1,S%nat3
         !
-        dom(:) =freqj(j)-nrg(:)
-        dos = dos + weight * f_gauss(dom, sigma_ry) 
+!         dom(:) =freqj(j)-nrg(:)
+!         dos = dos + weight * f_gauss(dom, sigma_ry) 
+        fmin = MAX(1,        NINT((freqj(j)-e0_ry-5*sigma_ry)/de_ry))
+        fmax = MIN(input%ne, NINT((freqj(j)-e0_ry+5*sigma_ry)/de_ry))
+        dom(fmin:fmax) =freqj(j)-nrg(fmin:fmax)
+        dos(fmin:fmax) = dos(fmin:fmax) + weight * f_gauss(dom(fmin:fmax), sigma_ry) 
         !
       ENDDO
       !
     ENDDO
+    CALL mpi_bsum(input%ne,dos)
     !
     OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
     DO i = 1,input%ne
@@ -197,10 +357,11 @@ MODULE r2q_program
     ENDDO
     CLOSE(10000)
     !
-  END SUBROUTINE ph_dos
-  
-  
-  SUBROUTINE rms(input, S, fc)
+  END SUBROUTINE PH_DOS
+  !
+  !
+  !
+  SUBROUTINE RMS(input, S, fc)
     USE code_input,       ONLY : code_input_type
     USE kinds,            ONLY : DP
     USE input_fc,         ONLY : forceconst2_grid, ph_system_info
@@ -250,10 +411,12 @@ MODULE r2q_program
                                   DSQRT(arms(ia))
     ENDDO
     
-  END SUBROUTINE rms
+  END SUBROUTINE RMS
   !
 END MODULE r2q_program
-
+!
+!
+!
 PROGRAM r2q 
 
   USE kinds,            ONLY : DP
@@ -293,16 +456,18 @@ PROGRAM r2q
   !  
   CALL READ_INPUT("R2Q", input, qpath, S, fc2)
   !
-  IF(input%nconf>1) THEN
-    CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
-  ENDIF
+!   IF(input%nconf>1) THEN
+!     CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
+!   ENDIF
 
   IF( input%calculation=="dos") THEN
-    CALL ph_dos(input,S,fc2)
+    CALL PH_DOS(input,S,fc2)
   ELSE IF( input%calculation=="jdos") THEN
-    CALL joint_dos(input,qpath,S,fc2)
+    CALL JOINT_DOS(input,qpath,S,fc2)
   ELSE IF ( input%calculation=="rms") THEN
-    CALL rms(input, S, fc2)
+    CALL RMS(input, S, fc2)
+  ELSE IF ( input%calculation=="extr") THEN
+    CALL EXTRINSIC_LW(input, qpath, S, fc2)
   ELSE
     ALLOCATE(freq(S%nat3))
     ALLOCATE(U(S%nat3,S%nat3))

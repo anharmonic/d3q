@@ -224,8 +224,11 @@ MODULE code_input
     NAMELIST  / r2qinput / &
       calculation, outdir, prefix, &
       file_mat2, asr2, nq, sort_freq, &
-      ne, de, e0, &
+      ne, de, e0, sigma_e, &
       nk, nconf, grid_type, xk0, &
+      isotopic_disorder, &
+      casimir_scattering,  &
+      sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
       print_dynmat, print_velocity
       !
       
@@ -286,7 +289,7 @@ MODULE code_input
               nconf=1
               configs_ok = .true.
             ENDIF
-          ELSEIF(calculation=="rms".or.calculation=="jdos" .or. calculation=="dos" &
+          ELSEIF(calculation=="rms" .or. calculation=="dos" &
                  .and. PASS==1)THEN
             ! Do not read, QPOINTS in the R2Q-rms and jdos case
             IF(nq<=0) nq = 1
@@ -338,7 +341,7 @@ MODULE code_input
     input%isotopic_disorder  = isotopic_disorder
     input%casimir_scattering = casimir_scattering
     input%mfp_cutoff         = mfp_cutoff
-    input%sample_dir        = input%sample_dir
+    input%sample_dir         = sample_dir
     IF(casimir_scattering .and. mfp_cutoff) &
       CALL errore("code_input","don't use both casimir_scattering and mfp_cutoff",1)
     !
@@ -423,7 +426,7 @@ MODULE code_input
       IF(sample_length_au>0._dp) input%sample_length = sample_length_au
       IF(sample_length_mu>0._dp) input%sample_length = sample_length_mu/(BOHR_RADIUS_SI*1.d+6)
       IF(sample_length_mm>0._dp) input%sample_length = sample_length_mm/(BOHR_RADIUS_SI*1.d+3)
-      ioWRITE(*,'(5x,a,1f12.0)') "Sample length (bohr)", input%sample_length
+      ioWRITE(*,'(5x,a,1f12.2)') "Sample length (bohr)", input%sample_length
     ELSE
       input%sample_length = 0._dp
     ENDIF
@@ -810,6 +813,10 @@ MODULE code_input
                                     &(it may have been eaten by the preceeding card)", 1)
     !
     IF(input_unit/=5) CLOSE(input_unit)
+    !
+!     WRITE(*,*) "=========== being input ==========="
+!     WRITE(*,*) input
+!     WRITE(*,*) "===========  end input  ==========="
     !
     timer_CALL t_iodata%stop()
     !
