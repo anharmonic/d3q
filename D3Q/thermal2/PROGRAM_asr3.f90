@@ -767,10 +767,10 @@ PROGRAM asr3
   WRITE(*,*)
   !
   WRITE(*,*) " --- PARAMETERS : ---"
-  WRITE(*,*) " power     ", pow
-  WRITE(*,*) " threshold ", threshold
-  WRITE(*,*) " niter_max ", niter_max
-  WRITE(*,*) " use modulo", use_modulo
+  WRITE(*,*) " power to distribute ASR correction term: ", pow
+  WRITE(*,*) " threshold of ASR violation: ", threshold
+  WRITE(*,*) " number of iterations max: ", niter_max
+  WRITE(*,*) " use periodic bounday conditions: ", use_modulo
   WRITE(*,*) " --- ------------ ---"
   ! ----------------------------------------------------------------------------
     CALL t_asr3io%start()
