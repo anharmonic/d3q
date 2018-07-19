@@ -486,12 +486,17 @@ MODULE fc2_interpolate
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: eps = 0._dp 
-    REAL(DP) :: xq_hat(3)
+    REAL(DP) :: xq_hat(3), yq(3)
     !
+    yq = xq(:,iq)
+    CALL cryst_to_cart(1, yq, S%at, -1)
+    yq = yq-DBLE(NINT(yq))
+    CALL cryst_to_cart(1, yq, S%bg, +1)
     ! Check for exactly Gamma, even a tiny displacement works already
-    IF(ALL(ABS(xq(:,iq))< 1.d-12 .and. nq>1))THEN
+    IF(ALL(ABS(yq)< 1.d-12))THEN
       IF(nq == 0)THEN
-        xq_hat = 0._dp
+        ! this should never happen: zero length path?
+        CALL errore("freq_phq_path","no points in this path",1)
       ELSE IF(nq == 1)THEN
         xq_hat = xq(:,1)
       ELSE IF(iq==1) THEN
@@ -499,8 +504,6 @@ MODULE fc2_interpolate
       ELSE
         xq_hat = xq(:,iq) - xq(:,iq-1) ! <- the most common case
       ENDIF
-    ELSE
-      xq_hat = 0._dp
     ENDIF
     !
     ! WARNING: dirty hack!
