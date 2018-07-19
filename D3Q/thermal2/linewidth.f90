@@ -224,7 +224,7 @@ MODULE linewidth
   END FUNCTION selfnrg_q  
   ! \/o\________\\\_________________________________________/^>
   ! Simple spectral function, computed as a superposition of Lorentzian functions
-  FUNCTION simple_spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, shift) &
+  FUNCTION simple_spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1, shift) &
   RESULT(spectralf)
     USE q_grids,            ONLY : q_grid
     USE constants,          ONLY : RY_TO_CMM1
@@ -246,6 +246,10 @@ MODULE linewidth
     INTEGER,INTENT(in)  :: ne
     REAL(DP),INTENT(in) :: ener(ne)
     LOGICAL,INTENT(in)  :: shift
+    !
+    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
+    !
     ! FUNCTION RESULT:
     REAL(DP) :: spectralf(ne,S%nat3,nconf)
     !
@@ -257,7 +261,13 @@ MODULE linewidth
     REAL(DP) :: freq(S%nat3)
       !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
-    CALL freq_phq_safe(xq0, S, fc2, freq, U)
+    IF(present(freq1) .and. present(U1)) THEN
+      freq = freq1
+      U    = U1
+    ELSE
+      !CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      CALL freq_phq_safe(xq0, S, fc2, freq, U)
+    ENDIF
     !
     ! use lineshift to compute 3rd order linewidth and lineshift
     IF(shift)THEN
@@ -294,7 +304,7 @@ MODULE linewidth
   END FUNCTION simple_spectre_q  
   ! <<^V^\\=========================================//-//-//========//O\\//
   ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
-  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, shift) &
+  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1, shift) &
   RESULT(spectralf)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
@@ -317,6 +327,9 @@ MODULE linewidth
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     LOGICAL,INTENT(in)  :: shift ! set to false to drop the real part of the self-energy
+    !
+    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
     !
     ! To interpolate D2 and D3:
     INTEGER :: iq, jq, nu, it
@@ -343,7 +356,12 @@ MODULE linewidth
       timer_CALL t_freq%start()
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
-    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    IF(present(freq1) .and. present(U1)) THEN
+      freq(:,1) = freq1
+      U(:,:,1)    = U1
+    ELSE
+      CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    ENDIF
       timer_CALL t_freq%stop()
     !
     DO iq = 1, grid%nq
