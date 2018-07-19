@@ -267,19 +267,19 @@ MODULE final_state
                 aux = aux + aux_sumsum(iqpath)
                 IF(aux>.25_dp*sum_aux .and. .not. found(1)) THEN
                   found(1)=.true.
-                  WRITE(*,'(4x,a,2f12.6)') "25%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                  WRITE(*,'(4x,a,e12.3,f12.6)') "25%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
                 ENDIF
                 IF(aux>.50_dp*sum_aux .and. .not. found(2)) THEN
                   found(2)=.true.
-                  WRITE(*,'(4x,a,2f12.6)') "50%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                  WRITE(*,'(4x,a,e12.3,f12.6)') "50%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
                 ENDIF
                 IF(aux>.75_dp*sum_aux .and. .not. found(3)) THEN
                   found(3)=.true.
-                  WRITE(*,'(4x,a,2f12.6)') "75%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                  WRITE(*,'(4x,a,e12.3,f12.6)') "75%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
                 ENDIF
                 IF(aux>.90_dp*sum_aux .and. .not. found(4)) THEN
                   found(4)=.true.
-                  WRITE(*,'(4x,a,2f12.6)') "90%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
+                  WRITE(*,'(4x,a,e12.3,f12.6)') "90%", aux_sumsum(iqpath), 100*(1-DBLE(iqpath)/qpath%nq)
                 ENDIF
                 IF(all(found)) EXIT SEEK_90_PERCENT
               ENDDO SEEK_90_PERCENT 
