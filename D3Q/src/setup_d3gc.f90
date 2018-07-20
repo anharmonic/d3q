@@ -41,7 +41,7 @@ MODULE gc_d3
     USE uspp,                 ONLY : nlcc_any
     USE fft_base,             ONLY : dfftp
     USE fft_interfaces,       ONLY : fwfft
-    USE wavefunctions_module, ONLY : psic
+    USE wavefunctions, ONLY : psic
     USE io_global,            ONLY : stdout
     !
     IMPLICIT NONE

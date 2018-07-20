@@ -75,7 +75,7 @@ all : tldeps d3q.x
 
 d3q.x : libd3q.a $(D3QOBJS) $(PWOBJS) $(PHOBJS) $(QEMODS) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o d3q.x $(D3QOBJS) \
-		libd3q.a $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+		libd3q.a $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP) $@
 	- ( cd ../../bin ; ln -fs ../D3Q/src/d3q.x . )
 

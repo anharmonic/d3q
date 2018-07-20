@@ -21,7 +21,7 @@ SUBROUTINE h_psiq (lda, n, m, psi, hpsi, spsi)
   !
 
   USE kinds,  ONLY : DP
-  USE wavefunctions_module,  ONLY : psic, psic_nc
+  USE wavefunctions,  ONLY : psic, psic_nc
   USE becmod, ONLY : bec_type, becp, calbec
   USE noncollin_module, ONLY : noncolin, npol
   USE lsda_mod, ONLY : current_spin

@@ -96,7 +96,7 @@ all : tldeps d3q-libs thermal2-libs $(EXEC)
 # Note to self: $^ expands to all dependencies, $< expands to the first dependency
 $(EXEC) : % : PROGRAM_%.o tldeps d3q-libs thermal2-libs
 	$(LD) $(LDFLAGS) -o d3_$@.x $< libthermal2.a \
-	    $(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	    $(EXTOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP)  d3_$@.x
 	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/d3_$@.x d3_$@.x )
 

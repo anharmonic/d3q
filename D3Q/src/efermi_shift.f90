@@ -97,7 +97,7 @@ SUBROUTINE set_efsh (drhoscf, imode0, irr, npe)
      IF (gg(1) < eps8) delta_n = omega * drhoscf (dfftp%nl(1), ipert)
      call mp_sum ( delta_n, intra_pool_comm )
 #else
-     delta_n = omega * drhoscf(ndfftp%l(1), ipert)
+     delta_n = omega * drhoscf(dfftp%l(1), ipert)
 #endif
 !      print*, ipert, delta_n, dos_ef, drhoscf (nl(1), ipert)
      def(ipert) = - delta_n/dos_ef
