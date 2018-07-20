@@ -1,3 +1,11 @@
+v 1.1.3
+* Bugfix for pools: scattering of charge density was changend in QE 6.2 but not here, could give very bad (i.e. absurd) result when using pools parallelism
+
+v 1.1.2
+ * Code d3_tk.x in SMA mode can now cutoff phonons with a mfp longer than sample size, input variables casimi_length and casimir_dir now renamed to sample_length and sample_dir, as they can used for both approaches
+ * phonon modes can be sorted according to eigenmode continuity
+ * compatibility with qe 6.2
+
 v 1.1.1
 * D3 calculation of metallic systems has been improved, only full bands used for the Sternheimer equation: improved convergence.
 * Added debug options to d3 and qq2rr, added documentation for tools.
