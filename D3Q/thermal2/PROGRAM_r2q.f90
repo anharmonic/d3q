@@ -42,7 +42,7 @@ MODULE r2q_program
     REAL(DP) :: dom_C(S%nat3), dom_X(S%nat3)
     REAL(DP) :: ctm_C(S%nat3), ctm_X(S%nat3)
     REAL(DP) :: herring_C(S%nat3), aux(S%nat3)
-    INTEGER :: iq, jq, k,j,i, SLOW, FAST
+    INTEGER :: iq, jq, k,j,i, SLOW, FAST, fmin, fmax
     CHARACTER (LEN=6), EXTERNAL :: int_to_char
     CHARACTER(len=256) :: filename
     !
@@ -65,6 +65,15 @@ MODULE r2q_program
             TRIM(input%prefix)//"_T"//TRIM(write_conf(1,input%nconf,input%T))//&
                   "_s"//TRIM(write_conf(1,input%nconf,input%sigma))//".out"
     OPEN(unit=10000, file=filename, status="UNKNOWN")
+    WRITE(10000, '(a)') "# Total JDOS"
+    WRITE(10000, '(a)') "# Energy, tot JDOS, X JDOS, C JDOS"
+
+    filename=TRIM(input%outdir)//"/"//&
+            TRIM(input%prefix)//"-q_T"//TRIM(write_conf(1,input%nconf,input%T))//&
+                  "_s"//TRIM(write_conf(1,input%nconf,input%sigma))//".out"
+    OPEN(unit=30000, file=filename, status="UNKNOWN")
+    WRITE(30000, '(a)') "# Q-dependent JDOS"
+    WRITE(30000, '(a)') "# i,wq, q, freq, tot JDOS, X JDOS, C JDOS, Herring JDOS (cubic only)"
     !
     ! out_grid should be a proper grid when computing the total energy-dependent JDOS, 
     ! or a path in reciprocal space when doing the local JDOS
@@ -80,6 +89,7 @@ MODULE r2q_program
       ctm_X = 0._dp
       herring_C = 0._dp
       !
+      JQ_LOOP : &
       DO jq = 1, in_grid%nq
         xq_j = in_grid%xq(:,jq)
         CALL freq_phq(xq_j, S, fc, freqj, U)
@@ -113,13 +123,16 @@ MODULE r2q_program
           ! Herring processes are important at very low frequency: when the LA mode
           ! collides with a slow TA to form a fast TA. This code only works
           ! assumes that modes 1 and 2 are TA and mode 3 is LA (i.e. GaAs and Silicon)
-          IF(freqk(k)>=freqj(j) .and. (j==1.and.k==2).or.(j==2.and.k==1)) THEN
-            SLOW=j
-            FAST=k
-          ELSE
-            SLOW=-99
-            FAST=-99
-          ENDIF
+! ! !           IF(freqk(k)>=freqj(j) .and. ((j==1.and.k==2).or.(j==2.and.k==1))) THEN
+! ! !             SLOW=j
+! ! !             FAST=k
+! ! !           ELSE
+! ! !             SLOW=-99
+! ! !             FAST=-99
+! ! !           ENDIF
+! This condition is equivalent, because bands are ordered:
+          SLOW = 1
+          FAST = 2
           !
           IF( ALL((/j,k/)==(/SLOW,FAST/)) ) THEN
             herring_C(:) = herring_C(:) + aux
@@ -128,30 +141,31 @@ MODULE r2q_program
         ENDDO
         ENDDO
         !
-      ENDDO
+      ENDDO &
+      JQ_LOOP 
       !
       CALL mpi_bsum(S%nat3,ctm_X)
       CALL mpi_bsum(S%nat3,ctm_C)
       CALL mpi_bsum(S%nat3,herring_C)
       !
       WRITE(30000, '(i9,4f12.6,99e14.6)') iq, out_grid%w(iq), out_grid%xq(:,iq), &
-              freqi*RY_TO_CMM1, (ctm_X+ctm_C), ctm_X, ctm_C, herring_C(:)
+              freqi*RY_TO_CMM1, (ctm_X+ctm_C), ctm_X, ctm_C, herring_C
       !
-!       weight = out_grid%w(iq)*(input%de/RY_TO_CMM1)
-!       ctm_X = ctm_X*weight
-!       ctm_C = ctm_C*weight
-      !
-!       DO i = 1, S%nat3
-!         !
-!         ! Only sum a +/- 5 sigma range around the delta
-!         fmin = MAX(1,        NINT((freqi(i)-e0_ry-5*sigma_e_ry)/de_ry))
-!         fmax = MIN(input%ne, NINT((freqi(i)-e0_ry+5*sigma_e_ry)/de_ry))
-!         dom(fmin:fmax) = freqi(i)-nrg(fmin:fmax)
-!         !ctm(:) = ctm(:) + (ctm_C(i)+ctm_X(i))*weight*f_gauss(dom, sigma_e_ry) 
-!         ctm(fmin:fmax) = f_gauss(dom(fmin:fmax), sigma_e_ry) 
-!         jdos_X(fmin:fmax) = jdos_X(fmin:fmax)+ctm(fmin:fmax)*ctm_X(i)
-!         jdos_C(fmin:fmax) = jdos_C(fmin:fmax)+ctm(fmin:fmax)*ctm_C(i)
-!         !
+      weight = out_grid%w(iq)*(input%de/RY_TO_CMM1)
+      ctm_X = ctm_X*weight*de_ry
+      ctm_C = ctm_C*weight*de_ry
+      
+      DO i = 1, S%nat3
+        !
+        ! Only sum a +/- 5 sigma range around the phonon energy
+        fmin = MAX(1,        NINT((freqi(i)-e0_ry-5*sigma_e_ry)/de_ry))
+        fmax = MIN(input%ne, NINT((freqi(i)-e0_ry+5*sigma_e_ry)/de_ry))
+        dom(fmin:fmax) = freqi(i)-nrg(fmin:fmax)
+        !ctm(:) = ctm(:) + (ctm_C(i)+ctm_X(i))*weight*f_gauss(dom, sigma_e_ry) 
+        ctm(fmin:fmax) = f_gauss(dom(fmin:fmax), sigma_e_ry) 
+        jdos_X(fmin:fmax) = jdos_X(fmin:fmax)+ctm(fmin:fmax)*ctm_X(i)
+        jdos_C(fmin:fmax) = jdos_C(fmin:fmax)+ctm(fmin:fmax)*ctm_C(i)
+        !
 !         OPEN(unit=10000, file=TRIM(input%prefix)//"_nu"//&
 !                          trim(int_to_char(i))//".out", status="UNKNOWN")
 !         WRITE(10000,'(a)') " # energy (cmm1)       total jdos"//&
@@ -161,13 +175,13 @@ MODULE r2q_program
 !                                    ctm(j)*ctm_X(i),ctm(j)*ctm_C(i)
 !         ENDDO
 !         CLOSE(10000)
-!       ENDDO
+      ENDDO
       !
     ENDDO IQ_LOOP
     CLOSE(30000)
     !
-    OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
-    WRITE(10000,'(a)') " # energy (cmm1)       total jdos            jdos (scattering)     jdos (cohalescence)"
+!     OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
+!     WRITE(10000,'(a)') " # energy (cmm1)       total jdos            jdos (scattering)     jdos (cohalescence)"
     DO i = 1,input%ne
       WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(i),jdos_X(i)+jdos_C(i),jdos_X(i),jdos_C(i)
     ENDDO
@@ -175,7 +189,136 @@ MODULE r2q_program
     !
   END SUBROUTINE JOINT_DOS
   !
-  !
+  SUBROUTINE TWOPH_DOS(input, out_grid, S, fc)
+    USE code_input,       ONLY : code_input_type
+    USE kinds,            ONLY : DP
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    USE q_grids,          ONLY : q_grid, q_basis, setup_grid, prepare_q_basis
+    USE constants,        ONLY : RY_TO_CMM1, pi
+    USE functions,        ONLY : f_bose, f_gauss
+    USE fc2_interpolate,  ONLY : freq_phq, bose_phq
+    USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
+    USE random_numbers,   ONLY : randy
+    USE nanoclock,        ONLY : print_percent_wall
+    USE mpi_thermal,      ONLY :  mpi_bsum
+    USE more_constants,   ONLY : write_conf
+    IMPLICIT NONE
+    TYPE(code_input_type)    :: input
+    TYPE(q_grid), INTENT(in) :: out_grid
+    TYPE(ph_system_info)     :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    !
+    TYPE(q_grid)  :: in_grid
+    !
+    COMPLEX(DP) :: U(S%nat3, S%nat3)
+    !
+    REAL(DP) :: nrg(input%ne), jd_C(input%ne), jd_X(input%ne), &
+                xq_i(3), xq_j(3), xq_k(3)
+    REAL(DP) :: sigma_ry, weight, e0_ry, de_ry, sigma_e_ry
+    REAL(DP) :: freqj(S%nat3), freqk(S%nat3)
+    REAL(DP) :: tphdos_X(input%ne), tphdos_C(input%ne)
+    REAL(DP) :: dom_C(input%ne), dom_X(input%ne)
+    REAL(DP) :: ctm_C(input%ne), ctm_X(input%ne)
+    REAL(DP) :: herring_C(S%nat3), aux(S%nat3)
+    INTEGER :: iq, jq, k,j,i, SLOW, FAST, fmin, fmax
+    CHARACTER (LEN=6), EXTERNAL :: int_to_char
+    CHARACTER(len=256) :: filename
+    !
+    !
+    FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
+    nrg = nrg/RY_TO_CMM1
+    !
+    sigma_ry = input%sigma(1)/RY_TO_CMM1
+    sigma_e_ry = input%sigma_e/RY_TO_CMM1
+    e0_ry = input%e0/RY_TO_CMM1
+    de_ry = input%de/RY_TO_CMM1
+    !xq0 = input%q_initial
+
+    CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+                in_grid, scatter=.true., quiet=.false.)
+    !
+    filename=TRIM(input%outdir)//"/"//&
+            TRIM(input%prefix)//"_T"//TRIM(write_conf(1,input%nconf,input%T))//&
+                  "_s"//TRIM(write_conf(1,input%nconf,input%sigma))//".out"
+    OPEN(unit=10000, file=filename, status="UNKNOWN")
+    WRITE(10000, '(a)') "# Total JDOS"
+    WRITE(10000, '(a)') "# Energy, tot JDOS, X JDOS, C JDOS"
+    !
+    ! out_grid should be a proper grid when computing the total energy-dependent JDOS, 
+    ! or a path in reciprocal space when doing the local JDOS
+    IQ_LOOP : &
+    DO iq = 1, out_grid%nq
+      !
+      tphdos_X = 0._dp
+      tphdos_C = 0._dp
+      WRITE(10000, '(a,i3,3f12.6)') "# ", iq, out_grid%xq(:,iq)
+      !
+      CALL print_percent_wall(10._dp, 300._dp, iq, out_grid%nq, (iq==1))
+      !
+      xq_i = out_grid%xq(:,iq)
+!       CALL freq_phq(xq_i, S, fc, freqi, U)
+      !
+      ctm_C = 0._dp
+      ctm_X = 0._dp
+      !
+      JQ_LOOP : &
+      DO jq = 1, in_grid%nq
+        xq_j = in_grid%xq(:,jq)
+        CALL freq_phq(xq_j, S, fc, freqj, U)
+        
+        xq_k = -(xq_i + xq_j)
+        CALL freq_phq(xq_k, S, fc, freqk, U)
+        
+!         IF(input%T(1)>0)THEN
+!           CALL bose_phq(input%T(1),S%nat3, freqj(:), bosej(:))
+!           CALL bose_phq(input%T(1),S%nat3, freqk(:), bosek(:))
+!         ENDIF
+        !
+        weight = in_grid%w(jq)*(input%de/RY_TO_CMM1)
+        !
+        DO k = 1,S%nat3
+        DO j = 1,S%nat3
+          !
+          fmin = MAX(1,        NINT((freqj(j)-freqk(k)-e0_ry-5*sigma_e_ry)/de_ry))
+          fmax = MIN(input%ne, NINT((freqj(j)-freqk(k)-e0_ry+5*sigma_e_ry)/de_ry))
+          dom_C(fmin:fmax) = freqj(j)-freqk(k)-nrg(fmin:fmax) ! cohalescence
+          ctm_C(fmin:fmax) = f_gauss(dom_C(fmin:fmax), sigma_e_ry) 
+          tphdos_C(fmin:fmax) = tphdos_C(fmin:fmax)+ctm_C(fmin:fmax)*weight
+          !
+          fmin = MAX(1,        NINT((freqj(j)+freqk(k)-e0_ry-5*sigma_e_ry)/de_ry))
+          fmax = MIN(input%ne, NINT((freqj(j)+freqk(k)-e0_ry+5*sigma_e_ry)/de_ry))
+          dom_X(fmin:fmax) = freqj(j)+freqk(k)-nrg(fmin:fmax) ! decay
+          ctm_X(fmin:fmax) = f_gauss(dom_X(fmin:fmax), sigma_e_ry) 
+          tphdos_X(fmin:fmax) = tphdos_X(fmin:fmax)+ctm_X(fmin:fmax)*weight
+          !
+        ENDDO
+        ENDDO
+        !
+      ENDDO &
+      JQ_LOOP 
+      !
+      CALL mpi_bsum(input%ne,tphdos_X)
+      CALL mpi_bsum(input%ne,tphdos_C)
+      !
+      weight = out_grid%w(iq)*(input%de/RY_TO_CMM1)
+      ctm_X = ctm_X*weight*de_ry
+      ctm_C = ctm_C*weight*de_ry
+      
+      DO i = 1, S%nat3
+        !
+        ! Only sum a +/- 5 sigma range around the phonon energy
+        !
+      ENDDO
+      !
+      DO i = 1,input%ne
+        WRITE(10000,'(1f12.6, 4ES27.15E3)') out_grid%w(iq), &
+            RY_TO_CMM1*nrg(i),tphdos_X(i)+tphdos_C(i), tphdos_X(i),tphdos_C(i)
+      ENDDO
+      CLOSE(10000)
+    ENDDO IQ_LOOP
+    !
+    !
+  END SUBROUTINE TWOPH_DOS  !
   !
   SUBROUTINE EXTRINSIC_LW(input, qpath, S, fc2)
     USE kinds,              ONLY : DP
@@ -464,6 +607,8 @@ PROGRAM r2q
     CALL PH_DOS(input,S,fc2)
   ELSE IF( input%calculation=="jdos") THEN
     CALL JOINT_DOS(input,qpath,S,fc2)
+  ELSE IF( input%calculation=="2dos") THEN
+    CALL TWOPH_DOS(input,qpath,S,fc2)
   ELSE IF ( input%calculation=="rms") THEN
     CALL RMS(input, S, fc2)
   ELSE IF ( input%calculation=="extr") THEN
