@@ -45,7 +45,7 @@ elseif (readin_from_lw_and_r2q);
   freq=f_lw(:,6:5+nat3)*cmm1_to_ry;
   lw  =2*f_lw(:,6+nat3:5+nat3*2)*cmm1_to_ry;
 else
-  error "need to know the input format of data"
+  error "\n*********************\nThis is a matlab/octave script. Open it with a text editor! You need to specify the input format of data, the cell volume and the temperature!! \n*********************\n "
 end
 
 
