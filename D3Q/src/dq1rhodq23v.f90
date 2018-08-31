@@ -276,7 +276,8 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE wvfct,           ONLY : nbnd, npwx
   USE uspp,            ONLY : dvan, nkb
   USE uspp_param,      ONLY : nh
-  USE phcom,           ONLY : lrdwf, lrwfc, iuwfc
+  USE units_ph,        ONLY : lrdwf
+  USE units_lr,        ONLY : iuwfc, lrwfc
   USE control_lr,      ONLY : nbnd_occ
   USE mp_pools,        ONLY : intra_pool_comm
   USE mp,              ONLY : mp_sum
@@ -477,7 +478,7 @@ SUBROUTINE dpsi_correction(dpsi, ik, iq, nu, npw, npwq)
   USE kinds,           ONLY : DP
   USE ions_base,       ONLY : nat
   USE pwcom,           ONLY : npwx, nbnd, degauss, ngauss, et, ef
-  USE phcom,           ONLY : lrwfc, iuwfc
+  USE units_lr,        ONLY : iuwfc, lrwfc
   USE control_lr,      ONLY : nbnd_occ
   USE d3_efermi_shift, ONLY : ef_sh
   USE io_global,       ONLY : stdout

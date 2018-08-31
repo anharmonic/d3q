@@ -368,8 +368,8 @@ END SUBROUTINE drho_change_q
 !-----------------------------------------------------------------------
 SUBROUTINE closefild3(cleanup)
   !-----------------------------------------------------------------------
-  USE phcom,      ONLY : iuwfc
-  USE d3_open,    ONLY : close_d3
+  USE units_lr,  ONLY : iuwfc
+  USE d3_open,   ONLY : close_d3
   !
   IMPLICIT NONE
   LOGICAL,INTENT(in) :: cleanup
@@ -441,7 +441,8 @@ SUBROUTINE openfild3
   !
   USE kinds,           ONLY : DP
   USE pwcom,           ONLY : npwx, nbnd, degauss
-  USE phcom,           ONLY : iuwfc, lrwfc, lrdwf
+  USE units_ph,        ONLY : lrdwf
+  USE units_lr,        ONLY : iuwfc, lrwfc
   USE control_flags,   ONLY : twfcollect
   USE io_files,        ONLY : prefix, seqopn
   USE io_global,       ONLY : ionode

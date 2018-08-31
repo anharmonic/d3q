@@ -110,7 +110,8 @@ SUBROUTINE dpsi1dv2psi(unit, iq_dp, iq_v)
   !
   USE kinds,       ONLY : DP
   USE klist,       ONLY : xk 
-  USE phcom,       ONLY : lrwfc, iuwfc, lrdwf
+  USE units_ph,    ONLY : lrdwf
+  USE units_lr,    ONLY : iuwfc, lrwfc
   USE ions_base,   ONLY : nat
   USE fft_base,    ONLY : dfftp
   USE wvfct,       ONLY : nbnd, npwx
@@ -251,7 +252,8 @@ SUBROUTINE dpsi1dv2psi_gamma(unit, iq)
   !
   USE kinds,       ONLY : DP
   USE klist,       ONLY : xk
-  USE phcom,       ONLY : lrwfc, iuwfc, lrdwf
+  USE units_ph,    ONLY : lrdwf
+  USE units_lr,    ONLY : iuwfc, lrwfc
   USE ions_base,   ONLY : nat
   USE fft_base,    ONLY : dfftp
   USE wvfct,       ONLY : nbnd, npwx

@@ -61,7 +61,8 @@ SUBROUTINE h_psiq (lda, n, m, psi, hpsi, spsi)
 
   IF (gamma_only) THEN
 
-   CALL h_psiq_gamma()
+   CALL errore("h_psiq @ d3q","Gamma only discarded",1)
+   !CALL h_psiq_gamma()
 
   ELSE
 
@@ -180,84 +181,4 @@ CONTAINS
   CALL s_psi (lda, n, m, psi, spsi)
 
 END SUBROUTINE h_psiq_k
-
-
-SUBROUTINE h_psiq_gamma()
-
-    USE becmod, ONLY : becp, calbec
-    USE gvect,  ONLY : gstart
-    USE realus, ONLY : real_space, invfft_orbital_gamma, &
-                       fwfft_orbital_gamma, calbec_rs_gamma, add_vuspsir_gamma, &
-                       v_loc_psir, s_psir_gamma, real_space_debug
-    USE uspp,                  ONLY : nkb
-
-    IMPLICIT NONE
-
-    CALL start_clock ('init')
-    !
-    ! Here we apply the kinetic energy (k+G)^2 psi
-    !
-    IF(gstart==2) psi(1,:)=cmplx(real(psi(1,:),dp),0.0d0,kind=DP)
-    !
-    DO ibnd=1,m
-
-       DO j=1,n
-
-          hpsi(j,ibnd)=g2kin(j)*psi(j,ibnd)
-
-       ENDDO
-
-    ENDDO
-
-    CALL stop_clock ('init')
-      IF (nkb > 0 .and. real_space_debug>2) THEN
-        DO ibnd=1,m,2
-
-           CALL invfft_orbital_gamma(psi,ibnd,m,.true.)
-          !transform the psi real space, saved in temporary memory
-
-           CALL calbec_rs_gamma(ibnd,m,becp%r)
-           !rbecp on psi
-
-           CALL s_psir_gamma(ibnd,m)
-           !psi -> spsi
-
-           CALL fwfft_orbital_gamma(spsi,ibnd,m)
-           !return back to real space
-
-           CALL invfft_orbital_gamma(hpsi,ibnd,m)
-           ! spsi above is now replaced by hpsi
-
-           CALL v_loc_psir(ibnd,m)
-           ! hpsi -> hpsi + psi*vrs  (psi read from temporary memory)
-
-           CALL add_vuspsir_gamma(ibnd,m)
-           ! hpsi -> hpsi + vusp
-
-           CALL fwfft_orbital_gamma(hpsi,ibnd,m,.true.)
-           !transform back hpsi, clear psi in temporary memory
-
-        ENDDO
-
-     ELSE
-
-    CALL vloc_psi_gamma(lda,n,m,psi,vrs(1,current_spin),hpsi)
-
-    IF (noncolin) THEN
-
-        CALL errore ("h_psiq","gamma and noncolin not implemented yet",1)
-
-    ELSE
-
-        CALL calbec ( n, vkb, psi, becp, m)
-
-     ENDIF
-
-     CALL add_vuspsi (lda, n, m, hpsi)
-     CALL s_psi (lda, n, m, psi, spsi)
-
-  ENDIF
-
-  END SUBROUTINE h_psiq_gamma
-
 END SUBROUTINE h_psiq

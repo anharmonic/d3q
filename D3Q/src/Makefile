@@ -63,7 +63,7 @@ write_d3dyn.o
 PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
-QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
+QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/libks_solvers.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../dft-d3/libdftd3qe.a
 
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a
@@ -74,7 +74,7 @@ TLDEPS= bindir mods libs pw ph
 all : tldeps d3q.x
 
 d3q.x : libd3q.a $(D3QOBJS) $(PWOBJS) $(PHOBJS) $(QEMODS) $(LIBOBJS)
-	$(LD) $(LDFLAGS) -o d3q.x $(D3QOBJS) \
+	$(LD) $(LDFLAGS) -o d3q.x $(D3QOBJS) $(D3QLIBS) \
 		libd3q.a $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP) $@
 	- ( cd ../../bin ; ln -fs ../D3Q/src/d3q.x . )

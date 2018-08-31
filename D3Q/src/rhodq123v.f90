@@ -30,7 +30,7 @@ SUBROUTINE rhodq123v(d3dyn)
   USE uspp_param,     ONLY : nh, nhm
   USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
-  USE phcom,          ONLY : lrwfc, iuwfc
+  USE units_lr,       ONLY : iuwfc, lrwfc
   USE qpoint,         ONLY : nksq
   USE control_lr,     ONLY : nbnd_occ
   USE d3com,          ONLY : npert_i, npert_f
