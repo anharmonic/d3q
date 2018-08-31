@@ -165,7 +165,7 @@ MODULE final_state
           timer_CALL t_qresolved%start()
           DO iqpath = 1,qpath%nq
             qbarweight = & !qpath%w(iqpath)*&
-              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
+              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,3), S%bg), sigmaq)
             xqbar(:,:,iqpath,it) = xqbar(:,:,iqpath,it) - 0.5_dp * sumaux(:,:,TOT) *  qbarweight
           ENDDO
           timer_CALL t_qresolved%stop()
@@ -184,7 +184,7 @@ MODULE final_state
           ELSE
             DO iqpath = 1,qpath%nq
             qbarweight = & !qpath%w(iqpath)*&
-              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,2), S%bg), sigmaq)
+              f_gauss(refold_bz_mod(qpath%xq(:,iqpath)-xq(:,3), S%bg), sigmaq)
               DO nu = 1,S%nat3
                 xqsum(nu,iqpath,it) = xqsum(nu,iqpath,it) &
                               - 0.5_dp * SUM(sumaux(:,nu,TOT)) *  qbarweight
@@ -290,7 +290,7 @@ MODULE final_state
                             "_qsum_T"//TRIM(write_conf(it,nconf,T))//&
                             "_s"//TRIM(write_conf(it,nconf,sigma*RY_TO_CMM1))//".bxsf")
             WRITE(unit,*) "BEGIN_INFO"
-            WRITE(unit,*) "Fermi Energy:", MAXVAL(xqsum(:,:,it))*.9_dp
+            WRITE(unit,'(x,a,1e12.3)') "Fermi Energy:", MAXVAL(xqsum(:,:,it))*.9_dp
             WRITE(unit,*) "END_INFO"
             WRITE(unit,*) "BEGIN_BLOCK_BANDGRID_3D"
             WRITE(unit,*) "final_state"
@@ -625,7 +625,7 @@ MODULE final_state
         ! I define a final energy for Coalescence process which is symmetric in the
         ! exchange of q2 with q3. 
         ! The scattering (X) part is already symmetric, I could just take wfinal3
-        wfinal = (wfinal2+wfinal3)/2
+        wfinal = wfinal3 !(wfinal2+wfinal3)/2
         !
         bose_C = 2* (bose(j,2) - bose(k,3))
         bose_X = bose(j,2) + bose(k,3) + 1
