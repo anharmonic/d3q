@@ -30,7 +30,9 @@ MODULE sqom_program
     CHARACTER(len=256),ALLOCATABLE :: e_file(:)
     INTEGER :: n_files = 1
     !
-    LOGICAL :: elastic_peak
+    !LOGICAL :: elastic_peak
+    REAL(DP) :: elastic_peak_norm  = 0._dp
+    REAL(DP) :: elastic_peak_width = 0._dp
     REAL(DP) :: T 
     !
     CHARACTER(len=256) :: file_mat2
@@ -46,7 +48,7 @@ MODULE sqom_program
   CONTAINS
   !
   ! read everything from files mat2R and mat3R
-  SUBROUTINE READ_INPUT(input, S, fc2)
+  SUBROUTINE READ_INPUT_SQOM(input, S, fc2)
     USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : INVALID, write_conf
@@ -68,13 +70,15 @@ MODULE sqom_program
     REAL(DP)            :: qq(3)       = 0._dp
     !
     LOGICAL             :: asr2 = .false.
-    LOGICAL             :: elastic_peak = .false.
+    !LOGICAL             :: elastic_peak = .false.
+    REAL(DP)            :: elastic_peak_norm = 0._dp
+    REAL(DP)            :: elastic_peak_width= 0._dp
     LOGICAL             :: convolution = .true.
     !
     INTEGER             :: ne = -1, nq = -1, n_files = 1
     !
-    REAL(DP)  :: res_frac = 0.025_dp ! fraction of the energy
-    REAL(DP)  :: res0_cmm1 = 0.4 ! base resolution in cmm1
+    REAL(DP)  :: res_frac = 0.0_dp ! fraction of the energy
+    REAL(DP)  :: res0_cmm1 = 0._dp ! base resolution in cmm1
     REAL(DP)  :: T = 300._dp ! temperature for elastic peak
     INTEGER :: i, input_unit
     CHARACTER(len=256)  :: input_file
@@ -88,7 +92,7 @@ MODULE sqom_program
       convolution, &
       res_frac, res0_cmm1, &
       qq, &
-      elastic_peak, T
+      elastic_peak_norm, elastic_peak_width, T
       
     WRITE(*,*) "Waiting for input"
     !
@@ -113,7 +117,7 @@ MODULE sqom_program
     ENDDO
     CLOSE(input_unit)
 
-    IF(TRIM(file_mat2) == INVALID) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
+    IF(TRIM(file_mat2) == INVALID) CALL errore('READ_INPUT_SQOM', 'Missing file_mat2', 1)
 
     IF(calculation=="neutron") THEN
       IF(TRIM(postfix) == INVALID) THEN
@@ -139,7 +143,8 @@ MODULE sqom_program
     input%asr2                = asr2
     !
     input%n_files             = n_files
-    input%elastic_peak        = elastic_peak
+    input%elastic_peak_norm   = elastic_peak_norm
+    input%elastic_peak_width  = elastic_peak_width
     input%T                   = T
     input%convolution         = convolution
     input%res_frac    = res_frac
@@ -150,7 +155,7 @@ MODULE sqom_program
     input%qq                  = qq
     WRITE(*,'(a,3f12.6)') "qq in 2pi/alat: ", qq
     !
-  END SUBROUTINE READ_INPUT
+  END SUBROUTINE READ_INPUT_SQOM
   !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, S, fc2)
@@ -179,278 +184,6 @@ MODULE sqom_program
     !
   END SUBROUTINE READ_DATA
   !
-  REAL(DP) FUNCTION neutron_form_factor(aname, amass)
-  USE constants, ONLY : BOHR_RADIUS_SI
-  IMPLICIT NONE
-    ! Data from http://www.ncnr.nist.gov/resources/n-lengths/
-    ! This software is open source, do not complain about the 
-    ! table being incomplete: fill it yourself.
-    !
-    ! internal units are in femto-meters (aka fm, fermi)
-    ! output is in bohr
-    !
-    CHARACTER(len=*),INTENT(in)  :: aname
-    REAL(DP),OPTIONAL,INTENT(in) :: amass
-    !
-    REAL(DP),PARAMETER :: FERMI_TO_BOHR = 1.d-15/BOHR_RADIUS_SI
-    !
-    TYPE ffac
-      CHARACTER(len=2) :: aname
-      REAL(DP)         :: amass
-      REAL(DP)         :: coh_b  ! coherent scattering length (fm)
-      REAL(DP)         :: coh_xs ! coherent scattering cross section (barn)
-    END TYPE ffac
-    !
-    INTEGER :: i_iso, i_type
-    INTEGER,PARAMETER :: n_iso=6, n_types=100
-    TYPE(ffac) :: factors(0:10,n_types)
-    !
-    ! Initialize
-    factors = ffac( "", 0._dp, 0._dp, 0._dp)
-    ! Hydrogen:
-!     factors(0,1) = ffac( "H", 1.008_dp, -3.7390_dp)
-!    ` factors(1,1) = ffac( "H", 1._dp,-3.7406_dp)
-!     factors(2,1) = ffac( "D", 2._dp, 6.671_dp)
-!     factors(3,1) = ffac( "T", 3._dp, 4.792_dp)
-!     ! Palladium
-!     factors(0,46) = ffac( "Pd", 106.42_dp, 5.91_dp)
-!     factors(1,46) = ffac( "Pd", 102._dp, 7.7_dp)
-!     factors(2,46) = ffac( "Pd", 104._dp, 7.7_dp)
-!     factors(3,46) = ffac( "Pd", 105._dp, 5.5_dp)
-!     factors(4,46) = ffac( "Pd", 106._dp, 6.4_dp)
-!     factors(5,46) = ffac( "Pd", 108._dp, 4.1_dp)
-!     factors(6,46) = ffac( "Pd", 110._dp, 7.7_dp)
-    !
-    ! Selenium
-    factors(0,34) = ffac("Se", 78.971_dp, 7.970_dp, 7.98_dp)
-    factors(1,34) = ffac("Se", 74_dp,     0.8_dp,   0.1_dp)
-    factors(2,34) = ffac("Se", 76_dp,     12.2_dp,  18.7_dp)
-    factors(3,34) = ffac("Se", 77_dp,     8.25_dp,  8.6_dp)
-    factors(4,34) = ffac("Se", 78_dp,     8.24_dp,  8.5_dp)
-    factors(5,34) = ffac("Se", 80_dp,     7.48_dp,  7.03_dp)
-    factors(6,34) = ffac("Se", 82_dp,     6.34_dp,  5.05_dp)
-    !
-    ! Bismuth
-    factors(0,83) = ffac("Bi", 208.9804_dp, 8.532_dp, 9.148_dp)
-    factors(1,83) = ffac("Bi", 209._dp,     8.532_dp, 9.148_dp)
-    !
-    ! Tellurium
-    factors(0,52) = ffac( "Te", 127.6_dp, 5.80_dp, 4.23_dp)
-    factors(1,52) = ffac( "Te", 120._dp, 5.30_dp, 3.5_dp)
-    factors(2,52) = ffac( "Te", 122._dp, 3.80_dp, 1.8_dp)
-    factors(3,52) = ffac( "Te", 123._dp, 0.00_dp, 0.52_dp) ! -CMPLX(0.05, 0.11)
-    factors(4,52) = ffac( "Te", 124._dp, 7.96_dp, 8._dp)
-    factors(5,52) = ffac( "Te", 125._dp, 5.02_dp, 3.17_dp)
-    factors(6,52) = ffac( "Te", 126._dp, 5.56_dp, 3.88_dp)
-    factors(7,52) = ffac( "Te", 128._dp, 5.89_dp, 4.36_dp)
-    factors(8,52) = ffac( "Te", 130._dp, 6.02_dp, 4.55_dp)
-    !
-    ! Lead
-    factors(0,82) = ffac( "Pb", 207.2_dp, 9.405_dp, 11.115_dp)
-    factors(1,82) = ffac( "Pb", 204._dp, 9.90_dp, 12.3_dp )
-    factors(2,82) = ffac( "Pb", 206._dp, 9.22_dp, 10.68_dp)
-    factors(3,82) = ffac( "Pb", 207._dp, 9.28_dp, 10.82_dp)
-    factors(4,82) = ffac( "Pb", 208._dp, 9.50_dp, 11.34_dp)
-    
-    IF(.not. present(amass)) THEN
-      WRITE(*,*) "Looking for ", TRIM(aname)
-      !
-      ! Deuterium an Tritium are special:
-      IF( aname == "D" ) THEN
-        neutron_form_factor = FERMI_TO_BOHR*factors(2,1)%coh_b
-        RETURN
-      ELSEIF( aname == "T" ) THEN
-        neutron_form_factor = FERMI_TO_BOHR*factors(3,1)%coh_b
-        RETURN
-      ENDIF
-      ! Scan with only atomic symbol:
-      DO i_type = 1,n_types
-        IF(aname == factors(0,i_type)%aname) THEN
-          neutron_form_factor = FERMI_TO_BOHR*factors(0,i_type)%coh_b
-          RETURN
-        ENDIF
-      ENDDO
-      !
-    ELSE
-      !
-      WRITE(*,*) "Looking for ", TRIM(aname), "with mass", amass
-      ! Scan with both symbol and mass:
-      DO i_type = 1,n_types
-      DO i_iso  = 1,n_iso
-        IF( aname == factors(i_iso,i_type)%aname .and. &
-           ABS(amass-factors(i_iso,i_type)%amass)<1.e-6_dp ) THEN
-          neutron_form_factor = FERMI_TO_BOHR*factors(i_iso,i_type)%coh_b
-          RETURN
-        ENDIF
-      ENDDO
-      ENDDO
-      !
-    ENDIF
-    !
-    CALL errore("neutron_form_factor", "could not find '"//aname//"'",1)
-    !
-  END FUNCTION neutron_form_factor
-  !
-  ! Compute convoluting function
-  SUBROUTINE neutron_function_convolution(w, xq, xg, do_elastic, T, S, fc2, ff, &
-      res_frac, res0_cmm1, ne, ee, spf)
-    USE functions,      ONLY : f_bose, f_ngauss
-    USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
-    USE fc2_interpolate,     ONLY : freq_phq_safe
-    IMPLICIT NONE
-    LOGICAL,INTENT(in) :: do_elastic
-    REAL(DP),INTENT(in) :: w, xq(3), xg(3), T
-    TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(forceconst2_grid),INTENT(in) :: fc2
-    REAL(DP),INTENT(in) :: ff(S%ntyp)
-    REAL(DP),INTENT(in) :: res_frac  ! as a fraction of the scattering energy
-    REAL(DP),INTENT(in) :: res0_cmm1 ! resolution at zero energy, in cmm1
-    INTEGER,INTENT(in)  :: ne
-    REAL(DP),INTENT(in) :: ee(ne)
-    REAL(DP),INTENT(inout) :: spf(ne,S%nat3)
-    !
-    COMPLEX(DP) :: cscal, cscal2, csum
-    INTEGER     :: nu, ia, idx, ie, je, je_range, je_range_dw, je_range_up
-    !
-    REAL(DP) :: freq(S%nat3)
-    COMPLEX(DP) :: zz(S%nat3, S%nat3)
-    !
-    REAL(DP) :: G(S%nat3), F, Sq(ne,S%nat3)
-    REAL(DP) :: sigma, sigma_p, sigma_m, xqq(3), norm, new_norm
-    REAL(DP) :: dee(ne), peak0(ne)
-    REAL(DP),PARAMETER :: FWHM_TO_SIGMA = 0.42466_dp !=( 2 *  sqrt(2._dp *log(2._dp)) )**-1
-    !
-    ! prepare phonon frequencies and patterns
-!     WRITE(*,*)
-!     WRITE(*,'(a,3f12.6)') "Convolution q-point: ",  xq
-!     WRITE(*,'(a,3f12.6)') "            g-point: ",  xg
-
-    xqq = xq+xg
-    write(*,"(3f12.6)") xqq
-    !
-    CALL freq_phq_safe(xqq, S, fc2, freq, zz)
-    !
-    ! Put spf in its normalized form
-    ! (currently it is in 1/cmm1^2, we get it to 1/cmm1 and convert those to Ry)
-    ! there is also a factor pi/2 that's lost somewhere in lw.x, fix it in the future
-    DO nu=1,S%nat3
-      spf(:,nu) = spf(:,nu)*ee*RY_TO_CMM1*2/pi
-    ENDDO
-
-    ! Compute the de factor in a more general form than really necessary
-    ! for Simpson integration
-    dee(1:ne-1) = ee(2:ne)-ee(1:ne-1)
-    dee(ne) = dee(ne-1)
-    !DO nu=1,S%nat3
-    !  CALL simpson(ne, spf(:,nu), dee, norm)
-    !   print*, "norm", nu, norm
-    !ENDDO
-    !
-    !print*, ff
-    DO nu=1,S%nat3
-      G(nu)=0._dp
-      csum =(0._dp,0._dp)
-      DO ia=1,S%nat
-          idx=(ia-1)*3
-          ! 2 \pi i q \dot \tau
-          cscal  = CMPLX(0._dp, tpi*SUM(xqq*S%tau(:,ia)), kind=DP) 
-          ! 2 \pi q \dot zz^{ia}_nu
-          cscal2 = tpi* ( xqq(1)*zz(idx+1,nu) &
-                         +xqq(2)*zz(idx+2,nu) &
-                         +xqq(3)*zz(idx+3,nu) )
-!           cscal2 = 1._dp
-          ! \sum F_{ia} exp(\pi i q \dot \tau) 2 \pi q \dot zz^{ia}_nu / sqrt(M_{ia})
-          csum = csum+ff(S%ityp(ia))*EXP(cscal)* cscal2 !/DSQRT(S%amass(S%ityp(ia)))
-      ENDDO
-      G(nu) = ABS(csum)**2
-    ENDDO
-    !G = G/SUM(G)
-    ! Renormalize G makes things easier but is not consistent 
-    ! among different q points (the inconsistency is not huge)
-    !G= G/MAXVAL(G)
-    ! norm = DSQRT(SUM(G**2))
-!     IF(norm/=0._dp) THEN
-!       G = G/norm
-!     ENDIF
-!    WRITE(*,'(a,3f12.6,3x,99e15.6)') "xq+Q/G", xqq, DSQRT(SUM(G**2)), SUM(G)
-    !
-    !
-    ! Add the elastic peak at zero
-    IF(do_elastic)THEN
-      peak0 = 0._dp
-      DO ie = 1,ne
-      IF(ee(ie)/=0._dp) THEN
-        peak0(ie) = f_bose(ee(ie),T)/ee(ie)
-      ENDIF
-!       write(999, '(2e25.15)') ee(ie), peak0(ie)
-      ENDDO
-!       CALL simpson(ne, peak0, dee, norm)
-!       print*, "norm0", norm
-      
-      DO nu = 1, S%nat3
-        spf(:,nu) = spf(:,nu) + peak0(:)/S%nat3
-      ENDDO
-!       DO nu=1,S%nat3
-!         CALL simpson(ne, spf(:,nu), dee, norm)
-!         print*, "norm2", nu, norm
-!       ENDDO
-    ENDIF
-!     spf = Sq
-    !
-    !
-    !
-    ! Doing the convolution with a gaussian in the least efficient way possible
-    IF(.true.)THEN
-      Sq = 0._dp
-      DO ie=1,ne
-      !
-      sigma = MAX(ABS(res_frac*ee(ie)), res0_cmm1/RY_TO_CMM1)*FWHM_TO_SIGMA
-      je_range = 5*sigma/dee(ie)
-      je_range_dw = MIN(je_range, ie-1)
-      je_range_up = MIN(je_range, ne-ie)
-      
-        DO je = ie-je_range_dw, ie+je_range_up
-          !
-          DO nu = 1,S%nat3
-            F = f_ngauss(ee(ie)-ee(je),sigma)
-            !
-            ! I use spf*e which seems to be the correctly normalizable form
-  !         Sq(je,nu)=Sq(je,nu)+de*ee(ie)*spf(ie,nu)*F
-            Sq(je,nu)=Sq(je,nu)+dee(ie)*spf(ie,nu)*F
-            !
-          ENDDO
-        ENDDO
-      ENDDO
-    ELSE
-      Sq = spf
-    ENDIF
-
-!     DO nu=1,S%nat3
-!       CALL simpson(ne, RY_TO_CMM1*ee*spf(:,nu)*2/pi, dee, norm)
-!       print*, "norm3", nu, norm
-!     ENDDO
-    !
-    !
-    ! Apply the structure factor
-    DO nu = 1,S%nat3
-      Sq(:,nu) = G(nu) * Sq(:,nu)
-    ENDDO
-    !
-    ! renomalize to more or less the same as before, to make comparison easier
-!     norm = SUM(Sq)
-!     Sq = Sq/norm/pi
-    !norm = MAXVAL(abs(Sq))      
-    !Sq = Sq/norm
-    spf = sq
-    !
-!     WRITE(999, '(2(a,3f12.6))') "# xq = ", xq, "      xg = ", xg
-!     DO ie = 1, ne
-!       WRITE(999,'(2f12.6,100e20.10e4)') w, ee(ie)*RY_TO_CMM1, SUM(Sq(ie,:)), Sq(ie,:)
-!     ENDDO
-!     WRITE(999,*)
-    
-    !
-  END SUBROUTINE neutron_function_convolution
   !
   ! Compute convoluting function
   SUBROUTINE ixs_function_convolution_fft(S, res_cmm1, ne, ee, spf)
@@ -718,6 +451,7 @@ PROGRAM sqom
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, mpi_bsum, &
                                mpi_broadcast, &
                                ionode, num_procs, my_id
+  USE neutrons,         ONLY : neutron_function_convolution
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -739,17 +473,17 @@ PROGRAM sqom
 !   print*, neutron_form_factor("Cu")
   CALL start_mpi()
 
-  ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
-  CALL READ_INPUT(sqi, S, fc2)
+  ! READ_INPUT_SQOM also reads force constants from disk, using subroutine READ_DATA
+  CALL READ_INPUT_SQOM(sqi, S, fc2)
   S%amass(2) = 2*S%amass(2)
   !
   IF(ionode)THEN
     CALL scan_spf(sqi%e_file(1), nq, ne, S%nat3)
-    IF(sqi%calculation == "neutron")THEN
-      DO it = 1, S%ntyp
-        ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
-      ENDDO
-    ENDIF
+!     IF(sqi%calculation == "neutron")THEN
+!       DO it = 1, S%ntyp
+!         ff(it) = neutron_form_factor(S%atm(it))/S%celldm(1)
+!       ENDDO
+!     ENDIF
     !ff=ff/MAXVAL(ff)
   ENDIF
   CALL mpi_broadcast(nq)
@@ -781,8 +515,8 @@ PROGRAM sqom
   !       ENDIF
         DO iq = 1, nq
           CALL neutron_function_convolution(w(iq), xq(:,iq), sqi%qq, &
-          sqi%elastic_peak, sqi%T, S, fc2, ff, &
-          sqi%res_frac, sqi%res0_cmm1, &
+          sqi%elastic_peak_norm, sqi%elastic_Peak_width/RY_TO_CMM1, sqi%T,&
+          S, fc2, sqi%res_frac, sqi%res0_cmm1, &
           ne, ee, spf(:,:,iq))
         ENDDO
       ENDIF

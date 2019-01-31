@@ -84,10 +84,10 @@ MODULE casimir_linewidth
     IMPLICIT NONE
     !
     ! inverse_lifetime should be 1/(2*gamma)
+    REAL(DP),INTENT(in) :: vel(3)
     REAL(DP),INTENT(in) :: inverse_lifetime
     REAL(DP),INTENT(in) :: l_sample
     REAL(DP),INTENT(in) :: sample_dir(3)
-    REAL(DP),INTENT(in) :: vel(3)
     ! FUNCTION RESULT:
     LOGICAL :: scatter
     REAL(DP) :: effective_vel

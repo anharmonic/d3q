@@ -577,6 +577,7 @@ PROGRAM r2q
   USE overlap,          ONLY : order_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
   USE nanoclock,        ONLY : init_nanoclock
+  USE neutrons,         ONLY : neutron_cross_section
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -586,7 +587,7 @@ PROGRAM r2q
   !
   CHARACTER(len=512) :: filename
   !
-  REAL(DP) :: xq(3)
+  !REAL(DP) :: xq(3)
   REAL(DP),ALLOCATABLE :: freq(:), vel(:,:)
   COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
   INTEGER :: i, output_unit=10000, nu
@@ -626,6 +627,11 @@ PROGRAM r2q
       OPEN(unit=output_unit+1, file=filename)
       ALLOCATE(vel(3,S%nat3))
     ENDIF
+
+    IF(input%print_neutron_cs) THEN
+      filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_ins.out"
+      OPEN(unit=output_unit+2, file=filename)
+    ENDIF
     !
     DO i = 1,qpath%nq
       !CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
@@ -650,6 +656,11 @@ PROGRAM r2q
         ioWRITE(output_unit+1, '(i6,f12.6,3x,3f12.6,999(3e16.8,3x))') &
           i, qpath%w(i), qpath%xq(:,i), vel*RY_TO_CMM1
         ioFLUSH(output_unit+1)
+      ENDIF
+      
+      IF(input%print_neutron_cs)THEN
+        ioWRITE(output_unit+2, '(i6,f12.6,3x,3f12.6,999e16.8)') &
+          i, qpath%w(i), qpath%xq(:,i), neutron_cross_section( qpath%xq(:,i), DBLE((/0,0,0/)), S, fc2)
       ENDIF
 
     ENDDO

@@ -16,11 +16,11 @@ MODULE ph_velocity
   REAL(DP),PARAMETER :: h = 1.e-7_dp
   
 !  INTERFACE velocity
-!    MODULE PROCEDURE velocity_proj
+!    MODULE PROCEDURE velocity_fdiff
 !  END INTERFACE  
   !
   PUBLIC :: velocity
-  !_simple, velocity_proj, velocity_var
+  !_simple, velocity_fdiff, velocity_ft
          
   CONTAINS
   FUNCTION velocity(S,fc, xq)
@@ -34,10 +34,10 @@ MODULE ph_velocity
     !
     ! If we have effective charges, use finite differences derivation
     IF(S%lrigid)THEN
-      velocity = velocity_proj(S,fc, xq) 
+      velocity = velocity_fdiff(S,fc, xq) 
     ELSE
     ! Otherwise, use the property of Fourier transform to get dD2/dq = \sum_R R e(iqR) F_R
-      velocity = velocity_var(S,fc, xq) 
+      velocity = velocity_ft(S,fc, xq) 
     ENDIF
   END FUNCTION 
   !
@@ -48,7 +48,7 @@ MODULE ph_velocity
   !     W(q+h) = U(q)^H D(q+h) U(q)
   !     w^2_i(q+h) = W(q+h)_i,i
   ! This algorithm does not fail at band crossings
-  FUNCTION velocity_proj(S,fc, xq)
+  FUNCTION velocity_fdiff(S,fc, xq)
     USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
     USE merge_degenerate, ONLY : merge_degenerate_velocity
     IMPLICIT NONE
@@ -56,7 +56,7 @@ MODULE ph_velocity
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
     ! FUNCTION RESULT:
-    REAL(DP) :: velocity_proj(3,S%nat3)
+    REAL(DP) :: velocity_fdiff(3,S%nat3)
     !
     REAL(DP),ALLOCATABLE :: xvel(:,:)
     COMPLEX(DP),ALLOCATABLE :: D2(:,:), U(:,:), W(:,:)
@@ -109,22 +109,23 @@ MODULE ph_velocity
 !$OMP END PARALLEL DO
     !
     CALL merge_degenerate_velocity(S%nat3, xvel, w2)
-    velocity_proj = xvel
+    velocity_fdiff = xvel
     DEALLOCATE(D2, U, W, w2p, w2m, w2, xvel)
     !
-  END FUNCTION velocity_proj
+  END FUNCTION velocity_fdiff
+  !
   ! \/o\________\\\_________________________________________/^>
   PURE FUNCTION rotate_d2(nat3, D, U)
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
     COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
     COMPLEX(DP) :: rotate_d2(nat3,nat3)
-    rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
+    rotate_d2 = MATMUL(TRANSPOSE(CONJG(U)), MATMUL(D,U))
   END FUNCTION
   ! \/o\________\\\_________________________________________/^>
   ! Compute the derivative of the dynamical matrix using properties
   ! of fourier transform
-  FUNCTION velocity_var(S,fc, xq)
+  FUNCTION velocity_ft(S,fc, xq)
     USE fc2_interpolate, ONLY : fftinterp_mat2, fftinterp_dmat2, mat2_diag
     USE merge_degenerate, ONLY : merge_degenerate_velocity
     IMPLICIT NONE
@@ -132,7 +133,7 @@ MODULE ph_velocity
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: xq(3)
     ! FUNCTION RESULT:
-    REAL(DP) :: velocity_var(3,S%nat3)
+    REAL(DP) :: velocity_ft(3,S%nat3)
     !
     REAL(DP),ALLOCATABLE :: xvel(:,:)
     COMPLEX(DP),ALLOCATABLE :: U(:,:), rD(:,:), dD(:,:,:)
@@ -170,12 +171,51 @@ MODULE ph_velocity
     ENDDO
     !
     CALL merge_degenerate_velocity(S%nat3, xvel, w2)
-    velocity_var = xvel
+    velocity_ft = xvel
     DEALLOCATE(U, xvel)
 
-  END FUNCTION velocity_var
+  END FUNCTION velocity_ft
   !
-END MODULE ph_velocity
+  ! \/o\________\\\_________________________________________/^>
+  ! Compute the derivative of the dynamical matrix on the basis
+  ! of the phonon eigenvectors
+  FUNCTION velocity_matrix_ft(S,fc, xq) &
+  RESULT (rD)
+    USE fc2_interpolate, ONLY : fftinterp_mat2, fftinterp_dmat2, mat2_diag
+    USE merge_degenerate, ONLY : merge_degenerate_velocity
+    IMPLICIT NONE
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: xq(3)
+    ! FUNCTION RESULT:
+    REAL(DP) :: rD(3,S%nat3,S%nat3)
+    !
+    COMPLEX(DP),ALLOCATABLE :: U(:,:), dD(:,:,:)
+    REAL(DP),ALLOCATABLE    :: w2(:)
+    INTEGER :: ix
+    !
+    ALLOCATE(U(S%nat3,S%nat3), w2(S%nat3), dD(S%nat3,S%nat3,3))
+    !
+    ! We need to get and diagonalize the dyn.mat. at q to get its eigenvectors
+    ! (aka the rotation U that makes it diagonal)
+    CALL fftinterp_mat2(xq, S, fc, U)
+    CALL mat2_diag(S%nat3, U, w2)
+    !
+    ! The next call gives us the derivative of the dynamical matrix
+    CALL fftinterp_dmat2(xq, S, fc, dD)
+    !
+    !
+    DO ix = 1,3
+      ! Instead of diagonalizing dD, we rotate it with the same patterns as D
+      rD(ix,:,:) = rotate_d2(S%nat3, dD(:,:,ix), U)
+    ENDDO
+    !
+    !CALL merge_degenerate_velocity(S%nat3, xvel, w2)
+    DEALLOCATE(U,w2,dD)
+
+  END FUNCTION velocity_matrix_ft
+  !
+  END MODULE ph_velocity
 
 
 

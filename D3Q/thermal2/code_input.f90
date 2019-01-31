@@ -71,6 +71,7 @@ MODULE code_input
     ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
+    LOGICAL :: print_neutron_cs
     !
     LOGICAL :: store_lw ! for tk-sma, save the linewidth to file
     !
@@ -126,7 +127,8 @@ MODULE code_input
     CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     CHARACTER(len=6)   :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
-    LOGICAL            :: print_velocity = .true.    ! print the phonon group velocity for each q (only r2q code)
+    LOGICAL            :: print_velocity   = .true.    ! print the phonon group velocity for each q (only r2q code)
+    LOGICAL            :: print_neutron_cs = .false.    ! print the phonon cross-section for inelastic neutron scattering (only r2q code)
     LOGICAL            :: store_lw = .false.         ! for tk-sma calculation, store the lw for the grid point to file
     !
     ! The following variables are used for spectre and final state calculations
@@ -229,7 +231,7 @@ MODULE code_input
       isotopic_disorder, &
       casimir_scattering,  &
       sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
-      print_dynmat, print_velocity
+      print_dynmat, print_velocity, print_neutron_cs
       !
       
     timer_CALL t_iodata%start()
@@ -336,6 +338,7 @@ MODULE code_input
     input%sort_freq    = sort_freq
     input%print_dynmat   = print_dynmat
     input%print_velocity = print_velocity
+    input%print_neutron_cs = print_neutron_cs
     input%store_lw       = store_lw 
     !
     input%isotopic_disorder  = isotopic_disorder
@@ -812,7 +815,7 @@ MODULE code_input
     IF(.not.configs_ok) CALL errore("READ_INPUT", "CONFIGS card not found &
                                     &(it may have been eaten by the preceeding card)", 1)
     !
-    IF(input_unit/=5) CLOSE(input_unit)
+    IF(input_unit/=5 .and. input_unit/=0) CLOSE(input_unit)
     !
 !     WRITE(*,*) "=========== being input ==========="
 !     WRITE(*,*) input
@@ -853,6 +856,7 @@ MODULE code_input
       CALL mpi_broadcast(prefix)
       CALL mpi_broadcast(print_dynmat)
       CALL mpi_broadcast(print_velocity)
+      CALL mpi_broadcast(print_neutron_cs)
       CALL mpi_broadcast(3,q_initial)
       CALL mpi_broadcast(q_resolved)
       CALL mpi_broadcast(q_summed)

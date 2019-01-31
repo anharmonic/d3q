@@ -27,6 +27,7 @@ mc_grids.o : mpi_thermal.o
 merge_degenerate.o : mpi_thermal.o
 more_constants.o : mpi_thermal.o
 nanoclock.o : mpi_thermal.o
+neutrons.o : mpi_thermal.o
 nist_isotopes_db.o : mpi_thermal.o
 overlap.o : mpi_thermal.o
 ph_dos.o : mpi_thermal.o
@@ -92,16 +93,21 @@ PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
 PROGRAM_r2q.o : ./asr2.o
+PROGRAM_r2q.o : ./casimir.o
 PROGRAM_r2q.o : ./code_input.o
 PROGRAM_r2q.o : ./fc2_interp.o
 PROGRAM_r2q.o : ./functions.o
 PROGRAM_r2q.o : ./input_fc.o
+PROGRAM_r2q.o : ./isotopes.o
+PROGRAM_r2q.o : ./linewidth.o
 PROGRAM_r2q.o : ./more_constants.o
 PROGRAM_r2q.o : ./mpi_thermal.o
 PROGRAM_r2q.o : ./nanoclock.o
+PROGRAM_r2q.o : ./neutrons.o
 PROGRAM_r2q.o : ./overlap.o
 PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
+PROGRAM_r2q.o : ./timers.o
 PROGRAM_recenter.o : ./PROGRAM_recenter.o
 PROGRAM_recenter.o : ./cmdline_param.o
 PROGRAM_recenter.o : ./f3_bwfft.o
@@ -123,6 +129,7 @@ PROGRAM_sqom.o : ./functions.o
 PROGRAM_sqom.o : ./input_fc.o
 PROGRAM_sqom.o : ./more_constants.o
 PROGRAM_sqom.o : ./mpi_thermal.o
+PROGRAM_sqom.o : ./neutrons.o
 PROGRAM_sqom.o : ./q_grids.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
@@ -209,6 +216,9 @@ mc_grids.o : ./q_grids.o
 mc_grids.o : ./timers.o
 merge_degenerate.o : ./timers.o
 nanoclock.o : ./mpi_thermal.o
+neutrons.o : ./fc2_interp.o
+neutrons.o : ./functions.o
+neutrons.o : ./input_fc.o
 ph_dos.o : ./code_input.o
 ph_dos.o : ./fc2_interp.o
 ph_dos.o : ./functions.o

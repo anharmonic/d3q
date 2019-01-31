@@ -149,8 +149,11 @@ MODULE nist_isotopes_db
         CALL errore("compute_gs", "You need to provide amass and aconc for nisot>0",1)
       IF(.not.ALLOCATED(amass) .or. .not.allocated(aconc))&
         CALL errore("compute_gs", "You need to provide amass and aconc for nisot>0",2)
-      IF( ABS(SUM(aconc)-1._dp)>1.e-4_dp) &
-        CALL errore("compute_gs", "the sum of isotope concentrations is not 100%", 3)
+      IF( ABS(SUM(aconc)-1._dp)>1.e-4_dp) THEN
+        !CALL errore("compute_gs", "the sum of isotope concentrations is not 100%", 3)
+        ioWRITE(*,'(5x,3a)') "WARNING: isotopes of ", TRIM(aname), " did not sum to 100%: renormalized"
+        aconc = aconc/SUM(aconc)
+      ENDIF
       !
       ioWRITE(*,'(5x,2a)') "Element from input: ", aname
       ioWRITE(*,'(8x,a,i3,a)') "number of isotopes:", nisot, ". Mass, concentration:"

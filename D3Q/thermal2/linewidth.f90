@@ -700,7 +700,7 @@ MODULE linewidth
           dom_X =(freq(i,1)-freq(j,2)-freq(k,3))
           ctm_X = bose_X * f_gauss(dom_X, sigma)
           !
-          lw(i) = lw(i) - pi*freqtotm1 * (ctm_C + ctm_X) * V3sq(i,j,k)
+          lw(i) = lw(i) - pi * (ctm_C + ctm_X) * V3sq(i,j,k)*freqtotm1
           !
           !leftover_e = pi*freqtotm1 * (ctm_C*dom_C + ctm_X*dom_X) * V3sq(i,j,k)
           !ENDIF
