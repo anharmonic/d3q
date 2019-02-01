@@ -200,7 +200,7 @@ MODULE r2q_program
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
     USE nanoclock,        ONLY : print_percent_wall
-    USE mpi_thermal,      ONLY :  mpi_bsum
+    USE mpi_thermal,      ONLY : mpi_bsum
     USE more_constants,   ONLY : write_conf
     IMPLICIT NONE
     TYPE(code_input_type)    :: input
@@ -304,11 +304,11 @@ MODULE r2q_program
       ctm_X = ctm_X*weight*de_ry
       ctm_C = ctm_C*weight*de_ry
       
-      DO i = 1, S%nat3
-        !
-        ! Only sum a +/- 5 sigma range around the phonon energy
-        !
-      ENDDO
+!      DO i = 1, S%nat3
+!        !
+!        ! Only sum a +/- 5 sigma range around the phonon energy
+!        !
+!      ENDDO
       !
       DO i = 1,input%ne
         WRITE(10000,'(1f12.6, 4ES27.15E3)') out_grid%w(iq), &

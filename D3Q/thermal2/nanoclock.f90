@@ -160,6 +160,7 @@ MODULE nanoclock
 !    print_now = print_now .and. (wall-last_print)>gran_sec/10._dp
 
     print_now = print_now .or. (i==n)
+    print_now = print_now .or. (i==2) ! give an estimate as soon as possible
 
     IF(reset) iter_start = wall
     

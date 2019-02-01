@@ -96,14 +96,16 @@ MODULE thermalk_program
     ! Open files to store the linewidth
     IF(ionode.and.input%store_lw)THEN
       DO it = 1,input%nconf
-        OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
-                                "lw."//TRIM(input%prefix)//&
-                                "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                                "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
-        ioWRITE(1000+it, *) "# linewidth [cm^-1]"
-        ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
-                                                    "    sigma=", input%sigma(it)
-        ioFLUSH(1000+it)
+        IF (input%intrinsic_scattering) THEN
+          OPEN(unit=1000+it, file=TRIM(input%outdir)//"/"//&
+                                  "lw."//TRIM(input%prefix)//&
+                                  "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+          ioWRITE(1000+it, *) "# linewidth [cm^-1]"
+          ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
+                                                      "    sigma=", input%sigma(it)
+          ioFLUSH(1000+it)
+        ENDIF
         !
         !
         IF(input%isotopic_disorder) THEN
@@ -146,11 +148,15 @@ MODULE thermalk_program
       !ioWRITE(stdout,'(i6,3f15.8)') iq, out_grid%xq(:,iq)
       CALL print_percent_wall(10._dp, 300._dp, iq, out_grid%nq, (iq==1))
       !
-        timer_CALL t_lwphph%start()
-      lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T,&
-                       sigma_ry, S, in_grid, fc2, fc3)
-      CALL check_negative_lw(lw_phph, S%nat3, input%nconf, "SMA:phph")
-        timer_CALL t_lwphph%stop()
+      IF (input%intrinsic_scattering) THEN
+          timer_CALL t_lwphph%start()
+        lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T,&
+                         sigma_ry, S, in_grid, fc2, fc3)
+        CALL check_negative_lw(lw_phph, S%nat3, input%nconf, "SMA:phph")
+          timer_CALL t_lwphph%stop()
+      ELSE
+        lw_phph = 0._dp
+      ENDIF
       !
       ! Compute contribution of isotopic disorder
       IF(input%isotopic_disorder)THEN
@@ -185,10 +191,8 @@ MODULE thermalk_program
       IF(input%store_lw)THEN
         timer_CALL t_lwinout%start()
         DO it = 1, input%nconf
-          ioWRITE(1000+it,'(99e20.10)') lw_phph(:,it)*RY_TO_CMM1
-          IF(input%isotopic_disorder) THEN
-            ioWRITE(2000+it,'(99e20.10)') lw_isotopic(:,it)*RY_TO_CMM1
-          ENDIF
+          IF(input%intrinsic_scattering.and.ionode) WRITE(1000+it,'(99e20.10)') lw_phph(:,it)*RY_TO_CMM1
+          IF(input%isotopic_disorder.and.ionode)    WRITE(2000+it,'(99e20.10)') lw_isotopic(:,it)*RY_TO_CMM1
         ENDDO
         IF(input%casimir_scattering) THEN
           ioWRITE(3000,'(99e20.10)') lw_casimir(:)*RY_TO_CMM1
@@ -223,7 +227,7 @@ MODULE thermalk_program
                "WARNING! Negative lw (idx q, mode, conf):", lw(nu,it), iq, nu, it
             lw(nu,it) = - lw(nu,it)
           ENDIF
-          IF(.not. lw(nu,it)>0._dp)THEN ! false for NaN
+          IF( (.not. lw(nu,it)>0._dp) .and. (input%intrinsic_scattering) )THEN ! false for NaN
             IF(ANY(ABS(vel(:,nu))>eps_vel ))THEN
               WRITE(stdout,'(3i6,1e20.10,5x,3e20.10)') iq, nu, it, lw(nu,it), vel(:,nu)
               CALL errore("TK_SMA", "Zero or NaN linewidth, with non-zero velocity", 1)
@@ -258,8 +262,8 @@ MODULE thermalk_program
 
     IF(ionode.and.input%store_lw)THEN
       DO it = 1, input%nconf
-        CLOSE(1000+it)
-        IF(input%isotopic_disorder) CLOSE(2000+it)
+        IF(input%intrinsic_scattering) CLOSE(1000+it)
+        IF(input%isotopic_disorder)    CLOSE(2000+it)
       ENDDO
       IF(input%casimir_scattering) CLOSE(3000)
       CLOSE(5000) !velocity
@@ -267,30 +271,34 @@ MODULE thermalk_program
       CLOSE(7000) ! q-points
     ENDIF
     !
-    ! Write to disk
-    IF(ionode) OPEN(unit=10000, file=TRIM(input%outdir)//"/"//&
-                                     TRIM(input%prefix)//"."//"out")
-    ioWRITE(10000,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
-                        "    K_x            K_y            K_z             ",&
-                        "    K_xy           K_xz           K_yz            ",&
-                        "    K_yx           K_zx           K_zy       "
-    tk = tk*RY_TO_WATTMM1KM1
-    DO it = 1,input%nconf
-      ioWRITE(10000,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
-      tk(1,1,it),tk(2,2,it),tk(3,3,it), &
-      tk(1,2,it),tk(1,3,it),tk(2,3,it), &
-      tk(2,1,it),tk(3,1,it),tk(3,2,it)
-    ENDDO
-    IF(ionode) CLOSE(10000)
-    !
-    ! Write to screen
-    ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, stored to file:"
-    ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
-    ioWRITE(stdout,"(3x,a)") "Diagonal components (conf, sigma, T, K_x, K_y, K_z):"
-    DO it = 1,input%nconf
-      ioWRITE(stdout,"(i3,2f12.6,3e16.8)")  it, input%sigma(it), input%T(it),&
-                                      tk(1,1,it), tk(2,2,it), tk(3,3,it)
-    ENDDO
+    IF(input%intrinsic_scattering) THEN
+      ! Write to disk
+      IF(ionode) OPEN(unit=10000, file=TRIM(input%outdir)//"/"//&
+                                       TRIM(input%prefix)//"."//"out")
+      ioWRITE(10000,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
+                          "    K_x            K_y            K_z             ",&
+                          "    K_xy           K_xz           K_yz            ",&
+                          "    K_yx           K_zx           K_zy       "
+      tk = tk*RY_TO_WATTMM1KM1
+      DO it = 1,input%nconf
+        ioWRITE(10000,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
+        tk(1,1,it),tk(2,2,it),tk(3,3,it), &
+        tk(1,2,it),tk(1,3,it),tk(2,3,it), &
+        tk(2,1,it),tk(3,1,it),tk(3,2,it)
+      ENDDO
+      IF(ionode) CLOSE(10000)
+      !
+      ! Write to screen
+      ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, stored to file:"
+      ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
+      ioWRITE(stdout,"(3x,a)") "Diagonal components (conf, sigma, T, K_x, K_y, K_z):"
+      DO it = 1,input%nconf
+        ioWRITE(stdout,"(i3,2f12.6,3e16.8)")  it, input%sigma(it), input%T(it),&
+                                        tk(1,1,it), tk(2,2,it), tk(3,3,it)
+      ENDDO
+    ELSE
+      ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity not computed (intrinsic_scattering is false)"
+    ENDIF
     !
 #ifdef timer_CALL
     ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()

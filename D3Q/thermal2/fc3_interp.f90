@@ -1051,8 +1051,9 @@ MODULE fc3_interpolate
     IF(buf/="constant") CALL errore(sub, "cannot read this format", 1)
     !
     ioWRITE(stdout,*) "** Reading constant FC3 file ", TRIM(filename)
-    !CALL read_system(unit, S)
+    CALL read_system(unit, S)
     READ(unit, *) fc%constant
+    WRITE(stdout,*) "Constant FC", fc%constant
     RETURN
     !
   END SUBROUTINE read_fc3_constant
@@ -1072,7 +1073,7 @@ MODULE fc3_interpolate
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
     !
     WRITE(unit, '(a)') "constant"
-    !CALL write_system(unit, S)
+    CALL write_system(unit, S)
     WRITE(unit,*) FC%constant
   END SUBROUTINE write_fc3_constant
     !

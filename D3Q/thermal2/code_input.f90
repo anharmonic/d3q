@@ -50,6 +50,8 @@ MODULE code_input
     REAL(DP) :: q_initial(3)
     LOGICAL  :: q_resolved, q_summed
     REAL(DP) :: sigmaq
+    ! intrinsic ph-ph scattering, this is true by default:
+    LOGICAL  :: intrinsic_scattering
     ! for isotope contribution to lw
     LOGICAL  :: isotopic_disorder
     ! for border scattering, grain size effects
@@ -145,6 +147,10 @@ MODULE code_input
     LOGICAL  :: q_summed = .false.      ! save the final state of q as well
     REAL(DP) :: sigmaq = 0.1_dp         ! reciprocal space smearing for final q decomposition
     !
+    ! Compute intrinsic ph-ph scattering, setting this to false is only useful
+    ! to re-compute different casimir or isotopic parameters and then recompute
+    ! SMA using tools/recompute_sma.m
+    LOGICAL  :: intrinsic_scattering = .true.
     ! Use isotopic disorder (only for tk calculations)
     LOGICAL  :: isotopic_disorder = .false.
     REAL(DP),ALLOCATABLE :: isotopes_mass(:), isotopes_conc(:), auxm(:), auxs(:)
@@ -210,6 +216,7 @@ MODULE code_input
       thr_tk, niter_max, &
       nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
       optimize_grid, optimize_grid_thr, &
+      intrinsic_scattering, &
       isotopic_disorder, store_lw, &
       casimir_scattering, mfp_cutoff, sample_dir, &
       sample_length_au, sample_length_mu, sample_length_mm, &
@@ -336,15 +343,16 @@ MODULE code_input
     input%grid_type_in = grid_type_in
     input%exp_t_factor = exp_t_factor
     input%sort_freq    = sort_freq
-    input%print_dynmat   = print_dynmat
-    input%print_velocity = print_velocity
+    input%print_dynmat     = print_dynmat
+    input%print_velocity   = print_velocity
     input%print_neutron_cs = print_neutron_cs
-    input%store_lw       = store_lw 
+    input%store_lw         = store_lw 
     !
-    input%isotopic_disorder  = isotopic_disorder
-    input%casimir_scattering = casimir_scattering
-    input%mfp_cutoff         = mfp_cutoff
-    input%sample_dir         = sample_dir
+    input%intrinsic_scattering = intrinsic_scattering
+    input%isotopic_disorder    = isotopic_disorder
+    input%casimir_scattering   = casimir_scattering
+    input%mfp_cutoff           = mfp_cutoff
+    input%sample_dir           = sample_dir
     IF(casimir_scattering .and. mfp_cutoff) &
       CALL errore("code_input","don't use both casimir_scattering and mfp_cutoff",1)
     !
@@ -755,8 +763,8 @@ MODULE code_input
         ISOTOPE_TYPE_LOOP 
         !
         ! Replace atomic masses with those from input:
-        S%amass = auxm * MASS_DALTON_TO_RY
-        S%amass_variance = auxs
+        S%amass(1:S%ntyp) = auxm(1:S%ntyp) * MASS_DALTON_TO_RY
+        S%amass_variance(1:S%ntyp) = auxs(1:S%ntyp)
         DEALLOCATE(auxs, auxm)
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       CASE DEFAULT
@@ -842,6 +850,7 @@ MODULE code_input
       CALL mpi_broadcast(file_mat3)
       CALL mpi_broadcast(grid_type)
       CALL mpi_broadcast(grid_type_in)
+      CALL mpi_broadcast(intrinsic_scattering)
       CALL mpi_broadcast(isotopic_disorder)
       CALL mpi_broadcast(max_seconds)
       CALL mpi_broadcast(max_time)
