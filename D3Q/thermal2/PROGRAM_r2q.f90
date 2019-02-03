@@ -7,6 +7,8 @@
 !
 MODULE r2q_program
 
+  USE timers
+
 #include "mpi_thermal.h"
   CONTAINS
 
@@ -20,7 +22,6 @@ MODULE r2q_program
     USE fc2_interpolate,  ONLY : freq_phq, bose_phq
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
-    USE nanoclock,        ONLY : print_percent_wall
     USE mpi_thermal,      ONLY :  mpi_bsum
     USE more_constants,   ONLY : write_conf
     IMPLICIT NONE
@@ -199,7 +200,6 @@ MODULE r2q_program
     USE fc2_interpolate,  ONLY : freq_phq, bose_phq
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
-    USE nanoclock,        ONLY : print_percent_wall
     USE mpi_thermal,      ONLY : mpi_bsum
     USE more_constants,   ONLY : write_conf
     IMPLICIT NONE
@@ -331,7 +331,6 @@ MODULE r2q_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE nanoclock,          ONLY : print_percent_wall
     USE overlap,            ONLY : order_type
     USE timers
     IMPLICIT NONE

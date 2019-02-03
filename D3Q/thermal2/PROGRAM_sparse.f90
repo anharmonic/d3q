@@ -37,7 +37,7 @@ PROGRAM gen_sparse
     USE fc3_interpolate,      ONLY : grid, sparse, forceconst3, fc3_grid_to_sparse, read_fc3
     USE input_fc,       ONLY : aux_system,  ph_system_info
     USE io_global,      ONLY : stdout
-    USE nanoclock,      ONLY : nanotimer, print_timers_header
+    USE nanoclock,      ONLY : nanotimer
     USE gen_sparse_program
     USE random_numbers, ONLY : randy
     USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode

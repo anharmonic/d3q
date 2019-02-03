@@ -24,7 +24,6 @@ MODULE final_state
     USE functions,            ONLY : refold_bz, refold_bz_mod, f_gauss, quicksort
     USE constants,            ONLY : RY_TO_CMM1
     USE more_constants,       ONLY : write_conf
-    USE nanoclock,            ONLY : print_percent_wall
     USE timers
     !
     IMPLICIT NONE

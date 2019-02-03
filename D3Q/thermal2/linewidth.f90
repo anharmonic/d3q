@@ -310,7 +310,6 @@ MODULE linewidth
     USE input_fc,         ONLY : ph_system_info
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
     USE fc3_interpolate,  ONLY : forceconst3
-    USE nanoclock,      ONLY : print_percent_wall
     !
     IMPLICIT NONE
     !

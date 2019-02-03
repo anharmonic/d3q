@@ -7,11 +7,12 @@
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE timers
-  USE nanoclock, ONLY : nanotimer, get_wall, print_timers_header, init_nanoclock
+  USE nanoclock, ONLY : nanotimer, get_wall, init_nanoclock
   USE kinds,     ONLY : DP
 #include "mpi_thermal.h"
 
   INTEGER :: limit_seconds = -1
+
 
   TYPE(nanotimer) :: t_freq =   nanotimer("ph interp & diag"), &
                      t_bose =   nanotimer("bose distrib"), &
@@ -104,7 +105,85 @@ MODULE timers
     
   END SUBROUTINE
   !
-  SUBROUTINE set_time_limit(max_seconds, max_time)
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_percent_wall(gran_pc, gran_sec, i, n, reset)
+    USE mpi_thermal, ONLY : mpi_any, abort_mpi
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: gran_pc, gran_sec
+    INTEGER,INTENT(in) :: i, n
+    LOGICAL,INTENT(in) :: reset
+    !
+    REAL(DP),SAVE :: last_print = 0._dp
+    REAL(DP),SAVE :: iter_start = 0._dp
+    REAL(DP) :: wall, fact, pc, iter_time, iter_end_time
+    LOGICAL ::print_now, time_is_out
+    !
+    fact = 100._dp / gran_pc
+    !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
+    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.49_dp*fact/n
+
+    wall = get_wall()
+    print_now = print_now .or. (wall-last_print)>gran_sec
+!    print_now = print_now .and. (wall-last_print)>gran_sec/10._dp
+
+    print_now = print_now .or. (i==n)
+    print_now = print_now .or. (i==2) ! give an estimate as soon as possible
+
+    IF(reset) iter_start = wall
+
+    last_print = wall
+    pc = 100*DBLE(i-1)/(n-1)
+    iter_time = (wall-iter_start)
+    !
+    IF(pc>0._dp) THEN
+      iter_end_time = 100*iter_time/pc
+      IF(print_now.and.ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",f12.1,"s &
+                    &| WALL:",f12.1,"s ")') &
+                    pc, iter_time,iter_end_time, wall
+    ELSE
+      iter_end_time = 0
+      IF(print_now .and. ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
+                    &| WALL:",f12.1,"s ")') &
+                    pc, iter_time, wall
+    ENDIF
+    !
+    time_is_out = check_time_limit(iter_end_time+iter_start)
+    CALL mpi_any(time_is_out)
+    IF(time_is_out)THEN
+      ioWRITE(stdout,'(a,2/,a,2/,a)') "********","Cannot finish before time limit: giving up to save resources","********"
+      CALL print_all_timers()
+      CALL abort_mpi(255)
+    ENDIF
+
+    FLUSH(stdout)
+  END SUBROUTINE
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_timers_header()
+    IMPLICIT NONE
+    !
+    ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * "'&
+    //',3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
+    !
+  END SUBROUTINE print_timers_header
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE print_memory()
+    USE wrappers,           ONLY : memstat
+    IMPLICIT NONE
+    INTEGER :: kb
+    CHARACTER(len=2)    :: unit
+    !
+    CALL memstat(kb)
+    unit = "kB"
+    IF(kb>10000) THEN
+      kb = kb/1000
+      unit = "MB"
+    ENDIF
+    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,27x," *")') "Memory used ", kb, unit
+    !
+  END SUBROUTINE print_memory
+  !
+  ! \/o\________\\\_________________________________________/^>
+   SUBROUTINE set_time_limit(max_seconds, max_time)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: max_seconds
     REAL(DP),INTENT(in) :: max_time
@@ -125,16 +204,25 @@ MODULE timers
       limit_seconds = max_seconds
     ENDIF
     IF(limit_seconds>0)THEN
-      ioWRITE(stdout, '(2x,a,i12,a)') "Code will try to stop after", limit_seconds, "s"
+      ioWRITE(stdout, '(2x,a,i12,a)') "Code will try to stop if it cannot finish in", limit_seconds, "s"
     ENDIF
   END SUBROUTINE
   !
-  LOGICAL FUNCTION check_time_limit()
+  ! \/o\________\\\_________________________________________/^>
+  !
+  LOGICAL FUNCTION check_time_limit(predicted_final_time)
     IMPLICIT NONE
+    REAL(DP),OPTIONAL,INTENT(in) :: predicted_final_time
+    REAL(DP) :: time
+    IF(present(predicted_final_time)) THEN
+       time = predicted_final_time
+    ELSE
+       time = get_wall()
+    ENDIF
     !print*, "check", limit_seconds, INT(get_wall())
-    check_time_limit = (INT(get_wall())>limit_seconds)&
+    check_time_limit = (INT(time)>limit_seconds)&
                      .and. (limit_seconds>0)
   END FUNCTION
 
-
+ 
 END MODULE

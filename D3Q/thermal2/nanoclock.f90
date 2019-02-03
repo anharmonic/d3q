@@ -31,6 +31,8 @@ MODULE nanoclock
   USE kinds,            ONLY : DP
   USE iso_c_binding,    ONLY : c_double
 #include "mpi_thermal.h"  
+
+
   IMPLICIT NONE
   !
   TYPE nanotimer
@@ -139,74 +141,6 @@ MODULE nanoclock
     REAL(kind=DP) :: get_wall
     get_wall= REAL(c_nanosec(), kind=DP)
   END FUNCTION
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_percent_wall(gran_pc, gran_sec, i, n, reset)
-    IMPLICIT NONE
-    REAL(DP),INTENT(in) :: gran_pc, gran_sec
-    INTEGER,INTENT(in) :: i, n
-    LOGICAL,INTENT(in) :: reset
-    !
-    REAL(DP),SAVE :: last_print = 0._dp
-    REAL(DP),SAVE :: iter_start = 0._dp
-    REAL(DP) :: wall, fact, pc, iter_time, iter_end_time
-    LOGICAL ::print_now
-    !
-    fact = 100._dp / gran_pc
-    !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
-    print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.49_dp*fact/n
 
-    wall = get_wall()
-    print_now = print_now .or. (wall-last_print)>gran_sec
-!    print_now = print_now .and. (wall-last_print)>gran_sec/10._dp
-
-    print_now = print_now .or. (i==n)
-    print_now = print_now .or. (i==2) ! give an estimate as soon as possible
-
-    IF(reset) iter_start = wall
-    
-
-    IF(print_now)THEN
-      last_print = wall
-      pc = 100*DBLE(i-1)/(n-1)
-      iter_time = (wall-iter_start)
-      IF(pc>0._dp) THEN
-        iter_end_time = 100*iter_time/pc
-        ioWRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",f12.1,"s &
-                      &| WALL:",f12.1,"s ")') &
-                      pc, iter_time,iter_end_time, wall
-      ELSE
-        ioWRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
-                      &| WALL:",f12.1,"s ")') &
-                      pc, iter_time, wall
-      ENDIF
-      FLUSH(stdout)
-    ENDIF
-  END SUBROUTINE
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_timers_header()
-    IMPLICIT NONE
-    !
-    ioWRITE(*,'(2x," * ",24x," * ",12x," ms * ",7x," ms/call * ",8x," ms*cpu * "'&
-    //',3x," ms*cpu/call * ", " % wtime * ",6x," calls *")')
-    !
-  END SUBROUTINE print_timers_header
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_memory()
-    USE wrappers,           ONLY : memstat
-    IMPLICIT NONE
-    INTEGER :: kb
-    CHARACTER(len=2)    :: unit
-    !
-    CALL memstat(kb)
-    unit = "kB"
-    IF(kb>10000) THEN
-      kb = kb/1000
-      unit = "MB"
-    ENDIF
-    WRITE(*,'(2x," * ",6x,a16," : ",i8,a2,27x," *")') "Memory used ", kb, unit
-    !
-  END SUBROUTINE print_memory
-  ! \/o\________\\\_________________________________________/^>
-  
 END MODULE
 

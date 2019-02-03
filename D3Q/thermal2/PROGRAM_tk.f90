@@ -57,7 +57,6 @@ MODULE thermalk_program
     USE code_input,         ONLY : code_input_type
     USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
     USE ph_velocity,        ONLY : velocity
-    USE nanoclock,          ONLY : print_percent_wall
     !USE overlap,            ONLY : order_type
     USE timers
     IMPLICIT NONE

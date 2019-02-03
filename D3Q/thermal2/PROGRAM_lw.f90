@@ -31,7 +31,6 @@ MODULE linewidth_program
     USE casimir_linewidth,  ONLY : casimir_linewidth_q
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE code_input,         ONLY : code_input_type
-    USE nanoclock,          ONLY : print_percent_wall
     USE overlap,            ONLY : order_type
     IMPLICIT NONE
     !
