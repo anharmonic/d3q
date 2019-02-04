@@ -421,9 +421,9 @@ MODULE thermalk_program
     qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
     !
     !
-    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     !ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
     !                      "    K_x              K_y              K_z              "
+    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a)") "A_out -> SMA "
     !
     IF(.not. restart_ok) THEN
       ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
@@ -439,6 +439,7 @@ MODULE thermalk_program
           timer_CALL t_tkprec%stop()
       !
       ! Compute g0 = Af0 - b
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
         timer_CALL t_tkain%start()
       CALL tilde_A_times_f(f, g, inv_sqrt_A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
         timer_CALL t_tkain%stop()
@@ -453,10 +454,14 @@ MODULE thermalk_program
         timer_CALL t_restart%start()
       CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
         timer_CALL t_restart%stop()
+      !
+      ! Compute initial variational tk0 =-\lambda (f0.g0-f0.b)
+      !ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
+      tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
+      !
     ENDIF
     !
-    ! Compute initial variational tk0 =-\lambda (f0.g0-f0.b)
-    !ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
     !
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !

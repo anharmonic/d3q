@@ -144,7 +144,8 @@ MODULE variational_tk
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_bsum
     USE merge_degenerate,   ONLY : merge_degen
-    USE timers
+    USE timers 
+    USE d3_shuffle
     IMPLICIT NONE
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
@@ -166,11 +167,11 @@ MODULE variational_tk
 !     REAL(DP) :: lw(S%nat3,nconf)
     REAL(DP) :: P3_isot(S%nat3,S%nat3)
     !
-    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
+    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:), D3B(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
-    INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
+    INTEGER :: iq, jq, mu, nu, it, nu0(3), ix
     !
-    REAL(DP) :: freq(S%nat3,5), bose(S%nat3,5), xq(3,5)
+    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3)
     REAL(DP),PARAMETER :: epsq = 1.e-12_dp
     !
     ! xq(:,1) -> xq1
@@ -184,6 +185,7 @@ MODULE variational_tk
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(D3B(S%nat3, S%nat3, S%nat3))
     !
     A_out = 0._dp
     A_out_isot = 0._dp
@@ -192,7 +194,6 @@ MODULE variational_tk
       timer_CALL t_freq%start()
     xq(:,1) = xq0
     nu0(1)  = set_nu0(xq(:,1), S%at)
-    !freq(:,1) = basis%w(:,iq0)
     CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
       timer_CALL t_freq%stop()
     !
@@ -203,10 +204,8 @@ MODULE variational_tk
         timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
-      xq(:,4) =  xq(:,2)-xq(:,1)
-      xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
-      DO jq = 2,4
+      DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
@@ -215,39 +214,24 @@ MODULE variational_tk
       !
       ! Interpolate D3(q1,q2,-q1-q2)
         timer_CALL t_fc3int%start()
-      CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+      CALL fc3%interpolate(xq(:,1), xq(:,3), S%nat3, D3)
+      CALL d3_shuffle_global(S%nat, 2,1,3, 1,3,2, .false., D3, D3B)
         timer_CALL t_fc3int%stop()
+
         timer_CALL t_fc3rot%start()
-      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+      CALL ip_cart2pat(D3, S%nat3, U(:,:,2), U(:,:,1), U(:,:,3))
+      CALL ip_cart2pat(D3B, S%nat3, U(:,:,1), U(:,:,3), U(:,:,2))
         timer_CALL t_fc3rot%stop()
         timer_CALL t_fc3m2%start()
-      V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+      V3sq  = REAL( CONJG(D3)*D3 , kind=DP)
+      V3Bsq = REAL( CONJG(D3B)*D3B , kind=DP)
         timer_CALL t_fc3m2%stop()
-      !
-      ! Interpolate D3(q1,-q2, q2-q1)
-      ! For this process, we send q2 -> -q2,
-      ! i.e. D2(-q2,q2) -> D2(q2,-q2) = D2(-q2,q2)*
-        IF( ALL(ABS(xq(:,2))<epsq) ) THEN
-        ! When q2 == 0, just copy over
-        V3Bsq = V3sq
-      ELSE
-        U(:,:,5) = CONJG(U(:,:,2))
-          timer_CALL t_fc3int%start()
-        CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
-          timer_CALL t_fc3int%stop()
-          timer_CALL t_fc3rot%start()
-        CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
-          timer_CALL t_fc3rot%stop()
-          timer_CALL t_fc3m2%start()
-        V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
-          timer_CALL t_fc3m2%stop()
-      ENDIF
       !
       CONF_LOOP : &
       DO it = 1,nconf
           timer_CALL t_bose%start()
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
-        DO jq = 1,4
+        DO jq = 1,3
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
@@ -309,11 +293,11 @@ MODULE variational_tk
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
-    REAL(DP),INTENT(in) :: freq(nat3,4)
-    REAL(DP),INTENT(in) :: bose(nat3,4)
+    REAL(DP),INTENT(in) :: freq(nat3,3)
+    REAL(DP),INTENT(in) :: bose(nat3,3)
     REAL(DP),INTENT(in) :: V3sq(nat3,nat3,nat3)
     REAL(DP),INTENT(in) :: V3Bsq(nat3,nat3,nat3)
-    INTEGER,INTENT(in)  :: nu0(4)
+    INTEGER,INTENT(in)  :: nu0(3)
     !
     REAL(DP) :: sum_A_out_modes(nat3)
     !
@@ -322,7 +306,7 @@ MODULE variational_tk
     REAL(DP) :: ctm_a, ctm_c
     REAL(DP) :: norm_a, norm_c
     REAL(DP) :: sum_a, sum_c, sum_ac
-    REAL(DP) :: freqm1(nat3,4)
+    REAL(DP) :: freqm1(nat3,3)
     !REAL(DP),SAVE :: leftover_e = 0._dp
     !
     INTEGER :: i,j,k
@@ -334,32 +318,32 @@ MODULE variational_tk
       IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-      IF(i>=nu0(4)) freqm1(i,4) = 0.5_dp/freq(i,4)
+!      IF(i>=nu0(4)) freqm1(i,4) = 0.5_dp/freq(i,4)
     ENDDO
     !
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_c, dom_a, dom_c) &
-!$OMP          PRIVATE(ctm_a, ctm_c, sum_a, sum_ac, norm_a, norm_c) &
+!$OMP          PRIVATE(ctm_a, ctm_c, sum_a, sum_c, sum_ac, norm_a, norm_c) &
 !$OMP          REDUCTION(+: sum_A_out)
 !$OMP DO  COLLAPSE(3)
     DO k = 1,nat3
       DO j = 1,nat3
         DO i = 1,nat3
           !
-          bose_a = bose(i,1) * bose(j,2) * (bose(k,3)+1)
-          bose_c = (bose(i,1)+1) * bose(j,2) * bose(k,4)
+          bose_a = bose(i,1) * (bose(j,2)+1) * bose(k,3)
+          bose_c = (bose(i,1)+1) * bose(j,2) * bose(k,3)
           !
-          dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
-          dom_c = -freq(i,1) + freq(j,2) + freq(k,4)
+          dom_a =   freq(i,1) - freq(j,2) + freq(k,3)
+          dom_c = - freq(i,1) + freq(j,2) + freq(k,3)
           !
           ctm_a = bose_a *  f_gauss(dom_a, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
           !
           norm_a = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-          norm_c = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          norm_c = norm_a !tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
-          sum_a = norm_a * ctm_a * V3sq(i,j,k)
-          sum_c = norm_c * ctm_c * V3Bsq(i,j,k)
+          sum_a = norm_a * ctm_a * V3sq(j,i,k)
+          sum_c = norm_c * ctm_c * V3Bsq(i,k,j)
           !
           sum_ac = sum_a + 0.5_dp*sum_c
           sum_A_out(i) = sum_A_out(i) + sum_ac
@@ -500,7 +484,7 @@ MODULE variational_tk
       CALL print_percent_wall(20._dp, 600._dp, iq, out_grid%nq, (iq==1))
       ! apply A_in
       Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
-            sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
+                                    sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
       ! Apply 1+ and the second A_^(-1/2)
       timer_CALL t_tktld%start()
       DO nu = 1,S%nat3
@@ -531,6 +515,7 @@ MODULE variational_tk
     USE mpi_thermal,        ONLY : mpi_bsum
     USE merge_degenerate,   ONLY : merge_degen
     USE timers
+    USE d3_shuffle
     !USE constants, ONLY : RY_TO_CMM1
     IMPLICIT NONE
     !
@@ -553,24 +538,20 @@ MODULE variational_tk
     REAL(DP) :: P3(S%nat3,S%nat3) !aux
     REAL(DP) :: P3_isot(S%nat3,S%nat3) !aux
     !
-    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
-    REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
-    INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
+    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:), D3B(:,:,:), D3C(:,:,:)
+    REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:), V3Csq(:,:,:)
+    INTEGER :: iq, jq, mu, nu, it, nu0(3), ix
     !
-    REAL(DP) :: freq(S%nat3,5), bose(S%nat3,5), xq(3,5)
+    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3)
     REAL(DP),PARAMETER :: epsq = 1.e-12_dp
     !
-    ! xq(:,1) -> xq1
-    ! xq(:,2) -> xq2
-    ! xq(:,3) -> -xq1-xq2
-    ! xq(:,4) -> -xq1+xq2
-    ! xq(:,5) -> -xq2
-    ! And accordingly for U(:,:,i).
-    ! Note that U(5) = CONJG(U(2)) and freq(5)=freq(2)
-    ALLOCATE(U(S%nat3, S%nat3,5))
+    ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(V3Csq(S%nat3, S%nat3, S%nat3))
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(D3B(S%nat3, S%nat3, S%nat3))
+    ALLOCATE(D3C(S%nat3, S%nat3, S%nat3))
     !
     Af_q = 0._dp
     P3_isot = 0._dp
@@ -590,10 +571,8 @@ MODULE variational_tk
         timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
-      xq(:,4) =  xq(:,2)-xq(:,1)
-      xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
-      DO jq = 2,4
+      DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
@@ -602,39 +581,28 @@ MODULE variational_tk
       !
       ! Interpolate D3(q1,q2,-q1-q2)
         timer_CALL t_fc3int%start()
-      CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+      CALL fc3%interpolate(xq(:,1), xq(:,3), S%nat3, D3)
+      CALL d3_shuffle_global(S%nat, 2,1,3, 3,1,2, .false., D3, D3B)
+      CALL d3_shuffle_global(S%nat, 2,1,3, 1,2,3, .false., D3, D3C)
         timer_CALL t_fc3int%stop()
+
         timer_CALL t_fc3rot%start()
-      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+      CALL ip_cart2pat(D3,  S%nat3, U(:,:,2), U(:,:,1), U(:,:,3))
+      CALL ip_cart2pat(D3B, S%nat3, U(:,:,3), U(:,:,1), U(:,:,2))
+      CALL ip_cart2pat(D3C, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
         timer_CALL t_fc3rot%stop()
+ 
         timer_CALL t_fc3m2%start()
-      V3sq = REAL( CONJG(D3)*D3 , kind=DP)
+      V3sq  = REAL( CONJG(D3)*D3, kind=DP)
+      V3Bsq = REAL( CONJG(D3B)*D3B, kind=DP)
+      V3Csq = REAL( CONJG(D3C)*D3C, kind=DP)
         timer_CALL t_fc3m2%stop()
-      !
-      ! Interpolate D3(q1,-q2, q2-q1)
-      ! For this process, we send q2 -> -q2,
-      ! i.e. D2(-q2,q2) -> D2(q2,-q2) = D2(-q2,q2)*
-      IF( ALL(ABS(xq(:,2))<epsq) ) THEN
-        ! When q2 == 0, just copy over
-        V3Bsq = V3sq
-      ELSE
-        U(:,:,5) = CONJG(U(:,:,2))
-          timer_CALL t_fc3int%start()
-        CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
-          timer_CALL t_fc3int%stop()
-          timer_CALL t_fc3rot%start()
-        CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
-          timer_CALL t_fc3rot%stop()
-          timer_CALL t_fc3m2%start()
-        V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
-          timer_CALL t_fc3m2%stop()
-      ENDIF
       !
       CONF_LOOP : &
       DO it = 1,nconf
           timer_CALL t_bose%start()
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
-        DO jq = 1,4
+        DO jq = 1,3
           CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
         ENDDO
 !$OMP END PARALLEL DO
@@ -644,7 +612,7 @@ MODULE variational_tk
         ! iq0 and iq, the matrix A has dimension (3*nat*nq x 3*nat*nq)
         ! DO NOT FORGET THE MINUS SIGN!!
           timer_CALL t_sum%start()
-        P3 =  - sum_A_in_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0 )
+        P3 =  - sum_A_in_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, V3Csq, nu0 )
           timer_CALL t_sum%stop()
         !
         IF(isotopic_disorder)THEN
@@ -693,17 +661,18 @@ MODULE variational_tk
   ! because we have rearranged the indexes to only have cohalescence
   ! processes instead of mixed scattering-cohalescence. This trick ensures
   ! that everything is positive definite.
-  FUNCTION sum_A_in_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, nu0)
+  FUNCTION sum_A_in_modes(nat3, sigma, freq, bose, V3sq, V3Bsq, V3Csq, nu0)
     USE functions,        ONLY : f_gauss => f_gauss
     USE constants,        ONLY : tpi, RY_TO_CMM1
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nat3
     REAL(DP),INTENT(in) :: sigma
-    REAL(DP),INTENT(in) :: freq(nat3,4)
-    REAL(DP),INTENT(in) :: bose(nat3,4)
+    REAL(DP),INTENT(in) :: freq(nat3,3)
+    REAL(DP),INTENT(in) :: bose(nat3,3)
     REAL(DP),INTENT(in) :: V3sq(nat3,nat3,nat3)
     REAL(DP),INTENT(in) :: V3Bsq(nat3,nat3,nat3)
-    INTEGER,INTENT(in)  :: nu0(4)
+    REAL(DP),INTENT(in) :: V3Csq(nat3,nat3,nat3)
+    INTEGER,INTENT(in)  :: nu0(3)
     !
     REAL(DP) :: sum_A_in_modes(nat3,nat3)
     !
@@ -712,8 +681,8 @@ MODULE variational_tk
     REAL(DP) :: dom_a, dom_b, dom_c   ! \delta\omega
     REAL(DP) :: ctm_a, ctm_b, ctm_c   !
     REAL(DP) :: norm_a, norm_bc
-    REAL(DP) :: sum_a, sum_bc, sum_abc
-    REAL(DP) :: freqm1(nat3,4)
+    REAL(DP) :: sum_a, sum_b, sum_c, sum_abc
+    REAL(DP) :: freqm1(nat3,3)
     !REAL(DP),SAVE :: leftover_e = 0._dp
     !
     INTEGER :: i,j,k
@@ -725,24 +694,23 @@ MODULE variational_tk
        IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
        IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
        IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-       IF(i>=nu0(4)) freqm1(i,4) = 0.5_dp/freq(i,4)
      ENDDO
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_b, bose_c, dom_a, dom_b, dom_c) &
-!$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_bc, sum_abc, norm_a, norm_bc) &
+!$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_b, sum_c, sum_abc, norm_a) &
 !$OMP          REDUCTION(+: p)
 !$OMP DO  COLLAPSE(3)
     DO k = 1,nat3
       DO j = 1,nat3
         DO i = 1,nat3
           !
-          bose_a = bose(i,1) * bose(j,2) * (bose(k,3)+1)
-          bose_b = bose(i,1) * (bose(j,2)+1) * bose(k,4)
-          bose_c = (bose(i,1)+1) * bose(j,2) * bose(k,4)
+          bose_a =  bose(i,1) *   (bose(j,2)+1) * bose(k,3)
+          bose_b =  bose(i,1) *    bose(j,2) *   (bose(k,3)+1)
+          bose_c = (bose(i,1)+1) * bose(j,2) *    bose(k,3)
           !
-          dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
-          dom_b =  freq(i,1) - freq(j,2) + freq(k,4)
-          dom_c = -freq(i,1) + freq(j,2) + freq(k,4)
+          dom_a =   freq(i,1) - freq(j,2) + freq(k,3)
+          dom_b =   freq(i,1) + freq(j,2) - freq(k,3)
+          dom_c = - freq(i,1) + freq(j,2) + freq(k,3)
           !
           ctm_a = bose_a *  f_gauss(dom_a, sigma)
           ctm_b = bose_b *  f_gauss(dom_b, sigma)
@@ -752,12 +720,14 @@ MODULE variational_tk
           !ctm_c = bose_c *  f_gauss(dom_c+leftover_e, sigma)
           !
           norm_a  = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-          norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          !norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
           !
-          sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
-          sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)
+          sum_a  =  ctm_a * V3sq(j,i,k)
+          sum_b  =  ctm_b * V3Bsq(k,i,j)
+          sum_c  =  ctm_c * V3Csq(i,j,k)
+!          sum_bc = norm_a* (ctm_a-ctm_b+ctm_c) * V3Bsq(i,j,k)
           !
-          sum_abc = - sum_a + sum_bc
+          sum_abc = -norm_a * ( sum_a - sum_b + sum_c )
           p(i,j) = p(i,j) + sum_abc
           !
           !leftover_e = dom_a*sum_a + (dom_b*ctm_b + dom_c*ctm_c)*norm_bc*V3Bsq(i,j,k)
