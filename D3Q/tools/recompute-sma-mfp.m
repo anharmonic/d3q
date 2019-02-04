@@ -16,7 +16,10 @@ function n = bose(freq, T)
   n = 1./(exp(beta.*freq)-1);
 endfunction
 
-for T = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 80 90 100 120 140 160 180 200 220 240 260 280 300 320 340 360 380 400 450 500 550 600];
+T=300;
+
+#for T = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 80 90 100 120 140 160 180 200 220 240 260 280 300 320 340 360 380 400 450 500 550 600];
+for len = [ 0.0001 0.0002 0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1 0.2 0.5 1 2 5 10];
 
 #T=__T #300
 volume=951.106863;
@@ -24,9 +27,9 @@ volume=951.106863;
 
   f_vel=load("vel.Def.0005.11x11x11.out");
   f_lw=load( strrep("lw.11x11x11_T__T_s2.out", "__T", mat2str(T)));
-  #f_lwiso=load( strrep("lwiso.Natural.11x11x11_T__T_s2.out", "__T", mat2str(T)));
-  f_lwiso=load( strrep("lwiso.Def.0005.11x11x11_T__T_s2.out", "__T", mat2str(T)));
-  f_lwcas=load("lwcas.250mu.11x11x11.out");
+  f_lwiso=load( strrep("lwiso.Natural.11x11x11_T__T_s2.out", "__T", mat2str(T)));
+  #f_lwiso=load( strrep("lwiso.Def.0005.11x11x11_T__T_s2.out", "__T", mat2str(T)));
+  #f_lwcas=load("lwcas.Natural-10muZ.11x11x11.out");
   f_freq=load("freq.Def.0005.11x11x11.out");
 
   nat3=(size(f_lw,2));
@@ -34,12 +37,12 @@ volume=951.106863;
 
   vel =f_vel; #already in Ry (bohr length/Ry time)
   freq=f_freq*cmm1_to_ry;
-  lw  =2*(f_lw+f_lwiso+f_lwcas)*cmm1_to_ry;
-  #lw  =2*(f_lw+f_lwiso)*cmm1_to_ry;
+  #lw  =2*(f_lw+f_lwiso+f_lwcas)*cmm1_to_ry;
+  lw  =2*(f_lw+f_lwiso)*cmm1_to_ry;
   clear f_vel f_lw f_freq f_lwiso f_lwcas
 
 n   = bose(freq, T);
-
+zeta=3;
 pref=1/(volume*T^2*kB_ry*nq) * ry_to_wattmm1km1;
 tk = zeros(3,3);
 for iq = [1:nq];
@@ -48,15 +51,17 @@ for iq = [1:nq];
     #
     aux = pref * freq(iq,nu)^2 * n(iq,nu)*(n(iq,nu)+1) / lw(iq,nu);
     #
+    if ( abs(vel(iq,3*(nu-1)+zeta))/ lw(iq,nu) < len*10000/.52917721067)
     for alpha = [1:3];
     for beta  = [1:3];
       tk(alpha,beta) = tk(alpha,beta) + aux* vel(iq,3*(nu-1)+alpha)*vel(iq,3*(nu-1)+beta);
     end
     end
+    endif
   end 
   #
 end 
-printf("0 0  %.0f   %.5f   %.5f  %.5f\n", T, tk(1,1), tk(2,2), tk(3,3))
+printf("0 0  %.9f   %.5f   %.5f  %.5f\n", len, tk(1,1), tk(2,2), tk(3,3))
 
 end # Temperatures
 
