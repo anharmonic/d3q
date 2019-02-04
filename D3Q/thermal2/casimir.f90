@@ -61,14 +61,14 @@ MODULE casimir_linewidth
     !
     ! Case 1: Velocity projected along sample_dir
     IF (SUM(ABS(sample_dir)) > eps) THEN
-      inv_lcas = 1/ l_sample / DSQRT(SUM(sample_dir**2))
+      inv_lcas = 0.5_dp / l_sample / DSQRT(SUM(sample_dir**2))
       DO nu = 1,nat3
           lw(nu) = inv_lcas * ABS(DOT_PRODUCT(sample_dir,vel(:,nu)))
       ENDDO
     !
     ! Case 2: Modulus of velocity (as in PRB 87, 214303 (2013))
     ELSE
-      inv_lcas = 1/ l_sample
+      inv_lcas = 0.5_dp / l_sample
       DO nu = 1,nat3
           lw(nu) = inv_lcas * DSQRT(SUM(vel(:,nu)**2))
       ENDDO
