@@ -161,7 +161,7 @@ MODULE variational_tk
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     ! CAREFUL! grid%nq is scattered over MPI, basis%nq is the total number of q vectors
-    REAL(DP),INTENT(in)  :: xq0(3)
+    REAL(DP),INTENT(in) :: xq0(3)
     INTEGER,INTENT(in)  :: nconf
     REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
     LOGICAL,INTENT(in)  :: isotopic_disorder
@@ -174,8 +174,8 @@ MODULE variational_tk
 !     REAL(DP) :: lw(S%nat3,nconf)
     REAL(DP) :: P3_isot(S%nat3,S%nat3)
     !
-    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:), D3B(:,:,:)
-    REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:)
+    COMPLEX(DP) :: U(S%nat3,S%nat3,3), D3(S%nat3,S%nat3,S%nat3), D3B(S%nat3,S%nat3,S%nat3)
+    REAL(DP)    :: V3sq(S%nat3,S%nat3,S%nat3), V3Bsq(S%nat3,S%nat3,S%nat3)
     INTEGER :: iq, jq, mu, nu, it, nu0(3), ix
     !
     REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3)
@@ -183,16 +183,7 @@ MODULE variational_tk
     !
     ! xq(:,1) -> xq1
     ! xq(:,2) -> xq2
-    ! xq(:,3) -> -xq1-xq2
-    ! xq(:,4) -> -xq1+xq2
-    ! xq(:,5) -> -xq2
-    ! And accordingly for U(:,:,i).
-    ! Note that U(5) = CONJG(U(2)) and freq(5)=freq(2)
-    ALLOCATE(U(S%nat3, S%nat3,5))
-    ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3B(S%nat3, S%nat3, S%nat3))
+    ! xq(:,3) -> xq2-xq1
     !
     A_out = 0._dp
     A_out_isot = 0._dp
@@ -277,16 +268,15 @@ MODULE variational_tk
       CALL mpi_bsum(S%nat3, nconf, A_out)
         timer_CALL t_mpicom%stop()
     ENDIF
-    DO it = 1, nconf
-      CALL merge_degen(S%nat3, A_out(:,it), freq(:,1))
-    ENDDO
+    !LP DO it = 1, nconf
+    !LP   CALL merge_degen(S%nat3, A_out(:,it), freq(:,1))
+    !LP ENDDO
     !
     ! Assign to output variable (better not to pass it to mpi)
     A_out_q = A_out
     !
     CALL check_graceful_termination()
     !
-    DEALLOCATE(U, V3sq, V3Bsq, D3, D3B)
     !
   END FUNCTION A_out_q
   !
@@ -488,13 +478,21 @@ MODULE variational_tk
     ENDDO
     timer_CALL t_tktld%stop()
 
+    Af = 0._dp
     DO iq = 1,out_grid%nq
       CALL print_percent_wall(20._dp, 600._dp, iq, out_grid%nq, (iq==1))
+      !CALL print_percent_wall(20._dp, 600._dp, (iq*out_grid%nq - (iq*(iq-1))/2)/out_grid%nq+1, (out_grid%nq+1)/2, (iq==1))
       ! apply A_in
-      Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
-                                    sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
-      ! Apply 1+ and the second A_^(-1/2)
+      !Af(:,:,:,iq) = A_in_times_f_q(aux, out_grid%xq(:,iq), input%nconf, input%T,&
+      !                              sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
+      ! apply A_in, symmetric 
+      CALL A_in_times_f_q_sym(Af, aux, iq, out_grid%xq(:,iq), input%nconf, input%T,&
+                              sigma_ry,S, basis, in_grid, fc2, fc3, input%isotopic_disorder)
+    ENDDO
+    !
       timer_CALL t_tktld%start()
+      ! Apply 1+ and the second A_^(-1/2)
+    DO iq = 1,out_grid%nq
       DO nu = 1,S%nat3
         DO it = 1,input%nconf
         DO ix = 1,3
@@ -502,9 +500,9 @@ MODULE variational_tk
         ENDDO
         ENDDO
       ENDDO
-      timer_CALL t_tktld%stop()
       !
     ENDDO
+      timer_CALL t_tktld%stop()
     !
     DEALLOCATE(aux)
     !
@@ -546,20 +544,12 @@ MODULE variational_tk
     REAL(DP) :: P3(S%nat3,S%nat3) !aux
     REAL(DP) :: P3_isot(S%nat3,S%nat3) !aux
     !
-    COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:), D3B(:,:,:), D3C(:,:,:)
-    REAL(DP),ALLOCATABLE    :: V3sq(:,:,:), V3Bsq(:,:,:), V3Csq(:,:,:)
+    COMPLEX(DP) :: U(S%nat3,S%nat3,4), D3(S%nat3,S%nat3,S%nat3), D3B(S%nat3,S%nat3,S%nat3), D3C(S%nat3,S%nat3,S%nat3)
+    REAL(DP)    :: V3sq(S%nat3,S%nat3,S%nat3), V3Bsq(S%nat3,S%nat3,S%nat3), V3Csq(S%nat3,S%nat3,S%nat3)
     INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
     !
     REAL(DP) :: freq(S%nat3,4), bose(S%nat3,4), xq(3,4)
     REAL(DP),PARAMETER :: epsq = 1.e-12_dp
-    !
-    ALLOCATE(U(S%nat3, S%nat3,4))
-    ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(V3Bsq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(V3Csq(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3B(S%nat3, S%nat3, S%nat3))
-    ALLOCATE(D3C(S%nat3, S%nat3, S%nat3))
     !
     Af_q = 0._dp
     P3_isot = 0._dp
@@ -588,11 +578,11 @@ MODULE variational_tk
 !$OMP END PARALLEL DO
         timer_CALL t_freq%stop()
       !
-      ! Interpolate D3(q1,q2,-q1-q2)
+      ! Interpolate D3(q1,q3,-q2)
         timer_CALL t_fc3int%start()
       CALL fc3%interpolate(xq(:,3),-xq(:,2), S%nat3, D3)
+      ! Interpolate D3(q1,q2,-q4)
       CALL fc3%interpolate(xq(:,2),-xq(:,4), S%nat3, D3B)
-      !CALL fc3%interpolate(xq(:,3),-xq(:,2), S%nat3, D3C) ! I can obtain D3C from D3 by permutation
         timer_CALL t_fc3int%stop()
 
         timer_CALL t_fc3rot%start()
@@ -656,11 +646,8 @@ MODULE variational_tk
         timer_CALL t_mpicom%stop()
     ENDIF
     !
-    CALL merge_degen(3,nconf, S%nat3, Af_q, freq(:,1))
-    !CALL check_graceful_termination
+    !LP CALL merge_degen(3,nconf, S%nat3, Af_q, freq(:,1))
     A_in_times_f_q = Af_q
-    !
-    DEALLOCATE(U, V3sq, V3Bsq, D3)
     !
   END FUNCTION A_in_times_f_q
   !
@@ -941,6 +928,14 @@ MODULE variational_tk
     !
   END SUBROUTINE print_deltatk
   !
+  SUBROUTINE close_tk_files(nconf,unit0)
+    IMPLICIT NONE
+    INTEGER :: nconf, unit0, it
+    DO it = 0,nconf
+      CLOSE(unit0+it)
+    ENDDO
+  END SUBROUTINE
+  !
   SUBROUTINE open_tk_files(outdir, prefix, postfix, restart, nconf, T, sigma, unit0)
     USE more_constants,     ONLY : write_conf
     IMPLICIT NONE
@@ -967,7 +962,8 @@ MODULE variational_tk
                  TRIM(prefix)//&
                  "_T"//TRIM(write_conf(it,nconf,T))//&
                  "_s"//TRIM(write_conf(it,nconf,sigma))//&
-                 TRIM(postfix)//".out"
+                 ".out"
+                 !TRIM(postfix)//".out"
         what="# iter"
       ENDIF
       !
@@ -992,7 +988,7 @@ MODULE variational_tk
   ! Save the current state of CG minimization to file, open and close 
   ! the files to insure consistency
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+  SUBROUTINE save_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
     USE input_fc,           ONLY : ph_system_info
     USE code_input,         ONLY : code_input_type
     USE mpi_thermal,        ONLY : ionode
@@ -1004,6 +1000,7 @@ MODULE variational_tk
     REAL(DP),INTENT(in) :: f(3, nconf, nat3, nq)
     REAL(DP),INTENT(in) :: g(3, nconf, nat3, nq)
     REAL(DP),INTENT(in) :: h(3, nconf, nat3, nq)
+    REAL(DP),INTENT(in) :: tk(3, 3, nconf)
     INTEGER,INTENT(in)  :: nconf, nat3, nq
     !
     CHARACTER(len=512) :: filename
@@ -1029,6 +1026,7 @@ MODULE variational_tk
         WRITE(u) f
         WRITE(u) g
         WRITE(u) h
+        WRITE(u) tk
       CLOSE(u)
     ENDIF
     !
@@ -1037,7 +1035,7 @@ MODULE variational_tk
   ! Read the current state of CG minimization to file, 
   ! check for consistency with input data
   ! \/o\________\\\_________________________________________/^>
-  LOGICAL FUNCTION read_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+  LOGICAL FUNCTION read_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
     USE input_fc,           ONLY : ph_system_info, same_system
     USE code_input,         ONLY : code_input_type
     USE mpi_thermal,        ONLY : ionode, mpi_broadcast
@@ -1049,6 +1047,7 @@ MODULE variational_tk
     REAL(DP),INTENT(out) :: f(3, nconf, nat3, nq)
     REAL(DP),INTENT(out) :: g(3, nconf, nat3, nq)
     REAL(DP),INTENT(out) :: h(3, nconf, nat3, nq)
+    REAL(DP),INTENT(out) :: tk(3, 3, nconf)
     INTEGER,INTENT(in)   :: nconf, nat3, nq
     !
     TYPE(code_input_type):: input_
@@ -1101,6 +1100,8 @@ MODULE variational_tk
         IF(ios/=0) EXIT
         READ(u, iostat=ios) h
         IF(ios/=0) EXIT
+        READ(u, iostat=ios) tk
+        IF(ios/=0) EXIT
         !
         ! If everything went right, I arrived here
         failed = .false.
@@ -1122,5 +1123,153 @@ MODULE variational_tk
     ENDIF
     !
   END FUNCTION
+   ! \/o\________\\\_________________________________________/^>
+  ! Compute 3*nat lines of the matrix A (those corresponding to the
+  ! q-point xq0) and apply them to the vector f. In output it returns
+  ! 3*nat elements of Af (for each configuration)
+  SUBROUTINE A_in_times_f_q_sym(Af, f, iq0, xq0, nconf, T, sigma, S, basis, grid, fc2, fc3, isotopic_disorder)
+    USE q_grids,            ONLY : q_basis
+    USE fc2_interpolate,    ONLY : forceconst2_grid, bose_phq, set_nu0, &
+                                   freq_phq_safe, bose_phq, ip_cart2pat
+    USE fc3_interpolate,    ONLY : forceconst3
+    USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
+    USE input_fc,           ONLY : ph_system_info
+    USE mpi_thermal,        ONLY : mpi_bsum
+    USE merge_degenerate,   ONLY : merge_degen
+    USE timers
+    USE d3_shuffle
+    !USE constants, ONLY : RY_TO_CMM1
+    IMPLICIT NONE
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_basis),INTENT(in)     :: basis
+    TYPE(q_grid),INTENT(in)      :: grid
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    ! CAREFUL! grid%nq is scattered over MPI, basis%nq is the total number of q vectors
+    REAL(DP),INTENT(inout) :: Af(3,nconf,S%nat3,basis%nq)
+    REAL(DP),INTENT(in) :: f(3,nconf,S%nat3,basis%nq)
+    REAL(DP),INTENT(in)  :: xq0(3)
+    INTEGER,INTENT(in)  :: iq0, nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
+    LOGICAL,INTENT(in)  :: isotopic_disorder
+    !
+    ! FUNCTION RESULT:
+!    REAL(DP) :: Af(3,nconf,S%nat3,basis%nq)
+!    REAL(DP) :: Af_q(3,nconf,S%nat3)
+    REAL(DP) :: P3(S%nat3,S%nat3) !aux
+    REAL(DP) :: P3_isot(S%nat3,S%nat3) !aux
+    !
+    COMPLEX(DP) :: U(S%nat3,S%nat3,4), D3(S%nat3,S%nat3,S%nat3), D3B(S%nat3,S%nat3,S%nat3), D3C(S%nat3,S%nat3,S%nat3)
+    REAL(DP)    :: V3sq(S%nat3,S%nat3,S%nat3), V3Bsq(S%nat3,S%nat3,S%nat3), V3Csq(S%nat3,S%nat3,S%nat3)
+    INTEGER :: iq, jq, mu, nu, it, nu0(4), ix
+    !
+    REAL(DP) :: freq(S%nat3,4), bose(S%nat3,4), xq(3,4)
+    REAL(DP),PARAMETER :: epsq = 1.e-12_dp
+    !
+    !Af_q = 0._dp
+    P3_isot = 0._dp
+    !
+    ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
+      timer_CALL t_freq%start()
+    xq(:,1) = xq0
+    nu0(1)  = set_nu0(xq(:,1), S%at)
+    !freq(:,1) = basis%w(:,iq0)
+    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+      timer_CALL t_freq%stop()
+    !
+    QPOINT_INNER_LOOP : &
+    DO iq = iq0, grid%nq
+      !
+      ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
+        timer_CALL t_freq%start()
+      xq(:,2) = grid%xq(:,iq)
+      xq(:,3) =  xq(:,2)-xq(:,1)
+      xq(:,4) =  xq(:,2)+xq(:,1)
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+      DO jq = 2,4
+        nu0(jq) = set_nu0(xq(:,jq), S%at)
+        CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+      ENDDO
+!$OMP END PARALLEL DO
+        timer_CALL t_freq%stop()
+      !
+      ! Interpolate D3(q1,q3,-q2)
+        timer_CALL t_fc3int%start()
+      CALL fc3%interpolate(xq(:,3),-xq(:,2), S%nat3, D3)
+      ! Interpolate D3(q1,q2,-q4)
+      CALL fc3%interpolate(xq(:,2),-xq(:,4), S%nat3, D3B)
+        timer_CALL t_fc3int%stop()
+
+        timer_CALL t_fc3rot%start()
+      CALL ip_cart2pat(D3,  S%nat3, U(:,:,1), U(:,:,3), CONJG(U(:,:,2)))
+      CALL ip_cart2pat(D3B, S%nat3, U(:,:,1), U(:,:,2), CONJG(U(:,:,4)))
+      CALL d3_shuffle_global(S%nat, 1,3,2, 2,3,1, .true., D3, D3C)
+        timer_CALL t_fc3rot%stop()
+ 
+        timer_CALL t_fc3m2%start()
+      V3sq  = REAL( CONJG(D3)*D3, kind=DP)
+      V3Bsq = REAL( CONJG(D3B)*D3B, kind=DP)
+      V3Csq = REAL( CONJG(D3C)*D3C, kind=DP)
+        timer_CALL t_fc3m2%stop()
+      !
+!      Af_q = 0._dp
+      CONF_LOOP : &
+      DO it = 1,nconf
+          timer_CALL t_bose%start()
+!$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
+        DO jq = 1,4
+          CALL bose_phq(T(it),S%nat3, freq(:,jq), bose(:,jq))
+        ENDDO
+!$OMP END PARALLEL DO
+          timer_CALL t_bose%stop()
+        !
+        ! P3 is a 3*nat x 3*nat minor of the A matrix, the implicit indexes are
+        ! iq0 and iq, the matrix A has dimension (3*nat*nq x 3*nat*nq)
+        ! DO NOT FORGET THE MINUS SIGN!!
+          timer_CALL t_sum%start()
+        P3 =  - sum_A_in_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, V3Csq, nu0 )
+          timer_CALL t_sum%stop()
+        !
+        IF(isotopic_disorder)THEN
+            timer_CALL t_lwisot%start()
+          P3_isot = sum_isotope_scattering_modes(S%nat3, S%nat, sigma(it), freq, &
+                                              bose, S%ntyp, S%ityp, S%amass_variance, U)
+          P3 = P3 + P3_isot
+            timer_CALL t_lwisot%stop()
+        ENDIF
+        !
+          timer_CALL t_xain%start()
+        ! 3*nat lines of the A_in matrix are applied now to f to produce 3*nat elements of A_in f
+        DO mu = 1,S%nat3
+        DO nu = 1,S%nat3
+          DO ix = 1,3
+            !Af_q(ix,it,nu) = Af_q(ix,it,nu) + P3(nu,mu)*f(ix,it,mu,iq+grid%iq0)*grid%w(iq)
+            Af(ix,it,nu,iq0) = Af(ix,it,nu,iq0) + P3(nu,mu)*f(ix,it,mu,iq+grid%iq0)*grid%w(iq)
+            IF(iq>iq0) &
+            Af(ix,it,mu,iq) = Af(ix,it,mu,iq) + P3(nu,mu)*f(ix,it,nu,iq0+grid%iq0)*grid%w(iq0)
+          ENDDO
+        ENDDO
+        ENDDO
+          timer_CALL t_xain%stop()
+        !
+      ENDDO &
+      CONF_LOOP
+      !
+    ENDDO &
+    QPOINT_INNER_LOOP
+    !
+    ! Recollect over MPI processes if necessary
+    IF(grid%scattered) THEN
+        timer_CALL t_mpicom%start()
+!      CALL mpi_bsum(3,nconf,S%nat3, Af_q)
+        timer_CALL t_mpicom%stop()
+    ENDIF
+    !
+    !LP CALL merge_degen(3,nconf, S%nat3, Af_q, freq(:,1))
+    !A_in_times_f_q = Af_q
+    !
+  END SUBROUTINE A_in_times_f_q_sym
   !
 END MODULE variational_tk

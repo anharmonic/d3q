@@ -383,9 +383,6 @@ MODULE thermalk_program
                     in_grid, xq0=out_grid%xq0, scatter=.true.)
     CALL prepare_q_basis(out_grid, qbasis, nconf, input%T, S, fc2)
 
-    ! Open files to output the TK values:
-    CALL open_tk_files(input%outdir, input%prefix, "", &
-                       input%restart, nconf, input%T, input%sigma, 10000)
     !
     ALLOCATE(A_out(nconf, nat3, nq))
     ALLOCATE(inv_sqrt_A_out(nconf, nat3, nq))
@@ -402,12 +399,13 @@ MODULE thermalk_program
     !
     ! Try if restart file can be read (will return false if input%restart is false):
       timer_CALL t_restart%start()
-    restart_ok = read_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+    restart_ok = read_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
       timer_CALL t_restart%stop()
     !
     IF(.not. restart_ok) THEN
       ! Compute A_out diagonal matrix
         timer_CALL t_tkaout%start()
+      ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a)") "A_out -> SMA "
       CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
           timer_CALL t_tkaout%stop()
     ENDIF
@@ -423,19 +421,22 @@ MODULE thermalk_program
     !
     !ioWRITE(stdout,'(5a)') "       ", " sigma[cmm1]   T[K]  ",&
     !                      "    K_x              K_y              K_z              "
-    ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a)") "A_out -> SMA "
-    !
     IF(.not. restart_ok) THEN
       ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
+          timer_CALL t_tkprec%start()
       f = qbasis%b
       ! "tilde" label dropped from here on
       !
       ! Compute SMA tk = lambda f0.b
-          timer_CALL t_tkprec%start()
       g = 0._dp
       !
+      ! Open files to output the TK values:
       tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, input%sigma, input%T, nconf, "SMA TK", 10000, 0)
+      !
+      CALL open_tk_files(input%outdir, input%prefix, "_SMA", &
+                         input%restart, nconf, input%T, input%sigma, 10000)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "SMA TK", 10000, -1)
+      CALL close_tk_files(nconf, 10000)
           timer_CALL t_tkprec%stop()
       !
       ! Compute g0 = Af0 - b
@@ -445,23 +446,25 @@ MODULE thermalk_program
         timer_CALL t_tkain%stop()
       !
         timer_CALL t_tkprec%start()
+      ! initial gradient:
       g =  g - qbasis%b
-      !
-      ! Trivially set h0 = -g0
+      !  set h0 = -g0
       h = -g
         timer_CALL t_tkprec%stop()
-      !
-        timer_CALL t_restart%start()
-      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
-        timer_CALL t_restart%stop()
       !
       ! Compute initial variational tk0 =-\lambda (f0.g0-f0.b)
       !ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", 0
       tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
-      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
       !
+        timer_CALL t_restart%start()
+      CALL save_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
+        timer_CALL t_restart%stop()
+      !
+      CALL open_tk_files(input%outdir, input%prefix, "", &
+                         .true., nconf, input%T, input%sigma, 10000)
+      CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, 0)
+      CALL close_tk_files(nconf, 10000)
     ENDIF
-    !
     !
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
@@ -483,8 +486,8 @@ MODULE thermalk_program
       pref = qbasis_a_over_b(g_dot_h, h_dot_t, nconf) ! g.h/h.t
       !f_old = f
       f = f - qbasis_ax(pref, h, nconf, nat3, nq)
-
       g = g - qbasis_ax(pref, t, nconf, nat3, nq)
+
       !
       !In case you want to compute explicitly the gradient (i.e. for testing):
 !       ALLOCATE(j(3, nconf, nat3, nq))
@@ -495,7 +498,10 @@ MODULE thermalk_program
       tk_old = tk
       !tk = -\lambda (f.g-f.b)
       tk = calc_tk_gf(g, f, qbasis%b, input%T, out_grid%w, S%omega, nconf, nat3, nq)
+      CALL open_tk_files(input%outdir, input%prefix, "", &
+                         .true., nconf, input%T, input%sigma, 10000)
       CALL print_tk(tk, input%sigma, input%T, nconf, "TK from 1/2(fg-fb)", 10000, iter)
+      CALL close_tk_files(nconf, 10000)
       ! also compute the variation of tk and check for convergence
       WHERE(tk/=0._dp); delta_tk = (tk-tk_old)/ABS(tk)
       ELSEWHERE;        delta_tk = 0._dp
@@ -506,7 +512,10 @@ MODULE thermalk_program
       IF(conv) THEN
         ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
                       "Convergence achieved"
-        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+        timer_CALL t_tkcg%stop()
+        timer_CALL t_restart%start()
+        CALL save_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
+        timer_CALL t_restart%stop()
         EXIT CGP_ITERATION
       ENDIF
       !
@@ -522,7 +531,7 @@ MODULE thermalk_program
       !
       ! Store to file for restart
         timer_CALL t_restart%start()
-      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq)
+      CALL save_cg_step(input, S, A_out, f, g, h, tk, nconf, nat3, nq)
         timer_CALL t_restart%stop()
       !
     ENDDO &
