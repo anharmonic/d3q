@@ -443,7 +443,7 @@ SUBROUTINE openfild3
   USE pwcom,           ONLY : npwx, nbnd, degauss
   USE units_ph,        ONLY : lrdwf
   USE units_lr,        ONLY : iuwfc, lrwfc
-  USE control_flags,   ONLY : twfcollect
+  !USE control_flags,   ONLY : twfcollect
   USE io_files,        ONLY : prefix, seqopn
   USE io_global,       ONLY : ionode
   USE kplus3q,         ONLY : kplusq, q_sum_rule, q_names
@@ -457,7 +457,7 @@ SUBROUTINE openfild3
   ! the name of the file
   LOGICAL :: exst, lmetal ! logical variable to check file exists
   !
-  twfcollect=.FALSE.
+  !twfcollect=.FALSE.
   lmetal = (degauss /= 0._dp)
 
   IF (LEN_TRIM(prefix) == 0) CALL errore ('openfild3', 'wrong prefix', 1)

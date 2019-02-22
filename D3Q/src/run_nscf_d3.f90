@@ -45,7 +45,7 @@ SUBROUTINE run_nscf_d3(do_band)
   !
   USE kinds,           ONLY : DP
   USE cell_base,       ONLY : at
-  USE control_flags,   ONLY : conv_ions, twfcollect, pw_restart=> restart
+  USE control_flags,   ONLY : conv_ions, pw_restart=> restart
   USE basis,           ONLY : starting_wfc, starting_pot, startingconfig
   USE io_files,        ONLY : prefix
   USE io_global,       ONLY : stdout, ionode
@@ -123,7 +123,7 @@ SUBROUTINE run_nscf_d3(do_band)
     stdout=stdout_tmp
   ENDIF
   !
-  twfcollect=.false.
+  !twfcollect=.false.
   CALL punch( 'all' )
   !
   CALL close_files( .true. )
@@ -182,7 +182,6 @@ SUBROUTINE setup_nscf_d3()
   USE kplus3q,            ONLY : kplus3q_grids, kplusq
   USE mp,                 ONLY : mp_sum
   USE uspp_param,         ONLY : n_atom_wfc
-  USE control_flags,      ONLY : lkpoint_dir
   USE d3_kgrid,           ONLY : d3_nk1, d3_nk2, d3_nk3, d3_k1, d3_k2, d3_k3, d3_degauss
   USE check_stop,         ONLY : check_stop_init
   !
@@ -206,7 +205,7 @@ SUBROUTINE setup_nscf_d3()
   david = 4
   nbndx = david*nbnd
   natomwfc = n_atom_wfc( nat, ityp )
-  lkpoint_dir=.false. ! to avoid very large number of directories
+  !lkpoint_dir=.false. ! to avoid very large number of directories
   IF(d3_degauss>0._dp) THEN
     degauss = d3_degauss
     WRITE(stdout, '(7x,a,f10.4)') "* new degauss set from d3 input:", degauss
