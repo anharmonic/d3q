@@ -1,5 +1,5 @@
   Using      1 MPI processes
- 
+
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -16,42 +16,40 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
- 
+
   Reading input file 'input.TK-sma'
- &TKINPUT
- CALCULATION     = sma             ,
- OUTDIR  = ./TK-sma/                                                                                                                 
-                                                                                                                                     
-   ,
- PREFIX  = ///                                                                                                                       
-                                                                                                                                     
-   ,
- FILE_MAT2       = mat2R                                                                                                             
-                                                                                                                                     
-           ,
- FILE_MAT3       = mat3R.asr.sparse                                                                                                  
-                                                                                                                                     
-           ,
- ASR2    = simple  ,
- THR_TK  =  1.000000000000000E-002,
- NITER_MAX       =        1000,
- NCONF   =          11,
- NK      = 2*32,           1,
- NK_IN   = 2*32,           1,
- GRID_TYPE       = random,
- GRID_TYPE_IN    = ///   ,
- XK0     = 3*0.000000000000000E+000  ,
- XK0_IN  = 3*-Infinity               ,
- ISOTOPIC_DISORDER       = F,
- STORE_LW        = F,
- CASIMIR_SCATTERING      = F,
- CASIMIR_LENGTH_AU       =  -1.00000000000000     ,
- CASIMIR_LENGTH_MU       =  -1.00000000000000     ,
- CASIMIR_LENGTH_MM       =  -1.00000000000000     ,
- CASIMIR_DIR     = 3*0.000000000000000E+000  ,
- MAX_SECONDS     =          -1,
- MAX_TIME        =  -1.00000000000000     ,
- RESTART = F
+  merging with command line arguments
+&TKINPUT
+ CALCULATION="sma             ",
+ OUTDIR="./TK-sma/                                                                                                                                                                                                                                                       ",
+ PREFIX="///                                                                                                                                                                                                                                                             ",
+ FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
+ FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
+ ASR2="simple  ",
+ THR_TK=  1.0000000000000000E-002,
+ NITER_MAX=1000       ,
+ NCONF=11         ,
+ NK= 2*32         ,1          ,
+ NK_IN= 2*32         ,1          ,
+ GRID_TYPE="random",
+ GRID_TYPE_IN="///   ",
+ XK0= 3*0.0000000000000000       ,
+ XK0_IN= 3*-1.0000000000000000E+030 ,
+ OPTIMIZE_GRID=F,
+ OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
+ INTRINSIC_SCATTERING=T,
+ ISOTOPIC_DISORDER=F,
+ STORE_LW=F,
+ CASIMIR_SCATTERING=F,
+ MFP_CUTOFF=F,
+ SAMPLE_DIR= 3*0.0000000000000000       ,
+ SAMPLE_LENGTH_AU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MM= -1.0000000000000000     ,
+ VOLUME_FACTOR=  1.0000000000000000     ,
+ MAX_SECONDS=-1         ,
+ MAX_TIME= -1.0000000000000000     ,
+ RESTART=F,
  /
  ** Reading FC2 file: mat2R
      alat (bohr)    4.607424
@@ -59,9 +57,9 @@
      at_1 = (    1.000000    0.000000    0.000000 )
      at_2 = (   -0.500000    0.866025    0.000000 )
      at_3 = (    0.000000    0.000000    3.000000 )
-     bg_1 = (    1.000000    0.577350    0.000000 )
+     bg_1 = (    1.000000    0.577350   -0.000000 )
      bg_2 = (    0.000000    1.154701    0.000000 )
-     bg_3 = (    0.000000    0.000000    0.333333 )
+     bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112650
  Original FC2 grid:           2           2           1
  ** Reading sparse FC3 file mat3R.asr.sparse
@@ -70,15 +68,15 @@
      at_1 = (    1.000000    0.000000    0.000000 )
      at_2 = (   -0.500000    0.866025    0.000000 )
      at_3 = (    0.000000    0.000000    3.000000 )
-     bg_1 = (    1.000000    0.577350    0.000000 )
+     bg_1 = (    1.000000    0.577350   -0.000000 )
      bg_2 = (    0.000000    1.154701    0.000000 )
-     bg_3 = (    0.000000    0.000000    0.333333 )
+     bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112647
     Original FC3 grid:           2           2           1
     Number of R:                49
  WARNING! FC2 and FC3 systems DO NOT MATCH !!!
  Reading : done.
- Memory used :            3 Mb
+ Memory used :            0 Mb
  calculation: sma             full            
  Reading CONFIGS          11
   Temperatures:
@@ -87,53 +85,58 @@
   Smearings:   
    20.000   20.000   20.000   20.000   20.000   20.000   20.000   20.000
    20.000   20.000   20.000
- 
+
  --> Setting up outer grid
   Random grid shift    0.015012    0.010499    0.000000
   Setup a random grid of     1024 q-points
  --> Setting up inner grid
   Random grid shift    0.002697    0.003278    0.000000
   Setup a random grid of     1024 q-points
-         0.0% | STEP:         0.0s | END:          -.-s | WALL:         0.5s 
-        10.0% | STEP:        30.1s | END:        302.2s | WALL:        30.6s 
-        30.0% | STEP:        90.3s | END:        301.0s | WALL:        90.8s 
-        50.0% | STEP:       150.4s | END:        300.6s | WALL:       150.9s 
-        60.0% | STEP:       180.3s | END:        300.5s | WALL:       180.8s 
-        80.1% | STEP:       240.9s | END:        300.9s | WALL:       241.4s 
-       100.0% | STEP:       300.8s | END:        300.8s | WALL:       301.3s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         1.2s 
+         0.1% | STEP TIME:         0.4s | STEP END:        417.4s | WALL:         1.7s 
+        10.0% | STEP TIME:        42.3s | STEP END:        424.0s | WALL:        43.5s 
+        20.0% | STEP TIME:        84.6s | STEP END:        422.2s | WALL:        85.9s 
+        30.0% | STEP TIME:       126.3s | STEP END:        421.0s | WALL:       127.6s 
+        40.1% | STEP TIME:       168.4s | STEP END:        420.2s | WALL:       169.6s 
+        50.0% | STEP TIME:       209.8s | STEP END:        419.2s | WALL:       211.0s 
+        60.0% | STEP TIME:       251.4s | STEP END:        418.9s | WALL:       252.7s 
+        70.1% | STEP TIME:       293.7s | STEP END:        419.0s | WALL:       294.9s 
+        80.1% | STEP TIME:       335.3s | STEP END:        418.9s | WALL:       336.6s 
+        90.1% | STEP TIME:       376.9s | STEP END:        418.2s | WALL:       378.2s 
+       100.0% | STEP TIME:       417.8s | STEP END:        417.8s | WALL:       419.1s 
    ************
    SMA thermal conductivity, stored to file:
      ./TK-sma//sma_full.32x32x1.out
    Diagonal components (conf, sigma, T, K_x, K_y, K_z):
-  1   20.000000    5.000000  0.10407097E+05  0.64481061E+05  0.00000000E+00
-  2   20.000000   10.000000  0.11634720E+05  0.74658969E+05  0.00000000E+00
-  3   20.000000   20.000000  0.84167817E+04  0.51428078E+05  0.00000000E+00
-  4   20.000000   30.000000  0.65304332E+04  0.37944132E+05  0.00000000E+00
-  5   20.000000   50.000000  0.46442173E+04  0.24589528E+05  0.00000000E+00
-  6   20.000000   70.000000  0.36693603E+04  0.18033306E+05  0.00000000E+00
-  7   20.000000  100.000000  0.26986863E+04  0.12576506E+05  0.00000000E+00
-  8   20.000000  200.000000  0.12022264E+04  0.55599517E+04  0.00000000E+00
-  9   20.000000  300.000000  0.70562577E+03  0.32940389E+04  0.00000000E+00
- 10   20.000000  500.000000  0.37167568E+03  0.17593307E+04  0.00000000E+00
- 11   20.000000 1000.000000  0.17132630E+03  0.82032516E+03  0.00000000E+00
-   * WALL :     301.5825 s
+  1   20.000000    5.000000  0.10408601E+05  0.64490328E+05  0.00000000E+00
+  2   20.000000   10.000000  0.11635844E+05  0.74667079E+05  0.00000000E+00
+  3   20.000000   20.000000  0.84174329E+04  0.51433783E+05  0.00000000E+00
+  4   20.000000   30.000000  0.65309595E+04  0.37948789E+05  0.00000000E+00
+  5   20.000000   50.000000  0.46446000E+04  0.24592842E+05  0.00000000E+00
+  6   20.000000   70.000000  0.36696563E+04  0.18035816E+05  0.00000000E+00
+  7   20.000000  100.000000  0.26988962E+04  0.12578273E+05  0.00000000E+00
+  8   20.000000  200.000000  0.12023038E+04  0.55606675E+04  0.00000000E+00
+  9   20.000000  300.000000  0.70566302E+03  0.32944064E+04  0.00000000E+00
+ 10   20.000000  500.000000  0.37169133E+03  0.17594962E+04  0.00000000E+00
+ 11   20.000000 1000.000000  0.17133244E+03  0.82039381E+03  0.00000000E+00
+   * WALL :     419.4956 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *   301106.413214 *   301106.413214 *      301106.413 *   301106.413214 *   99.842 *           1. *
+   *             sma thermalk *   418252.429848 *   418252.429848 *      418252.430 *   418252.429848 *   99.704 *           1. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        4.134985 *        0.004038 *           4.135 *        0.004038 *    0.001 *        1024. *
-   *                 lw ph-ph *   301069.135553 *      294.012828 *      301069.136 *      294.012828 *   99.830 *        1024. *
-   *        ph group velocity *       29.149998 *        0.028467 *          29.150 *        0.028467 *    0.010 *        1024. *
-   *        mpi communication *        4.445305 *        0.004341 *           4.445 *        0.004341 *    0.001 *        1024. *
-   *             read fc data *        3.736054 *        3.736054 *           3.736 *        3.736054 *    0.001 *           1. *
+   *          sum of tk terms *        5.366015 *        0.005240 *           5.366 *        0.005240 *    0.001 *        1024. *
+   *                 lw ph-ph *   418204.134166 *      408.402475 *      418204.134 *      408.402475 *   99.692 *        1024. *
+   *        ph group velocity *       25.207441 *        0.024617 *          25.207 *        0.024617 *    0.006 *        1024. *
+   *        mpi communication *        4.503340 *        0.004398 *           4.503 *        0.004398 *    0.001 *        1024. *
+   *             read fc data *        6.460791 *        6.460791 *           6.461 *        6.460791 *    0.002 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *    17006.614059 *        0.016203 *       17006.614 *        0.016203 *    5.639 *     1049600. *
-   *             bose distrib *    14227.806718 *        0.001234 *       14227.807 *        0.001234 *    4.718 *    11534336. *
-   *                sum modes *   150050.167197 *        0.013009 *      150050.167 *        0.013009 *   49.754 *    11534336. *
-   *          fc3 interpolate *    10066.650815 *        0.009600 *       10066.651 *        0.009600 *    3.338 *     1048576. *
-   *           fc3 modulus sq *     1147.763015 *        0.001095 *        1147.763 *        0.001095 *    0.381 *     1048576. *
-   *               fc3 rotate *    90235.335800 *        0.086055 *       90235.336 *        0.086055 *   29.921 *     1048576. *
-   *         merge degenerate *     7961.306567 *        0.000690 *        7961.307 *        0.000690 *    2.640 *    11535360. *
- 
+   *         ph interp & diag *    22415.261766 *        0.021356 *       22415.262 *        0.021356 *    5.343 *     1049600. *
+   *             bose distrib *    14355.993099 *        0.001245 *       14355.993 *        0.001245 *    3.422 *    11534336. *
+   *                sum modes *   179316.909042 *        0.015546 *      179316.909 *        0.015546 *   42.746 *    11534336. *
+   *          fc3 interpolate *    28274.025900 *        0.026964 *       28274.026 *        0.026964 *    6.740 *     1048576. *
+   *           fc3 modulus sq *     1084.509208 *        0.001034 *        1084.509 *        0.001034 *    0.259 *     1048576. *
+   *               fc3 rotate *   147877.169284 *        0.141027 *      147877.169 *        0.141027 *   35.251 *     1048576. *
+   *         merge degenerate *    10598.563696 *        0.000919 *       10598.564 *        0.000919 *    2.527 *    11535360. *
+
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -150,4 +153,4 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
- 
+

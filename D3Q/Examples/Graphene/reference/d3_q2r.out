@@ -1,14 +1,17 @@
 
-     Program D3_Q2R v.6.1 (svn rev. 13571M) starts on 29Jun2017 at 16:40: 0 
+     Program D3_Q2R v.6.3 starts on 25Feb2019 at 12:27:38 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
          "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
 
      Parallel version (MPI), running on     1 processors
+
+     MPI processes distributed on     1 nodes
 
      reading grid info from file dyn0
   reading force constants from file dyn1
@@ -23,11 +26,11 @@
 
       q-space grid ok, #points =    4
  seeking over          405  vectors
- 
-     D3_Q2R       :     0.00s CPU         0.00s WALL
 
- 
-   This run was terminated on:  16:40: 0  29Jun2017            
+     D3_Q2R       :      0.00s CPU      0.00s WALL
+
+
+   This run was terminated on:  12:27:38  25Feb2019            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

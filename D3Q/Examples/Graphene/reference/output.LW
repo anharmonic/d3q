@@ -1,5 +1,5 @@
   Using      1 MPI processes
- 
+
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -16,46 +16,44 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
- 
+
   Reading input file 'input.LW'
- &LWINPUT
- CALCULATION     = lw imag         ,
- OUTDIR  = ./LW/                                                                                                                     
-                                                                                                                                     
-   ,
- PREFIX  = lw_NK                                                                                                                     
-                                                                                                                                     
-   ,
- FILE_MAT2       = mat2R                                                                                                             
-                                                                                                                                     
-           ,
- FILE_MAT3       = mat3R.asr.sparse                                                                                                  
-                                                                                                                                     
-           ,
- ASR2    = simple  ,
- NCONF   =           1,
- START_Q =           1,
- NQ      =           4,
- NK      = 2*60,           1,
- GRID_TYPE       = random,
- XK0     = 3*0.000000000000000E+000  ,
- NE      =          -1,
- DE      =   1.00000000000000     ,
- E0      =  0.000000000000000E+000,
- E_INITIAL       =  -1.00000000000000     ,
- Q_INITIAL       = 3*0.000000000000000E+000  ,
- Q_RESOLVED      = F,
- SIGMAQ  =  0.100000000000000     ,
- EXP_T_FACTOR    = F,
- SORT_SHIFTED_FREQ       = F,
- ISOTOPIC_DISORDER       = F,
- CASIMIR_SCATTERING      = F,
- CASIMIR_LENGTH_AU       =  -1.00000000000000     ,
- CASIMIR_LENGTH_MU       =  -1.00000000000000     ,
- CASIMIR_LENGTH_MM       =  -1.00000000000000     ,
- CASIMIR_DIR     = 3*0.000000000000000E+000  ,
- MAX_SECONDS     =          -1,
- MAX_TIME        =  -1.00000000000000     
+  merging with command line arguments
+&LWINPUT
+ CALCULATION="lw imag         ",
+ OUTDIR="./LW/                                                                                                                                                                                                                                                           ",
+ PREFIX="lw_NK                                                                                                                                                                                                                                                           ",
+ FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
+ FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
+ ASR2="simple  ",
+ NCONF=1          ,
+ SKIP_Q=0          ,
+ NQ=4          ,
+ NK= 2*60         ,1          ,
+ GRID_TYPE="random",
+ XK0= 3*0.0000000000000000       ,
+ OPTIMIZE_GRID=F,
+ OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
+ NE=-1         ,
+ DE=  1.0000000000000000     ,
+ E0=  0.0000000000000000     ,
+ SIGMA_E= -1.0000000000000000     ,
+ NU_INITIAL=0          ,
+ E_INITIAL= -1.0000000000000000     ,
+ Q_INITIAL= 3*0.0000000000000000       ,
+ Q_RESOLVED=F,
+ Q_SUMMED=F,
+ SIGMAQ= 0.10000000000000001     ,
+ EXP_T_FACTOR=F,
+ SORT_FREQ="default",
+ ISOTOPIC_DISORDER=F,
+ CASIMIR_SCATTERING=F,
+ SAMPLE_LENGTH_AU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MM= -1.0000000000000000     ,
+ SAMPLE_DIR= 3*0.0000000000000000       ,
+ MAX_SECONDS=-1         ,
+ MAX_TIME= -1.0000000000000000     ,
  /
  ** Reading FC2 file: mat2R
      alat (bohr)    4.607424
@@ -63,9 +61,9 @@
      at_1 = (    1.000000    0.000000    0.000000 )
      at_2 = (   -0.500000    0.866025    0.000000 )
      at_3 = (    0.000000    0.000000    3.000000 )
-     bg_1 = (    1.000000    0.577350    0.000000 )
+     bg_1 = (    1.000000    0.577350   -0.000000 )
      bg_2 = (    0.000000    1.154701    0.000000 )
-     bg_3 = (    0.000000    0.000000    0.333333 )
+     bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112650
  Original FC2 grid:           2           2           1
  ** Reading sparse FC3 file mat3R.asr.sparse
@@ -74,102 +72,57 @@
      at_1 = (    1.000000    0.000000    0.000000 )
      at_2 = (   -0.500000    0.866025    0.000000 )
      at_3 = (    0.000000    0.000000    3.000000 )
-     bg_1 = (    1.000000    0.577350    0.000000 )
+     bg_1 = (    1.000000    0.577350   -0.000000 )
      bg_2 = (    0.000000    1.154701    0.000000 )
-     bg_3 = (    0.000000    0.000000    0.333333 )
+     bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112647
     Original FC3 grid:           2           2           1
     Number of R:                49
  WARNING! FC2 and FC3 systems DO NOT MATCH !!!
  Reading : done.
- Memory used :            3 Mb
+ Memory used :            0 Mb
  calculation: lw              imag            
  Reading CONFIGS           1
   Temperatures:
      10.0
   Smearings:   
    50.000
- 
+
  Reading QPOINTS
   Path turning point:     0.500000
   Path turning point:     0.971404
-  Read   49 q-points, crytal basis
-      0.500000    0.000000    0.000000       0.000000
-      0.475000    0.000000    0.000000       0.025000
-      0.450000    0.000000    0.000000       0.050000
-      0.425000    0.000000    0.000000       0.075000
-      0.400000    0.000000    0.000000       0.100000
-      0.375000    0.000000    0.000000       0.125000
-      0.350000    0.000000    0.000000       0.150000
-      0.325000    0.000000    0.000000       0.175000
-      0.300000    0.000000    0.000000       0.200000
-      0.275000    0.000000    0.000000       0.225000
-      0.250000    0.000000    0.000000       0.250000
-      0.225000    0.000000    0.000000       0.275000
-      0.200000    0.000000    0.000000       0.300000
-      0.175000    0.000000    0.000000       0.325000
-      0.150000    0.000000    0.000000       0.350000
-      0.125000    0.000000    0.000000       0.375000
-      0.100000    0.000000    0.000000       0.400000
-      0.075000    0.000000    0.000000       0.425000
-      0.050000    0.000000    0.000000       0.450000
-      0.025000    0.000000    0.000000       0.475000
-      0.000000    0.000000    0.000000       0.500000
-      0.020833    0.020833    0.000000       0.529463
-      0.041667    0.041667    0.000000       0.558926
-      0.062500    0.062500    0.000000       0.588388
-      0.083333    0.083333    0.000000       0.617851
-      0.104167    0.104167    0.000000       0.647314
-      0.125000    0.125000    0.000000       0.676777
-      0.145833    0.145833    0.000000       0.706239
-      0.166667    0.166666    0.000000       0.735702
-      0.187500    0.187500    0.000000       0.765165
-      0.208333    0.208333    0.000000       0.794628
-      0.229167    0.229166    0.000000       0.824090
-      0.250000    0.250000    0.000000       0.853553
-      0.270833    0.270833    0.000000       0.883016
-      0.291667    0.291666    0.000000       0.912479
-      0.312500    0.312500    0.000000       0.941941
-      0.333333    0.333333    0.000000       0.971404
-      0.347222    0.305555    0.000000       1.002461
-      0.361111    0.277778    0.000000       1.033517
-      0.375000    0.250000    0.000000       1.064574
-      0.388889    0.222222    0.000000       1.095630
-      0.402778    0.194444    0.000000       1.126687
-      0.416667    0.166666    0.000000       1.157743
-      0.430556    0.138889    0.000000       1.188800
-      0.444444    0.111111    0.000000       1.219856
-      0.458333    0.083333    0.000000       1.250913
-      0.472222    0.055555    0.000000       1.281969
-      0.486111    0.027778    0.000000       1.313025
-      0.500000    0.000000    0.000000       1.344082
- 
+  Read   4 lines, set-up     49 q-points, crytal coordinates
+
  --> Setting up inner grid
   Random grid shift    0.008006    0.005600    0.000000
   Setup a random grid of     3600 q-points
   Going to compute    49 points (1)
-         0.0% | STEP:         0.0s | END:          -.-s | WALL:         0.8s 
-        10.4% | STEP:         2.4s | END:         22.9s | WALL:         3.2s 
-        20.8% | STEP:         4.8s | END:         22.8s | WALL:         5.5s 
-        50.0% | STEP:        11.4s | END:         22.8s | WALL:        12.2s 
-        60.4% | STEP:        13.8s | END:         22.8s | WALL:        14.5s 
-        70.8% | STEP:        16.2s | END:         22.8s | WALL:        16.9s 
-        81.2% | STEP:        18.5s | END:         22.8s | WALL:        19.3s 
-        91.7% | STEP:        20.9s | END:         22.8s | WALL:        21.7s 
-       100.0% | STEP:        22.8s | END:         22.8s | WALL:        23.6s 
-   * WALL :      24.0287 s
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         0.9s 
+         2.1% | STEP TIME:         0.8s | STEP END:         36.7s | WALL:         1.6s 
+        10.4% | STEP TIME:         3.8s | STEP END:         36.6s | WALL:         4.7s 
+        20.8% | STEP TIME:         7.7s | STEP END:         36.8s | WALL:         8.5s 
+        31.2% | STEP TIME:        11.5s | STEP END:         37.0s | WALL:        12.4s 
+        41.7% | STEP TIME:        15.4s | STEP END:         36.9s | WALL:        16.2s 
+        50.0% | STEP TIME:        18.5s | STEP END:         36.9s | WALL:        19.3s 
+        60.4% | STEP TIME:        22.4s | STEP END:         37.1s | WALL:        23.3s 
+        70.8% | STEP TIME:        26.4s | STEP END:         37.2s | WALL:        27.2s 
+        81.2% | STEP TIME:        30.5s | STEP END:         37.6s | WALL:        31.4s 
+        91.7% | STEP TIME:        35.2s | STEP END:         38.4s | WALL:        36.1s 
+       100.0% | STEP TIME:        38.3s | STEP END:         38.3s | WALL:        39.2s 
+   * WALL :      40.0075 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *                 lw ph-ph *    23253.324593 *      474.557645 *       23253.325 *      474.557645 *   96.773 *          49. *
+   *                 lw ph-ph *    39123.834460 *      798.445601 *       39123.834 *      798.445601 *   97.791 *          49. *
+   *                read data *        6.687918 *        6.687918 *           6.688 *        6.687918 *    0.017 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     2801.902637 *        0.015879 *        2801.903 *        0.015879 *   11.661 *      176449. *
-   *             bose distrib *      255.173142 *        0.001447 *         255.173 *        0.001447 *    1.062 *      176400. *
-   *                sum modes *     2275.881764 *        0.012902 *        2275.882 *        0.012902 *    9.471 *      176400. *
-   *          fc3 interpolate *     1686.073303 *        0.009558 *        1686.073 *        0.009558 *    7.017 *      176400. *
-   *           fc3 modulus sq *      183.315606 *        0.001039 *         183.316 *        0.001039 *    0.763 *      176400. *
-   *               fc3 rotate *    15315.455719 *        0.086822 *       15315.456 *        0.086822 *   63.738 *      176400. *
-   *        mpi communication *        0.212804 *        0.004343 *           0.213 *        0.004343 *    0.001 *          49. *
-   *         merge degenerate *      124.620174 *        0.000706 *         124.620 *        0.000706 *    0.519 *      176400. *
- 
+   *         ph interp & diag *     3808.274472 *        0.021583 *        3808.274 *        0.021583 *    9.519 *      176449. *
+   *             bose distrib *      268.641660 *        0.001523 *         268.642 *        0.001523 *    0.671 *      176400. *
+   *                sum modes *     3175.744837 *        0.018003 *        3175.745 *        0.018003 *    7.938 *      176400. *
+   *          fc3 interpolate *     4874.827199 *        0.027635 *        4874.827 *        0.027635 *   12.185 *      176400. *
+   *           fc3 modulus sq *      179.476047 *        0.001017 *         179.476 *        0.001017 *    0.449 *      176400. *
+   *               fc3 rotate *    25829.724204 *        0.146427 *       25829.724 *        0.146427 *   64.562 *      176400. *
+   *        mpi communication *        0.221749 *        0.004525 *           0.222 *        0.004525 *    0.001 *          49. *
+   *         merge degenerate *      167.034634 *        0.000947 *         167.035 *        0.000947 *    0.418 *      176400. *
+
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -186,4 +139,4 @@
      For spectral function calculations also cite:
       5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
- 
+
