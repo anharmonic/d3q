@@ -8,15 +8,15 @@
   outdir    = './'  ! where to save the data
   asr2 = 'spread'   ! second order sum rule, analogous to "crystal"
   nk = 25,25,25     ! size of the integration grid
-  nconf = 1         ! number of configurations sigma/temperature to read
-  nq = 1            ! number of q-points to read
 
   ne=1000
   de=1.
   e0=0
 /
  CONFIGS
+  1
  5.0 300
  QPOINTS
+  1
 0.3   0.3   0.3
 

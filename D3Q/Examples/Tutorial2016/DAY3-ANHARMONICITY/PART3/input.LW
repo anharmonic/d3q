@@ -9,7 +9,7 @@
   file_mat3 = '../PART2/mat3R.asr.sparse'
   outdir    = './'  ! where to save the data
   asr2 = 'spread'   ! second order sum rule, analogous to "crystal"
-  nk = NK,NK,NK     ! size of the integration grid
+  nk =  NK,NK,NK    ! size of the integration grid
   nconf = 9         ! number of configurations sigma/temperature to read
   nq = 1            ! number of q-points to read
 /

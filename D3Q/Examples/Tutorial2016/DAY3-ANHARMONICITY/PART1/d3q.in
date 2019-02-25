@@ -1,5 +1,5 @@
 D3
-&inputph
+&inputd3q
    mode='full'
    outdir="../tmp"
    prefix = 'silicon',

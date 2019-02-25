@@ -10,8 +10,8 @@
   prefix = 'tk'
   isotopic_disorder=.true.
   casimir_scattering = .true.
-  casimir_length_mu = 10.
-  casimir_dir = 0
+  sample_length_mu = 10.
+  sample_dir = 0,0,0,
   nconf = 1
 /
 CONFIGS

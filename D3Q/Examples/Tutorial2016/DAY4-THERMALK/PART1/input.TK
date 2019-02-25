@@ -10,7 +10,7 @@
   prefix = 'tk'
   isotopic_disorder=.false.
   casimir_scattering = .false.
-  nconf = 1
  /
 CONFIGS
-10.  100.
+ 1
+ 10.  100.
