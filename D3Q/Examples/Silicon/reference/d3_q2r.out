@@ -1,30 +1,33 @@
 
-     Program D3_Q2R v.6.1 (svn rev. 13571M) starts on 29Jun2017 at 16:29:23 
+     Program D3_Q2R v.6.3 starts on 25Feb2019 at 11:53: 0 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
          "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
 
      Parallel version (MPI), running on     1 processors
 
+     MPI processes distributed on     1 nodes
+
      reading grid info from file dyn0
   reading force constants from file dyn1
  macroscopic fields = T
-  24.59015   0.00000   0.00000
-   0.00000  24.59015   0.00000
-   0.00000   0.00000  24.59015
+  24.59015  -0.00000   0.00000
+  -0.00000  24.59015  -0.00000
+   0.00000  -0.00000  24.59015
   na=            1
-  -1.22722   0.00000   0.00000
-   0.00000  -1.22722   0.00000
-   0.00000   0.00000  -1.22722
+  -1.22722   0.00000  -0.00000
+  -0.00000  -1.22722  -0.00000
+  -0.00000  -0.00000  -1.22722
   na=            2
   -1.22722   0.00000   0.00000
-   0.00000  -1.22722   0.00000
-   0.00000   0.00000  -1.22722
-Norm of the difference between old and new effective charges:    3.00605389324619709512
+   0.00000  -1.22722  -0.00000
+   0.00000  -0.00000  -1.22722
+Norm of the difference between old and new effective charges:    3.00605389643053388937
   nqs=            1
          0.000000    0.000000    0.000000
   reading force constants from file dyn2
@@ -107,11 +110,11 @@ Norm of the difference between old and new effective charges:    3.0060538932461
 
       q-space grid ok, #points =   64
  seeking over         4913  vectors
- 
-     D3_Q2R       :     0.04s CPU         0.04s WALL
 
- 
-   This run was terminated on:  16:29:23  29Jun2017            
+     D3_Q2R       :      0.03s CPU      0.04s WALL
+
+
+   This run was terminated on:  11:53: 0  25Feb2019            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
