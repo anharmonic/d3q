@@ -428,6 +428,9 @@ MODULE code_input
     IF(calculation == 'cgp' .and. (grid_type == 'bz' .or. grid_type == 'ws'))&
       CALL errore('READ_INPUT', "CGP calculation isn't properly implemented with bz grids", 1)
     !
+    IF(calculation == 'cgp' .and. (grid_type == 'random'))&
+      CALL errore('READ_INPUT', "CGP thermal conductivity is not variational with"//&
+      "random grids: convergence is not guaranteed!!!", 1)
     
     IF(input%casimir_scattering .or. input%mfp_cutoff)THEN
       IF(COUNT((/sample_length_au,sample_length_mu,sample_length_mm/)>=0._dp)>1) &
