@@ -1,10 +1,21 @@
+v 1.1.4
+* Several bugfixes in thermal2 code, in particular a missing factor 2 in the Casimir length
+* d3q code brought to level with QE 6.4, this code will not be backported to any previous version
+* New option intrinsic_lw=.false. allows one to skip the calculation of linewith completely, only casimir and isotopes are done (useful with the recompute_sma.m script in tools) see also Examples/mat3R.NULL
+* Exact solution of BTE with shifted grids is not converging reliably, I think it is a detailed balance violation, I have disable it for now
+* Added many features to r2q, like computing the Joint-DOS
+* d3_sqom.x can apply neutron form factor, as long as you are willing to edit the f90 file and add your atomic species (it is easy) see thermal2/neutron.f90 and Examples/input.SQOM
+* in d3_lw.x Added the mu_initial input parameter for the calculation of final state When mu_initial is specified, e_initial is automatically set to the energy of the mu-th eigenvalue, unless specified otherwise. In this case, the additional columns of the file will contain the decomposition over the mode of the final state.  If mu_initial is not set, than e_initial must be specified. Note that in this case, the code will compute the final state decomposition of the spectra weight at e_initial, and the additional columns in the file will include the contribution of each modeto the spectra weight. Final state decomposition redefined in a symmetric form that preservs q2->q3 change for the coalescence part (the X part is unchanged, except for numerical noise which is potentially reduced)
+* It is now possible to specify a plane of q-points in QPOINTS blocks
+* namelist keyword can also be spepcified at command line as "--keyword value"
+
 v 1.1.3
 * Bugfix for pools: scattering of charge density was changend in QE 6.2 but not here, could give very bad (i.e. absurd) result when using pools parallelism
 
 v 1.1.2
- * Code d3_tk.x in SMA mode can now cutoff phonons with a mfp longer than sample size, input variables casimi_length and casimir_dir now renamed to sample_length and sample_dir, as they can used for both approaches
- * phonon modes can be sorted according to eigenmode continuity
- * compatibility with qe 6.2
+* Code d3_tk.x in SMA mode can now cutoff phonons with a mfp longer than sample size, input variables casimi_length and casimir_dir now renamed to sample_length and sample_dir, as they can used for both approaches
+* phonon modes can be sorted according to eigenmode continuity
+* compatibility with qe 6.2
 
 v 1.1.1
 * D3 calculation of metallic systems has been improved, only full bands used for the Sternheimer equation: improved convergence.
