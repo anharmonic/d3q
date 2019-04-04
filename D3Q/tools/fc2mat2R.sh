@@ -58,7 +58,7 @@ function n2q {
 }
 
 #prepare ${header} file
-grep -B100 "^ *${n1}  *${n2}  *${n3} *$" ${input} > ${tmpdir}/${header}-0
+grep -B100000 "^ *${n1}  *${n2}  *${n3} *$" ${input} > ${tmpdir}/${header}-0
 nl=0
 
 echo "Artificial dyn mat file " > ${tmpdir}/${header}
