@@ -463,7 +463,8 @@ MODULE r2q_program
     FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
     nrg = nrg/RY_TO_CMM1
     !
-    sigma_ry = input%sigma(1)/RY_TO_CMM1
+    !sigma_ry = input%sigma(1)/RY_TO_CMM1
+    sigma_ry = input%sigma_e/RY_TO_CMM1
     e0_ry = input%e0/RY_TO_CMM1
     de_ry = input%de/RY_TO_CMM1
     

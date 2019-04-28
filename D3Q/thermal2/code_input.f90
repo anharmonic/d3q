@@ -927,7 +927,7 @@ MODULE code_input
     ioWRITE(stdout,*) "Reading : done."
     ioWRITE(stdout,*) "Memory used : ", kb/1000, "Mb"
     !
-    CALL impose_asr2(input%asr2, S%nat, fc2)
+    CALL impose_asr2(input%asr2, S%nat, fc2, S%zeu)
     ! NOTE: we now divide by the mass in READ_INPUT, as the masses
     !       read from input may be different (i.e. when including isotope scattering)
       timer_CALL t_readdt%stop()

@@ -9,15 +9,16 @@ MODULE asr2_module
   USE kinds,    ONLY : DP
   
   CONTAINS
-  SUBROUTINE impose_asr2(method, nat,fc)
+  SUBROUTINE impose_asr2(method, nat,fc,zeu)
     USE input_fc,       ONLY : forceconst2_grid
     IMPLICIT NONE
     !
     INTEGER,INTENT(in) :: nat
     CHARACTER(len=*),INTENT(in) :: method
     TYPE(forceconst2_grid),INTENT(inout) :: fc
+    REAL(DP),INTENT(inout),OPTIONAL :: zeu(3,3,nat)
     !
-    INTEGER :: iR, a,b, i,j, nu,mu
+    INTEGER :: iR, a,b, i,j, nu,mu, na
     REAL(DP):: delta, norm
     !
     IF(method=="no" .or. method=="none")RETURN
@@ -28,13 +29,13 @@ MODULE asr2_module
       nu = 3*(i-1)+a
         !
         delta = 0._dp
-        norm = 0._dp
+        !norm = 0._dp
         !
         DO j = 1,nat
         mu = 3*(j-1)+b
         DO iR = 1,fc%n_R
           delta = delta+fc%FC(mu,nu,iR)
-          norm  = norm +fc%FC(mu,nu,iR)**2 
+          !norm  = norm +fc%FC(mu,nu,iR)**2 
         ENDDO
         ENDDO
         
@@ -73,6 +74,21 @@ MODULE asr2_module
       ENDDO
       ENDDO
     ENDDO
+    !
+    IF(present(zeu)) THEN
+    print*, "doing zeu asr"
+     do i=1,3
+        do j=1,3
+           delta=0._dp
+           do na=1,nat
+              delta = delta + zeu(i,j,na)
+           end do
+           do na=1,nat
+              zeu(i,j,na) = zeu(i,j,na) - delta/nat
+           end do
+        end do
+     end do
+    ENDIF
     !
   END SUBROUTINE impose_asr2
   ! \/o\________\\\_________________________________________/^>

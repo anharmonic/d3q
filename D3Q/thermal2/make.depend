@@ -4,6 +4,7 @@ PROGRAM_import_shengbte.o : mpi_thermal.o
 PROGRAM_interpolate2.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
+PROGRAM_qha.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
 PROGRAM_r2q.o : mpi_thermal.o
 PROGRAM_recenter.o : mpi_thermal.o
@@ -81,12 +82,22 @@ PROGRAM_lw.o : ./linewidth.o
 PROGRAM_lw.o : ./mc_grids.o
 PROGRAM_lw.o : ./more_constants.o
 PROGRAM_lw.o : ./mpi_thermal.o
-PROGRAM_lw.o : ./nanoclock.o
 PROGRAM_lw.o : ./overlap.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
+PROGRAM_qha.o : ./PROGRAM_qha.o
+PROGRAM_qha.o : ./asr2.o
+PROGRAM_qha.o : ./code_input.o
+PROGRAM_qha.o : ./fc2_interp.o
+PROGRAM_qha.o : ./input_fc.o
+PROGRAM_qha.o : ./more_constants.o
+PROGRAM_qha.o : ./mpi_thermal.o
+PROGRAM_qha.o : ./nanoclock.o
+PROGRAM_qha.o : ./ph_velocity.o
+PROGRAM_qha.o : ./q_grids.o
+PROGRAM_qha.o : ./timers.o
 PROGRAM_qq2rr.o : ./cmdline_param.o
 PROGRAM_qq2rr.o : ./f3_bwfft.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
@@ -183,7 +194,6 @@ final_state.o : ./linewidth.o
 final_state.o : ./merge_degenerate.o
 final_state.o : ./more_constants.o
 final_state.o : ./mpi_thermal.o
-final_state.o : ./nanoclock.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
 input_fc.o : ./mpi_thermal.o
@@ -201,7 +211,6 @@ linewidth.o : ./functions.o
 linewidth.o : ./input_fc.o
 linewidth.o : ./merge_degenerate.o
 linewidth.o : ./mpi_thermal.o
-linewidth.o : ./nanoclock.o
 linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 mc_grids.o : ./code_input.o
@@ -237,6 +246,7 @@ q_grids.o : ./input_fc.o
 q_grids.o : ./mpi_thermal.o
 q_grids.o : ./ph_velocity.o
 quter.o : ./input_fc.o
+timers.o : ./mpi_thermal.o
 timers.o : ./nanoclock.o
 variational_tk.o : ./casimir.o
 variational_tk.o : ./code_input.o
@@ -249,7 +259,6 @@ variational_tk.o : ./linewidth.o
 variational_tk.o : ./merge_degenerate.o
 variational_tk.o : ./more_constants.o
 variational_tk.o : ./mpi_thermal.o
-variational_tk.o : ./nanoclock.o
 variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
@@ -257,6 +266,7 @@ PROGRAM_db.o :
 PROGRAM_import_shengbte.o : 
 PROGRAM_interpolate2.o : 
 PROGRAM_lw.o : 
+PROGRAM_qha.o : 
 PROGRAM_r2q.o : 
 PROGRAM_recenter.o : 
 PROGRAM_sqom.o : 

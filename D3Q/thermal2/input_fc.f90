@@ -45,6 +45,7 @@ MODULE input_fc
     INTEGER :: n_R, i
     !
     ioWRITE(stdout,*) "** Reading FC2 file: ", TRIM(filename)
+    fc%i_0 = -1
     unit = find_free_unit()
     OPEN(unit=unit,file=filename,action='read',status='old',iostat=ios)
     IF(ios/=0) CALL errore(sub,"opening '"//TRIM(filename)//"'", 1)
@@ -80,6 +81,7 @@ MODULE input_fc
     ENDDO
     !
     CLOSE(unit)
+    IF(fc%i_0 < 0) CALL errore("read_fc2","could not find i_0",1)
     ! Compute list of R in cartesian coords
     fc%xR = REAL(fc%yR, kind=DP)
     CALL cryst_to_cart(n_R,fc%xR,S%at,1)
