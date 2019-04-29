@@ -6,8 +6,7 @@ This is a very rough script that imports the FORCE_CONSTANT
 file produced by phonopy (by A. Togo). It assumes that the
 file has been produced by a VASP calculation, (i.e. units eV/A^2)
 it will try to read three files:
-1. POSCAR with the unit cell
-2. SPOSCAR with the super-cell (without any displacement)
+1. pw.in with the unit cell
 3. FORCE_CONSTANTS with the force costants
 
 This code uses the ASE python library, you can usually install
@@ -82,7 +81,7 @@ def supercell2cell(nat, atuc, natsc, atsc, cell, rcell, nq1,nq2,nq3):
 
 from sys import stderr
 import ase.io.espresso
-fin = open("supercell_total.in")
+fin = open("pw.in")
 aseuc = ase.io.espresso.read_espresso_in(fin)
 fin.close()
 
@@ -117,7 +116,7 @@ for i in range(nat):
 # no effective charges:
 fout.write("F\n")
 
-fin = open("supercell_total.in")
+fin = open("pw.in")
 asesc =ase.io.espresso.read_espresso_in(fin)
 fin.close()
 
