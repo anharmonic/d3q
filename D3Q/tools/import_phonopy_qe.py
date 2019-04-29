@@ -4,10 +4,18 @@ print """
 
 This is a very rough script that imports the FORCE_CONSTANT
 file produced by phonopy (by A. Togo). It assumes that the
-file has been produced by a VASP calculation, (i.e. units eV/A^2)
-it will try to read three files:
-1. pw.in with the unit cell
-3. FORCE_CONSTANTS with the force costants
+file has been produced by a Quantum-ESPRESSO calculation, 
+(i.e. units Ry/bohr^2)
+
+This script will try to read two files:
+1. "pw.in" input file for the unit cell calculation
+2. "FORCE_CONSTANTS" with the force costants from phonopy
+
+In order to generate file 2, you need to run phonopy with a
+config file containing the option
+  FORCE_CONSTANTS = WRITE
+I.e. if you put it in a file called mkcf.conf, you can then run:
+phonopy --pwscf --dim="2 2 2" -c pw.in -p mkfc.conf
 
 This code uses the ASE python library, you can usually install
 it with:
