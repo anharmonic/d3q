@@ -1,0 +1,14 @@
+&qhainput
+  prefix="k20"
+  outdir="qha"
+  calculation="gibbs"
+  T0 = 10 
+  dT = 10
+  nT = 100
+  n_volumes = 9
+ 
+  asr2="simple" 
+  grid_type = "simple"
+  nk = 20, 20, 20,
+/
+

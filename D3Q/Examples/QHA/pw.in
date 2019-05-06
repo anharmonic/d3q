@@ -1,0 +1,24 @@
+ &control
+    calculation = 'scf'
+    restart_mode='from_scratch',
+    prefix='silicon',
+    pseudo_dir = '../',
+    outdir='./tmp'
+    verbosity="high"
+ /
+ &system
+    ibrav=  2, celldm(1) = __alat
+    ntyp= 1, nat=  2,
+    ecutwfc =24.0,
+ /
+ &electrons
+    conv_thr =  1.0d-12
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pz-rrkj.UPF
+ATOMIC_POSITIONS alat
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS automatic
+ 4 4 4  1 1 1
+
