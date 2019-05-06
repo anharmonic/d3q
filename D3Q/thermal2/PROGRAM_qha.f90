@@ -9,7 +9,8 @@ MODULE qha_program
 
   USE timers
   USE kinds,            ONLY : DP
-  USE fc2_interpolate,  ONLY : freq_phq, freq_phq_safe, fftinterp_mat2, &
+  USE fc2_interpolate,  ONLY : freq_phq, freq_phq_safe, freq_phq, &
+                               freq_phq_positive, &
                                forceconst2_grid, set_nu0
   USE input_fc,           ONLY : ph_system_info, read_fc2, aux_system, div_mass_fc2
 
@@ -17,11 +18,11 @@ MODULE qha_program
 
   TYPE qha_input_type
     !
-    CHARACTER(len=16) :: calculation ! lw=linewidth, spf=spectral function
+    CHARACTER(len=16) :: calculation ! gibbs, grun
     CHARACTER(len=256) :: outdir
     CHARACTER(len=256) :: prefix
     REAL(DP),POINTER :: nrg_v(:)
-    REAL(DP),POINTER :: press_v(:)
+    !REAL(DP),POINTER :: press_v(:)
     INTEGER :: n_volumes = -1
     ! 
     CHARACTER(len=6) :: grid_type
@@ -38,13 +39,14 @@ MODULE qha_program
   !
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_INPUT_QHA(input, S, fc2)
-    USE q_grids,          ONLY : q_grid, setup_simple_grid
-    USE constants,        ONLY : RY_TO_CMM1, RY_KBAR
-    USE more_constants,   ONLY : INVALID, write_conf
-    USE wrappers,         ONLY : f_mkdir_safe
-    USE code_input,       ONLY : parse_command_line
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe
-    USE asr2_module,        ONLY : impose_asr2
+    USE q_grids,              ONLY : q_grid, setup_simple_grid
+    USE constants,            ONLY : RY_TO_CMM1, RY_KBAR
+    USE more_constants,       ONLY : INVALID, write_conf
+    USE wrappers,             ONLY : f_mkdir_safe
+    USE code_input,           ONLY : parse_command_line
+    USE fc2_interpolate,      ONLY : forceconst2_grid, freq_phq_safe
+    USE asr2_module,          ONLY : impose_asr2
+    USE cmdline_param_module, ONLY : cmdline_to_namelist
     !
     IMPLICIT NONE
     !
@@ -52,6 +54,7 @@ MODULE qha_program
     TYPE(forceconst2_grid),INTENT(out),ALLOCATABLE :: fc2(:)
     TYPE(ph_system_info),INTENT(out),ALLOCATABLE   :: S(:)
     CHARACTER(len=256)  :: input_file
+    INTEGER :: ios
     !
     ! Input variable, and defaul values:
     CHARACTER(len=16)   :: calculation = "gibbs"
@@ -68,7 +71,7 @@ MODULE qha_program
     INTEGER          :: nT = 6
 !    REAL(DP)         :: smearing = -1._dp
     !
-    INTEGER :: i, input_unit
+    INTEGER :: i, input_unit, aux_unit
     CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
     !
@@ -91,7 +94,15 @@ MODULE qha_program
       OPEN(unit=input_unit, file=input_file, status="OLD", action="READ")
     ENDIF
     !
+    aux_unit = find_free_unit()
     READ(input_unit, qhainput)
+    WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+    OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
+    CALL cmdline_to_namelist("qhainput", aux_unit)
+    REWIND(aux_unit)
+    READ(aux_unit, qhainput)
+    CLOSE(aux_unit, status="DELETE")
+
     WRITE(stdout, qhainput)
     !
     IF(ANY(nk<1))  CALL errore("READ_INPUT_QHA","Invalid nk",1)
@@ -111,19 +122,21 @@ MODULE qha_program
     input%nk                  = nk 
     input%grid_type           = grid_type
     !
+    ios = f_mkdir_safe(input%outdir)
+    !
     ALLOCATE(mat2R_v(n_volumes))
     ALLOCATE(input%nrg_v(n_volumes))
-    ALLOCATE(input%press_v(n_volumes))
+    !ALLOCATE(input%press_v(n_volumes))
     ALLOCATE(S(n_volumes))
     ALLOCATE(fc2(n_volumes))
     DO i = 1,n_volumes
-      READ(input_unit,*) mat2R_v(i), input%nrg_v(i), input%press_v(i)
+      READ(input_unit,*) mat2R_v(i), input%nrg_v(i) !, input%press_v(i)
       CALL read_fc2(mat2R_v(i), S(i),  fc2(i))
       CALL impose_asr2(input%asr2, S(i)%nat, fc2(i), S(i)%zeu)
       CALL aux_system(S(i))
       CALL div_mass_fc2(S(i), fc2(i))
     ENDDO
-    input%press_v = input%press_v/RY_KBAR
+    !input%press_v = input%press_v/RY_KBAR
     CLOSE(input_unit)
     !
   END SUBROUTINE READ_INPUT_QHA
@@ -141,29 +154,35 @@ MODULE qha_program
     TYPE(ph_system_info),INTENT(in)   :: S(input%n_volumes)
     !
     REAL(DP) :: weight, wbeta, T(input%nT)
-    REAL(DP) :: e_zp(input%n_volumes), e_ts(input%n_volumes, input%nT), g(input%n_volumes)
+    REAL(DP) :: e_zp(input%n_volumes), e_ts(input%n_volumes, input%nT), &
+                g(input%n_volumes), g_fit(input%n_volumes), vol(input%n_volumes)
+    REAL(DP) :: g0(input%nT), v0(input%nT), k0(input%nT), dk0(input%nT), d2k0(input%nT), aV_T(input%nT)
     REAL(DP),ALLOCATABLE :: freq(:)
     COMPLEX(DP),ALLOCATABLE :: U(:,:)
-    INTEGER :: iq, nu, iv, nu0, iT, ig
+    INTEGER :: iq, nu, iv, nu0, iT !, iv_min
     TYPE(q_grid) :: grid
     CHARACTER(len=256) :: filename
     !
     DO iT = 1, input%nT
       T(iT) = input%T0 + (iT-1)*input%dT
     ENDDO
+    FORALL(iv=1:input%n_volumes) vol(iv) = S(iv)%omega
     !
     ALLOCATE(freq(S(1)%nat3))
     ALLOCATE(U(S(1)%nat3,S(1)%nat3))
 
 
+    WRITE(*,'("Computing zero-point and phonon-free energy for each volume,")')
     DO iv = 1, input%n_volumes
-      print*, iv
+      WRITE(*,'(i5)',ADVANCE="no") iv
+      IF(MOD(iv-1,8)==7 .or. iv==input%n_volumes) WRITE(*,*)
       FLUSH(stdout)
       CALL setup_grid(input%grid_type, S(iv)%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.false., quiet=.true.)
       e_zp(iv) = 0._dp
       e_ts(iv,:) = 0._dp
       DO iq = 1, grid%nq
-       CALL freq_phq_safe(grid%xq(:,iq), S(iv), fc2(iv), freq, U)
+       !CALL freq_phq_safe(grid%xq(:,iq), S(iv), fc2(iv), freq, U)
+       CALL freq_phq_positive(grid%xq(:,iq), S(iv), fc2(iv), freq, U)
        e_zp(iv) = e_zp(iv) + 0.5_dp * grid%w(iq) * SUM(freq)
        nu0  = set_nu0(grid%xq(:,iq), S(iv)%at)
        
@@ -172,7 +191,11 @@ MODULE qha_program
          DO nu = nu0, S(iv)%nat3
            !IF(freq(nu)/=0._dp) THEN
            wbeta = freq(nu)/(K_BOLTZMANN_RY*T(iT))
-           e_ts(iv,iT) = e_ts(iv,iT) + weight *( -DLOG(1-DEXP(-wbeta))  + wbeta/(DEXP(wbeta)-1))
+           e_ts(iv,iT) = e_ts(iv,iT) + weight *( -DLOG(1-DEXP(-wbeta)))!  + wbeta/(DEXP(wbeta)-1))
+           IF(ISNAN( -DLOG(1-DEXP(-wbeta)))) THEN
+             print*, "caz!", grid%xq(:,iq)
+             print*, "caz?", freq
+           ENDIF
            !ENDIF
          ENDDO
        ENDDO
@@ -180,23 +203,82 @@ MODULE qha_program
       CALL grid%destroy()
     ENDDO
 
+    WRITE(*,'("Fitting each temperature curve with EOS and writing to file")')
     DO iT = 1, input%nT
-      filename  = TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_T"//TRIM(write_conf(iT,input%n_volumes,T))//".dat"
+      WRITE(*,'(i5)',ADVANCE="no") iT
+      IF(MOD(iT-1,8)==7 .or. iT==input%nT) WRITE(*,*)
+      FLUSH(stdout)
+
+      filename  = TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_T"&
+                //TRIM(write_conf(iT,input%nT,T))//".dat"
       OPEN(unit=90000+it, file=filename)
       WRITE(90000+iT,*) "# temperature", T(iT) 
       g = input%nrg_v(:) + e_zp(:) - (e_ts(:,iT))
-      ig = MINLOC(g,1)
-      WRITE(90000+iT,*) "# minimum:", ig,  S(ig)%omega, g(ig)
-      WRITE(90000+iT,*) "#", MINVAL(input%nrg_v), MINVAL(e_zp), MINVAL(e_ts(:,iT))
+      CALL fit(input%n_volumes, T(iT), vol, g, g_fit, g0(iT), v0(iT), k0(iT), dk0(iT), d2k0(iT))
+!      iv_min = MINLOC(g,1)
+!      WRITE(90000+iT,*) "# minimum:", iv_min,  S(iv_min)%omega, g(iv_min)
+!      WRITE(90000+iT,*) "#", MINVAL(input%nrg_v), MINVAL(e_zp), MINVAL(e_ts(:,iT))
+      WRITE(90000+iT,'("#",a21,7a26)') "v0(iT)", "g0(iT)", &
+                       "k0(iT)", "dk0(iT)", "d2k0(iT)"
+      WRITE(90000+iT,*) "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
+      WRITE(90000+iT,'("#",a21,7a26)') "volume", "gibbs", "electrons", &
+                       "zero-point", "TS", "g-g0", "g_fit"
       DO iv = 1, input%n_volumes
-        WRITE(90000+iT,*) S(iv)%omega, g(iv), &
-                          input%nrg_v(iv), e_zp(iv), -(e_ts(iv,iT))
-!                  input%press_v(iv)*S(iv)%omega
+        WRITE(90000+iT,*) vol(iv), g(iv), &
+                          input%nrg_v(iv), e_zp(iv), -(e_ts(iv,iT)), g(iv)-g0(iT), g_fit(iv)
       ENDDO
       CLOSE(90000+it)
     ENDDO
-
+    !
+    ! Volumetric thermal expansion
+    IF(input%nT>=2)THEN
+        WRITE(*,'("Computing thermal expansion 1/V dV/dT")')
+        IF(input%nT>2)THEN
+        DO iT = 2, input%nT-1
+         aV_T(iT) = (v0(iT+1)-v0(iT-1))/(T(iT+1)-T(iT-1))/v0(iT)
+        ENDDO
+        ENDIF
+        aV_T(1) = (v0(2)-v0(1))/(T(2)-T(1))/v0(1)
+        aV_T(input%nT) = (v0(input%nT)-v0(input%nT-1))/(T(input%nT)-T(input%nT-1))/v0(input%nT)
+    ELSE
+        WRITE(*,'("Cannot compute thermal expansion")')
+        aV_T = 0._dp
+    ENDIF
+    !
+    !
+    filename  = TRIM(input%outdir)//"/"//TRIM(input%prefix)//".dat"
+    OPEN(unit=90000, file=filename)
+    WRITE(90000,'("#",a21,7a26)') "Temperature", "volume0", "vol.therm.exp",&
+                  "energy0", "bulk mod.", "dbulk", "d2bulk"
+    DO iT = 1, input%nT
+      WRITE(90000,*) T(iT), v0(iT), aV_T(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
+    ENDDO
+    CLOSE(90000)
+    
   END SUBROUTINE GIBBS
+
+  SUBROUTINE fit(nv,T,vol, nrg, nrg_fit, nrg0, vol0, k0, dk0, d2k0)
+    USE eos,       ONLY : find_minimum, find_minimum2
+    USE constants, ONLY : ry_kbar
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: nv
+    REAL(DP),INTENT(in) :: T
+    REAL(DP),INTENT(in) :: nrg(nv), vol(nv)
+    REAL(DP),INTENT(out):: nrg_fit(nv)
+    REAL(DP),INTENT(out) :: nrg0,vol0,k0,dk0,d2k0                        
+    REAL(DP) :: chisq, par(4)
+
+    CALL find_minimum2(2,4,par,nv,vol,&
+                      nrg,nrg_fit,nrg0,chisq)
+
+    vol0 = par(1)
+    k0   = par(2)/ry_kbar ! converts k0 to Ry atomic units...
+    dk0  = par(3)
+    d2k0 = par(4)*ry_kbar ! and d2k0/dp2 to (Ry a.u.)^(-1)
+      
+    !WRITE(8888,*) T, nrg0, chisq, vol0, k0, dk0, d2k0
+        
+  END SUBROUTINE
  
 END MODULE qha_program
 !

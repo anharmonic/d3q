@@ -474,6 +474,31 @@ MODULE fc2_interpolate
       !
   END SUBROUTINE freq_phq
   !
+  ! Interpolate dynamical matrice at q and diagonalize it
+  SUBROUTINE freq_phq_positive(xq, S, fc2, freq, U)
+    USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    IMPLICIT NONE
+    REAL(DP),INTENT(in)               :: xq(3)
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    REAL(DP),INTENT(out)              :: freq(S%nat3)
+    COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
+    REAL(DP),PARAMETER :: eps = 0._dp 
+    !
+    CALL fftinterp_mat2(xq, S, fc2, U)
+    CALL mat2_diag(S%nat3, U, freq)
+    !U = CONJG(U)
+    WHERE    (freq >  eps)
+      freq = DSQRT(freq)
+    ELSEWHERE(freq < -eps)
+      freq = DSQRT(-freq)
+    ELSEWHERE ! i.e. freq=0
+      freq = 0._dp
+    ENDWHERE
+      !
+  END SUBROUTINE freq_phq_positive
+  !
+  !
   !
   ! Interpolate a point in a path, keep in account LO-TO at Gamma
   SUBROUTINE freq_phq_path(nq, iq, xq, S, fc2, freq, U)

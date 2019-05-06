@@ -58,6 +58,7 @@ asr2.o \
 casimir.o \
 code_input.o \
 cmdline_param.o \
+eos.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -75,6 +76,7 @@ nist_isotopes_db.o \
 ph_system.o \
 ph_velocity.o \
 posix_signal.o \
+powell.o \
 q_grids.o \
 quter.o \
 timers.o \

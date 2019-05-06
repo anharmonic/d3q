@@ -16,6 +16,7 @@ casimir.o : mpi_thermal.o
 cmdline_param.o : mpi_thermal.o
 code_input.o : mpi_thermal.o
 dynbubble.o : mpi_thermal.o
+eos.o : mpi_thermal.o
 f3_bwfft.o : mpi_thermal.o
 fc2_interp.o : mpi_thermal.o
 fc3_interp.o : mpi_thermal.o
@@ -35,6 +36,7 @@ ph_dos.o : mpi_thermal.o
 ph_system.o : mpi_thermal.o
 ph_velocity.o : mpi_thermal.o
 posix_signal.o : mpi_thermal.o
+powell.o : mpi_thermal.o
 q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
 timers.o : mpi_thermal.o
@@ -89,7 +91,9 @@ PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
 PROGRAM_qha.o : ./PROGRAM_qha.o
 PROGRAM_qha.o : ./asr2.o
+PROGRAM_qha.o : ./cmdline_param.o
 PROGRAM_qha.o : ./code_input.o
+PROGRAM_qha.o : ./eos.o
 PROGRAM_qha.o : ./fc2_interp.o
 PROGRAM_qha.o : ./input_fc.o
 PROGRAM_qha.o : ./more_constants.o
@@ -178,6 +182,7 @@ dynbubble.o : ./more_constants.o
 dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
+eos.o : ./powell.o
 f3_bwfft.o : ./fc3_interp.o
 f3_bwfft.o : ./functions.o
 f3_bwfft.o : ./input_fc.o
@@ -234,6 +239,7 @@ ph_dos.o : ./functions.o
 ph_dos.o : ./input_fc.o
 ph_dos.o : ./mpi_thermal.o
 ph_dos.o : ./q_grids.o
+ph_system.o : ./functions.o
 ph_system.o : ./more_constants.o
 ph_velocity.o : ./fc2_interp.o
 ph_velocity.o : ./input_fc.o

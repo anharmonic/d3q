@@ -189,6 +189,7 @@ MODULE ph_system
   END SUBROUTINE read_system
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE write_system(unit, S, matdyn)
+    USE functions, ONLY : default_if_not_present
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S ! = System
     INTEGER,INTENT(in) :: unit
@@ -205,13 +206,12 @@ MODULE ph_system
     !
     IF(S%ibrav==0)THEN
       IF(present(matdyn))THEN
-      IF(matdyn)  WRITE(unit, *) "Basis vectors"
+        IF(matdyn)  WRITE(unit, *) "Basis vectors"
       ENDIF
       WRITE(unit,"(3f25.16)",iostat=ios) S%at(1:3,1:3)
       IF(ios/=0) CALL errore(sub,"writing S%at(1:3,1:3)", 1)
     ENDIF
     !
-    ! generate at, bg, volume
     DO nt = 1, S%ntyp
       WRITE(unit,'(i9,2x,a5,f25.16)',iostat=ios) nt, "'"//S%atm(nt)//"'", S%amass(nt)
       IF(ios/=0) CALL errore(sub,"writing nt, S%atm(nt), S%amass(nt)", nt)
@@ -223,20 +223,19 @@ MODULE ph_system
       WRITE(unit,'(2i9,3f25.16)',iostat=ios) na, S%ityp(na), S%tau(:,na)
       IF(ios/=0) CALL errore(sub,"writing na, S%atm(nt), S%amass(nt)", nt)
     ENDDO
-    
+   
+!    WRITE(*,*) "present matdyn", present(matdyn), matdyn, default_if_not_present(matdyn,.false.) 
+    IF(.not. default_if_not_present(.false.,matdyn)) THEN
     WRITE(unit,'(5x,l)',iostat=ios) S%lrigid
     IF(ios/=0) CALL errore(sub,"writing rigid", 1)
     IF(S%lrigid)THEN
-!       WRITE(unit,'(5x,a)',iostat=ios) "epsilon"
-!       IF(ios/=0) CALL errore(sub,"writing epsilon (1)", 1)
       WRITE(unit,'(3(3f25.16,/))',iostat=ios) S%epsil
       IF(ios/=0) CALL errore(sub,"writing epsilon (2)", 1)
-!       WRITE(unit,'(5x,a)',iostat=ios) "zeu"
-!       IF(ios/=0) CALL errore(sub,"writing zeu (1)", 1)
       DO na = 1, S%nat
         WRITE(unit,'(3(3f25.16,/))',iostat=ios) S%zeu(:,:,na)
       IF(ios/=0) CALL errore(sub,"writing zeu (2)", na)
       ENDDO
+    ENDIF
     ENDIF
     !
   END SUBROUTINE write_system
