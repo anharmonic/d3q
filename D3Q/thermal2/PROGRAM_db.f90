@@ -20,7 +20,7 @@ MODULE add_bubble_program
     USE dynbubble,        ONLY : dynbubble_q
     USE constants,        ONLY : RY_TO_CMM1
     USE more_constants,   ONLY : write_conf
-    USE functions,        ONLY : bubble_sort
+    USE functions,        ONLY : quicksort
     IMPLICIT NONE
     TYPE(forceconst2_grid) :: fc2, fc2b
     CLASS(forceconst3),INTENT(in) :: fc3
@@ -71,15 +71,16 @@ MODULE add_bubble_program
     CALL grid%scatter()
   
     DO iq = 1, qpath%nq
-      ioWRITE(*, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
-      ioWRITE(*, '(i6,3f12.6)') iq, qpath%xq(:,iq)
+      ioWRITE(stdout, *) "<<<<<<<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>>>>>"
+      ioWRITE(stdout, '(i6,3f12.6)') iq, qpath%xq(:,iq)
       CALL fftinterp_mat2(qpath%xq(:,iq), S, fc2b, dyn0)
       U = dyn0
       !ioWRITE(*, "(6(2f12.6,4x))") multiply_mass_dyn(S, U)
       CALL mat2_diag(S%nat3, U, freq0)
       freq0 = SIGN(DSQRT(ABS(freq0)), freq0)
-      ioWRITE(*,"(6f20.12)") freq0*RY_TO_CMM1
-      ioWRITE(*,*)
+      ioWRITE(stdout,"(6f20.12)") freq0*RY_TO_CMM1
+      ioWRITE(stdout,*)
+      IF(ionode) FLUSH(stdout)
 
      
       ! RAFTEST
@@ -89,11 +90,10 @@ MODULE add_bubble_program
       ! IF (nu >=nu0) freqm1(nu)=0.5_dp/freq0(nu) 
       !END DO
 
-
-      ! Allocation is automatic in fortran 2003, but of course it does not work with most compilers
+      ! Compute 3rd order correction to dynamical matrix
       dyn = dynbubble_q(qpath%xq(:,iq), input%nconf, input%T, input%sigma/RY_TO_CMM1, S, grid, fc2, fc3)
      
-      ! RAFTEST
+      !
       nu0 = set_nu0(qpath%xq(:,iq), S%at)
       CALL freq_phq_safe(qpath%xq(:,iq), S,fc2,w,D)
       wm1 = 0._dp
@@ -106,7 +106,7 @@ MODULE add_bubble_program
       !end do
 
       DO it = 1, input%nconf
-        ioWRITE(*, "(2f12.6)")  input%T(it),  input%sigma(it)
+        ioWRITE(stdout, "(2f12.6)")  input%T(it),  input%sigma(it)
         dynX = dyn(:,:,it)
         
         !CALL dyn_cart2pat(dynX, S%nat3, U, +1)
@@ -124,9 +124,8 @@ MODULE add_bubble_program
         dynX = dynX + dyn0
         !
         !
-        dynY = multiply_mass_dyn(S, dynX)
-        !filename = "dyn_conf"//TRIM(int_to_char(it))//"_"//TRIM(int_to_char(iq))
         IF(input%print_dynmat) THEN
+          dynY = multiply_mass_dyn(S, dynX)
           filename = "dyn_"//TRIM(input%prefix)//&
                     "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
                     "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
@@ -155,24 +154,25 @@ MODULE add_bubble_program
         FORALL(nu=1:S%nat3) freqY(nu) = dynY(nu,nu)
         freqY = SIGN(DSQRT(ABS(freqY)), freqY)
         ! RAF
-        call Bubble_sort(freqY)
+        call quicksort(freqY,1,S%nat3)
         dynX = dyn(:,:,it)
         CALL dyn_cart2pat(dynX, S%nat3, D, +1)
         DO nu=1, S%nat3
          freqZ(nu) = freq0(nu)+dynX(nu,nu)*wm1(nu)
         END DO
-        call Bubble_sort(freqZ)
+        call quicksort(freqZ,1,S%nat3)
         ! 
-        ioWRITE(*,"('freq full correction')")
-        ioWRITE(*,"('freqX ',6f20.12)") freq*RY_TO_CMM1
-        ioWRITE(*,"('shiftX',6e20.6)") (freq-freq0)*RY_TO_CMM1
-        ioWRITE(*,"('freq diag correction - from squared freq corr')")
-        ioWRITE(*,"('freqY ',6f20.12)") freqY*RY_TO_CMM1
-        ioWRITE(*,"('shiftY',6e20.6)") (freqY-freq0)*RY_TO_CMM1
-        ioWRITE(*,"('freq diag correction')")
-        ioWRITE(*,"('freqZ ',6f20.12)") freqZ*RY_TO_CMM1
-        ioWRITE(*,"('shiftZ',6e20.6)") (freqZ-freq0)*RY_TO_CMM1
-        ioWRITE(*,*)
+        ioWRITE(stdout,"('freq full correction')")
+        ioWRITE(stdout,"('freqX ',6f20.12)") freq*RY_TO_CMM1
+        ioWRITE(stdout,"('shiftX',6e20.6)") (freq-freq0)*RY_TO_CMM1
+        ioWRITE(stdout,"('freq diag correction - from squared freq corr')")
+        ioWRITE(stdout,"('freqY ',6f20.12)") freqY*RY_TO_CMM1
+        ioWRITE(stdout,"('shiftY',6e20.6)") (freqY-freq0)*RY_TO_CMM1
+        ioWRITE(stdout,"('freq diag correction')")
+        ioWRITE(stdout,"('freqZ ',6f20.12)") freqZ*RY_TO_CMM1
+        ioWRITE(stdout,"('shiftZ',6e20.6)") (freqZ-freq0)*RY_TO_CMM1
+        ioWRITE(stdout,*)
+        IF(ionode) FLUSH(stdout)
         !
         !
         ! RAFTEST
@@ -230,7 +230,7 @@ MODULE add_bubble_program
     ALLOCATE(ener(input%ne))
 
     ! RAFTEST
-    write(*,*) 'PROGRAM DYNAMIC'
+    write(*,*) 'PROGRAM DYNAMIC BUBBLE'
 
     FORALL(ie = 1:input%ne) ener(ie) = (ie-1)*input%de+input%e0
     ener = ener/RY_TO_CMM1

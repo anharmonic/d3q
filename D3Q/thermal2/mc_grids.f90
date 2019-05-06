@@ -233,7 +233,7 @@ MODULE mc_grids
     USE random_numbers,   ONLY : randy
     USE constants,        ONLY : RY_TO_CMM1
     USE fc2_interpolate,  ONLY : freq_phq_safe, set_nu0, bose_phq
-    USE functions,        ONLY : bubble_sort_idx, quicksort_idx
+    USE functions,        ONLY : quicksort_idx
     USE linewidth,        ONLY : sum_linewidth_modes
     USE mpi_thermal
     USE timers

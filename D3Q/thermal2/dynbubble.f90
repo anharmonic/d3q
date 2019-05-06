@@ -63,7 +63,7 @@ MODULE dynbubble
     LOGICAL :: only_diag, scale_D3
     REAL(DP) :: scale_D3_fac, freqm1(S%nat3)
     INTEGER :: mu
-    only_diag=.true.
+    only_diag=.false.
     scale_D3=.false.
     scale_D3_fac=1.0d-5
     !
@@ -87,7 +87,7 @@ MODULE dynbubble
    freqm1 = 0._dp
    !sqfreqm1 = 0._dp
    DO nu = 1,S%nat3
-   IF(nu>=nu0(1)) freqm1(nu) = 0.5_dp/freq(nu,1)
+     IF(nu>=nu0(1)) freqm1(nu) = 0.5_dp/freq(nu,1)
    END DO
     !
     DO iq = 1, grid%nq

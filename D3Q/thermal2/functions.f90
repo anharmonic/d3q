@@ -5,7 +5,10 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
-
+! Implementaton of quicksort from https://gist.github.com/t-nissie/479f0f16966925fa29ea
+! Author: t-nissie@github.com
+! Licence GPLv3
+!
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE functions
   !
@@ -229,62 +232,65 @@ MODULE functions
     norm = DSQRT(SUM(a**2))
   END FUNCTION
 
-  SUBROUTINE Bubble_Sort(a)
-  REAL(DP), INTENT(inout), DIMENSION(:) :: a
-    REAL(DP) :: temp
-    INTEGER :: i, j
-    LOGICAL :: swapped
   
-    DO j = SIZE(a)-1, 1, -1
-      swapped = .FALSE.
-      DO i = 1, j
-        IF (a(i) > a(i+1)) THEN
-         temp = a(i)
-         a(i) = a(i+1)
-         a(i+1) = temp
-         swapped = .TRUE.
-        END IF
-      END DO
-      IF (.NOT. swapped) EXIT
-    END DO
-  END SUBROUTINE  Bubble_Sort
-
-  SUBROUTINE Bubble_Sort_idx(a, idx)
-  REAL(DP), INTENT(inout), DIMENSION(:) :: a
-  INTEGER, INTENT(out), DIMENSION(:) :: idx
-    REAL(DP) :: temp
-    INTEGER :: i, j, itmp
-    LOGICAL :: swapped
-
-    IF(size(idx)<size(a)) CALL errore("bubble_idx","not enough room for index",1)
-    FORALL(i=1:size(a)) idx(i) = i
-
-    DO j = SIZE(a)-1, 1, -1
-      swapped = .FALSE.
-      DO i = 1, j
-        IF (a(i) > a(i+1)) THEN
-         temp = a(i)
-         a(i) = a(i+1)
-         a(i+1) = temp
-         swapped = .TRUE.
- 
-         itmp = idx(i)
-         idx(i) = idx(i+1)
-         idx(i+1) = itmp
-        END IF
-      END DO
-      IF (.NOT. swapped) EXIT
-    END DO
-  END SUBROUTINE  Bubble_Sort_idx
+! Bubble sort is too slow, don't use it
+!   SUBROUTINE Bubble_Sort(a)
+!   REAL(DP), INTENT(inout), DIMENSION(:) :: a
+!     REAL(DP) :: temp
+!     INTEGER :: i, j
+!     LOGICAL :: swapped
+!   
+!     DO j = SIZE(a)-1, 1, -1
+!       swapped = .FALSE.
+!       DO i = 1, j
+!         IF (a(i) > a(i+1)) THEN
+!          temp = a(i)
+!          a(i) = a(i+1)
+!          a(i+1) = temp
+!          swapped = .TRUE.
+!         END IF
+!       END DO
+!       IF (.NOT. swapped) EXIT
+!     END DO
+!   END SUBROUTINE  Bubble_Sort
+! 
+!   SUBROUTINE Bubble_Sort_idx(a, idx)
+!   REAL(DP), INTENT(inout), DIMENSION(:) :: a
+!   INTEGER, INTENT(out), DIMENSION(:) :: idx
+!     REAL(DP) :: temp
+!     INTEGER :: i, j, itmp
+!     LOGICAL :: swapped
+! 
+!     IF(size(idx)<size(a)) CALL errore("bubble_idx","not enough room for index",1)
+!     FORALL(i=1:size(a)) idx(i) = i
+! 
+!     DO j = SIZE(a)-1, 1, -1
+!       swapped = .FALSE.
+!       DO i = 1, j
+!         IF (a(i) > a(i+1)) THEN
+!          temp = a(i)
+!          a(i) = a(i+1)
+!          a(i+1) = temp
+!          swapped = .TRUE.
+!  
+!          itmp = idx(i)
+!          idx(i) = idx(i+1)
+!          idx(i+1) = itmp
+!         END IF
+!       END DO
+!       IF (.NOT. swapped) EXIT
+!     END DO
+!   END SUBROUTINE  Bubble_Sort_idx
 
 ! Implementaton of quicksort from https://gist.github.com/t-nissie/479f0f16966925fa29ea
 ! Author: t-nissie@github.com
 ! Licence GPLv3
 recursive subroutine quicksort(a, first, last)
   implicit none
-  real*8  a(*), x, t
-  integer first, last
-  integer i, j
+  REAL(dp),INTENT(inout) :: a(*)
+  INTEGER,INTENT(in) :: first, last
+  REAL(dp) :: x, t
+  INTEGER :: i, j
 
   x = a( (first+last) / 2 )
   i = first
@@ -307,9 +313,11 @@ end subroutine quicksort
 
 recursive subroutine quicksort_idx(a, idx, first, last)
   implicit none
-  real(dp) :: a(*), x, t
-  integer :: idx(*), first, last
-  integer :: i, j, n
+  REAL(dp),INTENT(inout) :: a(*)
+  INTEGER,INTENT(inout) :: idx(*) 
+  INTEGER,INTENT(in) :: first, last
+  REAL(DP) :: x, t
+  INTEGER :: i, j, n
   x = a( (first+last) / 2 )
   i = first
   j = last
