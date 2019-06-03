@@ -24,6 +24,11 @@ MODULE eos
 !-----------------------------------------------------------------------
       SUBROUTINE eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)
 !-----------------------------------------------------------------------
+! istat:
+!  1: birch 1st order
+!  2: birch 3rd order
+!  3: keane       
+!  4: murnaghan
 !
       IMPLICIT NONE
       INTEGER, INTENT(in)  :: istat, npar, npt
@@ -37,6 +42,7 @@ MODULE eos
       vol0 = par(1)
       k0   = par(2)/ry_kbar ! converts k0 to Ry atomic units...
       dk0  = par(3)
+      ! Only used by istat 2 and 3:
       d2k0 = par(4)*ry_kbar ! and d2k0/dp2 to (Ry a.u.)^(-1)
 !
       IF(istat==1.or.istat==2) THEN
@@ -113,9 +119,6 @@ MODULE eos
       par(3) = 5.0d0
       par(4) = -0.01d0
       !
-        
-      
-         !CALL AMOEBA(P,Y,MP,NP,NDIM,FTOL,ITER)
       CALL POWELL_MIN(func,par,xi,npar,npar,1.d-6,i,chisq)
       !
       CALL eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)

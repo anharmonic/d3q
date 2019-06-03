@@ -267,8 +267,8 @@ MODULE qha_program
     REAL(DP),INTENT(out):: nrg_fit(nv)
     REAL(DP),INTENT(out) :: nrg0,vol0,k0,dk0,d2k0                        
     REAL(DP) :: chisq, par(4)
-
-    CALL find_minimum2(2,4,par,nv,vol,&
+    ! 1,3 2,4 3,4 4,3
+    CALL find_minimum2(4,3,par,nv,vol,&
                       nrg,nrg_fit,nrg0,chisq)
 
     vol0 = par(1)

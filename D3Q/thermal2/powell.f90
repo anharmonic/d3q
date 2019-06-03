@@ -9,7 +9,7 @@
 ! It is statically linked with the BRENT subroutine 
 ! written in Fortran90 by John Burkardt
 !   https://people.sc.fsu.edu/~jburkardt/f_src/brent/brent.html
-! which is released un LGPL, hence I guess everything is LGPL, 
+! which is released under LGPL, hence I guess everything is LGPL, 
 ! but it is not made explicit by the author.
 !
 MODULE POWELL
@@ -49,7 +49,7 @@ MODULE POWELL
 !*                  Fortran 90 Release By J-P Moreau, Paris.  *
 !*                            (www.jpmoreau.fr)               *
 !**************************************************************
-
+!
 SUBROUTINE POWELL_MIN(FUNC,P,XI,N,NP,FTOL,ITER,FRET)
 !-----------------------------------------------------------
 ! Minimization of a function  FUNC of N variables 
