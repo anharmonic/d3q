@@ -130,7 +130,7 @@ MODULE timers
     print_now = print_now .or. (i==2) ! give an estimate as soon as possible
 
     IF(reset) iter_start = wall
-
+    !
     last_print = wall
     pc = 100*DBLE(i-1)/(n-1)
     iter_time = (wall-iter_start)
@@ -148,13 +148,15 @@ MODULE timers
     ENDIF
     !
     time_is_out = check_time_limit(iter_end_time+iter_start)
-    CALL mpi_any(time_is_out)
+    ! the following line causes the code to hang when the number of q-point per CPU is not equal
+    ! and print_percent_wall is called inside a q-point loop (i.e. like in the SPF subroutine)
+    !CALL mpi_any(time_is_out)
     IF(time_is_out)THEN
       ioWRITE(stdout,'(a,2/,a,2/,a)') "********","Cannot finish before time limit: giving up to save resources","********"
       CALL print_all_timers()
       CALL abort_mpi(255)
     ENDIF
-
+    !
     FLUSH(stdout)
   END SUBROUTINE
   ! \/o\________\\\_________________________________________/^>

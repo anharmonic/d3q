@@ -364,7 +364,7 @@ MODULE linewidth
       timer_CALL t_freq%stop()
     !
     DO iq = 1, grid%nq
-      CALL print_percent_wall(33.333_dp, 300._dp, iq, grid%nq, (iq==1))
+      !CALL print_percent_wall(33.333_dp, 300._dp, iq, grid%nq, (iq==1))
       !
         timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
