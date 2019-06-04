@@ -19,7 +19,7 @@ SUBROUTINE d3_setup_q_independent()
   USE gvecs,            ONLY : doublegrid
   USE eqv,              ONLY : dmuxc
   USE scf,              ONLY : rho, rho_core, v, vltot, vrs, kedtau
-  USE funct,            ONLY : dmxc, dmxc_spin
+!  USE funct,            ONLY : dmxc, dmxc_spin
   USE fft_base,         ONLY : dfftp
   !USE gc_d3,            ONLY : setup_d3gc
   !
@@ -38,21 +38,22 @@ SUBROUTINE d3_setup_q_independent()
   !    q1, q2 and q3.
   !
   ALLOCATE(dmuxc(dfftp%nnr, nspin_mag, nspin_mag))
-  dmuxc (:,:,:) = 0.d0
-  IF (lsda) THEN
-     DO ir = 1, dfftp%nnr
-        rhoup = rho%of_r(ir, 1) + 0.5d0 * rho_core (ir)
-        rhodw = rho%of_r(ir, 2) + 0.5d0 * rho_core (ir)
-        CALL dmxc_spin (rhoup, rhodw, dmuxc (ir, 1, 1), &
-             dmuxc(ir, 2, 1), dmuxc(ir, 1, 2), dmuxc(ir, 2, 2) )
-     ENDDO
-  ELSE
-     DO ir = 1, dfftp%nnr
-        rhotot = rho%of_r(ir, 1) + rho_core(ir)
-        IF (rhotot > 1.d-30)   dmuxc(ir, 1, 1) =  dmxc(rhotot)
-        IF (rhotot < - 1.d-30) dmuxc(ir, 1, 1) = -dmxc(-rhotot)
-     ENDDO
-  ENDIF
+  CALL setup_dmuxc()
+  !dmuxc (:,:,:) = 0.d0
+  !IF (lsda) THEN
+  !   DO ir = 1, dfftp%nnr
+  !      rhoup = rho%of_r(ir, 1) + 0.5d0 * rho_core (ir)
+  !      rhodw = rho%of_r(ir, 2) + 0.5d0 * rho_core (ir)
+  !      CALL dmxc_spin (rhoup, rhodw, dmuxc (ir, 1, 1), &
+  !           dmuxc(ir, 2, 1), dmuxc(ir, 1, 2), dmuxc(ir, 2, 2) )
+  !   ENDDO
+  !ELSE
+  !   DO ir = 1, dfftp%nnr
+  !      rhotot = rho%of_r(ir, 1) + rho_core(ir)
+  !      IF (rhotot > 1.d-30)   dmuxc(ir, 1, 1) =  dmxc(rhotot)
+  !      IF (rhotot < - 1.d-30) dmuxc(ir, 1, 1) = -dmxc(-rhotot)
+  !   ENDDO
+  !ENDIF
   !
   !CALL setup_d3gc()
   !
@@ -108,7 +109,7 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   USE ions_base,        ONLY : nat, ityp, ntyp => nsp, tau
   USE cell_base,        ONLY : at, bg
   USE fft_base,         ONLY : dfftp
-  USE symm_base,        ONLY : nsym, s, ftau, irt, invs, inverse_s, &
+  USE symm_base,        ONLY : nsym, s, irt, invs, inverse_s, &
                                s_axis_to_cart, find_sym, copy_sym, sname
   USE uspp_param,       ONLY : upf
   USE control_flags,    ONLY : modenum
@@ -168,7 +169,9 @@ SUBROUTINE d3_setup(xq1, xq2, xq3)
   WRITE(stdout,'(7x,a)') "Symmetry operations:"
   DO iq = 1,3
     symq(iq)%sym = sym
-    call smallg_q(kplusq(iq)%xq, modenum, at, bg, nsym, s, ftau, symq(iq)%sym, symq(iq)%minus_q)
+!    call smallg_q(kplusq(iq)%xq, modenum, at, bg, nsym, s, ftau, symq(iq)%sym, symq(iq)%minus_q)
+    call smallg_q(kplusq(iq)%xq, modenum, at, bg, nsym, s, symq(iq)%sym, symq(iq)%minus_q)
+!    CALL smallg_q (xq, 0, at, bg, nsym, s, sym, minus_q)
     ! FIXME! minus_q is currently not available in D3 code    
     symq(iq)%minus_q = .false. 
     ! The phonon mechanism for minus_q doesn ot work in D3 because, i.e. in the case of G,q,-q,

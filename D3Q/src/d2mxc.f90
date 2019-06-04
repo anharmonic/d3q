@@ -14,9 +14,11 @@ FUNCTION d2mxc (rho)
   !  Analytical for Perdew and Zunger parameterization of the C.A. functional
   !  Numerical for any other functional
   !
-  USE kinds,     ONLY : DP
-  USE constants, ONLY : pi
-  USE funct,     ONLY : get_icorr, get_iexch, xc
+  USE kinds,       ONLY : DP
+  USE constants,   ONLY : pi
+  USE funct,       ONLY : get_icorr, get_iexch
+  USE funct,       ONLY : init_lda_xc
+  USE xc_lda_lsda, ONLY :  xc
   IMPLICIT NONE
 
   real (DP) :: rho, d2mxc
@@ -47,7 +49,7 @@ FUNCTION d2mxc (rho)
 
   real (DP) :: rs, x, den
   !
-  real(DP) :: dr, varho, vx(-1:1), vc(-1:1), ex, ec
+  real(DP) :: dr, varho(-1:1), vx(-1:1,1), vc(-1:1,1), ex(1), ec(1)
   integer  :: i
   !
   ! Coefficients for finite differences second derivative, order of h**2
@@ -56,6 +58,8 @@ FUNCTION d2mxc (rho)
 !                         m_5over2  = -2.5_dp
   !real(DP),parameter ::  coeffs(-2:2) = (/ m_1over12, p_4over3, m_5over2, p_4over3, m_1over12 /)
   real(DP),parameter :: coeffs(-1:1) = (/ 1._dp, -2._dp, 1._dp /)
+
+  CALL init_lda_xc()
 
   if (get_iexch() == 1 .and. get_icorr() == 1) then
       ! First case: analitical derivative of PZ functional
@@ -78,14 +82,15 @@ FUNCTION d2mxc (rho)
   else
       !     second case: numerical derivatives
       dr = MIN(1.E-5_DP, 1.E-4_DP * ABS(rho))
-      do i = -1, 1
-        varho = rho + i*dr
-        call xc (varho, ex, ec, vx(i), vc(i))
-      enddo
+      !do i = -1, 1
+        varho(-1:1) = rho + (/-1._dp, 0._dp, 1._dp/) * dr
+        !call xc (varho, ex, ec, vx(i), vc(i))
+        CALL xc( 3,  1, 1, varho, ex, ec, vx(:,1), vc(:,1) )
+      !enddo
       ! recompute dr, taking in account eventual loss of precision when rho >> 1.d-6
       dr = 0.5_dp * ((rho+dr)-(rho-dr))
       !
-      d2mxc = SUM(coeffs * (vx+vc)) / (dr**2)
+      d2mxc = SUM(coeffs * (vx(:,1)+vc(:,1))) / (dr**2)
   endif
   return
 END FUNCTION d2mxc
