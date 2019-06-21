@@ -279,7 +279,7 @@ SUBROUTINE d3_readin()
   !                             (messy: except for lgamma .AND. .not. ldisp, or for -nimage>1)
   ! ***  USE io_files,    ONLY : tmp_dir       <--- prefix actually used by diropn by default
   tmp_dir_save=tmp_dir
-  tmp_dir_ph = TRIM(tmp_dir)//'_ph0'
+  !tmp_dir_ph = TRIM(tmp_dir)//'_ph0'
   !
   !   Here we finished the reading of the input file.
   !   Now allocate space for pwscf variables, read and check them.
