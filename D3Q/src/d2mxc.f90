@@ -17,7 +17,7 @@ FUNCTION d2mxc (rho)
   USE kinds,       ONLY : DP
   USE constants,   ONLY : pi
   USE funct,       ONLY : get_icorr, get_iexch
-  USE funct,       ONLY : init_lda_xc
+!  USE funct,       ONLY : init_lda_xc
   USE xc_lda_lsda, ONLY :  xc
   IMPLICIT NONE
 
@@ -59,7 +59,7 @@ FUNCTION d2mxc (rho)
   !real(DP),parameter ::  coeffs(-2:2) = (/ m_1over12, p_4over3, m_5over2, p_4over3, m_1over12 /)
   real(DP),parameter :: coeffs(-1:1) = (/ 1._dp, -2._dp, 1._dp /)
 
-  CALL init_lda_xc()
+!  CALL init_lda_xc()
 
   if (get_iexch() == 1 .and. get_icorr() == 1) then
       ! First case: analitical derivative of PZ functional

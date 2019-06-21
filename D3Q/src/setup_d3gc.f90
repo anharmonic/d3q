@@ -34,7 +34,8 @@ MODULE gc_d3
     USE scf,                  ONLY : rho, rho_core, rhog_core
     USE noncollin_module,     ONLY : noncolin
     USE kinds,                ONLY : DP
-    USE funct,                ONLY : dft_is_gradient, gcxc, dgcxc, d3gcxc
+    USE funct,                ONLY : dft_is_gradient
+    USE xc_gga,               ONLY : gcxc
 !     USE gc_ph,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
   !   USE gc_d3,            ONLY : dvxc_rrr, dvxc_srr, &
   !                                dvxc_ssr, dvxc_sss
@@ -48,8 +49,8 @@ MODULE gc_d3
     !
     INTEGER :: ir, is, nspin0
     REAL(DP) :: grho2 (2), fac, &
-        sx, sc, v1x, v2x, v1c,v2c, &
-        vrrx, vsrx, vssx, vrrc, vsrc, vssc, &
+        sx(1), sc(1), v1x(1), v2x(1), v1c(1), v2c(1), &
+        vrrx(1), vsrx(1), vssx(1), vrrc(1), vsrc(1), vssc(1), &
         dvxcrrr, dvxcsrr, dvxcssr, dvxcsss, &
         vrrrx, vsrrx, vssrx, vsssx, &
         vrrrc, vsrrc, vssrc, vsssc
@@ -121,15 +122,14 @@ MODULE gc_d3
       !print*, rho%of_r(ir,1), grho (1,ir,1), grho(2,ir,1), grho(3,ir,1)
       grho2(1) = grho (1,ir,1)**2 + grho(2,ir,1)**2 + grho(3,ir,1)**2
       IF (nspin0 == 1) THEN
-          IF (ABS (rho_tot_r (ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
-            CALL gcxc  (rho_tot_r (ir, 1), grho2(1), sx, sc, v1x, v2x, v1c, v2c)
-            CALL dgcxc (rho_tot_r (ir, 1), grho2(1), vrrx, vsrx, vssx, vrrc, &
-                  vsrc, vssc)
-            dvxc_rr (ir, 1, 1) = e2 * (vrrx + vrrc)
-            dvxc_sr (ir, 1, 1) = e2 * (vsrx + vsrc)
-            dvxc_ss (ir, 1, 1) = e2 * (vssx + vssc)
-            dvxc_s  (ir, 1, 1) = e2 * (v2x + v2c)
-            CALL d3gcxc (rho_tot_r (ir, 1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
+          IF (ABS(rho_tot_r(ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
+            CALL gcxc  (1, rho_tot_r(ir,1), grho2(1), sx, sc, v1x, v2x, v1c, v2c)
+            CALL dgcxc (1, rho_tot_r(ir,1), grho2(1), vrrx, vsrx, vssx, vrrc, vsrc, vssc)
+            dvxc_rr (ir, 1, 1) = e2 * (vrrx(1) + vrrc(1))
+            dvxc_sr (ir, 1, 1) = e2 * (vsrx(1) + vsrc(1))
+            dvxc_ss (ir, 1, 1) = e2 * (vssx(1) + vssc(1))
+            dvxc_s  (ir, 1, 1) = e2 * (v2x(1) + v2c(1))
+            CALL d3gcxc(rho_tot_r(ir,1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
                   vrrrc, vsrrc, vssrc, vsssc )
             !
             dvxc_rrr(ir, 1, 1) = e2 * (vrrrx + vrrrc)
