@@ -60,7 +60,11 @@ program d3q
   USE mp_world,           ONLY : world_comm
   USE funct,              ONLY : dft_is_gradient
   USE gc_d3,            ONLY : setup_d3gc
-
+!
+  USE mp_pools,        ONLY : intra_pool_comm
+  USE mp_bands,        ONLY : intra_bgrp_comm, inter_bgrp_comm
+  USE mp_diag,         ONLY : mp_start_diag
+  USE command_line_options,  ONLY : input_file_, ndiag_
   implicit none
   TYPE d3matrix_with_permutations
     COMPLEX(DP),ALLOCATABLE :: dyn(:,:,:)
@@ -93,6 +97,11 @@ program d3q
   !
 #ifdef __MPI
   CALL mp_startup ( )
+  CALL mp_startup ( start_images=.false. )
+  CALL mp_start_diag ( ndiag_, world_comm, intra_bgrp_comm, &
+       do_distr_diag_inside_bgrp_ = .true. )
+  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
+       inter_bgrp_comm )
 #endif
   CALL environment_start ( code )
   !
@@ -199,7 +208,7 @@ program d3q
       !                   CALL irreducible_BZ (nrot, s, nsymq, minus_q, at, bg, npk, nkstot, xk, wk, &
       !                   CALL set_kplus3q( xk, wk, q1,q2,q3, nkstot, npk, nat )
       !               CALL init_run()
-      !               IF (do_band) CALL electrons()
+      !               CALL non_scf()
       !               CALL punch( 'all' )
       !               CALL seqopn( 4, 'restart', 'UNFORMATTED', exst )
       !               CALL close_files()
