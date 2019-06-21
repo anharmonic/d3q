@@ -47,7 +47,7 @@ SUBROUTINE run_nscf_d3(do_band)
   USE cell_base,       ONLY : at
   USE control_flags,   ONLY : conv_ions, pw_restart=> restart
   USE basis,           ONLY : starting_wfc, starting_pot, startingconfig
-  USE io_files,        ONLY : prefix
+  USE io_files,        ONLY : prefix, tmp_dir, wfc_dir
   USE io_global,       ONLY : stdout, ionode
   USE input_parameters,ONLY : pseudo_dir
   USE save_ph,         ONLY : tmp_dir_save
@@ -97,7 +97,7 @@ SUBROUTINE run_nscf_d3(do_band)
   !CALL restart_from_file()
   conv_ions=.true.
   !
-  CALL fft_type_allocate ( dfftp, at, bg, gcutm, intra_bgrp_comm, nyfft=nyfft )
+  CALL fft_type_allocate ( dfftp, at, bg, gcutm,  intra_bgrp_comm, nyfft=nyfft )
   CALL fft_type_allocate ( dffts, at, bg, gcutms, intra_bgrp_comm, nyfft=nyfft)
   !
   CALL setup_nscf_d3()
@@ -106,11 +106,11 @@ SUBROUTINE run_nscf_d3(do_band)
     fileout = TRIM(d3dir)//"/"//&
       TRIM(d3matrix_filename(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq,&
                              at, 'nscf'))//'.out'
-    WRITE(stdout, '(/,5x,a)') "--> output from 'electrons' appended to "//TRIM(fileout)
+    WRITE(stdout, '(/,5x,a)') "--> output from 'electrons' written to "//TRIM(fileout)
     FLUSH( stdout )
     stdout_tmp = stdout
     stdout = 900
-    OPEN(unit= stdout, file=TRIM(fileout), access='sequential', POSITION='append')
+    OPEN(unit= stdout, file=TRIM(fileout), access='sequential') !, POSITION='append')
   ENDIF
   !
   ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -170,7 +170,7 @@ SUBROUTINE setup_nscf_d3()
   USE symm_base,          ONLY : s, t_rev, nrot, time_reversal, &
                                  copy_sym, s_axis_to_cart
   USE wvfct,              ONLY : nbnd, nbndx
-  USE control_flags,      ONLY : ethr, isolve, david, &
+  USE control_flags,      ONLY : ethr, isolve, david, max_cg_iter, &
                                  noinv, use_para_diag
   USE mp_pools,           ONLY : kunit, inter_pool_comm
   USE spin_orb,           ONLY : domag
@@ -184,11 +184,13 @@ SUBROUTINE setup_nscf_d3()
   USE uspp_param,         ONLY : n_atom_wfc
   USE d3_kgrid,           ONLY : d3_nk1, d3_nk2, d3_nk3, d3_k1, d3_k2, d3_k3, d3_degauss
   USE check_stop,         ONLY : check_stop_init
+  USE control_lr,      ONLY : ethr_nscf
   !
   IMPLICIT NONE
   !
   LOGICAL  ::  magnetic_sym, skip_equivalence, newgrid
   INTEGER :: iq=0
+  LOGICAL, EXTERNAL  :: check_para_diag
   !
   CALL check_stop_init()
   !
@@ -197,25 +199,24 @@ SUBROUTINE setup_nscf_d3()
   ! ... threshold for diagonalization ethr - should be good for all cases
   !
   ethr= 1.0D-12 / nelec
+  ethr_nscf = 1.0D-12 / nelec
   !ethr = ethr_ph
   !
   ! ... variables for iterative diagonalization (Davidson is assumed)
   !
   isolve = 0
   david = 4
+  max_cg_iter=100
   nbndx = david*nbnd
-  natomwfc = n_atom_wfc( nat, ityp )
+  natomwfc = n_atom_wfc( nat, ityp, noncolin )
+  
   !lkpoint_dir=.false. ! to avoid very large number of directories
   IF(d3_degauss>0._dp) THEN
     degauss = d3_degauss
     WRITE(stdout, '(7x,a,f10.4)') "* new degauss set from d3 input:", degauss
   ENDIF
   !
-#ifdef __MPI
-  IF ( use_para_diag )  CALL check_para_diag( nelec )
-#else
-  use_para_diag = .FALSE.
-#endif
+  use_para_diag = check_para_diag( nbnd )
   !
   ! ... Symmetry and k-point section
   !
@@ -224,30 +225,6 @@ SUBROUTINE setup_nscf_d3()
   magnetic_sym = noncolin .AND. domag
   time_reversal = .NOT. noinv .AND. .NOT. magnetic_sym
   IF(time_reversal) WRITE(stdout, "(7x,a)") "* has time reversal symmetry."
-  !
-  ! ... smallg_q flags in symmetry operations of the crystal
-  ! ... that are not symmetry operations of the small group of q
-  !
-!   sym(1:nsym)=.true.
-!   call smallg_q (q2, modenum, at, bg, nsym, s, ftau, sym, minus_q)
-!   IF ( .not. time_reversal ) minus_q = .false.
-  !
-  ! ... for single-mode calculation: find symmetry operations 
-  ! ... that leave the chosen mode unchanged. Note that array irt
-  ! ... must be available: it is allocated and read from xml file 
-  !
-!   if (modenum /= 0) then
-!      allocate(rtau (3, 48, nat))
-!      call sgam_ph (at, bg, nsym, s, irt, tau, rtau, nat, sym)
-!      call mode_group (modenum, q2, at, bg, nat, nrot, s, irt, &
-!                       minus_q, rtau, sym)
-!      deallocate (rtau)
-!   endif
-  !
-  ! Here we re-order all rotations in such a way that true sym.ops.
-  ! are the first nsymq; rotations that are not sym.ops. follow
-  !
-!   nsymq = copy_sym ( nsym, sym )
   !
   ! check if inversion (I) is a symmetry. If so, there should be nsymq/2
   ! symmetries without inversion, followed by nsymq/2 with inversion
@@ -275,10 +252,6 @@ SUBROUTINE setup_nscf_d3()
   ELSE
      !
      ! In this case I generate a new set of k-points
-     !
-     ! In the case of electron-phonon matrix element with
-     ! wannier functions the k-points should not be reduced
-     !
      skip_equivalence = .false.
      CALL kpoint_grid ( nrot, time_reversal, skip_equivalence, s, t_rev, &
                         bg, nk1*nk2*nk3, k1,k2,k3, nk1,nk2,nk3, nkstot, xk, wk)
@@ -287,8 +260,8 @@ SUBROUTINE setup_nscf_d3()
   ! ... If some symmetries of the lattice are missing in the crystal,
   ! ... "irreducible_BZ" computes the missing k-points.
   ! FIXME: minus_q should work now.. but it does not
-  CALL irreducible_BZ(nrot, s, nsymq, minus_q, magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
-!   CALL irreducible_BZ(nrot, s, nsymq, .false., magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
+  CALL irreducible_BZ(nrot, s, nsymq, minus_q, magnetic_sym, at, bg, npk, &
+                      nkstot, xk, wk, t_rev)
   !
   ! ... add k+q to the list of k
   !
