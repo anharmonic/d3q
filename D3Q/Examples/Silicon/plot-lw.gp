@@ -18,5 +18,5 @@ set ar 4 from 3.0731,graph 0   to 3.0731, graph 1 nohead lt -1 front
 p [][] \
   for [i=1:nat3] file u 2:(c(i)-wf*w(i)):(c(i)+wf*w(i)) w filledcurve not , \
   for [i=1:nat3] file u 2:(c(i)) w l ls  -1 lw 2    not, \
-  0 lt -1
+  0 lt -1 not
 

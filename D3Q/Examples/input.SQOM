@@ -1,0 +1,13 @@
+! Example to apply the INS scattering form factor to a spectra-function file produced vi d3_lw.x
+&sqominput
+      file_mat2 = "../../NEW_EXP_PBE/PH-only/FILDYN/mat2R"
+      calculation = "neutron"
+      res0_cmm1 = 8. ! experimental resolution, absolute
+      res_frac  = 0. ! experimental resolution, as a fraction of the operating energy
+      n_files = 1
+      T = 300.
+      qq = 0,0,0  ! Neutron scattering will be compute at q+qq, with q read from file.
+                  ! qq is in crystalline coordinates, it should be a G vector
+/
+R108_T300_s2.out
+

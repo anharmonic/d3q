@@ -32,6 +32,6 @@ distrib: veryclean
 	rm -f d3q-latest D3Q || exit 1; \
 	ln -s $(MYNAME) d3q-latest; \
 	ln -s d3q-latest D3Q; \
-	tar --exclude \*.odt --exclude .svn -czvf $(MYNAME).tgz d3q-latest D3Q $(MYNAME) ) 
+	tar --exclude \*.odt --exclude .svn --exclude protect -czvf $(MYNAME).tgz d3q-latest D3Q $(MYNAME) ) 
 
 FORCE:
