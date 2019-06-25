@@ -1,3 +1,7 @@
+v 1.1.5
+* Bugfix for d3q not working in parallel due to changes in band group diagonalization
+* Also check experimental QHA code
+
 v 1.1.4
 * Several bugfixes in thermal2 code, in particular a missing factor 2 in the Casimir length
 * d3q code brought to level with QE 6.4, this code will not be backported to any previous version
