@@ -7,7 +7,7 @@
     verbosity="high"
  /
  &system
-    ibrav=  2, celldm(1) = __alat
+    ibrav=  2, celldm(1) = 10.0
     ntyp= 1, nat=  2,
     ecutwfc =24.0,
  /
