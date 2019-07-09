@@ -409,8 +409,14 @@ MODULE thermalk_program
         timer_CALL t_tkaout%start()
       CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
           timer_CALL t_tkaout%stop()
+      !
+      ! Save A_out, so we do not have to repeat it
+        timer_CALL t_restart%start()
+      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter0, tk)
+        timer_CALL t_restart%stop()
+      !
     ENDIF
-
+    !
     ! Compute A_out^(-1/2) and A_out^-1 from A_out
           timer_CALL t_tkprec%start()
     CALL compute_inv_sqrt_A_out(A_out, inv_sqrt_A_out, nconf, nat3, nq)
@@ -420,7 +426,8 @@ MODULE thermalk_program
     qbasis%b = A_diag_f(inv_sqrt_A_out, qbasis%b, nconf, nat3, nq)
     !
     !
-    IF(.not. restart_ok) THEN
+    ! Bootstrap the CG algorithm, not needed when restarting except if restarting from just after A_out
+    IF(iter0 == 0) THEN
       ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
               "iter ", 0
       ! \tilde{f0} = A_out^(1/2) f0 = A_out^(-1/2) b = \tilde{b}
@@ -453,7 +460,8 @@ MODULE thermalk_program
         timer_CALL t_tkprec%stop()
       !
         timer_CALL t_restart%start()
-      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, 0, tk)
+      iter0 = 1
+      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter0, tk)
         timer_CALL t_restart%stop()
     ENDIF
     !
@@ -463,7 +471,7 @@ MODULE thermalk_program
     g_mod2 = qbasis_dot(g, g, nconf, nat3, nq )
     !
     CGP_ITERATION : &
-    DO iter = iter0+1,input%niter_max
+    DO iter = iter0,input%niter_max
       CALL check_graceful_termination()
       ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") "iter ", iter
       ! t = Ah = [A_out^(-1/2) (1+A_in) A_out^(-1/2)] h
@@ -503,7 +511,7 @@ MODULE thermalk_program
       IF(conv) THEN
         ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
                       "Convergence achieved"
-        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter, tk)
+        CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter+1, tk)
         EXIT CGP_ITERATION
       ENDIF
       !
@@ -519,7 +527,7 @@ MODULE thermalk_program
       !
       ! Store to file for restart
         timer_CALL t_restart%start()
-      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter, tk)
+      CALL save_cg_step(input, S, A_out, f, g, h, nconf, nat3, nq, iter+1, tk)
         timer_CALL t_restart%stop()
       !
     ENDDO &

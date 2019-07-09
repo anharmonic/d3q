@@ -405,7 +405,7 @@ MODULE variational_tk
           ! This hould be infinity, but it should only happen at Gamma for
           ! acoustic bands, where we can ignore it because everything is zero
           inv_sqrt_A(it,nu,iq) = 0._dp
-          IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Warning: null A_out", iq, nu, it
+          !IF(iq/=1.or.(iq==1.and.nu>3)) WRITE(*,*) "Warning: null A_out", iq, nu, it
         ENDIF
       ENDDO
     ENDDO
