@@ -256,13 +256,17 @@ d3matrix_io.o : ../../Modules/parameters.o
 d3matrix_io.o : ../../PHonon/PH/dfile_autoname.o
 d3matrix_io.o : ../../iotk/src/iotk_module.o
 d3matrix_io.o : ./d3com.o
+d3q.o : ../../LAXlib/mp_diag.o
 d3q.o : ../../Modules/cell_base.o
+d3q.o : ../../Modules/command_line_options.o
 d3q.o : ../../Modules/control_flags.o
 d3q.o : ../../Modules/environment.o
 d3q.o : ../../Modules/funct.o
 d3q.o : ../../Modules/io_global.o
 d3q.o : ../../Modules/ions_base.o
+d3q.o : ../../Modules/mp_bands.o
 d3q.o : ../../Modules/mp_global.o
+d3q.o : ../../Modules/mp_pools.o
 d3q.o : ../../Modules/mp_world.o
 d3q.o : ../../Modules/uspp.o
 d3q.o : ../../PHonon/PH/phcom.o
@@ -495,6 +499,7 @@ setup_d3gc.o : ../../Modules/noncol.o
 setup_d3gc.o : ../../Modules/recvec.o
 setup_d3gc.o : ../../Modules/uspp.o
 setup_d3gc.o : ../../Modules/wavefunctions.o
+setup_d3gc.o : ../../Modules/xc_gga_drivers.o
 setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o
 solve_linter_d3q.o : ../../FFTXlib/fft_interfaces.o

@@ -18,7 +18,7 @@ FUNCTION d2mxc (rho)
   USE constants,   ONLY : pi
   USE funct,       ONLY : get_icorr, get_iexch
 !  USE funct,       ONLY : init_lda_xc
-  USE xc_lda_lsda, ONLY :  xc
+  USE xc_lda_lsda, ONLY :  xc, xc_lda
   IMPLICIT NONE
 
   real (DP) :: rho, d2mxc
@@ -49,7 +49,7 @@ FUNCTION d2mxc (rho)
 
   real (DP) :: rs, x, den
   !
-  real(DP) :: dr, varho(-1:1), vx(-1:1,1), vc(-1:1,1), ex(1), ec(1)
+  real(DP) :: dr, varho(3), vx(3), vc(3), ex(3), ec(3)
   integer  :: i
   !
   ! Coefficients for finite differences second derivative, order of h**2
@@ -57,10 +57,10 @@ FUNCTION d2mxc (rho)
 !                         p_4over3  = 0.1333333333333333e+1_dp, &
 !                         m_5over2  = -2.5_dp
   !real(DP),parameter ::  coeffs(-2:2) = (/ m_1over12, p_4over3, m_5over2, p_4over3, m_1over12 /)
-  real(DP),parameter :: coeffs(-1:1) = (/ 1._dp, -2._dp, 1._dp /)
+  real(DP),parameter :: coeffs(3) = (/ 1._dp, -2._dp, 1._dp /)
 
 !  CALL init_lda_xc()
-
+print*, "mux", get_iexch() , get_icorr()
   if (get_iexch() == 1 .and. get_icorr() == 1) then
       ! First case: analitical derivative of PZ functional
       rs = thofpi_3 * (1._dp / rho) **0.3333333333333333d0
@@ -83,14 +83,16 @@ FUNCTION d2mxc (rho)
       !     second case: numerical derivatives
       dr = MIN(1.E-5_DP, 1.E-4_DP * ABS(rho))
       !do i = -1, 1
-        varho(-1:1) = rho + (/-1._dp, 0._dp, 1._dp/) * dr
+        varho = rho + (/-1._dp, 0._dp, 1._dp/) * dr
         !call xc (varho, ex, ec, vx(i), vc(i))
-        CALL xc( 3,  1, 1, varho, ex, ec, vx(:,1), vc(:,1) )
+        !CALL xc( length, 1, 1, rhoaux, ex, ec, vx(:,1), vc(:,1) )
+
+        CALL xc_lda( 3, varho, ex, ec, vx, vc )
       !enddo
       ! recompute dr, taking in account eventual loss of precision when rho >> 1.d-6
       dr = 0.5_dp * ((rho+dr)-(rho-dr))
       !
-      d2mxc = SUM(coeffs * (vx(:,1)+vc(:,1))) / (dr**2)
+      d2mxc = SUM(coeffs * (vx+vc)) / (dr**2)
   endif
   return
 END FUNCTION d2mxc

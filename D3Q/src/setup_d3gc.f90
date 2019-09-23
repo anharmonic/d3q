@@ -42,13 +42,15 @@ MODULE gc_d3
     USE uspp,                 ONLY : nlcc_any
     USE fft_base,             ONLY : dfftp
     USE fft_interfaces,       ONLY : fwfft
-    USE wavefunctions, ONLY : psic
+    USE wavefunctions,        ONLY : psic
     USE io_global,            ONLY : stdout
+    USE noncollin_module,     ONLY : nspin_gga
+    !USE xc_gga,               ONLY : xc_gcx
     !
     IMPLICIT NONE
     !
     INTEGER :: ir, is, nspin0
-    REAL(DP) :: grho2 (2), fac, &
+    REAL(DP) :: grho2 (2), fac, grhox(1,3,1), rhox(1,1), &
         sx(1), sc(1), v1x(1), v2x(1), v1c(1), v2c(1), &
         vrrx(1), vsrx(1), vssx(1), vrrc(1), vsrc(1), vssc(1), &
         dvxcrrr, dvxcsrr, dvxcssr, dvxcsss, &
@@ -121,16 +123,21 @@ MODULE gc_d3
     DO ir = 1, dfftp%nnr
       !print*, rho%of_r(ir,1), grho (1,ir,1), grho(2,ir,1), grho(3,ir,1)
       grho2(1) = grho (1,ir,1)**2 + grho(2,ir,1)**2 + grho(3,ir,1)**2
+      grhox(1,1,1) = grho (1,ir,1)
+      grhox(1,2,1) = grho (2,ir,1)
+      grhox(1,3,1) = grho (3,ir,1)
+      rhox = rho_tot_r(ir,1)
       IF (nspin0 == 1) THEN
           IF (ABS(rho_tot_r(ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
-            CALL gcxc  (1, rho_tot_r(ir,1), grho2(1), sx, sc, v1x, v2x, v1c, v2c)
-            CALL dgcxc (1, rho_tot_r(ir,1), grho2(1), vrrx, vsrx, vssx, vrrc, vsrc, vssc)
+            CALL gcxc( 1, rho_tot_r(ir,1), grho2, sx, sc, v1x, v2x, v1c, v2c)
+            CALL dgcxc_unpol (1, rho_tot_r(ir,1), grho2, &
+                              vrrx, vsrx, vssx, vrrc, vsrc, vssc)
             dvxc_rr (ir, 1, 1) = e2 * (vrrx(1) + vrrc(1))
             dvxc_sr (ir, 1, 1) = e2 * (vsrx(1) + vsrc(1))
             dvxc_ss (ir, 1, 1) = e2 * (vssx(1) + vssc(1))
             dvxc_s  (ir, 1, 1) = e2 * (v2x(1) + v2c(1))
             CALL d3gcxc(rho_tot_r(ir,1), grho2(1), vrrrx, vsrrx, vssrx, vsssx, &
-                  vrrrc, vsrrc, vssrc, vsssc )
+                                        vrrrc, vsrrc, vssrc, vsssc )
             !
             dvxc_rrr(ir, 1, 1) = e2 * (vrrrx + vrrrc)
             dvxc_srr(ir, 1, 1) = e2 * (vsrrx + vsrrc)
