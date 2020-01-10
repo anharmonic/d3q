@@ -549,7 +549,7 @@ MODULE final_state
                              ne, ener, sigma_e, nu0)
     USE functions,        ONLY : f_gauss, df_bose
     USE merge_degenerate, ONLY : merge_degen
-    USE constants,        ONLY : pi
+    USE constants,        ONLY : pi, RY_TO_CMM1
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
@@ -589,6 +589,7 @@ MODULE final_state
       i_final => j
       IF(e_initial<0._dp) THEN
         freq_initial = freq(nu_initial,1)
+!        print*, freq_initial*RY_TO_CMM1
       ELSE
         freq_initial = e_initial
       ENDIF
@@ -619,12 +620,13 @@ MODULE final_state
       FORALL(ie=1:ne) wfinal3(ie) = f_gauss((ener(ie)-freq(k,3)), sigma_e)
       DO j = 1,S%nat3
         !
-        FORALL(ie=1:ne) wfinal2(ie) = f_gauss((ener(ie)-freq(j,2)), sigma_e)
+        !FORALL(ie=1:ne) wfinal2(ie) = f_gauss((ener(ie)-freq(j,2)), sigma_e)
         !
         ! I define a final energy for Coalescence process which is symmetric in the
         ! exchange of q2 with q3. 
         ! The scattering (X) part is already symmetric, I could just take wfinal3
         wfinal = wfinal3 !(wfinal2+wfinal3)/2
+        !wfinal = (wfinal2+wfinal3)/2
         !
         bose_C = 2* (bose(j,2) - bose(k,3))
         bose_X = bose(j,2) + bose(k,3) + 1

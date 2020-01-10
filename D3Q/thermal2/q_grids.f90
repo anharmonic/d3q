@@ -162,7 +162,7 @@ MODULE q_grids
       IF(SUM(ABS(xq0))>0._dp) THEN
         grid%xq0 = xq0
         grid%shifted = .true.
-        IF(grid_type=="random") THEN
+        IF(grid_type=="random" .or. grid_type=="randws") THEN
           ioWRITE(stdout, "(2x,a,3f12.6)") &
             "WARNING! Random grid: ignoring grid shift from input", grid%xq0
         ELSE
@@ -182,7 +182,7 @@ MODULE q_grids
     ELSE IF(grid_type=="bxsf" .or. grid_type=="xsf")THEN
       CALL setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
       IF(do_scatter) CALL grid%scatter()
-    ELSE IF(grid_type=="random")THEN
+    ELSE IF(grid_type=="random" .or. grid_type=="randws")THEN
       ! Do not add a random shift in the direction where 
       ! only on point is requested.
       ! The random shift is inside the first grid cell
@@ -206,7 +206,7 @@ MODULE q_grids
       ! This grid has to be generated in its entirety and then scatterd, 
       ! mind the memory bottleneck!
       !print*,1
-      CALL setup_bz_grid(bg, n1,n2,n3, grid, xq0)
+      CALL setup_bz_grid(bg, n1,n2,n3, grid, grid%xq0)
       !print*,2
       IF(do_scatter) CALL grid%scatter()
       !print*,3
@@ -238,7 +238,7 @@ MODULE q_grids
     grid%type = 'bz'
     ! Do not put the optional xq0 shift here, I'll add it at the end to
     ! have a grid that is centered around xq0
-    CALL setup_simple_grid(bg, n1,n2,n3, sg)
+    CALL setup_simple_grid(bg, n1,n2,n3, sg, xq0)
 
     grid%n(1) = n1
     grid%n(2) = n2
@@ -325,11 +325,11 @@ MODULE q_grids
     ! renormalize the weights
     grid%w = grid%w / DBLE(sg%nq)
     !
-    IF(present(xq0)) THEN
-      DO iq = 1,grid%nq
-        grid%xq(:,iq) = grid%xq(:,iq) + xq0
-      ENDDO
-    ENDIF
+!    IF(present(xq0)) THEN
+!      DO iq = 1,grid%nq
+!        grid%xq(:,iq) = grid%xq(:,iq) + xq0
+!      ENDDO
+!    ENDIF
     !
     grid%nqtot = grid%nq
     !

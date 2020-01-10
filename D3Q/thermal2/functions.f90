@@ -348,6 +348,18 @@ end subroutine quicksort_idx
     ENDIF
     
   END FUNCTION
+  
+  REAL(DP) FUNCTION sigma_mgo(w, T)
+    !USE constants, ONLY : RY_TO_CMM1 ==> 109737.31570111268
+    IMPLICIT NONE
+    REAL(DP), INTENT(in) :: w, T
+!     REAL(DP) :: A = (42.1109/RY_TO_CMM1)**3
+!     REAL(DP) :: B = 778.684/RY_TO_CMM1
+!    sigma_mgo = A/(B-w)**2
+      REAL(DP) :: a = -0.481937_dp 
+      REAL(DP) :: b = 0.0115197_dp 
+      sigma_mgo = a*w**2 + b*w
+  END FUNCTION
 
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//

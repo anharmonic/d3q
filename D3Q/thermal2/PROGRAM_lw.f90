@@ -109,7 +109,7 @@ MODULE linewidth_program
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
       IF(input%sort_freq=="overlap" .or. iq==1) &
-          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
+          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       !
       ! Pre-compute isotopic linewidth
       IF(input%isotopic_disorder)THEN
@@ -133,7 +133,7 @@ MODULE linewidth_program
       !
       MODE_SELECTION : &
       IF (TRIM(input%mode) == "full") THEN
-      
+          
           timer_CALL t_lwphph%start()
         ls = selfnrg_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                         S, grid, fc2, fc3, w2, D)
@@ -426,7 +426,7 @@ MODULE linewidth_program
       ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# conf:", it, "  T=",input%T(it), "   sigma=", input%sigma(it)
       ioWRITE(1000+it, '(a,3f12.4)') "# xq:", input%q_initial
       ioWRITE(1000+it, '(a)') "# energy (cm^-1)    total   tot_X tot_C  " &
-                          //"C( band1  band2 ... )  X(band1 band2 ... ) "
+                          //" tot(band1 band2 ...)  C( band1  band2 ... )  X(band1 band2 ... ) "
       ioFLUSH(1000+it)
     ENDDO
     ENDIF

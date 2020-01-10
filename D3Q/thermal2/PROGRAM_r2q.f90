@@ -386,7 +386,7 @@ MODULE r2q_program
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
       IF(input%sort_freq=="overlap" .or. iq==1) &
-          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w)
+          CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       !
       ! Compute isotopic linewidth
       IF(input%isotopic_disorder)THEN
@@ -636,7 +636,8 @@ PROGRAM r2q
     DO i = 1,qpath%nq
       !CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
       CALL freq_phq_path(qpath%nq, i, qpath%xq, S, fc2, freq, U)
-      IF(input%sort_freq=="overlap" .or. i==1) CALL order%set(S%nat3, freq, U)
+      IF(input%sort_freq=="overlap" .or. i==1) & !CALL order%set(S%nat3, freq, U)
+          CALL order%set_path(S%nat3, freq, U, i, qpath%nq, qpath%w, qpath%xq)
       ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
         i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1
       ioFLUSH(output_unit)

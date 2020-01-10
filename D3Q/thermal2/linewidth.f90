@@ -15,6 +15,7 @@ MODULE linewidth
 #include "mpi_thermal.h"
   USE kinds,       ONLY : DP
   USE mpi_thermal, ONLY : my_id, mpi_bsum
+  USE constants,   ONLY : RY_TO_CMM1
   USE timers
 
   CONTAINS
@@ -443,6 +444,7 @@ MODULE linewidth
   FUNCTION sum_selfnrg_spectre(S, sigma, freq, bose, V3sq, ne, ener, nu0)
     USE input_fc,           ONLY : ph_system_info
     USE merge_degenerate,   ONLY : merge_degen
+    USE functions,          ONLY : sigma_mgo
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma   ! smearing (regularization) (Ry)
@@ -456,7 +458,7 @@ MODULE linewidth
     !
     ! _P -> scattering, _M -> cohalescence
     REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
-    REAL(DP) :: factor !freqtotm1
+    REAL(DP) :: factor, sigma_, T=0._dp !freqtotm1
     REAL(DP) :: omega_P,  omega_M   ! \delta\omega
     REAL(DP) :: omega_P2, omega_M2  ! \delta\omega
     COMPLEX(DP) :: ctm_P,ctm_M, reg, num
@@ -469,10 +471,10 @@ MODULE linewidth
     COMPLEX(DP) :: sum_selfnrg_spectre(ne,S%nat3)
     COMPLEX(DP),ALLOCATABLE :: spf(:,:)
     !
-    IF(sigma<=0._dp)THEN
-      CALL errore("sum_selfnrg_spectre","spf not implemented in the static limit. "&
-                  //"NEW: To do unshifted spf use 'spf imag'",1)
-    ENDIF
+!     IF(sigma<=0._dp)THEN
+!       CALL errore("sum_selfnrg_spectre","spf not implemented in the static limit. "&
+!                   //"NEW: To do unshifted spf use 'spf imag'",1)
+!     ENDIF
     !
     ALLOCATE(spf(ne,S%nat3))
     spf = (0._dp, 0._dp)
@@ -499,34 +501,39 @@ MODULE linewidth
         omega_M2 = omega_M**2
         !
         ! A little optimization: precompute the parts that depends only on the energy
-        DO ie = 1,ne
-          ! regularization:
-          reg = CMPLX(ener(ie), sigma, kind=DP)**2
-          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
-          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
-          ctm(ie) = ctm_P + ctm_M
-        ENDDO
+! ! !         DO ie = 1,ne
+! ! !           ! regularization:
+! ! !           reg = CMPLX(ener(ie), sigma, kind=DP)**2
+! ! !           ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+! ! !           ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+! ! !           ctm(ie) = ctm_P + ctm_M
+! ! !         ENDDO
         !
         DO i = 1,S%nat3
           !
-          ! This comes from the definition of u_qj, Ref. 1.
-          !freqtot = 8*freq(i,1)*freq(j,2)*freq(k,3)
-          !
-!           IF (freqtot/=0._dp) THEN
-          !freqtotm1 = 1 / freqtot
           factor = V3sq(i,j,k) *freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           !
-          !DO ie = 1, ne
+          IF(ABS(sigma-666._dp)< 1._dp)THEN
+          sigma_ = sigma_mgo(freq(i,1),T) &
+                  +sigma_mgo(freq(j,2),T) &
+                  +sigma_mgo(freq(k,3),T)
+          !print*, RY_TO_CMM1*freq(i,1), RY_TO_CMM1*freq(j,2), RY_TO_CMM1*freq(k,3), RY_TO_CMM1*sigma_
+          ELSE
+           sigma_ = sigma
+          ENDIF
+
+          DO ie = 1, ne
             ! regularization:
-            !reg = CMPLX(ener(ie), sigma, kind=DP)**2
+            reg = CMPLX(ener(ie), sigma_, kind=DP)**2
             !
-            !ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
-            !ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
-            !ctm = ctm_P + ctm_M
+            ctm_P = 2 * bose_P *omega_P/(omega_P2-reg)
+            ctm_M = 2 * bose_M *omega_M/(omega_M2-reg)
+            ctm(ie) = ctm_P + ctm_M
             !
-            spf(:,i) = spf(:,i) + ctm(:) * factor !V3sq(i,j,k) * freqtotm1
-          !ENDDO
-!           ENDIF
+            spf(ie,i) = spf(ie,i) + ctm(ie) * factor !V3sq(i,j,k) * freqtotm1
+          ENDDO
+! ! !           spf(:,i) = spf(:,i) + ctm(:) * factor !V3sq(i,j,k) * freqtotm1
+            
           !
         ENDDO
       ENDDO
@@ -545,6 +552,7 @@ MODULE linewidth
     USE input_fc,           ONLY : ph_system_info
     USE functions,          ONLY : df_bose
     USE merge_degenerate,   ONLY : merge_degen
+    USE functions,          ONLY : sigma_mgo
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     REAL(DP),INTENT(in) :: sigma, T
@@ -559,7 +567,7 @@ MODULE linewidth
     REAL(DP) :: omega_P,  omega_M   ! \sigma\omega
     REAL(DP) :: omega_P2, omega_M2  ! \sigma\omega
     COMPLEX(DP) :: ctm_P, ctm_M, reg
-    REAL(DP) :: freqm1(S%nat3,3)
+    REAL(DP) :: freqm1(S%nat3,3), sigma_
     !
     INTEGER :: i,j,k
     ! Note: using the function result in an OMP reduction causes crash with ifort 14
@@ -622,7 +630,16 @@ MODULE linewidth
           !
           ! regularization:
           IF(sigma>0._dp)THEN
-            reg = CMPLX(freq(i,1), sigma, kind=DP)**2
+            IF(ABS(sigma-666._dp)<1._dp)THEN
+            sigma_ = sigma_mgo(freq(i,1),T) &
+                    +sigma_mgo(freq(j,2),T) &
+                    +sigma_mgo(freq(k,3),T)
+            !print*, RY_TO_CMM1*freq(i,1), RY_TO_CMM1*freq(j,2), RY_TO_CMM1*freq(k,3), RY_TO_CMM1*sigma_
+            ELSE
+             sigma_ = sigma
+            ENDIF
+          
+            reg = CMPLX(freq(i,1), sigma_, kind=DP)**2
             ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
             ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
           ENDIF

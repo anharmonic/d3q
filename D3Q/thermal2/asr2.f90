@@ -76,7 +76,7 @@ MODULE asr2_module
     ENDDO
     !
     IF(present(zeu)) THEN
-    print*, "doing zeu asr"
+    !print*, "doing zeu asr"
      do i=1,3
         do j=1,3
            delta=0._dp

@@ -25,7 +25,7 @@ MODULE overlap
   ! it means that there is a discontinuity, do not attempt to compute the overlap
   ! just keep the current order
   ! Same story when the length is reset to zero
-  SUBROUTINE set_path_idx(self, nat3, w, e, iq, nq, lpath) !RESULT(order_out)
+  SUBROUTINE set_path_idx(self, nat3, w, e, iq, nq, lpath, xq) !RESULT(order_out)
     USE constants, ONLY : RY_TO_CMM1
     !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
@@ -36,14 +36,31 @@ MODULE overlap
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
     !
     INTEGER,INTENT(in) :: iq,nq
-    REAL(DP) ::  lpath(nq)
+    REAL(DP) ::  lpath(nq), xq(3,nq)
+    LOGICAL :: turning
     INTEGER :: i
     !
+    ! Do not change the order of the bands, under any circumstance when:
+    ! 1. the path has just turned
+    ! 2. the path is jumping q->q+G (length is the same as previous point) 
+    ! 3. the path has been reset (length is zero)
+    ! 4. we're at Gamma
     IF(iq>1 .and. ALLOCATED(self%e_prev))THEN
-      IF(lpath(iq-1)==lpath(iq) .or. lpath(iq)==0._dp) THEN
+    
+      IF(iq<nq)THEN
+        turning = SUM( ((xq(:,iq-1) - xq(:,iq))&
+                      -(xq(:,iq) - xq(:,iq+1)))**2 ) > 1.d-6    
+      ELSE
+         turning = .true.
+      ENDIF
+      
+      !
+      IF(lpath(iq-1)==lpath(iq) .or. lpath(iq)==0._dp &
+         .or. turning .or. SUM(ABS(xq(:,iq-1)))<1.d-4 ) THEN
         DO i = 1, nat3
           self%e_prev(:,i) = e(:,self%idx(i))
         ENDDO
+        !print*, i, xq(:,i), "quick"
         ! quick return
         RETURN
       ENDIF

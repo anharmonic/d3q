@@ -489,8 +489,9 @@ MODULE code_input
         IF(ios==0) qpts%basis = TRIM(word3(1:9))
         !
         IF(TRIM(qpts%basis) == "grid" .or. TRIM(qpts%basis) == "bz" &
-           .or. TRIM(qpts%basis)=="ws" .or. TRIM(qpts%basis)=="bxsf" &
-           .or. TRIM(qpts%basis)=="xsf" ) THEN
+           .or. TRIM(qpts%basis)=="ws" .or.  TRIM(qpts%basis)=="randws" &
+           .or. TRIM(qpts%basis)=="bxsf" .or. TRIM(qpts%basis)=="xsf" &
+           .or. TRIM(qpts%basis)=="random" ) THEN
           !
           grid_type = qpts%basis
           qpts%basis = "cartesian"
