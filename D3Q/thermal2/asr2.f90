@@ -75,7 +75,7 @@ MODULE asr2_module
       ENDDO
     ENDDO
     !
-    IF(present(zeu)) THEN
+    IF(present(zeu) .and. .FALSE.) THEN
     !print*, "doing zeu asr"
      do i=1,3
         do j=1,3
