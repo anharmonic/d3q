@@ -93,7 +93,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL DO
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
@@ -131,7 +131,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
@@ -181,7 +181,7 @@ MODULE fc2_interpolate
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
@@ -224,7 +224,7 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_safe
   !
@@ -403,7 +403,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: epsq = 1.e-6_dp
+    REAL(DP),PARAMETER :: epsq = 1.e-8_dp
     REAL(DP) :: cq(3)
     INTEGER :: i
     LOGICAL :: gamma
@@ -422,6 +422,8 @@ MODULE fc2_interpolate
     ENDIF
     
     IF(ANY(freq<0._dp)) THEN
+      WRITE(*,*) gamma
+      WRITE(*,"('cq = ',3f12.6)") cq
       WRITE(*,"('xq = ',3f12.6)") xq
       WRITE(*,"('freq = ',12e12.4)") freq
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
@@ -518,7 +520,9 @@ MODULE fc2_interpolate
     yq = yq-DBLE(NINT(yq))
     CALL cryst_to_cart(1, yq, S%bg, +1)
     ! Check for exactly Gamma, even a tiny displacement works already
-    IF(ALL(ABS(yq)< 1.d-12))THEN
+    IF(ALL(ABS(yq)< 1.d-8))THEN
+      ! We set xq to EXACTLY zero in this case, to avoid double lo-to counting
+      yq=0._dp
       IF(nq == 0)THEN
         ! this should never happen: zero length path?
         CALL errore("freq_phq_path","no points in this path",1)
@@ -536,7 +540,7 @@ MODULE fc2_interpolate
     ! piece that I did not manage to track down) I'm computing the frequencies at 
     ! a tiny displacement out of Gamma
     !CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
-    CALL fftinterp_mat2(xq(:,iq), S, fc2, U, xq_hat)
+    CALL fftinterp_mat2(yq, S, fc2, U, xq_hat)
     !
     CALL mat2_diag(S%nat3, U, freq)
     !U = CONJG(U)
