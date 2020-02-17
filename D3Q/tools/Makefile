@@ -5,23 +5,35 @@ include ../../make.inc
 STRIP = strip
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
-	  $(MOD_FLAG)../src $(MOD_FLAG).  
+#MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules \
+#	  $(MOD_FLAG)../src $(MOD_FLAG).  
+MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
+          $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
+          $(MOD_FLAG)../src \
+          $(MOD_FLAG).
 
 IFLAGS+=-I../../FFTXlib -I../../UtilXlib -I../../include -I../../PHonon/PH
 
+#PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
+#LRMODS = ../../LR_Modules/liblrmod.a
+#PWOBJS = ../../PW/src/libpw.a
+#QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
+#         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
 PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a
 
+
 EXTOBJS = ../src/libd3q.a \
           $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph
 
+#LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+
 
 D3QTOOLSOBJS = \
 diffd3.o \
@@ -40,17 +52,17 @@ all : tldeps $(EXECUTABLES)
 
 xml2giorgia.x : xml2giorgia.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ xml2giorgia.o $(D3QTOOLSLIBS) \
-	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 d3_sc2c.x : d3_sc2c.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ d3_sc2c.o $(D3QTOOLSLIBS) \
-	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 diffd3.x : diffd3.o $(D3QTOOLSLIBS)
 	$(LD) $(LDFLAGS) -o $@ diffd3.o $(D3QTOOLSLIBS) \
-	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(LIBS) 
+	$(EXTOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP)  $@
 	- ( cd ../../bin ; ln -fs ../D3Q/tools/$@ . )
 
