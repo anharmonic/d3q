@@ -1,0 +1,27 @@
+MgO
+ &inputph
+  prefix = 'MgO'
+   outdir='./tmp'
+!  iverbosity = 1
+
+  tr2_ph = 1.d-18,
+  epsil  = .true.,
+  !zue    = .false.,
+  !zeu    = .false.,
+  trans  = .true.,
+
+  fildyn = 'FILDYN/dyn',
+
+  ldisp=.true.
+    nq1=4,
+    nq2=4,
+    nq3=4
+   !start_q=1
+   !last_q=2
+
+  fildrho = 'drhox',
+  drho_star%open = .true.
+  drho_star%ext  = 'drho' 
+  drho_star%dir  = 'FILDRHO'
+ /
+
