@@ -27,11 +27,11 @@ print_help(){
         echo "and save the resulting dynamical matrix to new files"
         echo
 	echo "Syntax:"
-	echo "  $0 [-i FILDYN.in] [-o FILDYN.out] [-a ASR_TYPE]"
+	echo "  $0 [-i IN] [-o OUT] [-a ASR_TYPE]"
         echo
-        echo "FILDYN.in:  input fildyn file prefix (default: 'dyn')"
-        echo "FILDYN.out: output fildyn file prefix (default: 'asr_dyn')"
-        echo "ASR_TYPE:   type of sum rule to use (default: crystal)"
+        echo "IN:       input fildyn file prefix (default: 'dyn')"
+        echo "OUT:      output fildyn file prefix (default: 'asr_dyn')"
+        echo "ASR_TYPE: type of sum rule to use (default: crystal)"
         exit $1
 }
 
