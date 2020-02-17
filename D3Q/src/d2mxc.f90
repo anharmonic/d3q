@@ -60,7 +60,7 @@ FUNCTION d2mxc (rho)
   real(DP),parameter :: coeffs(3) = (/ 1._dp, -2._dp, 1._dp /)
 
 !  CALL init_lda_xc()
-print*, "mux", get_iexch() , get_icorr()
+!print*, "mux", get_iexch() , get_icorr()
   if (get_iexch() == 1 .and. get_icorr() == 1) then
       ! First case: analitical derivative of PZ functional
       rs = thofpi_3 * (1._dp / rho) **0.3333333333333333d0
