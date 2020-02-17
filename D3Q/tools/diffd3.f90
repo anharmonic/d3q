@@ -47,7 +47,8 @@ PROGRAM read3
   !CALL read_d3dyn_xml(fname2, d3=q3)
   INQUIRE(file=fname1, exist=exst)
   IF(.not. exst) STOP 1
-  CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, celldm=celldm, at=at, file_format_version=format_version)
+  CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, &
+                      celldm=celldm, at=at, file_format_version=format_version)
   IF(format_version=="1.0.0") p3 = CONJG(p3)
 
 !  write(0,'(3(3f8.4,2x))') xq1,xq2,xq3
@@ -84,7 +85,7 @@ PROGRAM read3
             perc=0._dp
         ENDIF
         !
-        write(*, '(3(3i2,1x),3f14.9,2(2f22.16,3x),2(f10.4))') &
+        write(*, '(3(3i2,1x),3f14.5,2(2f22.7,3x),2(f10.4))') &
               i,j,k,a,b,c, i+3*(a-1), j+3*(b-1), k+3*(c-1),&
               diff, &
               ABS(p3(i,j,k,a,b,c)), ABS(q3(i,j,k,a,b,c)), &
