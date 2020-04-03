@@ -503,6 +503,119 @@ MODULE r2q_program
   END SUBROUTINE PH_DOS
   !
   !
+  FUNCTION f_factor(input, S, xq) RESULT(f)
+    USE code_input,       ONLY : code_input_type
+    USE kinds,            ONLY : DP
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    IMPLICIT NONE
+    TYPE(code_input_type) :: input
+    TYPE(ph_system_info)   :: S
+    REAL(DP) :: f(S%ntyp)
+    !
+    REAL(DP) :: xq(3), d2,d3,d4, integral
+    REAL(DP),ALLOCATABLE :: r(:), charge(:), bes(:)
+    INTEGER :: i, j, nlines
+    !
+    nlines = 1095
+    DO i =  1,S%ntyp
+      !
+      ALLOCATE(r(nlines), charge(nlines), bes(nlines))
+      IF(i==1)THEN
+        OPEN(unit=400, file="O_core.dat", status="old", action="read")
+      ELSEIF(i==2)THEN
+        OPEN(unit=400, file="H_core.dat", status="old", action="read")
+      ENDIF
+      DO j = 1,nlines
+        READ(400,*) r(j), d2, d3, d4
+        charge(j) = d3+d4
+      ENDDO
+      CALL sph_bes (nlines, r, xq, 0, bes)
+      charge = bes*charge
+      CALL simpson(nlines, charge, r, integral)
+      !
+      f(i) = integral
+      !      
+      DEALLOCATE(r,charge,bes)
+      CLOSE(400)
+    ENDDO
+    
+  END FUNCTION
+  !
+  SUBROUTINE DYNFF_S(input,listq, S, fc)
+    USE code_input,       ONLY : code_input_type
+    USE kinds,            ONLY : DP
+    USE input_fc,         ONLY : forceconst2_grid, ph_system_info
+    USE q_grids,          ONLY : q_grid, q_basis, setup_grid, prepare_q_basis
+    USE constants,        ONLY : RY_TO_CMM1, pi, tpi
+    USE functions,        ONLY : f_bose
+    USE fc2_interpolate,  ONLY : freq_phq
+    USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
+    IMPLICIT NONE
+    TYPE(code_input_type) :: input
+    TYPE(q_grid), INTENT(in) :: listq
+    TYPE(ph_system_info)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc
+    !
+    TYPE(q_grid)  :: qgrid
+    !
+    COMPLEX(DP) :: U(S%nat3, S%nat3), phase, Fin
+    REAL(DP) :: ff(S%ntyp), freq(S%nat3), rr(3,S%nat), arg, e_jat(3), &
+                Fin2, loss, gain, n, xq(3)
+    !
+    !
+    INTEGER :: i, j, iq, jat, nu
+    !
+!     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
+!                 qgrid, scatter=.true.)
+
+     ! take r vectors inside the first unit cell
+     rr = S%tau
+!      CALL cryst_to_cart(S%nat, rr, S%bg, -1)
+!      rr = rr - NINT(rr)
+!      CALL cryst_to_cart(S%nat, rr, S%at, +1)
+    
+    OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
+    DO iq = 1, listq%nq
+      !
+      xq = listq%xq(:,iq)
+      ff = f_factor(input, S, xq)
+      !
+      CALL freq_phq(xq, S, fc, freq, U)
+      WRITE(10000,'(3f12.6)',advance='no') xq
+      !
+      DO nu = 1,S%nat3
+        !
+        n = f_bose(freq(nu), input%T(1)) 
+        !
+        Fin = 0._dp
+        DO jat = 1,S%nat
+                !
+                !jat = (j-1)/3+1
+                !jalpha = j-(jat-1)*3
+                arg = tpi * SUM(xq*rr(:,jat))
+                phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+                !
+                e_jat = U((jat-1)*3+1 : (jat-1)*3+3,  nu)
+                Fin = Fin + ff(S%ityp(jat)) * phase * SUM(xq*e_jat) / DSQRT(S%amass(S%ityp(jat)))
+                !
+        ENDDO
+        Fin2 = DBLE(Fin * CONJG(Fin))
+        !
+        loss = (n+1)/freq(nu) * Fin2
+        gain = n/freq(nu) * Fin2
+        WRITE(10000,'(5x,3ES27.15E3)',advance='no') freq(nu), loss, gain
+        !
+      ENDDO
+      !
+      WRITE(10000,*)
+      !
+    ENDDO
+    !
+    CLOSE(10000)
+    !
+  END SUBROUTINE DYNFF_S
+  !
+  !
   !
   SUBROUTINE RMS(input, S, fc)
     USE code_input,       ONLY : code_input_type
@@ -606,6 +719,8 @@ PROGRAM r2q
 
   IF( input%calculation=="dos") THEN
     CALL PH_DOS(input,S,fc2)
+  ELSE IF ( input%calculation=="dynff") THEN
+    CALL DYNFF_S(input,qpath, S, fc2)
   ELSE IF( input%calculation=="jdos") THEN
     CALL JOINT_DOS(input,qpath,S,fc2)
   ELSE IF( input%calculation=="2dos") THEN

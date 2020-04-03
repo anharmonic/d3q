@@ -100,7 +100,7 @@ MODULE linewidth_program
       IF(input%optimize_grid)THEN
         CALL grid%destroy()
         CALL setup_poptimized_grid(input, S, fc2, grid, qpath%xq(:,iq), &
-                                  input%optimize_grid_thr, scatter=.true.)
+                                  input%optimize_grid_thr, scatter=.true., fc3=fc3)
       ENDIF
       !
       CALL freq_phq_path(qpath%nq, iq, qpath%xq, S, fc2, w2, D)

@@ -166,7 +166,8 @@ MODULE q_grids
           ioWRITE(stdout, "(2x,a,3f12.6)") &
             "WARNING! Random grid: ignoring grid shift from input", grid%xq0
         ELSE
-          ioWRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
+          IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
+          WRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
         ENDIF
       ENDIF
     ENDIF
@@ -511,6 +512,7 @@ MODULE q_grids
     IF(present(xq0)) THEN
       DO idx = 1,grid%nq
         grid%xq(:,idx) = grid%xq(:,idx) + xq0
+        grid%xq0 = xq0
       ENDDO
     ENDIF
     !

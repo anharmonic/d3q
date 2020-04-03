@@ -245,14 +245,17 @@ PROGRAM q2r
         !
         WRITE (stdout,*) ' nqs= ',nqs
         DO nq = 1,nqs
+!           write(998,'(i6,6f12.6)') nq, q(:,nq)
+!           write(998,'(6f12.6)') phiq(:,:,:,:,nq) 
             IF (lrigid) THEN
               !WRITE(stdout,*) "quite rigid"
               ! Remove non-analytic part before doing the Fourier transform
               !CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
               !              tau,epsil,zeu,bg,omega,-1.d0)
-              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(1,1,1,1,nq),q(1,nq), &
+              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
                     tau,epsil,zeu,bg,omega,celldm(1), .false.,-1.d0) ! 2D added celldm and flag
             END IF
+!            write(998,'(6f12.6)') phiq(:,:,:,:,nq) 
             nqtot = nqtot+1
             matq(:,:,:,:,nqtot) = phiq(:,:,:,:,nq)
             gridq(:,nqtot)      = q(:,nq)
@@ -318,7 +321,12 @@ PROGRAM q2r
      S%omega   = omega
      S%epsil   = epsil
      S%lrigid  = lrigid
-     
+!     write(998,*) nr1, nr2, nr3, nat
+!     write(998,*) tau
+!     write(998,*) at
+!     write(998,*) bg
+!     write(998,'(6f12.6)') matq
+!     write(998,'(333f12.6)') gridq
      CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc)
      CALL write_fc2(flfrc, S, fc)
 !      STOP 0
