@@ -1,5 +1,6 @@
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
+PROGRAM_gruneisen.o : mpi_thermal.o
 PROGRAM_import_shengbte.o : mpi_thermal.o
 PROGRAM_interpolate2.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
@@ -59,6 +60,15 @@ PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
 PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
+PROGRAM_gruneisen.o : ./PROGRAM_gruneisen.o
+PROGRAM_gruneisen.o : ./code_input.o
+PROGRAM_gruneisen.o : ./fc2_interp.o
+PROGRAM_gruneisen.o : ./fc3_interp.o
+PROGRAM_gruneisen.o : ./input_fc.o
+PROGRAM_gruneisen.o : ./more_constants.o
+PROGRAM_gruneisen.o : ./mpi_thermal.o
+PROGRAM_gruneisen.o : ./ph_velocity.o
+PROGRAM_gruneisen.o : ./q_grids.o
 PROGRAM_import_shengbte.o : ./PROGRAM_import_shengbte.o
 PROGRAM_import_shengbte.o : ./cmdline_param.o
 PROGRAM_import_shengbte.o : ./f3_bwfft.o
@@ -182,7 +192,6 @@ dynbubble.o : ./more_constants.o
 dynbubble.o : ./mpi_thermal.o
 dynbubble.o : ./q_grids.o
 dynbubble.o : ./timers.o
-eos.o : ./powell.o
 f3_bwfft.o : ./fc3_interp.o
 f3_bwfft.o : ./functions.o
 f3_bwfft.o : ./input_fc.o
@@ -220,6 +229,7 @@ linewidth.o : ./q_grids.o
 linewidth.o : ./timers.o
 mc_grids.o : ./code_input.o
 mc_grids.o : ./fc2_interp.o
+mc_grids.o : ./fc3_interp.o
 mc_grids.o : ./functions.o
 mc_grids.o : ./input_fc.o
 mc_grids.o : ./linewidth.o
@@ -269,6 +279,7 @@ variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
 PROGRAM_db.o : 
+PROGRAM_gruneisen.o : 
 PROGRAM_import_shengbte.o : 
 PROGRAM_interpolate2.o : 
 PROGRAM_lw.o : 

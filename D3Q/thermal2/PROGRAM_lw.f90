@@ -255,7 +255,8 @@ MODULE linewidth_program
   !
   SUBROUTINE SPECTR_QBZ_LINE(input, qpath, S, fc2, fc3)
     USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, freq_phq_path
-    USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor
+    USE linewidth,      ONLY : spectre_q, simple_spectre_q, add_exp_t_factor, &
+                               tepsilon_q, selfnrg_omega_q, ir_reflectivity_q, spectre2_q
     USE constants,      ONLY : RY_TO_CMM1
     USE q_grids,        ONLY : q_grid, setup_grid
     USE more_constants, ONLY : write_conf
@@ -277,12 +278,13 @@ MODULE linewidth_program
     REAL(DP)   :: sigma_ry(input%nconf)
     !
     REAL(DP),ALLOCATABLE :: ener(:), spectralf(:,:,:)
+    COMPLEX(DP),ALLOCATABLE :: caux(:,:,:)
     !
     COMPLEX(DP) :: D(S%nat3, S%nat3)
     REAL(DP) :: w2(S%nat3)
     CHARACTER(len=6), EXTERNAL :: int_to_char
     CHARACTER(len=6) :: pos
-    ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
+    REAL(DP) :: UNIT_CONVERSION
     !
     ioWRITE(*,*) "--> Setting up inner grid"
     CALL setup_grid(input%grid_type, S%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.true., xq0=input%xk0)
@@ -330,33 +332,78 @@ MODULE linewidth_program
         ioWRITE(1000+it, '(a,i6,3f15.8,5x,100(/,"#",6f12.6))') "#  xq",  iq, qpath%xq(:,iq), w2*RY_TO_CMM1
       ENDDO
       !
-      IF (TRIM(input%mode) == "full") THEN
-        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.true.)
-      ELSE IF (TRIM(input%mode) == "imag") THEN
-        spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.false.)
-      ELSE IF (TRIM(input%mode) == "simple" .or. TRIM(input%mode) == "isimple") THEN
-        spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
-                                  S, grid, fc2, fc3, input%ne, ener, w2, D, &
-                                  shift=(TRIM(input%mode) == "simple") )
-      ELSE
-        CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
-      ENDIF
-      !
-      IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, &
-                      input%ne, S%nat3, ener, spectralf)
-      !
-      DO it = 1,input%nconf
-        DO ie = 1,input%ne
-          ioWRITE(1000+it, '(2f14.8,100e14.6)') &
-                qpath%w(iq), ener(ie)*RY_TO_CMM1, &
-                SUM(spectralf(ie,:,it))/RY_TO_CMM1, &
-                spectralf(ie,:,it)/RY_TO_CMM1
-          ioFLUSH(1000+it)
+      IF (TRIM(input%calculation) == "spf") THEN
+        ALLOCATE(spectralf(input%ne,S%nat3,input%nconf))
+        IF (TRIM(input%mode) == "full") THEN
+          UNIT_CONVERSION = 1/RY_TO_CMM1
+          spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                    S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.true.)
+        ELSE IF (TRIM(input%mode) == "full2") THEN
+          UNIT_CONVERSION = 1/RY_TO_CMM1
+          spectralf = spectre2_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                    S, grid, fc2, fc3, input%ne, ener, w2, D)
+        ELSE IF (TRIM(input%mode) == "imag") THEN
+          UNIT_CONVERSION = 1/RY_TO_CMM1
+          spectralf = spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                    S, grid, fc2, fc3, input%ne, ener, w2, D, shift=.false.)
+        ELSE IF (TRIM(input%mode) == "simple" .or. TRIM(input%mode) == "isimple") THEN
+          UNIT_CONVERSION = 1/RY_TO_CMM1
+          spectralf = simple_spectre_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                    S, grid, fc2, fc3, input%ne, ener, w2, D, &
+                                    shift=(TRIM(input%mode) == "simple") )
+        ELSE IF (TRIM(input%mode) == "refl") THEN
+          UNIT_CONVERSION = 1._dp
+          IF(ANY(qpath%xq(:,iq)/=0._dp).and.ionode) &
+              WRITE(stdout,*) "WARNING! tilde epsilon out of Gamma makes no sense"        
+          spectralf = ir_reflectivity_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                    S, grid, fc2, fc3, input%ne, ener, w2, D)
+        ELSE
+          CALL errore("SPECTR_QBZ_LINE", 'unknown mode "'//TRIM(input%mode)//'"', 1)
+        ENDIF
+        IF(input%exp_t_factor) CALL add_exp_t_factor(input%nconf, input%T, &
+                        input%ne, S%nat3, ener, spectralf)
+        !
+        DO it = 1,input%nconf
+          DO ie = 1,input%ne
+            ioWRITE(1000+it, '(2f14.8,100e14.6)') &
+                  qpath%w(iq), ener(ie)*RY_TO_CMM1, &
+                  SUM(spectralf(ie,:,it))*UNIT_CONVERSION, &
+                  spectralf(ie,:,it)*UNIT_CONVERSION
+            ioFLUSH(1000+it)
+          ENDDO
         ENDDO
-      ENDDO
-      !
+        DEALLOCATE(spectralf)
+      ELSE 
+        ALLOCATE(caux(input%ne,S%nat3,input%nconf))
+        IF (TRIM(input%calculation) == "eps" .or. &
+            TRIM(input%calculation) == "refl"  ) THEN
+           UNIT_CONVERSION = 1._dp
+           IF(ANY(qpath%xq(:,iq)/=0._dp).and.ionode) WRITE(stdout,*) "WARNING! tilde epsilon out of Gamma makes no sense"
+             caux = tepsilon_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                               S, grid, fc2, fc3, input%ne, ener, w2, D)
+           IF(TRIM(input%calculation) == "refl") THEN
+             caux = (ZSQRT(caux)-1)/(ZSQRT(caux)+1)
+             caux = caux*CONJG(caux)
+           ENDIF
+        ELSE IF (TRIM(input%calculation) == "selfnrg") THEN
+          UNIT_CONVERSION = RY_TO_CMM1
+          caux = selfnrg_omega_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
+                                     S, grid, fc2, fc3, input%ne, ener, w2, D)
+        ENDIF
+        !
+        DO it = 1,input%nconf
+          DO ie = 1,input%ne
+            ioWRITE(1000+it, '(2f14.8,100(2e14.6,3x))') &
+                  qpath%w(iq), ener(ie)*RY_TO_CMM1, &
+                  SUM(caux(ie,:,it))*UNIT_CONVERSION, &
+                  caux(ie,:,it)*UNIT_CONVERSION
+            ioFLUSH(1000+it)
+          ENDDO
+        ENDDO
+        !
+      DEALLOCATE(caux)
+     ENDIF
+     !
     ENDDO
     !
     !
@@ -368,7 +415,7 @@ MODULE linewidth_program
     !
     CALL print_all_timers()
     !
-    DEALLOCATE(spectralf, ener)
+    DEALLOCATE(ener)
     !
   END SUBROUTINE SPECTR_QBZ_LINE
   !   
@@ -527,7 +574,10 @@ PROGRAM linewidth
     CALL LW_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
     !
   ELSE &
-  IF(TRIM(lwinput%calculation) == "spf") THEN
+  IF(TRIM(lwinput%calculation) == "spf" .or. &
+     TRIM(lwinput%calculation) == "eps" .or. &
+     TRIM(lwinput%calculation) == "refl" .or. &
+     TRIM(lwinput%calculation) == "selfnrg") THEN
     !
     CALL SPECTR_QBZ_LINE(lwinput, qpath, S, fc2, fc3)
     !

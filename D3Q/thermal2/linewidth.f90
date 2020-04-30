@@ -303,10 +303,12 @@ MODULE linewidth
     ENDDO
     !
   END FUNCTION simple_spectre_q  
+
+
   ! <<^V^\\=========================================//-//-//========//O\\//
-  ! Full spectral function, computed as in eq. 1 of arXiv:1312.7467v1
-  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1, shift) &
-  RESULT(spectralf)
+  ! Self energy for all the phonon abnds at q in a range of frequencies
+  FUNCTION selfnrg_omega_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1) &
+  RESULT(selfnrg_wq)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
@@ -324,9 +326,8 @@ MODULE linewidth
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(q_grid),INTENT(in)      :: grid
-    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
-    LOGICAL,INTENT(in)  :: shift ! set to false to drop the real part of the self-energy
+    TYPE(q_grid),INTENT(in)           :: grid
+    REAL(DP),INTENT(in)               :: sigma(nconf) ! ry
     !
     REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
     COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
@@ -343,7 +344,7 @@ MODULE linewidth
     REAL(DP) :: gamma, delta, omega, denom
     COMPLEX(DP),ALLOCATABLE :: selfnrg(:,:,:)
     ! FUNCTION RESULT:
-    REAL(DP) :: spectralf(ne,S%nat3,nconf)
+    COMPLEX(DP) :: selfnrg_wq(ne,S%nat3,nconf)
     !
     ALLOCATE(U(S%nat3, S%nat3,3))
     ALLOCATE(V3sq(S%nat3, S%nat3, S%nat3))
@@ -410,7 +411,50 @@ MODULE linewidth
       timer_CALL t_mpicom%start()
     IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,nconf,selfnrg)
       timer_CALL t_mpicom%stop()
-    selfnrg = -0.5_dp * selfnrg
+    selfnrg_wq = -0.5_dp * selfnrg
+    !
+    DEALLOCATE(U, V3sq, D3, selfnrg)
+    !
+  END FUNCTION selfnrg_omega_q
+  !
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  ! Spectral weight function, computed as in eq. 1 of arXiv:1312.7467v1
+  FUNCTION spectre_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1, shift) &
+  RESULT(spectralf)
+    USE q_grids,          ONLY : q_grid
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
+    !
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq0(3)
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
+    !
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ener(ne)
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: grid
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    LOGICAL,INTENT(in)  :: shift ! set to false to drop the real part of the self-energy
+    !
+    REAL(DP),INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),INTENT(in) :: U1(S%nat3,S%nat3)
+    !
+    ! To compute the spectral function from the self energy:
+    INTEGER  :: i, ie, it
+    INTEGER  :: nu0(3)
+    REAL(DP) :: gamma, delta, omega, denom
+    COMPLEX(DP) :: selfnrg(ne,S%nat3,nconf)
+    ! FUNCTION RESULT:
+    REAL(DP)    :: spectralf(ne,S%nat3,nconf)
+    !
+    ! Once we have the self-energy, the rest is trivial
+    selfnrg = selfnrg_omega_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1)
     !
       timer_CALL t_mkspf%start()
     DO it = 1,nconf
@@ -422,7 +466,7 @@ MODULE linewidth
           ELSE
             delta = 0._dp
           ENDIF
-          omega = freq(i,1)
+          omega = freq1(i)
           denom =   (ener(ie)**2 -omega**2 -2*omega*delta)**2 &
                    + 4*omega**2 *gamma**2 
           IF(ABS(denom)/=0._dp)THEN
@@ -435,9 +479,199 @@ MODULE linewidth
     ENDDO
       timer_CALL t_mkspf%stop()
     !
-    DEALLOCATE(U, V3sq, D3, selfnrg)
-    !
   END FUNCTION spectre_q
+
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  ! Spectral weight function, computed as in eq. 1 of arXiv:1312.7467v1
+  ! test, compute this as imahinary part of epsilon(omega)
+  FUNCTION spectre2_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1) &
+  RESULT(spectralf)
+    USE q_grids,          ONLY : q_grid
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
+    !
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq0(3)
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
+    !
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ener(ne)
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: grid
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    !LOGICAL,INTENT(in)  :: shift ! set to false to drop the real part of the self-energy
+    !
+    REAL(DP),INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),INTENT(in) :: U1(S%nat3,S%nat3)
+    !
+    ! To compute the spectral function from the self energy:
+    INTEGER  :: i, ie, it
+    INTEGER  :: nu0(3)
+    REAL(DP) :: gamma, delta, omega, denom
+    COMPLEX(DP) :: tepsilon(ne,S%nat3,nconf)
+    ! FUNCTION RESULT:
+    REAL(DP)    :: spectralf(ne,S%nat3,nconf)
+    !
+    ! Once we have the self-energy, the rest is trivial
+    tepsilon = tepsilon_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1)
+    !
+      timer_CALL t_mkspf%start()
+    DO it = 1,nconf
+      DO i = 1,S%nat3
+        DO ie = 1,ne
+          !IF(freq1(i)/=0._dp)THEN
+            spectralf(ie,i,it) = DIMAG(tepsilon(ie,i,it))
+          !ELSE
+          !  spectralf(ie,i,it) = 0._dp
+          !ENDIF
+        ENDDO
+      ENDDO
+    ENDDO
+      timer_CALL t_mkspf%stop()
+    !
+  END FUNCTION spectre2_q  
+  !
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  !  Complex \tilde{epsilon} in a range of frequencies
+  ! Experimental subroutine, assumes the material cubic and takes
+  ! epsilon(1,1) as epsilon_infty
+  FUNCTION tepsilon_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1) &
+  RESULT(tepsilon)
+    USE q_grids,          ONLY : q_grid
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
+    USE constants,        ONLY : fpi
+    !
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq0(3)
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
+    !
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ener(ne)
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: grid
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    !
+    REAL(DP),INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),INTENT(in) :: U1(S%nat3,S%nat3)
+    !
+    ! To compute the spectral function from the self energy:
+    INTEGER  :: i, ie, it, j
+    INTEGER  :: nu0(3)
+    REAL(DP) :: pref, epsilon_infty, rmass, zeu_i2
+    COMPLEX(DP) :: denom
+    COMPLEX(DP):: selfnrg(ne,S%nat3,nconf)
+    ! FUNCTION RESULT:
+    COMPLEX(DP)    :: tepsilon(ne,S%nat3,nconf)
+    ! 
+    IF(.not.S%lrigid) CALL errore("tepsilon","Cannot compute \tilde{epsilon} without epsilon0", 1)
+    ioWRITE(*,*) "BEWARE: tepsilon is only isotropic"
+    ! 
+    ! Once we have the self-energy, the rest is trivial
+    selfnrg = selfnrg_omega_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1)
+    !
+    ! S = 4piZ^2/(volume mass omega0^2)
+    
+    rmass = S%amass(1)*S%amass(2)/(S%amass(1)+S%amass(2))
+    epsilon_infty = S%epsil(1,1)
+    zeu_i2        = S%zeu(1,1,1)**2
+    pref =  fpi * zeu_i2 /(S%omega * rmass)
+    !pref = 1/freq1(i)**2 ! 4 pi Z^2  / (Volume mu  omega0^2) # mu = reduced mass
+!     print*, "rmass", rmass, S%amass(1:2)
+!     print*, "epsilon", epsilon_infty
+!     print*, "zeu2", zeu_i2
+!     print*, "pref", pref
+!     print*, "vol", S%omega 
+!     print*, "denom", rmass*S%omega
+!     print*, "fpi * zeu_i2", fpi * zeu_i2
+!  denom   1002568.9328649712     
+!  epsilon   3.1410114605330000     
+!  fpi * zeu_i2   48.024054760187823     
+!  pref   4.7901000306236137E-005
+!  rmass   8793.6751743770546        22152.652305024902        14582.196429874200     
+!  vol   114.01023041950073     
+!  zeu2   3.8216328511998792 
+!  
+      timer_CALL t_mkspf%start()
+    tepsilon = DCMPLX(0._dp, 0._dp)
+    DO it = 1,nconf
+      DO i = 1,S%nat3
+        IF(freq1(i)==0._dp) CYCLE
+        DO ie = 1,ne
+          denom = freq1(i)**2 - ener(ie)**2 - 2*freq1(i)*selfnrg(ie,i,it)
+          IF(denom==DCMPLX(0._dp,0._dp)) CYCLE
+          !tepsilon(ie,i,it) = 1 + pref*freq1(i)**2/denom
+          tepsilon(ie,i,it) = epsilon_infty + pref/denom
+        ENDDO
+      ENDDO
+    ENDDO
+      timer_CALL t_mkspf%stop()
+    !
+  END FUNCTION tepsilon_q
+  !
+  ! <<^V^\\=========================================//-//-//========//O\\//
+  ! Infra red reflectivity |sqrt(epsilon)+1/sqrt(epsilon)-1|^2
+  ! Experimental! Assumes isoropic material and a bunch of other stuff
+  FUNCTION ir_reflectivity_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1) &
+  RESULT(reflectivity)
+    USE q_grids,          ONLY : q_grid
+    USE input_fc,         ONLY : ph_system_info
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3
+    !
+    IMPLICIT NONE
+    !
+    REAL(DP),INTENT(in) :: xq0(3)
+    INTEGER,INTENT(in)  :: nconf
+    REAL(DP),INTENT(in) :: T(nconf)     ! Kelvin
+    !
+    INTEGER,INTENT(in)  :: ne
+    REAL(DP),INTENT(in) :: ener(ne)
+    !
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    CLASS(forceconst3),INTENT(in)     :: fc3
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(q_grid),INTENT(in)      :: grid
+    REAL(DP),INTENT(in) :: sigma(nconf) ! ry
+    !
+    REAL(DP),INTENT(in) :: freq1(S%nat3)
+    COMPLEX(DP),INTENT(in) :: U1(S%nat3,S%nat3)
+    !
+    ! To compute the spectral function from the self energy:
+    INTEGER  :: i, ie, it
+    INTEGER  :: nu0(3)
+    REAL(DP) :: gamma, delta, omega, denom
+    COMPLEX(DP) :: tepsilon(ne,S%nat3,nconf)
+    COMPLEX(DP) :: aux(ne),aux2(ne)
+    ! FUNCTION RESULT:
+    REAL(DP)    :: reflectivity(ne,S%nat3,nconf)
+    !
+    ! We use tilde{epsilon}, which itself comes from the self-energy
+    tepsilon = tepsilon_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1)
+    !
+      timer_CALL t_mkspf%start()
+    DO it = 1,nconf
+      DO i = 1,S%nat3
+        aux  = ZSQRT(tepsilon(:,i,it))
+        aux2 = (aux-1)/(aux+1)
+        reflectivity(:,i,it) = DBLE(aux2*CONJG(aux2))
+      ENDDO
+    ENDDO
+      timer_CALL t_mkspf%stop()
+    !
+  END FUNCTION ir_reflectivity_q
   !
   ! Sum the self energy at the provided ener(ne) input energies
   ! \/o\________\\\_________________________________________/^>
@@ -547,7 +781,7 @@ MODULE linewidth
   END FUNCTION sum_selfnrg_spectre
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Sum the self energy for the phonon modes
+  ! Sum the self energy in a range of frequencies
   FUNCTION sum_selfnrg_modes(S, sigma, T, freq, bose, V3sq, nu0)
     USE input_fc,           ONLY : ph_system_info
     USE functions,          ONLY : df_bose
@@ -730,38 +964,8 @@ MODULE linewidth
     sum_linewidth_modes = lw
     !
   END FUNCTION sum_linewidth_modes
-  ! Sum the Imaginary part of the self energy for the phonon modes,
-  ! NOTE: test function! It computes the full self-energy then it takes the imag part
-  !       the interesting part is the conversion between the sigma of a Gaussian
-  !       and the width of a Lorentzian
-!   ! \/o\________\\\_________________________________________/^>
-!   FUNCTION sum_linewidth_modes2(S, sigma, freq, bose, V3sq, nu0)
-!     USE input_fc,           ONLY : ph_system_info
-!     IMPLICIT NONE
-!     TYPE(ph_system_info),INTENT(in)   :: S
-!     REAL(DP),INTENT(in) :: sigma
-!     REAL(DP),INTENT(in) :: freq(S%nat3,3)
-!     REAL(DP),INTENT(in) :: bose(S%nat3,3)
-!     REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3)
-!     INTEGER,INTENT(in)  :: nu0(3)
-!     !
-!     ! Gaussian: exp(x^2/(2s^2)) => FWHM = 2sqrt(2log(2)) s
-!     ! Wrong Gaussian exp(x^2/c^2) => FWHM = 2 sqrt(log(2)) c
-!     ! Lorentzian: (g/2)/(x^2 + (g/2)^2) => FWHM = g
-!     ! Wrong Lorentzian: d/(x^2+d^2) => FWHM = 2d
-!     !  =>  g = 2 sqrt(log(2) c = 0.6 c
-!     REAL(DP),PARAMETER :: csig =  (2 * DSQRT(DLOG(2._dp)))
-!     REAL(DP) :: tsigma
-!     !
-!     REAL(DP) :: sum_linewidth_modes2(S%nat3)
-!     COMPLEX(DP) :: se(S%nat3)
-!     !
-!     tsigma = csig*sigma
-!     se = sum_selfnrg_modes(S, tsigma, freq, bose, V3sq, nu0)
-!     sum_linewidth_modes2  = -DIMAG(se)
-!     !
-!   END FUNCTION sum_linewidth_modes2
-  !
+
+  ! \/o\________\\\_________________________________________/^>
   ! Add the elastic peak of Raman
   SUBROUTINE add_exp_t_factor(nconf, T, ne, nat3, ener, spectralf)
     USE functions,      ONLY : f_bose
@@ -790,6 +994,7 @@ MODULE linewidth
     !
   END SUBROUTINE add_exp_t_factor
   !
+  ! \/o\________\\\_________________________________________/^>
   SUBROUTINE gauss_convolution(nconf, T, ne, nat3, ener, spectralf)
     USE functions,      ONLY : f_bose
     IMPLICIT NONE
