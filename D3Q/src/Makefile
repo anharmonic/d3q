@@ -9,7 +9,7 @@ STRIP = true
 #          $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../PHonon/PH $(MOD_FLAG). $(MOD_FLAG)../../LR_Modules
 MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
           $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
-	  $(MOD_FLAG).
+	  $(MOD_FLAG)../../upflib $(MOD_FLAG).
 
 D3QOBJS = d3q.o
 
@@ -64,7 +64,8 @@ PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/libks_solvers.a ../../KS_Solvers/CG/libcg.a \
-         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../dft-d3/libdftd3qe.a
+         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a \
+	 ../../dft-d3/libdftd3qe.a ../../upflib/libupf.a
 
 LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a
 

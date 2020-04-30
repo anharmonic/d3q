@@ -63,9 +63,12 @@ program d3q
 !
   USE mp_pools,        ONLY : intra_pool_comm
   USE mp_bands,        ONLY : intra_bgrp_comm, inter_bgrp_comm
-  USE mp_diag,         ONLY : mp_start_diag
+!  USE mp_diag,         ONLY : mp_start_diag
   USE command_line_options,  ONLY : input_file_, ndiag_
-  implicit none
+
+  IMPLICIT NONE
+  include 'laxlib.fh'
+
   TYPE d3matrix_with_permutations
     COMPLEX(DP),ALLOCATABLE :: dyn(:,:,:)
   END TYPE
@@ -96,9 +99,14 @@ program d3q
   ! Initialize MPI, clocks, print initial messages
   !
 #ifdef __MPI
-  CALL mp_startup ( )
-  CALL mp_startup ( start_images=.false. )
-  CALL mp_start_diag ( ndiag_, world_comm, intra_bgrp_comm, &
+!  CALL mp_startup ( )
+!  CALL mp_startup ( start_images=.false. )
+!  CALL mp_start_diag ( ndiag_, world_comm, intra_bgrp_comm, &
+!       do_distr_diag_inside_bgrp_ = .true. )
+!  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
+!       inter_bgrp_comm )
+  CALL mp_startup ( start_images=.true. )
+  CALL laxlib_start ( ndiag_, world_comm, intra_bgrp_comm, &
        do_distr_diag_inside_bgrp_ = .true. )
   CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
        inter_bgrp_comm )
@@ -729,6 +737,7 @@ program d3q
   !
   CALL stop_clock('D3TOTEN')
   !
+  CALL laxlib_end()
   CALL stop_d3()
   !
 #ifndef __XLF
