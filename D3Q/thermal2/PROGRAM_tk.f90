@@ -83,6 +83,7 @@ MODULE thermalk_program
     INTEGER  :: iq, it, a, b, nu
     !
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
+    LOGICAL :: gamma
     !TYPE(order_type) :: order
     !
     sigma_ry = input%sigma/RY_TO_CMM1
@@ -227,7 +228,8 @@ MODULE thermalk_program
             lw(nu,it) = - lw(nu,it)
           ENDIF
           IF( (.not. lw(nu,it)>0._dp) .and. (input%intrinsic_scattering) )THEN ! false for NaN
-            IF(ANY(ABS(vel(:,nu))>eps_vel ))THEN
+            gamma=(ALL(ABS(out_grid%xq(:,iq))<1.d-12)) 
+            IF((ANY(ABS(vel(:,nu))>eps_vel )) .and.(.not. gamma))THEN
               WRITE(stdout,'(3i6,1e20.10,5x,3e20.10)') iq, nu, it, lw(nu,it), vel(:,nu)
               CALL errore("TK_SMA", "Zero or NaN linewidth, with non-zero velocity", 1)
             ELSE

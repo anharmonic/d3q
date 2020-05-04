@@ -93,7 +93,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL DO
     !
-    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
@@ -131,7 +131,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
@@ -181,7 +181,7 @@ MODULE fc2_interpolate
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
@@ -224,7 +224,7 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid .and. present(xq_hat)) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_safe
   !
@@ -255,9 +255,17 @@ MODULE fc2_interpolate
         qhat = xq_hat
       ELSE
         qhat = 0._dp
-        qhat(1) = randy()
-        qhat(2) = randy()
-        qhat(3) = randy()
+        ! choose the direction x randomly, but we use always x
+        ! qhat matters only in gamma.
+        ! the group velocity is ill-defined in Gamma (since there is the nonanalytic term)
+        ! the nonanalytic term is real, direction-dependent and is added only in Gamma.
+        ! When we compute the group velocity, the nonanalytic term is not added because 
+        ! with the finite differences we copute D(h)-D(-h) [with h=1E-7]
+        ! thus the nonanalytic term plays a role only in the choice of the 
+        ! eigenvectors at Gamma and is added when all the components of q are smaller than 1E-12 
+        qhat(1) = 1.0 !randy()
+        qhat(2) = 0.0 !randy()
+        qhat(3) = 0.0 !randy()
       ENDIF
       qnorm = DSQRT(SUM(qhat**2))
       IF(qnorm>0._dp) qhat = qhat/qnorm
@@ -397,6 +405,7 @@ MODULE fc2_interpolate
   ! STOP if we get any negative frequencies
   SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    USE constants,          ONLY : RY_TO_CMM1
     IMPLICIT NONE
     REAL(DP),INTENT(in)               :: xq(3)
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -408,28 +417,33 @@ MODULE fc2_interpolate
     INTEGER :: i
     LOGICAL :: gamma
     !
-    CALL fftinterp_mat2(xq, S, fc2, U)
-    CALL mat2_diag(S%nat3, U, freq)
     ! RAF
     !U = CONJG(U)
-    ! Set patterns and frequency to exactly zero for Gamma (and Gamma+G)
+    CALL fftinterp_mat2(xq, S, fc2, U)
+    CALL mat2_diag(S%nat3, U, freq)
     cq = xq
     CALL cryst_to_cart(1,cq,S%at,-1)
     gamma = ALL( ABS(cq-NINT(cq))<epsq)
     IF( gamma )THEN
       freq(1:3) = 0._dp
-!      U(:,1:3) = (0._dp, 0._dp)
+      U(:,1:3) = (0._dp, 0._dp)
     ENDIF
     
     IF(ANY(freq<0._dp)) THEN
       WRITE(*,*) gamma
       WRITE(*,"('cq = ',3f12.6)") cq
       WRITE(*,"('xq = ',3f12.6)") xq
-      WRITE(*,"('freq = ',12e12.4)") freq
+      WHERE    (freq >  0.0)
+        freq = DSQRT(freq)
+      ELSEWHERE(freq < 0.0)
+        freq = -DSQRT(-freq)
+      ENDWHERE 
+      WRITE(*,"('negative freq = ',12e12.4)")freq*RY_TO_CMM1
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
-    ENDIF
+    ELSE
     !
-    freq = DSQRT(freq)
+       freq = DSQRT(freq)
+    END IF
     !
   END SUBROUTINE freq_phq_safe
   !
@@ -540,6 +554,7 @@ MODULE fc2_interpolate
     ! piece that I did not manage to track down) I'm computing the frequencies at 
     ! a tiny displacement out of Gamma
     !CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
+    ! attention! Here this routine is always called with the xq_hat argument!
     CALL fftinterp_mat2(yq, S, fc2, U, xq_hat)
     !
     CALL mat2_diag(S%nat3, U, freq)
