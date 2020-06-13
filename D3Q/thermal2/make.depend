@@ -1,9 +1,11 @@
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
+PROGRAM_decompose_d2.o : mpi_thermal.o
 PROGRAM_gruneisen.o : mpi_thermal.o
 PROGRAM_import_shengbte.o : mpi_thermal.o
 PROGRAM_interpolate2.o : mpi_thermal.o
 PROGRAM_lw.o : mpi_thermal.o
+PROGRAM_make_wedge.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
 PROGRAM_qha.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
@@ -16,6 +18,7 @@ asr2.o : mpi_thermal.o
 casimir.o : mpi_thermal.o
 cmdline_param.o : mpi_thermal.o
 code_input.o : mpi_thermal.o
+decompose_d2.o : mpi_thermal.o
 dynbubble.o : mpi_thermal.o
 eos.o : mpi_thermal.o
 f3_bwfft.o : mpi_thermal.o
@@ -60,6 +63,7 @@ PROGRAM_db.o : ./linewidth.o
 PROGRAM_db.o : ./more_constants.o
 PROGRAM_db.o : ./mpi_thermal.o
 PROGRAM_db.o : ./q_grids.o
+PROGRAM_decompose_d2.o : ./decompose_d2.o
 PROGRAM_gruneisen.o : ./PROGRAM_gruneisen.o
 PROGRAM_gruneisen.o : ./code_input.o
 PROGRAM_gruneisen.o : ./fc2_interp.o
@@ -97,6 +101,8 @@ PROGRAM_lw.o : ./mpi_thermal.o
 PROGRAM_lw.o : ./overlap.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
+PROGRAM_make_wedge.o : ./decompose_d2.o
+PROGRAM_make_wedge.o : ./input_fc.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
 PROGRAM_qha.o : ./PROGRAM_qha.o

@@ -60,6 +60,7 @@ casimir.o \
 code_input.o \
 cmdline_param.o \
 eos.o \
+decompose_d2.o \
 final_state.o \
 functions.o \
 fc2_interp.o \
@@ -89,7 +90,7 @@ MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter #gruneisen
+EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter decompose_d2 make_wedge #gruneisen
 #interpolate2
 
 all : tldeps d3q-libs thermal2-libs $(EXEC)
