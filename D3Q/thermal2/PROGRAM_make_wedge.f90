@@ -60,7 +60,7 @@ PROGRAM make_wedge
   !
   INTEGER       :: nq1, nq2, nq3, nqmax, nqs, isq (48), imq, nqq
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
-  REAL(DP) :: xq(3), sxq(3,48)
+  REAL(DP) :: xq(3), sxq(3,49)
   !
   LOGICAL :: sym(48), lrigid, skip_equivalence, time_reversal
   !
@@ -164,6 +164,8 @@ PROGRAM make_wedge
   !
   DO i = 1, rank
     d2 = basis(:,:,i)
+    WRITE(100*iq+i,*) i, xq
+    CALL star_q(xq, at, bg, nsym, s, invs, nqs, sxq, isq, imq, .true. )
     ! Generate the star of q and write it on file (i actually want to have it in a variable!)
     CALL q2qstar_ph (d2, at, bg, nat, nsym, s, invs, irt, rtau, &
                      nqs, sxq, isq, imq, 100*iq+i)
