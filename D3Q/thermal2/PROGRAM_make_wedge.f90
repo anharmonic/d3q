@@ -49,8 +49,12 @@ PROGRAM make_wedge
   USE lr_symm_base,       ONLY : rtau, nsymq, minus_q, irotmq, gi, gimq, invsymq
   USE control_lr,         ONLY : lgamma
   USE decompose_d2
-  USE input_fc,         ONLY : forceconst2_grid, ph_system_info
-  USE input_fc, ONLY : read_system, aux_system
+  USE cmdline_param_module
+  USE input_fc,           ONLY : forceconst2_grid, ph_system_info, read_system, aux_system, read_fc2, div_mass_fc2
+  USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
+  USE asr2_module,        ONLY : impose_asr2
+
+
   !
   IMPLICIT NONE
   !
@@ -68,22 +72,25 @@ PROGRAM make_wedge
   REAL(DP),ALLOCATABLE :: decomposition(:)
   INTEGER :: i,j, icar,jcar, na,nb, rank, iq
   TYPE(ph_system_info) :: Sinfo
+  TYPE(forceconst2_grid) :: fc
   !
   CALL mp_startup()
   CALL environment_start(CODE)
   !
-  ! set up output
-  IF (nargs > 1) THEN
-    CALL get_command_argument(2, filout)
-  ELSE
-      filout = "rot_"//TRIM(fildyn)
-  ENDIF
+  ! setup output
+  !fileout = cmdline_param_char("o", TRIM(fildyn)//".out")
   !
   ! Read system info from a mat2R file
-  OPEN(unit=999,file="mat2R",action='READ',status='OLD')
-  CALL read_system(999, Sinfo)
+  !OPEN(unit=999,file="mat2R",action='READ',status='OLD')
+  !CALL read_system(999, Sinfo)
+  !CALL aux_system(Sinfo)
+  !CLOSE(999)
+
+  CALL read_fc2("mat2R", Sinfo, fc)
+  CALL impose_asr2("simple", Sinfo%nat, fc, Sinfo%zeu)
   CALL aux_system(Sinfo)
-  CLOSE(999)
+  CALL div_mass_fc2(Sinfo, fc)
+  !
   ! Quantum-ESPRESSO symmetry subroutines use the global variables
   ! we copy the system data from structure S
   ntyp   = Sinfo%ntyp
@@ -120,9 +127,9 @@ PROGRAM make_wedge
   ! Find the reduced grid of q-points:
   skip_equivalence = .FALSE.
   time_reversal    = .true.
-  nq1 = 2
-  nq2 = 2
-  nq3 = 2
+  nq1 = 8
+  nq2 = 8
+  nq3 = 8
   nqmax = nq1*nq2*nq3
   ALLOCATE(x_q(3,nqmax), w_q(nqmax))
   call kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, bg, nqmax,&
@@ -131,59 +138,60 @@ PROGRAM make_wedge
   WRITE(stdout, *) "Generated ", nqs, "points"
 
   ALLOCATE(rtau( 3, 48, nat), d2(3*nat,3*nat))
+  ALLOCATE(w2(3*nat))
   Q_POINTS_LOOP : &
   DO iq = 1, nqs
     WRITE(stdout, *) "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[["
-    WRITE(stdout, '(3f12.4)') x_q(:,iq)
+    WRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
 
-
-  ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~ 
-  ! part 1: call smallg_q and the copy_sym, 
-  xq = x_q(:,iq)
-  minus_q = .true.
-
-  sym = .false.
-  sym(1:nsym) = .true.
-  CALL smallg_q(xq, 0, at, bg, nsym, s, sym, minus_q)
-  nsymq = copy_sym(nsym, sym)
-  ! recompute the inverses as the order of sym.ops. has changed
-  CALL inverse_s ( ) 
-
-
-
-  ! part 2: this computes gi, gimq
-  call set_giq (xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
-  WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
-  IF(minus_q) WRITE(stdout, '(10x,a)') "in addition sym. q -> -q+G:"
-  !
-  ! finally this does some of the above again and also computes rtau...
-  CALL sgam_lr(at, bg, nsym, s, irt, tau, rtau, nat)
-  !
-  ! the next subroutine uses symmetry from global variables
-  CALL find_d2_symm_base(xq, rank, basis)
-  !
-  DO i = 1, rank
-    d2 = basis(:,:,i)
-    WRITE(100*iq+i,*) i, xq
-    CALL star_q(xq, at, bg, nsym, s, invs, nqs, sxq, isq, imq, .true. )
-    ! Generate the star of q and write it on file (i actually want to have it in a variable!)
-    CALL q2qstar_ph (d2, at, bg, nat, nsym, s, invs, irt, rtau, &
-                     nqs, sxq, isq, imq, 100*iq+i)
-  ENDDO
-
-  !ALLOCATE(d2(3*nat,3*nat), w2(3*nat), decomposition(rank))
-  !CALL compact_dyn(nat, d2, phi)
-  !  print*, d2
-  !print*, "== DECOMPOSITION =="
-  !DO i = 1,rank
-  !  decomposition(i) = dotprodmat(3*nat,d2, basis(:,:,i))
-  !  print*, i, decomposition(i)
-  !ENDDO
-  !
-  !d2 = 0
-  !DO i = 1,rank
-  !  d2 = d2 + decomposition(i)*basis(:,:,i)
-  !ENDDO
+  
+    ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~ 
+    ! part 1: call smallg_q and the copy_sym, 
+    xq = x_q(:,iq)
+    minus_q = .true.
+  
+    sym = .false.
+    sym(1:nsym) = .true.
+    CALL smallg_q(xq, 0, at, bg, nsym, s, sym, minus_q)
+    nsymq = copy_sym(nsym, sym)
+    ! recompute the inverses as the order of sym.ops. has changed
+    CALL inverse_s ( ) 
+  
+  
+  
+    ! part 2: this computes gi, gimq
+    call set_giq (xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
+    WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
+    IF(minus_q) WRITE(stdout, '(10x,a)') "in addition sym. q -> -q+G:"
+    !
+    ! finally this does some of the above again and also computes rtau...
+    CALL sgam_lr(at, bg, nsym, s, irt, tau, rtau, nat)
+    !
+    ! the next subroutine uses symmetry from global variables
+    CALL find_d2_symm_base(xq, rank, basis)
+    !
+!    DO i = 1, rank
+!      d2 = basis(:,:,i)
+!      WRITE(100*iq+i,*) i, xq
+!      CALL star_q(xq, at, bg, nsym, s, invs, nqs, sxq, isq, imq, .true. )
+!      ! Generate the star of q and write it on file (i actually want to have it in a variable!)
+!      CALL q2qstar_ph (d2, at, bg, nat, nsym, s, invs, irt, rtau, &
+!                       nqs, sxq, isq, imq, 100*iq+i)
+!    ENDDO
+  
+    ! Interpolate the system dynamical matrix at this q
+    CALL fftinterp_mat2(xq, Sinfo, fc, d2)
+    !CALL compact_dyn(nat, d2, phi)
+    !  print*, d2
+    print*, "== DECOMPOSITION =="
+    DO i = 1,rank
+      print*, dotprodmat(3*nat,d2, basis(:,:,i))
+    ENDDO
+    !
+    !d2 = 0
+    !DO i = 1,rank
+    !  d2 = d2 + decomposition(i)*basis(:,:,i)
+    !ENDDO
 
   ENDDO Q_POINTS_LOOP
   ! print*, d2
