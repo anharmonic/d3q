@@ -77,7 +77,7 @@ subroutine find_d2_symm_base(xq, rank, basis)
      mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
    ENDDO
    ENDDO
-   WRITE(*,*) "NX::", nx
+   WRITE(*,*) "Initial basis size:", nx
   
    ! symmetrize each matrix
    DO i = 1,nx
@@ -104,7 +104,7 @@ subroutine find_d2_symm_base(xq, rank, basis)
      IF(normtx>1.d-12)THEN
       jx = jx+1
       mtx(:,:,jx) = mtx(:,:, i)/ DSQRT(normtx)
-      print*, i, jx, normtx
+      !print*, i, jx, normtx
      ENDIF
    ENDDO
    WRITE(*,*) "Number of non-zero symmetric matrices::", jx
@@ -124,7 +124,7 @@ subroutine find_d2_symm_base(xq, rank, basis)
        jx = jx+1
        mtx(:,:,jx) = mtx(:,:,i)/DSQRT(normtx)
        IF(jx<i) mtx(:,:,i) = 0._dp
-       print*, jx, i, normtx
+       !print*, jx, i, normtx
      ENDIF
    ENDDO
    PRINT*, "Number of orthonormal matrices:", jx
@@ -134,7 +134,8 @@ subroutine find_d2_symm_base(xq, rank, basis)
   ALLOCATE(basis(3*nat,3*nat,rank))
   basis(:,:,1:rank) = mtx(:,:,1:rank)
 
-   phi = 0._dp
+#ifdef __DEBUG
+  phi = 0._dp
    WRITE(*,*) "++++++++++"
    DO i = 1, nx
      IF(ANY(ABS(mtx(:,:,i))>1.d-8))THEN
@@ -146,18 +147,16 @@ subroutine find_d2_symm_base(xq, rank, basis)
             WRITE(*,*) j,k
             WRITE(*,'(3(2f7.3,3x),5x)') wdyn(:,:,j,k)
        ENDDO
-!   WRITE(*,*) "-", 1
        ENDDO
-!   WRITE(*,*) "-", 2
        call cdiagh (3 * nat, phi, 3 * nat, eigen, u)
-!   WRITE(*,*) "-", 3
        DO k = 1,3*nat
-         !IF(abs(eigen(k))>1.d-8) THEN
+         IF(abs(eigen(k))>1.d-8) THEN
             WRITE(*,'("a", f10.6, 3x, 6(2f7.3,3x))') eigen(k), u(:,k)
-         !ENDIF
+         ENDIF
        ENDDO
      ENDIF
    ENDDO
+#endif
 
    WRITE(*,*) "+", "Decomposition done"
 
@@ -206,4 +205,156 @@ function dotprodmat(n,a,b) result(r)
   r = dble(z)
 end function
 
+!
+! Given D(q), comutes the D matrics in the star of q
+!-----------------------------------------------------------------------
+subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
+     nq, sxq, isq, imq, nq_out, star_dyn)
+  !-----------------------------------------------------------------------
+  ! Generates the dynamical matrices for the star of q and writes them on
+  ! disk for later use.
+  ! If there is a symmetry operation such that q -> -q +G then imposes on
+  ! dynamical matrix those conditions related to time reversal symmetry.
+  !
+  USE kinds, only : DP
+  USE io_dyn_mat, only : write_dyn_mat
+  USE control_ph, only : xmldyn
+  implicit none
+  ! input variables
+  integer,INTENT(in) :: nat, nsym, s (3, 3, 48), invs (48), irt (48, nat), &
+       nq, isq (48), imq, nq_out
+  ! number of atoms in the unit cell
+  ! number of symmetry operations
+  ! the symmetry operations
+  ! index of the inverse operations
+  ! index of the rotated atom
+  ! degeneracy of the star of q
+  ! symmetry op. giving the rotated q
+  ! index of -q in the star (0 if non present)
+  ! unit number
+  complex(DP),INTENT(in) :: dyn (3 * nat, 3 * nat)
+  ! the input dynamical matrix. if imq.ne.0 the
+  complex(DP),INTENT(out) :: star_dyn (3 * nat, 3 * nat, nq_out)
+  ! output matrices 
+
+  real(DP),INTENT(in) :: at (3, 3), bg (3, 3), rtau (3, 48, nat), sxq (3, 48)
+  ! direct lattice vectors
+  ! reciprocal lattice vectors
+  ! for each atom and rotation gives the R vector involved
+  ! list of q in the star
+  !
+  !  local variables
+  integer :: na, nb, iq, nsq, isym, icar, jcar, i, j, counter
+  ! counters
+  ! nsq: number of sym.op. giving each q in the list
+
+  complex(DP) :: phi (3, 3, nat, nat), phi2 (3, 3, nat, nat)
+  ! work space
+  counter=0
+  !
+  ! Sets number of symmetry operations giving each q in the list
+  !
+  nsq = nsym / nq
+  if (nsq * nq /= nsym) then
+     print*, nsq, nq, nsym
+     call errore ('q2star_ph', 'wrong degeneracy', 1)
+  endif
+  !
+  ! Writes dyn.mat. dyn(3*nat,3*nat) on the 4-index array phi(3,3,nat,nat)
+  !
+  CALL scompact_dyn(nat, dyn, phi)
+  !
+  ! Go to crystal coordinates
+  !
+  do na = 1, nat
+     do nb = 1, nat
+        call trntnsc (phi (1, 1, na, nb), at, bg, - 1)
+     enddo
+  enddo
+  !
+  ! If -q is in the list impose first of all the conditions coming from
+  ! time reversal symmetry
+  !
+  if (imq /= 0) then
+     phi2 (:,:,:,:) = (0.d0, 0.d0)
+     isym = 1
+     do while (isq (isym) /= imq)
+        isym = isym + 1
+     enddo
+     call rotate_and_add_dyn (phi, phi2, nat, isym, s, invs, irt, &
+          rtau, sxq (1, imq) )
+     do na = 1, nat
+        do nb = 1, nat
+           do i = 1, 3
+              do j = 1, 3
+                 phi (i, j, na, nb) = 0.5d0 * (phi (i, j, na, nb) + &
+                                        CONJG(phi2(i, j, na, nb) ) )
+              enddo
+           enddo
+        enddo
+     enddo
+     !phi2 (:,:,:,:) = phi (:,:,:,:)
+     !!
+     !! Back to cartesian coordinates
+     !!
+     !do na = 1, nat
+     !   do nb = 1, nat
+     !      call trntnsc (phi2 (1, 1, na, nb), at, bg, + 1)
+     !   enddo
+     !enddo
+     !
+     ! Saves 4-index array phi2(3,3,nat,nat) on the dyn.mat. dyn(3*nat,3*nat)
+     !
+     !CALL compact_dyn(nat, dyn, phi2)
+  endif
+  !
+  ! For each q of the star rotates phi with the appropriate sym.op. -> phi
+  !
+  do iq = 1, nq
+     phi2 (:,:,:,:) = (0.d0, 0.d0)
+     do isym = 1, nsym
+        if (isq (isym) == iq) then
+           call rotate_and_add_dyn (phi, phi2, nat, isym, s, invs, irt, &
+                rtau, sxq (1, iq) )
+        endif
+     enddo
+     phi2 (:,:,:,:) = phi2 (:,:,:,:) / DBLE (nsq)
+     !
+     ! Back to cartesian coordinates
+     !
+     do na = 1, nat
+        do nb = 1, nat
+           call trntnsc (phi2 (1, 1, na, nb), at, bg, + 1)
+        enddo
+     enddo
+     !
+     ! Compact and store for output
+     CALL compact_dyn(nat, star_dyn(:,:,iq), phi2)
+     !write(*,'(a,i5,999(" (",2f12.7,") "))') "iq done", iq, star_dyn(:,:,iq)
+     !
+     ! TODOO : also produce the star of -q when it is not in the star of q
+     if (imq == 0) then
+        !
+        ! if -q is not in the star recovers its matrix by time reversal
+        !
+        do na = 1, nat
+           do nb = 1, nat
+              do i = 1, 3
+                 do j = 1, 3
+                    phi2 (i, j, na, nb) = CONJG(phi2 (i, j, na, nb) )
+                 enddo
+              enddo
+           enddo
+        enddo
+        !
+        ! and writes it 
+        print*, "iq done", iq+nq
+        CALL compact_dyn(nat, star_dyn(:,:,iq+nq), phi2)
+     endif
+  enddo
+  !
+  return
+end subroutine make_qstar_d2
+
 END MODULE
+
