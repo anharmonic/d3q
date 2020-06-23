@@ -770,7 +770,7 @@ PROGRAM r2q
       IF(input%print_velocity) THEN
         vel = velocity(S, fc2, qpath%xq(:,i))
         ioWRITE(output_unit+1, '(i6,f12.6,3x,3f12.6,999(3e16.8,3x))') &
-          i, qpath%w(i), qpath%xq(:,i), vel*RY_TO_CMM1
+          i, qpath%w(i), qpath%xq(:,i), vel(:,order%idx(:))
         ioFLUSH(output_unit+1)
       ENDIF
       
