@@ -33,7 +33,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
   USE d3_symmetry,     ONLY : d3_symmetrize
   USE d3_shuffle,      ONLY : d3perms, d3_shuffle_global, dperms, iperms
   USE d3_control,      ONLY : print_star, print_perm, print_trev
-  USE d3matrix_io,     ONLY : write_d3dyn_xml
+  USE d3matrix_io2,    ONLY : write_d3dyn_xml2
 
   IMPLICIT NONE
   COMPLEX(DP),INTENT(in) :: d3dyn_in( 3 * nat, 3 * nat, 3 * nat)
@@ -164,7 +164,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
   ! D3 matrix here, before writing it to file.
 
         ! Write to file
-        CALL write_d3dyn_xml(d3dyn_basename, sx3q(:,i,istq), sx3q(:,j,istq), sx3q(:,k,istq), &
+        CALL write_d3dyn_xml2(d3dyn_basename, sx3q(:,i,istq), sx3q(:,j,istq), sx3q(:,k,istq), &
                              CONJG(p3perm), ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
         !
         ! If -q1,-q2,-q3 is not in the star, use time reversal to compute its D3 and write it to file:
@@ -177,7 +177,7 @@ SUBROUTINE d3matrix(d3dyn_in, d3dyn_basename, symmetrize)
 !          WRITE(stdout, '(9x,a,3f10.6,a)') "q3: (", -sx3q(:,k,istq), " )"
           !
           FLUSH( stdout )
-          CALL write_d3dyn_xml(d3dyn_basename, &
+          CALL write_d3dyn_xml2(d3dyn_basename, &
                      -sx3q(:,i,istq), -sx3q(:,j,istq), -sx3q(:,k,istq), &
                      p3perm, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
         ENDIF

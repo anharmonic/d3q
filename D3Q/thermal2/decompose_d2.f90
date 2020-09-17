@@ -209,7 +209,7 @@ end function
 ! Given D(q), comutes the D matrics in the star of q
 !-----------------------------------------------------------------------
 subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
-     nq, sxq, isq, imq, nq_out, star_dyn)
+     nq, sxq, isq, imq, nq_out, star_dyn, star_wdyn)
   !-----------------------------------------------------------------------
   ! Generates the dynamical matrices for the star of q and writes them on
   ! disk for later use.
@@ -234,7 +234,8 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
   ! unit number
   complex(DP),INTENT(in) :: dyn (3 * nat, 3 * nat)
   ! the input dynamical matrix. if imq.ne.0 the
-  complex(DP),INTENT(out) :: star_dyn (3 * nat, 3 * nat, nq_out)
+  complex(DP),OPTIONAL,INTENT(out) :: star_dyn (3 * nat, 3 * nat, nq_out)
+  complex(DP),OPTIONAL,INTENT(out) :: star_wdyn (3,3,nat,nat, nq_out)
   ! output matrices 
 
   real(DP),INTENT(in) :: at (3, 3), bg (3, 3), rtau (3, 48, nat), sxq (3, 48)
@@ -329,7 +330,8 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
      enddo
      !
      ! Compact and store for output
-     CALL compact_dyn(nat, star_dyn(:,:,iq), phi2)
+     IF(present(star_dyn))  CALL compact_dyn(nat, star_dyn(:,:,iq), phi2)
+     IF(present(star_wdyn)) star_wdyn(:,:,:,:, iq)= phi2
      !write(*,'(a,i5,999(" (",2f12.7,") "))') "iq done", iq, star_dyn(:,:,iq)
      !
      ! TODOO : also produce the star of -q when it is not in the star of q
@@ -349,12 +351,60 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
         !
         ! and writes it 
         print*, "iq done", iq+nq
-        CALL compact_dyn(nat, star_dyn(:,:,iq+nq), phi2)
+        IF(present(star_dyn)) CALL compact_dyn(nat, star_dyn(:,:,iq+nq), phi2)
+        IF(present(star_wdyn)) star_wdyn(:,:,:,:, iq)= phi2
      endif
   enddo
   !
   return
 end subroutine make_qstar_d2
+
+! Compute the star of q (by calling star_q) and if time reversal is not
+! a symmetriic of the small group of q, all apply it to obtain the star
+! of -q
+!-----------------------------------------------------------------------
+subroutine tr_star_q (xq, at, bg, nsym, s, invs, nq, nq_tr, sxq, isq, imq, verbosity)
+  !-----------------------------------------------------------------------
+  ! generate the star of q vectors that are equivalent to the input one
+  ! NB: input s(:,:,1:nsym) must contain all crystal symmetries,
+  ! i.e. not those of the small-qroup of q only
+  !
+  USE io_global,  ONLY : stdout
+  USE kinds, only : DP
+  implicit none
+  !
+  real(DP), parameter :: accep=1.e-5_dp
+
+  integer, intent(in) :: nsym, s (3, 3, 48), invs(48)
+  ! nsym matrices of symmetry operations
+  ! invs: list of inverse operation indices
+  real(DP), intent(in) :: xq (3), at (3, 3), bg (3, 3)
+  ! xq: q vector
+  ! at: direct lattice vectors
+  ! bg: reciprocal lattice vectors
+  !
+  integer, intent(out) :: nq, nq_tr, isq (48), imq
+  ! nq  : degeneracy of the star of q
+  ! nq  : degeneracy of the star of q and -q
+  ! isq : index of q in the star for a given sym
+  ! imq : index of -q in the star (0 if not present)
+
+  real(DP), intent(out) :: sxq (3, 48)
+  ! list of vectors in the star of q
+  logical, intent(in) :: verbosity
+  ! if true prints several messages.
+
+  CALL star_q(xq, at, bg, nsym, s, invs, nq, sxq, isq, imq, verbosity )
+ 
+  IF(imq==0) THEN
+     nq_tr = 2*nq
+     IF(nq>48) CALL errore("make_wedge","unexpected imq=0 and nq_star>48/2",1)
+     sxq(:,nq+1:2*nq) = -sxq(:,1:nq)
+  ELSE
+     nq_tr = nq
+  ENDIF
+
+end subroutine
 
 END MODULE
 

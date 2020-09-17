@@ -2,9 +2,9 @@
 ! Small example program, reads two D3 matrix files and print out the difference
 !
 PROGRAM read3
-  USE kinds,       ONLY : DP
-  USE d3matrix_io, ONLY : read_d3dyn_xml
-  use cell_base,   ONLY : at, ibrav, celldm, omega
+  USE kinds,        ONLY : DP
+  USE d3matrix_io2, ONLY : read_d3dyn_xml2
+  use cell_base,    ONLY : at, ibrav, celldm, omega
 
 
   IMPLICIT NONE
@@ -43,11 +43,11 @@ PROGRAM read3
     fname2 = TRIM(fname2)//"/"//TRIM(basename)
   ENDIF
   !
-  !CALL read_d3dyn_xml(fname1, d3=p3, nat=natoms)
-  !CALL read_d3dyn_xml(fname2, d3=q3)
+  !CALL read_d3dyn_xml2(fname1, d3=p3, nat=natoms)
+  !CALL read_d3dyn_xml2(fname2, d3=q3)
   INQUIRE(file=fname1, exist=exst)
   IF(.not. exst) STOP 1
-  CALL read_d3dyn_xml(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, &
+  CALL read_d3dyn_xml2(fname1, xq1, xq2, xq3, d3=p3, nat=natoms, ibrav=ibrav, &
                       celldm=celldm, at=at, file_format_version=format_version)
   IF(format_version=="1.0.0") p3 = CONJG(p3)
 
@@ -59,7 +59,7 @@ PROGRAM read3
 
   INQUIRE(file=fname2, exist=exst)
   IF(.not. exst) STOP 2
-  CALL read_d3dyn_xml(fname2, xq1, xq2, xq3, d3=q3, file_format_version=format_version)
+  CALL read_d3dyn_xml2(fname2, xq1, xq2, xq3, d3=q3, file_format_version=format_version)
   IF(format_version=="1.0.0") q3 = CONJG(q3)
   !
   maxdiff = 0._dp
@@ -115,7 +115,7 @@ PROGRAM read3
 !   at(:,3) = (/ -0.5,  0.5,  0.0 /)
 !   !
 !   ! in questo caso l'opzione seek=.true. DEVE essere specificata
-!   CALL read_d3dyn_xml(fname, xq1, xq2, xq3, nat=natoms, seek=.true.)
+!   CALL read_d3dyn_xml2(fname, xq1, xq2, xq3, nat=natoms, seek=.true.)
 !   ! leggo solo nat (nota che devo specificare nat=argomento)
 !   WRITE(*,'(5x,a,i3)') "File found, nat:", natoms
 !   ! inoltre in output ricevo xq1, xq2 e xq3 in coordinate cartesiane:
@@ -123,17 +123,17 @@ PROGRAM read3
 !   ! Metodo 2: fornisco il nome completo del file
 !   fname="anh_Q1.-1o2_-1o2_0_Q2.1o2_1o2_0_Q3.0_0_0"
 !   ! Nota: non serve allocare p3, viene allocato automaticamente alla dimensione giusta all'interno
-!   CALL read_d3dyn_xml(fname, xq1, xq2, xq3, p3) 
+!   CALL read_d3dyn_xml2(fname, xq1, xq2, xq3, p3) 
 !   ! ... in questo caso xq1, xq2 e xq3 vengono letti
 !   WRITE(*,'(5x,a,3(3f10.5,2x))') "File found, :", xq1, xq2, xq3
 !   !
 !   ! Metodo 3: se il file non esiste e ho specificato il parametro "found" il codice non crasha:
-!   CALL read_d3dyn_xml("brfgzap", xq1, xq2, xq3, found=found) 
+!   CALL read_d3dyn_xml2("brfgzap", xq1, xq2, xq3, found=found) 
 !   ! .. questo funziona sia con seek=.true. che con seek assente o falso
 !   WRITE(*, '(5x,a,l8)') "File found?", found
 !   !
 !   ! In generale:
-!   ! CALL read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass,found,seek)
+!   ! CALL read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass,found,seek)
 !   !
 !   ! I parametri sono:
 ! !     INTEGER,OPTIONAL,INTENT(out)          :: nat, ntyp       ! number of atoms and atomic species

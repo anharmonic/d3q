@@ -2,7 +2,7 @@
 
 # Clean the Example subdirectories 
 # Only clean the third level inside tutorial because the second contains mat* files
-for i in Silicon Graphene Tutorial*/DAY*/PART* ; do
+for i in MgO Silicon Graphene Tutorial*/DAY*/PART* ; do
 	( 
 	  cd $i
 	  rm -rf tmp/ drhox_e* out* *.out TK* LW* FIL* TMP* mat2* mat3* dyn* CRASH drho_e*

@@ -92,7 +92,7 @@ PROGRAM d3_sc2c
 !       WRITE(6,'(2x,a,i3)') 'Reading third order unit cell  dynamical matrix from file "'//TRIM(fileD3UC)//'"', i
     ENDIF
 
-    CALL read_d3dyn_xml(file, PT%q1,PT%q2,PT%q3, PT%phiq, PT%ntyp, PT%nat, PT%ibrav, PT%celldm, &
+    CALL read_d3dyn_xml2(file, PT%q1,PT%q2,PT%q3, PT%phiq, PT%ntyp, PT%nat, PT%ibrav, PT%celldm, &
                         PT%at, PT%ityp, PT%tau, PT%atm, PT%amass)
 
     CLOSE(u )

@@ -107,7 +107,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   USE io_files,         ONLY : prefix, check_tempdir
   USE io_global,        ONLY : stdout, ionode, ionode_id
   USE mp,               ONLY : mp_bcast, mp_barrier
-  USE d3matrix_io,      ONLY : d3matrix_filename
+  USE d3matrix_io2,     ONLY : d3matrix_filename2
   USE d3_control,       ONLY : d3dir
   USE wrappers,         ONLY : f_mkdir
   USE io_files,         ONLY : tmp_dir, wfc_dir
@@ -128,7 +128,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   !
   ! Generate a prefix for the D3 calculation which depends on the q point, to prevent overwrites:
   IF(ionode)THEN
-    tmp_dir_d3 = TRIM(d3matrix_filename(xq1, xq2, xq3, at, TRIM(d3dir)//"/D3"))//"/"
+    tmp_dir_d3 = TRIM(d3matrix_filename2(xq1, xq2, xq3, at, TRIM(d3dir)//"/D3"))//"/"
     WRITE(stdout, '(5x,a,/,7x,a)') "Temporary directory set to:", TRIM(tmp_dir_d3)
     tmp_dir = tmp_dir_d3
     wfc_dir = tmp_dir_d3

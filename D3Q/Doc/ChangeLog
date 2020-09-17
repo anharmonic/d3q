@@ -1,3 +1,16 @@
+v 1.1.8 - WIP
+* Removed dependency on iotk
+
+v 1.1.7
+* More bugfixes
+* Aligned with QE 6.5
+* Aligned with QE 6.6
+
+
+v 1.1.6
+* Bugfix to align with the porting of XC libraries in core QE
+* Restart of tk code when doing CGP improved b yadding one more checkpoint after SMA
+
 v 1.1.5
 * Bugfix for d3q not working in parallel due to changes in band group diagonalization
 * Also check experimental QHA code

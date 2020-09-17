@@ -16,9 +16,10 @@ MODULE quter_module
 
   CONTAINS
 
-  SUBROUTINE quter(nq1, nq2, nq3, nat,tau,at,bg, matq, gridq, fc)
+  SUBROUTINE quter(nq1, nq2, nq3, nat,tau,at,bg, matq, gridq, fc, far)
     USE input_fc,  ONLY : forceconst2_grid, allocate_fc2_grid, write_fc2
     USE constants, ONLY : tpi
+    USE functions, ONLY : default_if_not_present
     IMPLICIT NONE
     ! Dummy arguments
     INTEGER,INTENT(in)     :: nq1, nq2, nq3 ! dimensions of the q-points grid
@@ -28,10 +29,10 @@ MODULE quter_module
     COMPLEX(DP),INTENT(in) :: matq(3,3,nat,nat,nq1*nq2*nq3)
     REAL(DP),INTENT(in)    :: gridq(3,nq1*nq2*nq3)
     TYPE(forceconst2_grid),INTENT(out) :: fc
+    INTEGER,OPTIONAL,INTENT(in) :: far
     !
-    INTEGER,PARAMETER :: far = 2
     REAL(DP),PARAMETER :: eps = 1.d-8
-    INTEGER :: i, na1, na2, j1,j2, jn1,jn2,  iiq, iR, l1,l2,l3
+    INTEGER :: i, na1, na2, j1,j2, jn1,jn2,  iiq, iR, l1,l2,l3, far_
     INTEGER :: nRbig, nqt
     REAL(DP),ALLOCATABLE :: Rbig(:,:)
     REAL(DP) :: aus, arg, dist(3), totalweight, Rx(3)
@@ -50,6 +51,8 @@ MODULE quter_module
     !
     COMPLEX(DP),POINTER :: matR(:,:,:,:,:) => null()
     !
+    far_ = default_if_not_present(2, far)
+
     nqt = nq1*nq2*nq3
     atws(:,1) = nq1*at(:,1)
     atws(:,2) = nq2*at(:,2)
@@ -58,12 +61,12 @@ MODULE quter_module
     CALL wsinit(rws,nrwsx,nrws,atws)
     !
     ! Construct a big enough lattice of Supercell vectors
-    nRbig = (2*far*nq1+1)*(2*far*nq2+1)*(2*far*nq3+1)
+    nRbig = (2*far_*nq1+1)*(2*far_*nq2+1)*(2*far_*nq3+1)
     ALLOCATE(Rbig(3,nRbig))
     nRbig=0
-    DO l1=-far*nq1,far*nq1
-    DO l2=-far*nq2,far*nq2
-    DO l3=-far*nq3,far*nq3
+    DO l1=-far_*nq1,far_*nq1
+    DO l2=-far_*nq2,far_*nq2
+    DO l3=-far_*nq3,far_*nq3
       nRbig=nRbig+1
       Rbig(:, nRbig) = at(:,1)*l1 +at(:,2)*l2 +at(:,3)*l3
     END DO

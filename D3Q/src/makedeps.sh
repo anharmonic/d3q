@@ -22,7 +22,7 @@ for dir in $dirs; do
     # set inter-directory dependencies - only directories containing
     # modules that are used, or files that are included, by routines
     # in directory DIR should be listed in DEPENDS
-    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../iotk/src ../../FFTXlib ../../LAXlib ../../LR_Modules ../../UtilXlib ../../upflib"
+    DEPENDS=". ../../Modules ../../PW/src  ../../PHonon/PH ../../iotk/src ../../FFTXlib ../../LAXlib ../../LR_Modules ../../UtilXlib ../../upflib ../../FoX/finclude/"
     # generate dependencies file (only for directories that are present)
     if test -d $DIR
     then
@@ -35,6 +35,7 @@ for dir in $dirs; do
         sed '/@\/cineca\/prod\/hpm\/include\/f_hpm.h@/d' \
             make.depend > make.depend.tmp
         sed '/@iso_c_binding@/d;/@ifcore@/d;/@iso_fortran_env@/d' make.depend.tmp > make.depend
+        sed -i '/@fox_dom@/d;/@fox_wxml@/d;/@m_common_io@/d;/@fox_sax@/d;/@fox_common@/d'  make.depend
 
         if test "$DIR" = "Modules"
         then

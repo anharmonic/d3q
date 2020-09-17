@@ -112,7 +112,7 @@ SUBROUTINE d3_grid_init(nq1,nq2,nq3, xq_base)
   USE d3_shuffle,      ONLY : nperms, d3perms_order
   USE qstar_d3_module, ONLY : star_3q
   USE io_global,       ONLY : stdout
-  USE d3matrix_io,     ONLY : d3matrix_filename
+  USE d3matrix_io2,    ONLY : d3matrix_filename2
   !
   IMPLICIT NONE
   INTEGER,INTENT(in) :: nq1,nq2,nq3
@@ -240,7 +240,7 @@ SUBROUTINE d3_grid_init(nq1,nq2,nq3, xq_base)
       !
       ! Compute the star of the new triplet
       WRITE(stdout,'(7x,i5,":",3x,3("(",3f8.4," )",3x),a)') n3q, x3q(:,:,n3q), &
-         TRIM(d3matrix_filename(x3q(:,1,n3q), x3q(:,2,n3q), x3q(:,3,n3q), at, '-->'))
+         TRIM(d3matrix_filename2(x3q(:,1,n3q), x3q(:,2,n3q), x3q(:,3,n3q), at, '-->'))
       !
       CALL star_3q(x3q(:,1,n3q), x3q(:,2,n3q), x3q(:,3,n3q), &
                    at, bg, nsym, s, invs, nst3q(n3q),        &

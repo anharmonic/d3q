@@ -53,7 +53,7 @@ program d3q
   USE d3_reset_module,    ONLY : d3_reset
   USE allocate_d3_module, ONLY : allocate_d3
   USE stop_d3_module,     ONLY : stop_d3
-  USE d3matrix_io,        ONLY : read_d3dyn_xml
+  USE d3matrix_io2,       ONLY : read_d3dyn_xml2
   USE d3_open,            ONLY : listu_d3
   USE d3_restart,         ONLY : d3_check_restart, d3_check_time, d3_from_scratch
   USE d3_debug
@@ -151,7 +151,7 @@ program d3q
     xq3 = d3_triplets(i_triplet)%xq3
     !
     IF(restart)THEN
-      CALL read_d3dyn_xml(fild3dyn, xq1,xq2,xq3, at=at, found=found, seek=.true.)
+      CALL read_d3dyn_xml2(fild3dyn, xq1,xq2,xq3, at=at, found=found, seek=.true.)
       IF(found) THEN
         write( stdout, '(/,5x,"===================================================")')
         write( stdout,   '(5x,"=       triplet ",i4," already done (skipping)      =")') i_triplet

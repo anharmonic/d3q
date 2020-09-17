@@ -15,7 +15,13 @@ MODULE functions
   USE kinds,     ONLY : DP
   USE constants, ONLY : pi
   IMPLICIT NONE
-  
+
+  INTERFACE default_if_not_present
+    MODULE PROCEDURE default_if_not_present_int
+    MODULE PROCEDURE default_if_not_present_logical
+  END INTERFACE
+
+
   REAL(DP),PARAMETER :: one_over_sqrt_2_pi = 1._dp / DSQRT( 2*pi)
   REAL(DP),PARAMETER :: one_over_sqrt_pi = 1._dp / DSQRT(pi)
   REAL(DP),PARAMETER :: one_over_pi = 1._dp / pi
@@ -338,7 +344,19 @@ recursive subroutine quicksort_idx(a, idx, first, last)
   if (j+1 < last)  call quicksort_idx(a, idx, j+1, last)
 end subroutine quicksort_idx
 
-  LOGICAL FUNCTION default_if_not_present(deft, arg)
+  INTEGER FUNCTION default_if_not_present_int(deft, arg) &
+          RESULT(default_if_not_present)
+    INTEGER,INTENT(in) :: deft
+    INTEGER,OPTIONAL,INTENT(in) :: arg
+    IF(present(arg)) THEN
+      default_if_not_present = arg
+    ELSE
+      default_if_not_present = deft
+    ENDIF
+    
+  END FUNCTION
+  LOGICAL FUNCTION default_if_not_present_logical(deft, arg) &
+          RESULT(default_if_not_present)
     LOGICAL,INTENT(in) :: deft
     LOGICAL,OPTIONAL,INTENT(in) :: arg
     IF(present(arg)) THEN

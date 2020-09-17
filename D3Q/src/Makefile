@@ -27,7 +27,7 @@ d3_init.o \
 d3_iofiles.o \
 d3ionq.o \
 d3matrix.o \
-d3matrix_io.o \
+d3matrix_io2.o \
 d3_nlcc.o \
 d3_open.o \
 d3_readin.o \

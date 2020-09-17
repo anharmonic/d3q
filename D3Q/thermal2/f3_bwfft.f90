@@ -48,7 +48,7 @@ MODULE f3_bwfft
   ! \/o\________\\\________________\\/\_________________________/^>
   SUBROUTINE read_d3_matrices(nq, nq_trip, S, d3grid)
     USE kinds,       ONLY : DP
-    USE d3matrix_io, ONLY : read_d3dyn_xml
+    USE d3matrix_io2,ONLY : read_d3dyn_xml2
     USE d3_shuffle !,  ONLY : nperms, d3perms_order2, d3_shuffle_global, d3_shuffle_equiv
     USE d3_basis,    ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE parameters,  ONLY : ntypx
@@ -88,7 +88,7 @@ MODULE f3_bwfft
 
       IF(first)THEN
         first=.false.
-        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
+        CALL read_d3dyn_xml2(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
                             nat=S%nat, atm=S%atm, ntyp=S%ntyp, &
                             ityp=S%ityp, ibrav=S%ibrav, celldm=S%celldm, at=S%at,&
                             amass=S%amass, tau=S%tau, seek=.false.,&
@@ -101,7 +101,7 @@ MODULE f3_bwfft
         ALLOCATE(d3_shuffled(3,3,3, S%nat, S%nat, S%nat))
         !
       ELSE
-        CALL read_d3dyn_xml(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
+        CALL read_d3dyn_xml2(filename, xq(:,1), xq(:,2), xq(:,3), d3=d3, &
                             nat=Sx%nat, atm=Sx%atm, ntyp=Sx%ntyp, &
                             ityp=Sx%ityp, ibrav=Sx%ibrav, celldm=Sx%celldm, at=Sx%at,&
                             amass=Sx%amass,tau=Sx%tau, seek=.false.,&
@@ -540,7 +540,7 @@ MODULE f3_bwfft
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
-    USE d3matrix_io,      ONLY : write_d3dyn_xml
+    USE d3matrix_io2,     ONLY : write_d3dyn_xml2
     IMPLICIT NONE
     INTEGER :: nq_trip
     TYPE(d3_list),INTENT(in) :: d3grid(nq_trip)
@@ -574,7 +574,7 @@ MODULE f3_bwfft
       ENDIF
       IF(write_diff .and. (rmaxi>1.d-5 .or. imaxi>1.d-5) )THEN
         CALL d3_3idx_2_6idx(S%nat, D3, D3_6idx)
-        CALL write_d3dyn_xml(trim(write_diff_prefix), &
+        CALL write_d3dyn_xml2(trim(write_diff_prefix), &
                             d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3,&
                             D3_6idx, S%ntyp, S%nat, S%ibrav, S%celldm, S%at, S%ityp, &
                             S%tau, S%atm, S%amass)
@@ -606,7 +606,7 @@ MODULE f3_bwfft
     USE input_fc,         ONLY : ph_system_info
     USE d3_basis,         ONLY : d3_3idx_2_6idx, d3_6idx_2_3idx
     USE fc3_interpolate,  ONLY : grid
-    USE d3matrix_io,      ONLY : write_d3dyn_xml
+    USE d3matrix_io2,     ONLY : write_d3dyn_xml2
     USE functions,        ONLY : refold_bz
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nq(3)
@@ -654,7 +654,7 @@ MODULE f3_bwfft
       CALL fc3%interpolate(d3grid(iq)%xq2, d3grid(iq)%xq3, S%nat3, D3)
       CALL d3_3idx_2_6idx(S%nat, D3, d3grid(iq)%d)
       IF(writed3) THEN
-        CALL write_d3dyn_xml("atmp", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, &
+        CALL write_d3dyn_xml2("atmp", d3grid(iq)%xq1, d3grid(iq)%xq2, d3grid(iq)%xq3, &
                               d3grid(iq)%d, S%ntyp, S%nat, S%ibrav, S%celldm, S%at,  &
                               S%ityp, S%tau, S%atm, S%amass)
       ENDIF

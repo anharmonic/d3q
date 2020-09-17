@@ -51,9 +51,10 @@ PROGRAM make_wedge
   USE decompose_d2
   USE cmdline_param_module
   USE input_fc,           ONLY : forceconst2_grid, ph_system_info, read_system, aux_system, read_fc2, &
-                                 div_mass_fc2, multiply_mass_dyn
+                                 div_mass_fc2, multiply_mass_dyn, write_fc2
   USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE asr2_module,        ONLY : impose_asr2
+  USE quter_module,       ONLY : quter
 
 
   !
@@ -63,17 +64,18 @@ PROGRAM make_wedge
   CHARACTER(len=256) :: fildyn, filout
   INTEGER :: ierr, nargs
   !
-  INTEGER       :: nq1, nq2, nq3, nqmax, nqs, isq (48), imq, nqq,nq_out
+  INTEGER       :: nq1, nq2, nq3, nqmax, nq_wedge, isq (48), imq, nqq
+  INTEGER       :: nq_star, nq_trstar,nq_done
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
-  REAL(DP) :: xq(3), sxq(3,48)
+  REAL(DP) :: xq(3), sxq(3,48), syq(3,48)
   !
   LOGICAL :: sym(48), lrigid, skip_equivalence, time_reversal
   !
-  COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), basis(:,:,:), star_dyn(:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:)
+  COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), basis(:,:,:), star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:)
   INTEGER :: i,j, icar,jcar, na,nb, rank, iq
   TYPE(ph_system_info) :: Sinfo
-  TYPE(forceconst2_grid) :: fc
+  TYPE(forceconst2_grid) :: fc, fcout
   !
   CALL mp_startup()
   CALL environment_start(CODE)
@@ -128,21 +130,27 @@ PROGRAM make_wedge
   ! Find the reduced grid of q-points:
   skip_equivalence = .FALSE.
   time_reversal    = .TRUE.
-  nq1 = 8
-  nq2 = 8
-  nq3 = 8
+  nq1 = 4
+  nq2 = 4
+  nq3 = 4
   nqmax = nq1*nq2*nq3
   ALLOCATE(x_q(3,nqmax), w_q(nqmax))
   call kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, bg, nqmax,&
-                    0,0,0, nq1,nq2,nq3, nqs, x_q, w_q )
+                    0,0,0, nq1,nq2,nq3, nq_wedge, x_q, w_q )
   !
-  WRITE(stdout, *) "Generated ", nqs, "points"
+  WRITE(stdout, *) "Generated ", nq_wedge, "points"
 
   ALLOCATE(rtau( 3, 48, nat), d2(3*nat,3*nat))
   ALLOCATE(w2(3*nat))
+
+  ! Variable to hold the dyn matrix and q-points of the entire grid
+  nq_done = 0
+  ALLOCATE(star_wdyn(3,3,nat,nat, nqmax))
+  ALLOCATE(xqmax(3,nqmax))
+
   Q_POINTS_LOOP : &
-  DO iq = 1, nqs
-    WRITE(stdout, *) "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[["
+  DO iq = 1, nq_wedge
+    WRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
     WRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
 
   
@@ -162,8 +170,8 @@ PROGRAM make_wedge
   
     ! part 2: this computes gi, gimq
     call set_giq (xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
-    WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
-    IF(minus_q) WRITE(stdout, '(10x,a)') "in addition sym. q -> -q+G:"
+!    WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
+!    IF(minus_q) WRITE(stdout, '(10x,a)') "in addition sym. q -> -q+G"
     !
     ! finally this does some of the above again and also computes rtau...
     CALL sgam_lr(at, bg, nsym, s, irt, tau, rtau, nat)
@@ -172,47 +180,57 @@ PROGRAM make_wedge
     ! matrices at this q point
     CALL find_d2_symm_base(xq, rank, basis)
     !
-    ! Calculate the list of points making up the star of q
-    CALL star_q(xq, at, bg, nsym, s, invs, nqs, sxq, isq, imq, .true. )
-    IF(imq/=0) THEN
-       nq_out = nqs
-       ALLOCATE(star_dyn(3*nat,3*nat, nqs))
-    ELSE ! In this cas -q is not in the star of q, but I can recover it by time-reversal D(-q) = D(q)^*
-       nq_out = 2*nqs
-       IF(nq_out>48) CALL errore("make_wedge","unexpected imq=0 and nqs>48/2",1)
-       ALLOCATE(star_dyn(3*nat,3*nat, 2*nqs))
-       sxq(:,nqs+1:2*nqs) = -sxq(:,1:nqs)
-    ENDIF
+    ! Calculate the list of points making up the star of q and of -q
+    CALL tr_star_q(xq, at, bg, nsym, s, invs, nq_star, nq_trstar, sxq, isq, imq, .false. )
+    ALLOCATE(star_dyn(3*nat,3*nat, nq_trstar))
+    WRITE(stdout, '(5x,a,2i5)') "Found star of q and -q", nq_trstar, nq_done
+    syq = sxq
+    call cryst_to_cart(nq_trstar, syq, at, -1)
+    DO i = 1, nq_trstar
+       syq(1,i) = MODULO(syq(1,i), 1._dp)
+       syq(2,i) = MODULO(syq(2,i), 1._dp)
+       syq(3,i) = MODULO(syq(3,i), 1._dp)
+       syq(:,i) = syq(:,i) * (/nq1, nq2, nq3/)
+       WRITE(stdout,'(i4,3f12.0,l2)') i, syq(:,i), (i>nq_star)
+    ENDDO
 
     ! Interpolate the system dynamical matrix at this q
     CALL fftinterp_mat2(xq, Sinfo, fc, d2)
-    ! Remove the mass factor, I cannot remove it before because al the effective
-    ! charges code assumes it is there
+    ! Remove the mass factor, I cannot remove it before becaus the effective
+    ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Sinfo,d2)
     !
-    star_dyn = 6666._dp
-!      ! Rotate the dynamical matrices making up the star of q it on file (i actually want to have it in a variable!)
+    ! Rotate the dynamical matrices to generate D(q) for every q in the star
     CALL make_qstar_d2 (d2, at, bg, nat, nsym, s, invs, irt, rtau, &
-                         nqs, sxq, isq, imq, nq_out, star_dyn)
-    DO i = 1, nq_out
-       WRITE(stdout,'(i4,3f12.4,l2, 1f15.9)') i, sxq(:,i), (i>nqs), dotprodmat(3*nat,star_dyn(:,:,i), star_dyn(:,:,i))
-    ENDDO
-    DEALLOCATE(star_dyn)
+                         nq_star, sxq, isq, imq, nq_trstar, star_dyn, &
+                         star_wdyn(:,:,:,:,nq_done+1:nq_done+nq_trstar))
+    nq_done = nq_done + nq_trstar
+    !
+    ! Just a simple check
+!    DO i = 1, nq_trstar
+!       WRITE(stdout,'(i4,3f12.4,l2, 1f15.9)') i, sxq(:,i), (i>nq_star), &
+!                       dotprodmat(3*nat,star_dyn(:,:,i), star_dyn(:,:,i))
 !    ENDDO
+    DEALLOCATE(star_dyn)
   
     !CALL compact_dyn(nat, d2, phi)
-    !  print*, d2
     print*, "== DECOMPOSITION =="
     DO i = 1,rank
       print*, dotprodmat(3*nat,d2, basis(:,:,i))
     ENDDO
     !
     !d2 = 0
+    ! print*, "== RECOMPOSITION =="
     !DO i = 1,rank
     !  d2 = d2 + decomposition(i)*basis(:,:,i)
     !ENDDO
 
   ENDDO Q_POINTS_LOOP
+  !
+  CALL quter(nq1, nq2, nq3, Sinfo%nat,Sinfo%tau,Sinfo%at,Sinfo%bg, star_wdyn, sxq, fcout, 2)
+  CALL write_fc2("matOUZ", Sinfo, fcout)
+
+
   ! print*, d2
 
   !DEALLOCATE(phi, d2, w2)

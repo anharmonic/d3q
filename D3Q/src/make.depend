@@ -56,7 +56,7 @@ d3_grid.o : ../../Modules/io_global.o
 d3_grid.o : ../../Modules/kind.o
 d3_grid.o : ../../PW/src/symm_base.o
 d3_grid.o : ./d3_shuffle.o
-d3_grid.o : ./d3matrix_io.o
+d3_grid.o : ./d3matrix_io2.o
 d3_grid.o : ./qstar_d3.o
 d3_h_psi.o : ../../LR_Modules/lrcom.o
 d3_h_psi.o : ../../Modules/becmod.o
@@ -110,7 +110,7 @@ d3_iofiles.o : ../../upflib/uspp.o
 d3_iofiles.o : ./d3_basis.o
 d3_iofiles.o : ./d3_open.o
 d3_iofiles.o : ./d3com.o
-d3_iofiles.o : ./d3matrix_io.o
+d3_iofiles.o : ./d3matrix_io2.o
 d3_iofiles.o : ./drho_add_phase.o
 d3_iofiles.o : ./set_kplus3q.o
 d3_nlcc.o : ../../FFTXlib/fft_interfaces.o
@@ -246,7 +246,7 @@ d3matrix.o : ./d3_basis.o
 d3matrix.o : ./d3_shuffle.o
 d3matrix.o : ./d3_symmetry.o
 d3matrix.o : ./d3com.o
-d3matrix.o : ./d3matrix_io.o
+d3matrix.o : ./d3matrix_io2.o
 d3matrix.o : ./qstar_d3.o
 d3matrix.o : ./rotate_d3.o
 d3matrix.o : ./set_kplus3q.o
@@ -256,6 +256,12 @@ d3matrix_io.o : ../../Modules/parameters.o
 d3matrix_io.o : ../../PHonon/PH/dfile_autoname.o
 d3matrix_io.o : ../../iotk/src/iotk_module.o
 d3matrix_io.o : ./d3com.o
+d3matrix_io2.o : ../../Modules/io_global.o
+d3matrix_io2.o : ../../Modules/kind.o
+d3matrix_io2.o : ../../Modules/parameters.o
+d3matrix_io2.o : ../../PHonon/PH/dfile_autoname.o
+d3matrix_io2.o : ../../upflib/xmltools.o
+d3matrix_io2.o : ./d3com.o
 d3q.o : ../../Modules/cell_base.o
 d3q.o : ../../Modules/command_line_options.o
 d3q.o : ../../Modules/control_flags.o
@@ -290,7 +296,7 @@ d3q.o : ./d3_valence.o
 d3q.o : ./d3com.o
 d3q.o : ./d3ionq.o
 d3q.o : ./d3matrix.o
-d3q.o : ./d3matrix_io.o
+d3q.o : ./d3matrix_io2.o
 d3q.o : ./dpsi1dpsi2dv3.o
 d3q.o : ./dpsi1dv2dpsi3.o
 d3q.o : ./dq1rhodq23v.o
@@ -476,7 +482,7 @@ run_nscf_d3.o : ../../UtilXlib/mp.o
 run_nscf_d3.o : ../../upflib/uspp.o
 run_nscf_d3.o : ./d3_restart.o
 run_nscf_d3.o : ./d3com.o
-run_nscf_d3.o : ./d3matrix_io.o
+run_nscf_d3.o : ./d3matrix_io2.o
 run_nscf_d3.o : ./set_kplus3q.o
 set_kplus3q.o : ../../LR_Modules/lrcom.o
 set_kplus3q.o : ../../Modules/cell_base.o

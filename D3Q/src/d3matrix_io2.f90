@@ -1,7 +1,3 @@
-! NOTE
-! This subroutine has been superseded by d3matrix_io that uses the xmltools from upflib instead of iotk
-! I'm keeping these subroutines here for a while, in case xmltools fails
-
 !
 ! Copyright (C) 2001-2011 Quantum-ESPRSSO group
 ! This file is distributed under the terms of the
@@ -9,10 +5,9 @@
 ! in the ionode_id directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
-#ifdef __DO_NOT_COMPILE_THIS
 !
 !-----------------------------------------------------------------------
-MODULE d3matrix_io
+MODULE d3matrix_io2
 !-----------------------------------------------------------------------
   CHARACTER(len=5),PARAMETER :: format_version = "1.1.0"
 !
@@ -20,7 +15,7 @@ CONTAINS
 !
 !
 !-----------------------------------------------------------------------
-FUNCTION d3matrix_filename(xq1, xq2, xq3, at, basename)
+FUNCTION d3matrix_filename2(xq1, xq2, xq3, at, basename)
   !-----------------------------------------------------------------------
   USE kinds, ONLY : DP
   USE dfile_autoname, ONLY : dfile_generate_name
@@ -28,26 +23,26 @@ FUNCTION d3matrix_filename(xq1, xq2, xq3, at, basename)
   REAL(DP),INTENT(in) :: xq1(3), xq2(3), xq3(3)
   REAL(DP),INTENT(in) :: at(3,3)
   CHARACTER(len=*),INTENT(in) :: basename
-  CHARACTER(len=512) :: d3matrix_filename
+  CHARACTER(len=512) :: d3matrix_filename2
 
-  d3matrix_filename =  TRIM(basename) &
+  d3matrix_filename2 =  TRIM(basename) &
             // TRIM(dfile_generate_name(xq1(:), at, "_Q1")) &
             // TRIM(dfile_generate_name(xq2(:), at, "_Q2")) &
-            // TRIM(dfile_generate_name(xq3(:), at, "_Q3"))
+            // TRIM(dfile_generate_name(xq3(:), at, "_Q3")) !//".2"
   RETURN
   !-----------------------------------------------------------------------
-END FUNCTION d3matrix_filename
+END FUNCTION d3matrix_filename2
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE write_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
+SUBROUTINE write_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, ityp, tau, atm, amass)
   !-----------------------------------------------------------------------
   !
   USE kinds,      ONLY : DP
   USE parameters, ONLY : ntypx
   USE d3com,      ONLY : code_version => version
   USE io_global,  ONLY : stdout
-  USE iotk_module
+  USE xmltools
   !
   IMPLICIT NONE
   !
@@ -67,90 +62,95 @@ SUBROUTINE write_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   ! local variables
   !
   INTEGER :: i,j,k, u
-  CHARACTER(len=iotk_attlenx) :: attr
-  CHARACTER(len=iotk_namlenx) :: filename
+  CHARACTER(len=512) :: filename, atms
   CHARACTER(LEN=9)  :: cdate, ctime
 
-  filename = d3matrix_filename(xq1, xq2, xq3, at, basename)
+  filename = d3matrix_filename2(xq1, xq2, xq3, at, basename)
   WRITE(stdout,"(5x,' -->',a)") TRIM(filename)
   !
-  CALL iotk_free_unit(u)
+  !CALL iotk_free_unit(u)
+  u = xml_openfile(filename)
+  IF(u==-1) CALL errore("write_d3dyn_xml", "cannot open "//TRIM(filename),1)
   CALL date_and_tim( cdate, ctime )
   !
-    CALL iotk_write_attr(attr, "code_version",   code_version, FIRST=.TRUE.)
-    CALL iotk_write_attr(attr, "format_version", format_version)
-    CALL iotk_write_attr(attr, "date",    cdate)
-    CALL iotk_write_attr(attr, "time",    ctime)
-  CALL iotk_open_write(u, filename, root="d3", attr=attr, skip_head=.true.)
+    CALL add_attr("code_version",   code_version)
+    CALL add_attr("format_version", format_version)
+    CALL add_attr("date",    cdate)
+    CALL add_attr("time",    ctime)
+  CALL xmlw_opentag("d3")
+!  CALL iotk_open_write(u, filename, root="d3", skip_head=.true.)
     !___________________________________________________________
     !
-      CALL iotk_write_attr(attr, "bravais_index", ibrav, FIRST=.TRUE.)
-    CALL iotk_write_begin(u, "lattice", attr=attr)
+      CALL add_attr("bravais_index", ibrav)
+    CALL xmlw_opentag("lattice")
     IF(ibrav==0)THEN
-      CALL iotk_write_comment(u, "In units of alat which is in bohr units")
-        CALL iotk_write_attr(attr, "alat", celldm(1), FIRST=.TRUE.)
-      CALL iotk_write_dat(u, "unit_cell", at, columns=3, attr=attr)
+      !CALL iotk_write_comment(u, "In units of alat which is in bohr units")
+        CALL add_attr("alat", celldm(1))
+      CALL xmlw_writetag("unit_cell", at)
     ELSE
-      CALL iotk_write_comment(u, "see Doc/INPUT_PW.txt for description of ibrav and lattice parameters")
-      CALL iotk_write_dat(u, "bravais_parameters", celldm, columns=3)
+!      CALL iotk_write_comment(u, "see Doc/INPUT_PW.txt for description of ibrav and lattice parameters")
+      CALL xmlw_writetag("bravais_parameters", celldm)
     ENDIF
     !
-  CALL iotk_write_end(u, "lattice")
+  CALL xmlw_closetag() !"lattice"
   !___________________________________________________________
   !
-      CALL iotk_write_attr(attr, "number_of_species", ntyp,  newline=.true., FIRST=.TRUE.)
-      CALL iotk_write_attr(attr, "number_of_atoms",   nat,   newline=.true.)
-  CALL iotk_write_begin(u, "atoms", attr=attr)
+      CALL add_attr("number_of_species", ntyp)
+      CALL add_attr("number_of_atoms",   nat)
+  CALL xmlw_opentag("atoms")
     !
-      CALL iotk_write_comment(u, "positions are in alat units, cartesian coordinates")
-    CALL iotk_write_dat(u, "atomic_positions", tau,   columns=3)
-    CALL iotk_write_dat(u, "atomic_types",     ityp,  columns=1)
-    CALL iotk_write_dat(u, "species_names",    atm(1:ntyp),   columns=ntyp)
-      CALL iotk_write_comment(u, "masses are in Dalton atomic mass units (i.e. mass C^12=12)")
-    CALL iotk_write_dat(u, "species_masses",   amass(1:ntyp), columns=ntyp)
+!      CALL iotk_write_comment(u, "positions are in alat units, cartesian coordinates")
+    CALL xmlw_writetag("atomic_positions", tau)
+    CALL xmlw_writetag("atomic_types",     ityp)
+    WRITE(atms,*) atm(1:ntyp)
+    CALL xmlw_writetag("species_names",    atms)
+!      CALL iotk_write_comment(u, "masses are in Dalton atomic mass units (i.e. mass C^12=12)")
+    CALL xmlw_writetag("species_masses",   amass(1:ntyp))
     !
-  CALL iotk_write_end(u, "atoms")
+  CALL xmlw_closetag() !"atoms"
   !___________________________________________________________
   !
-  CALL iotk_write_begin(u, "perturbation")
-    CALL iotk_write_comment(u, "in cartesian units of 2pi/alat")
-    CALL iotk_write_dat(u, "q1", xq1, columns=3)
-    CALL iotk_write_dat(u, "q2", xq2, columns=3)
-    CALL iotk_write_dat(u, "q3", xq3, columns=3)
-  CALL iotk_write_end(u, "perturbation")
+  CALL xmlw_opentag("perturbation")
+!    CALL iotk_write_comment(u, "in cartesian units of 2pi/alat")
+    CALL xmlw_writetag("q1", xq1)
+    CALL xmlw_writetag("q2", xq2)
+    CALL xmlw_writetag("q3", xq3)
+  CALL xmlw_closetag()! "perturbation"
   !___________________________________________________________
   !
-  CALL iotk_write_begin(u, 'd3matrix')
-  CALL iotk_write_comment(u, "Each block contains the 3x3x3 tensor of cartesian displacements for atoms # i,j and k")
-  CALL iotk_write_comment(u, "i is associated with q1, j with q2 and k with q3")
-  CALL iotk_write_comment(u, "Matrix is NOT divided by the square root of masses")
+  CALL xmlw_opentag('d3matrix')
+!  CALL iotk_write_comment(u, "Each block contains the 3x3x3 tensor of cartesian displacements for atoms # i,j and k")
+!  CALL iotk_write_comment(u, "i is associated with q1, j with q2 and k with q3")
+!  CALL iotk_write_comment(u, "Matrix is NOT divided by the square root of masses")
   DO k = 1,nat
   DO j = 1,nat
   DO i = 1,nat
-      CALL iotk_write_attr(attr, "atm_i", i, FIRST=.TRUE.)
-      CALL iotk_write_attr(attr, "atm_j", j)
-      CALL iotk_write_attr(attr, "atm_k", k)
-    CALL iotk_write_dat(u, "matrix", d3(:,:,:,i,j,k), attr=attr, columns=3)
+      CALL add_attr("atm_i", i)
+      CALL add_attr("atm_j", j)
+      CALL add_attr("atm_k", k)
+    CALL xmlw_writetag("matrix", RESHAPE(d3(:,:,:,i,j,k),[27]))
   ENDDO
   ENDDO
   ENDDO
-  CALL iotk_write_end(u, 'd3matrix')
+  CALL xmlw_closetag() !'d3matrix'
+  CALL xmlw_closetag() !'d3'
   !
-  CALL iotk_close_write(u)
+  CALL xml_closefile ( )
+  !CALL iotk_close_write(u)
   !
   RETURN
   !-----------------------------------------------------------------------
-END SUBROUTINE write_d3dyn_xml
+END SUBROUTINE write_d3dyn_xml2
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, &
+SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, at, &
                           ityp, tau, atm, amass,found,seek,file_format_version)
   !-----------------------------------------------------------------------
   !
   USE kinds, only : DP
   USE parameters, ONLY : ntypx
-  USE iotk_module
+  USE xmltools
   !
   IMPLICIT NONE
   !
@@ -187,12 +187,13 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   !
   INTEGER :: i,j,k, l,m,n, u, ierr
   INTEGER :: i_nat, i_ntyp
-  CHARACTER(len=iotk_attlenx) :: attr
-  CHARACTER(len=iotk_namlenx) :: filename
+  CHARACTER(len=512) :: filename
   REAL(DP) :: xp1(3), xp2(3), xp3(3) ! dummy variables
-  CHARACTER(len=14) :: sub='read_d3dyn_xml'
+  CHARACTER(len=14) :: sub='read_d3dyn_xml2'
   LOGICAL :: do_seek
   LOGICAL,ALLOCATABLE :: d3ck(:,:,:)
+  COMPLEX(DP) :: d3block(27)
+  CHARACTER(len=512) :: atms
   !
   IF(present(found)) found=.true.
   !
@@ -202,15 +203,18 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   IF (do_seek) THEN
     IF(.not.(present(xq1).and.present(xq2).and.present(xq3).and.present(at))) &
       CALL errore(sub, '"seek" requires xq1, xq2, xq3 and at to be present!', 7)
-    filename = d3matrix_filename(xq1, xq2, xq3, at, basename)
+    filename = d3matrix_filename2(xq1, xq2, xq3, at, basename)
   ELSE
     filename = TRIM(basename)
   ENDIF
   !
-  CALL iotk_free_unit(u)
-  CALL iotk_open_read(u, filename, ierr=ierr, attr=attr)
+  !CALL iotk_free_unit(u)
+  !CALL iotk_open_read(u, filename, ierr=ierr)
+  u =  xml_openfile ( filename )
+      IF ( u == -1 ) CALL errore('read_d3dyn', 'cannot open file '//TRIM(filename),1)
+  call xmlr_opentag("d3")
   IF(present(file_format_version)) &
-      CALL iotk_scan_attr(attr, "format_version", file_format_version)
+      CALL get_attr("format_version", file_format_version)
   !
   IF (ierr/=0) THEN
     IF(present(found)) THEN
@@ -226,53 +230,55 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
     IF(.not.present(celldm)) &
       CALL errore(sub, '"ibrav", "celldm" and "at" go together', 1)
       !
-      CALL iotk_scan_begin(u, "lattice", attr=attr)
-        CALL iotk_scan_attr(attr, "bravais_index", ibrav)
+      CALL xmlr_opentag("lattice")
+        CALL get_attr("bravais_index", ibrav)
       IF(ibrav==0)THEN
         celldm = 0._dp
         IF(.not. present(at)) &
           CALL errore(sub, 'ibrav=0 and at was not present',8)
-        CALL iotk_scan_dat(u, "unit_cell", at, attr=attr)
-          CALL iotk_scan_attr(attr, "alat", celldm(1))
+        CALL xmlr_readtag("unit_cell", at)
+          CALL get_attr("alat", celldm(1))
       ELSE
-        CALL iotk_scan_dat(u, "bravais_parameters", celldm)
+        CALL xmlr_readtag("bravais_parameters", celldm)
 !         CALL latgen( ibrav, celldm, at(:,1), at(:,2), at(:,3), omega )
       ENDIF
     !
-    CALL iotk_scan_end(u, "lattice")
+    CALL xmlr_closetag() !"lattice")
   ENDIF
   !___________________________________________________________
   !
-  CALL iotk_scan_begin(u, "atoms", attr=attr)
-    CALL iotk_scan_attr(attr, "number_of_species", i_ntyp)
-    CALL iotk_scan_attr(attr, "number_of_atoms",   i_nat)
+  CALL xmlr_opentag("atoms")
+    CALL get_attr("number_of_species", i_ntyp)
+    CALL get_attr("number_of_atoms",   i_nat)
     IF(present(ntyp)) ntyp = i_ntyp
     IF(present(nat))  nat  = i_nat
     !
     IF(present(tau)) THEN
       IF(allocated(tau)) DEALLOCATE(tau)
       ALLOCATE(tau(3,i_nat))
-      CALL iotk_scan_dat(u, "atomic_positions", tau)
+      CALL xmlr_readtag("atomic_positions", tau)
     ENDIF
     IF(present(ityp)) THEN
       IF(allocated(ityp)) DEALLOCATE(ityp)
       ALLOCATE(ityp(i_nat))
-      CALL iotk_scan_dat(u, "atomic_types",     ityp)
+      CALL xmlr_readtag("atomic_types",     ityp)
     ENDIF
     ! the next two have fixed size ntypx
-    IF(present(atm)) &
-      CALL iotk_scan_dat(u, "species_names",    atm(1:i_ntyp))
+    IF(present(atm)) THEN
+      CALL xmlr_readtag("species_names",    atms)
+      READ(atms,*) atm(1:ntyp)
+    ENDIF
     IF(present(amass)) &
-      CALL iotk_scan_dat(u, "species_masses",   amass(1:i_ntyp))
+      CALL xmlr_readtag("species_masses",   amass(1:i_ntyp))
     !
-  CALL iotk_scan_end(u, "atoms")
+  CALL xmlr_closetag() !"atoms")
   !___________________________________________________________
   !
-  CALL iotk_scan_begin(u, "perturbation")
-    CALL iotk_scan_dat(u, "q1", xp1)
-    CALL iotk_scan_dat(u, "q2", xp2)
-    CALL iotk_scan_dat(u, "q3", xp3)
-  CALL iotk_scan_end(u, "perturbation")
+  CALL xmlr_opentag("perturbation")
+    CALL xmlr_readtag("q1", xp1)
+    CALL xmlr_readtag("q2", xp2)
+    CALL xmlr_readtag("q3", xp3)
+  CALL xmlr_closetag() !"perturbation")
   IF(do_seek)THEN
     IF( SUM(ABS(xp1-xq1))+SUM(ABS(xp2-xq2))+SUM(ABS(xp3-xq3)) > 1.e-6_dp) THEN
       IF(present(found)) THEN
@@ -296,32 +302,32 @@ SUBROUTINE read_d3dyn_xml(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
     ALLOCATE(d3ck(i_nat,i_nat,i_nat))
     !
     d3ck = .true.
-    CALL iotk_scan_begin(u, 'd3matrix')
+    CALL xmlr_opentag('d3matrix')
     DO k = 1,i_nat
     DO j = 1,i_nat
     DO i = 1,i_nat
       d3ck(i,j,k) = .false.
-      CALL iotk_scan_dat(u, "matrix", d3(:,:,:,i,j,k), attr=attr)
-        CALL iotk_scan_attr(attr, "atm_i", l)
-        CALL iotk_scan_attr(attr, "atm_j", m)
-        CALL iotk_scan_attr(attr, "atm_k", n)
+      CALL xmlr_readtag("matrix", d3block)
+        CALL get_attr("atm_i", l)
+        CALL get_attr("atm_j", m)
+        CALL get_attr("atm_k", n)
       IF(i/=l .or. m/=j .or. n/=k) &
         CALL errore(sub, 'problem with d3 matrix indexes', 4)
+      d3(:,:,:,i,j,k)=RESHAPE(d3block, [3,3,3])
     ENDDO
     ENDDO
     ENDDO
-    CALL iotk_scan_end(u, 'd3matrix')
+    CALL xmlr_closetag() !'d3matrix'
     IF(ANY(d3ck)) CALL errore(sub,'could not read all the d3 matrix',40)
   ENDIF
   !
-  CALL iotk_close_read(u)
+  call xml_closefile( )
   !
   RETURN
   !-----------------------------------------------------------------------
-END SUBROUTINE read_d3dyn_xml
+END SUBROUTINE read_d3dyn_xml2
 !-----------------------------------------------------------------------
 !
 !-----------------------------------------------------------------------
-END MODULE d3matrix_io
+END MODULE d3matrix_io2
 !-----------------------------------------------------------------------
-#endif

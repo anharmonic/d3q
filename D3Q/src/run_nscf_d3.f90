@@ -52,7 +52,7 @@ SUBROUTINE run_nscf_d3(do_band)
   USE input_parameters,ONLY : pseudo_dir
   USE save_ph,         ONLY : tmp_dir_save
   USE d3_restart,      ONLY : done_nscf, d3_check_restart
-  USE d3matrix_io,     ONLY : d3matrix_filename
+  USE d3matrix_io2,    ONLY : d3matrix_filename2
   USE kplus3q,         ONLY : kplusq
   USE d3_control,      ONLY : d3dir
   USE cell_base,       ONLY : at, bg
@@ -104,7 +104,7 @@ SUBROUTINE run_nscf_d3(do_band)
   !
   IF(ionode)THEN
     fileout = TRIM(d3dir)//"/"//&
-      TRIM(d3matrix_filename(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq,&
+      TRIM(d3matrix_filename2(kplusq(1)%xq, kplusq(2)%xq, kplusq(3)%xq,&
                              at, 'nscf'))//'.out'
     WRITE(stdout, '(/,5x,a)') "--> output from 'electrons' written to "//TRIM(fileout)
     FLUSH( stdout )
