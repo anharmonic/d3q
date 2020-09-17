@@ -290,6 +290,8 @@ SUBROUTINE read_d3dyn_fox(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   USE kinds, only : DP
   USE parameters, ONLY : ntypx
   USE iotk_module
+  use FoX_sax
+  use m_handlers      ! Defines begin_element, end_element, pcdata_chunk, etc
   !
   IMPLICIT NONE
   !
@@ -332,6 +334,8 @@ SUBROUTINE read_d3dyn_fox(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
   CHARACTER(len=14) :: sub='read_d3dyn_xml'
   LOGICAL :: do_seek
   LOGICAL,ALLOCATABLE :: d3ck(:,:,:)
+  integer :: iostat
+  type(xml_t)  :: fxml
   !
   IF(present(found)) found=.true.
   !
@@ -346,6 +350,43 @@ SUBROUTINE read_d3dyn_fox(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, a
     filename = TRIM(basename)
   ENDIF
   !
+
+
+  call open_xml_file(fxml, filename, iostat=iostat)
+  if (iostat /= 0) CALL errore("foxyou", "Cannot open file "//TRIM(filename), 1)
+
+  call parse(fxml,&
+    characters_handler,            &
+    endDocument_handler,           &
+    endElement_handler,            &
+    endPrefixMapping_handler,      &
+    ignorableWhitespace_handler,   &
+    processingInstruction_handler, &
+    ! setDocumentLocator
+    skippedEntity_handler,         &
+    startDocument_handler,         & 
+    startElement_handler,          &
+    startPrefixMapping_handler,    &
+    notationDecl_handler,          &
+    unparsedEntityDecl_handler,    &
+    error_handler,                 &
+    fatalError_handler,            &
+    warning_handler,               &
+    attributeDecl_handler,         &
+    elementDecl_handler,           &
+    externalEntityDecl_handler,    &
+    internalEntityDecl_handler,    &
+    comment_handler,               &
+    endCdata_handler,              &
+    endDTD_handler,                &
+    endEntity_handler,             &
+    startCdata_handler,            &
+    startDTD_handler,              &
+    startEntity_handler, validate=.true.)
+
+  call close_xml_t(fxml)
+  
+
   CALL iotk_free_unit(u)
   CALL iotk_open_read(u, filename, ierr=ierr, attr=attr)
   IF(present(file_format_version)) &
