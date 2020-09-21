@@ -5,7 +5,7 @@ include ../../make.inc
 STRIP = true #strip
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
+MODFLAGS= $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
           $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
 	  $(MOD_FLAG)../src \
 	  $(MOD_FLAG).
@@ -47,7 +47,7 @@ EXTOBJS = ../src/libd3q.a \
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib
 
-LIBOBJS = ../../clib/clib.a ../../iotk/src/libiotk.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+LIBOBJS = ../../clib/clib.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 SRC = $(shell ls *.f90 *.c|grep -v PROGRAM_)
 OBJ = $(shell ls *.f90 *.c|grep -v PROGRAM_|sed -e 's/\.f90$$/.o/' -e 's/\.c$$/.o/')

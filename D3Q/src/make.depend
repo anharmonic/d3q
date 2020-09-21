@@ -250,12 +250,6 @@ d3matrix.o : ./d3matrix_io2.o
 d3matrix.o : ./qstar_d3.o
 d3matrix.o : ./rotate_d3.o
 d3matrix.o : ./set_kplus3q.o
-d3matrix_io.o : ../../Modules/io_global.o
-d3matrix_io.o : ../../Modules/kind.o
-d3matrix_io.o : ../../Modules/parameters.o
-d3matrix_io.o : ../../PHonon/PH/dfile_autoname.o
-d3matrix_io.o : ../../iotk/src/iotk_module.o
-d3matrix_io.o : ./d3com.o
 d3matrix_io2.o : ../../Modules/io_global.o
 d3matrix_io2.o : ../../Modules/kind.o
 d3matrix_io2.o : ../../Modules/parameters.o
