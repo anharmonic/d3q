@@ -128,7 +128,8 @@ SUBROUTINE write_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm,
       CALL add_attr("atm_i", i)
       CALL add_attr("atm_j", j)
       CALL add_attr("atm_k", k)
-    CALL xmlw_writetag("matrix", RESHAPE(d3(:,:,:,i,j,k),[27]))
+    !CALL xmlw_writetag("matrix", RESHAPE(d3(:,:,:,i,j,k),[27]))
+    CALL xmlw_writetag("matrix", d3(:,:,:,i,j,k))
   ENDDO
   ENDDO
   ENDDO
@@ -307,13 +308,14 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
     DO j = 1,i_nat
     DO i = 1,i_nat
       d3ck(i,j,k) = .false.
-      CALL xmlr_readtag("matrix", d3block)
+      !CALL xmlr_readtag("matrix", d3block)
+      CALL xmlr_readtag("matrix", d3(:,:,:,i,j,k))
         CALL get_attr("atm_i", l)
         CALL get_attr("atm_j", m)
         CALL get_attr("atm_k", n)
       IF(i/=l .or. m/=j .or. n/=k) &
         CALL errore(sub, 'problem with d3 matrix indexes', 4)
-      d3(:,:,:,i,j,k)=RESHAPE(d3block, [3,3,3])
+      !d3(:,:,:,i,j,k)=RESHAPE(d3block, [3,3,3])
     ENDDO
     ENDDO
     ENDDO

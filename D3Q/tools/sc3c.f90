@@ -20,7 +20,7 @@ PROGRAM sc3c
   USE mp,         ONLY : mp_start, mp_end, mp_barrier
   USE mp_global,  ONLY : nproc, mpime
   USE fft_scalar, ONLY : cfft3d
-  USE iotk_module
+  !USE iotk_module
   !
   IMPLICIT NONE
   !
