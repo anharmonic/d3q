@@ -89,7 +89,7 @@ PROGRAM q2r
   INTEGER :: nat, nq, ntyp, iq, icar, nfile, ifile, nqs, nq_log
   INTEGER :: na, nt
   !
-  INTEGER :: gid, ibrav, ierr, nspin_mag, ios
+  INTEGER :: gid, ibrav, ierr, nspin_mag, ios, nfar
   !
   INTEGER, ALLOCATABLE ::  nc(:,:,:)
   COMPLEX(DP), ALLOCATABLE :: phid(:,:,:,:,:), matq(:,:,:,:,:)
@@ -105,7 +105,7 @@ PROGRAM q2r
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc
   !
-  NAMELIST / input / fildyn, flfrc, zasr, la2F
+  NAMELIST / input / fildyn, flfrc, zasr, la2F, nfar
   !
   CALL mp_startup()
   CALL environment_start('D3_Q2R')
@@ -115,6 +115,7 @@ PROGRAM q2r
   fildyn = ' '
   flfrc = 'mat2R'
   zasr = 'no'
+  nfar = 2
      !
   la2F=.false.
      !
@@ -128,6 +129,7 @@ PROGRAM q2r
   CALL mp_bcast(flfrc, ionode_id, world_comm)
   CALL mp_bcast(zasr, ionode_id, world_comm)
   CALL mp_bcast(la2f, ionode_id, world_comm)
+  CALL mp_bcast(nfar, ionode_id, world_comm)
      !
      ! check input
      !
@@ -327,7 +329,7 @@ PROGRAM q2r
 !     write(998,*) bg
 !     write(998,'(6f12.6)') matq
 !     write(998,'(333f12.6)') gridq
-     CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc)
+     CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc, nfar)
      CALL write_fc2(flfrc, S, fc)
 !      STOP 0
 !      !

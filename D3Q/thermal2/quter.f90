@@ -61,19 +61,35 @@ MODULE quter_module
     CALL wsinit(rws,nrwsx,nrws,atws)
     !
     ! Construct a big enough lattice of Supercell vectors
-    nRbig = (2*far_*nq1+1)*(2*far_*nq2+1)*(2*far_*nq3+1)
-    ALLOCATE(Rbig(3,nRbig))
-    nRbig=0
-    DO l1=-far_*nq1,far_*nq1
-    DO l2=-far_*nq2,far_*nq2
-    DO l3=-far_*nq3,far_*nq3
-      nRbig=nRbig+1
-      Rbig(:, nRbig) = at(:,1)*l1 +at(:,2)*l2 +at(:,3)*l3
-    END DO
-    END DO
-    END DO
-    IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
-    print*, "seeking over ", nRbig," vectors"
+    IF(far_>0)THEN
+        nRbig = (2*far_*nq1+1)*(2*far_*nq2+1)*(2*far_*nq3+1)
+        ALLOCATE(Rbig(3,nRbig))
+        nRbig=0
+        DO l1=-far_*nq1,far_*nq1
+        DO l2=-far_*nq2,far_*nq2
+        DO l3=-far_*nq3,far_*nq3
+        nRbig=nRbig+1
+        Rbig(:, nRbig) = at(:,1)*l1 +at(:,2)*l2 +at(:,3)*l3
+        END DO
+        END DO
+        END DO
+        IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
+        WRITE(*,*) "seeking over ", nRbig," vectors"
+    ELSE
+        nRbig = nq1*nq2*nq3
+        ALLOCATE(Rbig(3,nRbig))
+        nRbig=0
+        DO l1=0,nq1-1
+        DO l2=0,nq2-1
+        DO l3=0,nq3-1
+        nRbig=nRbig+1
+        Rbig(:, nRbig) = at(:,1)*l1 +at(:,2)*l2 +at(:,3)*l3
+        END DO
+        END DO
+        END DO
+        IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
+        WRITE(*,*) "nfar==0 => standard FT over ", nRbig," vectors"
+    ENDIF
     !
     ! dyn.mat. FFT
     !
@@ -86,9 +102,13 @@ MODULE quter_module
         DO iR= 1,nRbig
           !
           aus= 0._dp
-          dist(:) = Rbig(:,iR) + tau(:,na1) - tau(:,na2)
-          wg = wsweight(dist,rws,nrws)
-          wg = wg/DFLOAT(nqt)
+          IF(far_>0)THEN
+            dist(:) = Rbig(:,iR) + tau(:,na1) - tau(:,na2)
+            wg = wsweight(dist,rws,nrws)
+            wg = wg/DFLOAT(nqt)
+          ELSE
+            wg = 1._dp/DFLOAT(nqt)
+          ENDIF
           IF(wg /= 0) THEN 
             !
             DO iiq=1,nqt
