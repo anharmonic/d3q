@@ -385,7 +385,7 @@ MODULE r2q_program
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
-      IF(input%sort_freq=="overlap" .or. iq==1) &
+      IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) &
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       !
       ! Compute isotopic linewidth
