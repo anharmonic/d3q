@@ -78,7 +78,6 @@ nist_isotopes_db.o \
 ph_system.o \
 ph_velocity.o \
 posix_signal.o \
-powell.o \
 q_grids.o \
 quter.o \
 timers.o \

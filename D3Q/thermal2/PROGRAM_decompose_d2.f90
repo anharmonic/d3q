@@ -189,8 +189,6 @@ PROGRAM Q2QSTAR
     d2 = d2 + decomposition(i)*basis(:,:,i)
   ENDDO
 
-  ! print*, d2
-
   DEALLOCATE(phi, d2, w2)
   DEALLOCATE(rtau, tau, ityp)
   IF( .not.xmldyn ) DEALLOCATE(dq_phiq, dq_tau, dq_ityp, zeu) ! from read_dyn_from_file

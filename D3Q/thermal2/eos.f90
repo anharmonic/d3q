@@ -94,6 +94,7 @@ MODULE eos
     END SUBROUTINE eqstate
 !
 !
+
 !-----------------------------------------------------------------------
       SUBROUTINE find_minimum2(istat,npar,par,npt,v0,etot,efit,emin,chisq)
 !-----------------------------------------------------------------------
@@ -101,7 +102,8 @@ MODULE eos
 !     Very Stupid Minimization
 !
       USE random_numbers, ONLY : randy
-      USE powell, ONLY : POWELL_MIN
+      !USE powell, ONLY : POWELL_MIN
+      USE lmdif_module, ONLY : lmdif1
       IMPLICIT NONE
       INTEGER ,INTENT(in)  :: istat, npar, npt
       REAL(DP),INTENT(in)  :: v0(npt),etot(npt)
@@ -109,30 +111,52 @@ MODULE eos
       REAL(DP),INTENT(out) :: par(maxpar)
       REAL(DP),INTENT(out) :: chisq
       !
-      REAL(DP) :: xi(npar,npar)
+      REAL(DP) :: vchisq(npar)
+      INTEGER :: lwa, iwa(npar)
+      REAL(DP),ALLOCATABLE :: wa(:) 
+
+      !
+      !REAL(DP) :: xi(npar,npar)
       INTEGER :: i
       !
-      xi = 0._dp
-      FORALL(i=1:npar) xi(i,i) = 1._dp
+      !xi = 0._dp
+      !FORALL(i=1:npar) xi(i,i) = 1._dp
+      lwa = npar**2 + 6*npar
+      ALLOCATE(wa(lwa))
       par(1) = v0(npt/2)
       par(2) = 500.0d0
       par(3) = 5.0d0
       par(4) = -0.01d0
       !
-      CALL POWELL_MIN(func,par,xi,npar,npar,1.d-6,i,chisq)
+!     CALL POWELL_MIN(func,par,xi,npar,npar,1.d-6,i,chisq)
+      CALL lmdif1(SCHISQ, npar, npar, par, vchisq, 1.d-12, i, iwa, wa, lwa)
       !
       CALL eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)
       
-      CONTAINS 
+      DEALLOCATE(wa)   
 
-        REAL(DP) FUNCTION func(par_)
-           REAL(DP),INTENT(in) :: par_(maxpar)
+      CONTAINS
+
+      ! This subroutine is passed to LMDIF to be minimized
+      SUBROUTINE SCHISQ(m_, n_, par_, f_, i_)
+           IMPLICIT NONE
+           INTEGER,INTENT(in)  :: m_, n_
+           INTEGER,INTENT(inout)   :: i_
+           REAL(DP),INTENT(in)    :: par_(n_)
+           REAL(DP),INTENT(out)   :: f_(m_)
            REAL(DP) :: chisq_
-           CALL eqstate(istat,npar,par_,npt,v0,etot,efit,emin,chisq_)
-           func = chisq_
-        END FUNCTION
-        
-      
+           IF(m_/=n_) THEN
+              i_ = -999
+              RETURN
+           ENDIF
+           !
+           !CALL eqstate(n_,par_,chisq_)
+           CALL eqstate(istat,n_,par_,npt,v0,etot,efit,emin,chisq_)
+
+           f_=0._dp
+           f_(1) = chisq_
+        END SUBROUTINE
+   
       END SUBROUTINE
 !-----------------------------------------------------------------------
       SUBROUTINE find_minimum(istat,npar,par,npt,v0,etot,efit,emin,chisq)
