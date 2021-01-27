@@ -20,7 +20,7 @@ MODULE overlap
     RETURN
   END SUBROUTINE
   
-  ! Specialized version of set_idx, that aso checks the path length:
+  ! Specialized version of set_idx, that also checks the path length:
   ! if the path length at this point is the same than at the previous point,
   ! it means that there is a discontinuity, do not attempt to compute the overlap
   ! just keep the current order
