@@ -385,7 +385,7 @@ MODULE r2q_program
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
-      IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) &
+      IF(input%sort_freq=="overlap" .or. iq==1) &
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       !
       ! Compute isotopic linewidth
@@ -701,9 +701,10 @@ PROGRAM r2q
   CHARACTER(len=512) :: filename
   !
   !REAL(DP) :: xq(3)
-  REAL(DP),ALLOCATABLE :: freq(:), vel(:,:)
+  REAL(DP),ALLOCATABLE :: freq(:), vel(:,:), proj(:,:)
+  REAL(DP) :: aux
   COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
-  INTEGER :: i, output_unit=10000, nu
+  INTEGER :: i, output_unit=10000, nu, ia
   TYPE(order_type) :: order
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
@@ -748,13 +749,24 @@ PROGRAM r2q
       OPEN(unit=output_unit+2, file=filename)
     ENDIF
     !
+    ALLOCATE(proj(S%ntyp,S%nat3))
     DO i = 1,qpath%nq
       !CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
       CALL freq_phq_path(qpath%nq, i, qpath%xq, S, fc2, freq, U)
       IF(input%sort_freq=="overlap" .or. i==1) & !CALL order%set(S%nat3, freq, U)
           CALL order%set_path(S%nat3, freq, U, i, qpath%nq, qpath%w, qpath%xq)
+
+      ! project on atomic types
+      proj=0._dp
+      DO nu = 1,S%nat3
+      DO ia = 1, S%nat
+        aux = SUM(U((ia-1)*3+1:(ia-1)*3+3, nu)*CONJG(U((ia-1)*3+1:(ia-1)*3+3, nu)))
+        proj(S%ityp(ia),nu) = proj(S%ityp(ia),nu) + aux
+      ENDDO
+      ENDDO
+
       ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
-        i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1
+        i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1, proj(:,order%idx(:))
       ioFLUSH(output_unit)
       
       IF(input%print_dynmat) THEN
