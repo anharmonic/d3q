@@ -5,7 +5,7 @@ include ../../make.inc
 STRIP = true
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
+MODFLAGS= $(MOD_FLAG)../../Modules $(MOD_FLAG)../../XClib $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
           $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
 	  $(MOD_FLAG)../../upflib $(MOD_FLAG).
 
@@ -63,7 +63,7 @@ LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/libks_solvers.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a \
-	 ../../dft-d3/libdftd3qe.a ../../upflib/libupf.a
+	 ../../dft-d3/libdftd3qe.a ../../upflib/libupf.a ../../XClib/xc_lib.a
 
 LIBOBJS = ../../clib/clib.a 
 

@@ -72,7 +72,8 @@ MODULE dq_vscf_module
     USE d3com,            ONLY : d3c
     USE noncollin_module, ONLY : nspin_lsda, nspin_gga, nspin_mag
     USE pwcom,            ONLY : nspin
-    USE funct,            ONLY : dft_is_gradient
+    !USE funct,            ONLY : dft_is_gradient
+    USE dft_par_mod,      ONLY : isgradient
     USE fft_interfaces,   ONLY : fft_interpolate
     !USE dgradcorr_module, ONLY : dgradcorr
     !
@@ -117,7 +118,7 @@ MODULE dq_vscf_module
     ! add gradient correction to xc, NB: if nlcc is true we need to add here
     ! its contribution. grho contains already the core charge
     !
-    IF ( dft_is_gradient() ) THEN
+    IF ( isgradient ) THEN
       ALLOCATE ( rho_tot (dfftp%nnr) )
       fac = 1.d0 / DBLE (nspin_lsda)
 !       rho_tot = 0._dp
@@ -242,7 +243,8 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
   USE d3_iofiles,  ONLY : read_drho
   USE gc_lr,            ONLY : dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s, grho
   USE scf,          ONLY : rho, rho_core
-  USE funct,        ONLY : dft_is_gradient
+  !USE funct,        ONLY : dft_is_gradient
+  USE dft_par_mod,  ONLY :  isgradient
   USE noncollin_module, ONLY : nspin_gga, nspin_mag, nspin_lsda
   USE fft_interfaces,        ONLY : fft_interpolate
   !USE dgradcorr_module, ONLY : dgradcorr
@@ -322,7 +324,7 @@ SUBROUTINE dq_vscf_vecchio(nu_i, dvloc, xq_x, iq_x, u_x)
      dvloc (:) = dvloc(:) + aux2 (:) * dmuxc(:,1,1)
   ENDIF
   !
-  IF ( dft_is_gradient() ) THEN
+  IF ( isgradient ) THEN
     CALL read_drho(aux2, iq_x, nu_i, with_core=.true.)
     ALLOCATE ( rho_tot (dfftp%nnr) )
     fac = 1.d0 / DBLE (nspin_lsda)

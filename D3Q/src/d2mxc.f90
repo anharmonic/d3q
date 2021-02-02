@@ -16,9 +16,12 @@ FUNCTION d2mxc (rho)
   !
   USE kinds,       ONLY : DP
   USE constants,   ONLY : pi
-  USE funct,       ONLY : get_icorr, get_iexch
+!  USE dft_mod,     ONLY : get_dft_namea
+  USE dft_par_mod, ONLY: iexch,icorr
+!  USE dft_mod,       ONLY : get_icorr, get_iexch
 !  USE funct,       ONLY : init_lda_xc
-  USE xc_lda_lsda, ONLY :  xc, xc_lda
+!  USE qe_drivers_lda_lsda, ONLY :  xc_lda
+  USE qe_drivers_lda_lsda, ONLY :  xc_lda
   IMPLICIT NONE
 
   real (DP) :: rho, d2mxc
@@ -61,7 +64,7 @@ FUNCTION d2mxc (rho)
 
 !  CALL init_lda_xc()
 !print*, "mux", get_iexch() , get_icorr()
-  if (get_iexch() == 1 .and. get_icorr() == 1) then
+  if (iexch == 1 .and. icorr == 1) then
       ! First case: analitical derivative of PZ functional
       rs = thofpi_3 * (1._dp / rho) **0.3333333333333333d0
       if (rs > 1._dp) then

@@ -193,7 +193,7 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   CHARACTER(len=14) :: sub='read_d3dyn_xml2'
   LOGICAL :: do_seek
   LOGICAL,ALLOCATABLE :: d3ck(:,:,:)
-  COMPLEX(DP) :: d3block(27)
+  !COMPLEX(DP) :: d3block(27)
   CHARACTER(len=512) :: atms
   !
   IF(present(found)) found=.true.

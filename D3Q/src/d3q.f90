@@ -58,7 +58,8 @@ program d3q
   USE d3_restart,         ONLY : d3_check_restart, d3_check_time, d3_from_scratch
   USE d3_debug
   USE mp_world,           ONLY : world_comm
-  USE funct,              ONLY : dft_is_gradient
+  !USE funct,              ONLY : dft_is_gradient
+  USE dft_par_mod,  ONLY: isgradient
   USE gc_d3,            ONLY : setup_d3gc
 !
   USE mp_pools,        ONLY : intra_pool_comm
@@ -590,7 +591,7 @@ program d3q
     write( stdout, '(/,5x,"================ exc contrib start",i3," =============",/)') 
     d3dyn_exc = (0._dp, 0._dp)
     !printed = .false.
-    IF ( dft_is_gradient() .and. dbg_exc_do_gga) THEN
+    IF ( isgradient .and. dbg_exc_do_gga) THEN
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution with GGA")')
       d3tmp = (0._dp, 0._dp)
       DO ip = 1,nperms

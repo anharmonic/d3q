@@ -7,9 +7,8 @@ allocate_pert_d3.o : ../../Modules/ions_base.o
 allocate_pert_d3.o : ../../Modules/kind.o
 allocate_pert_d3.o : ../../PHonon/PH/phcom.o
 d2mxc.o : ../../Modules/constants.o
-d2mxc.o : ../../Modules/funct.o
 d2mxc.o : ../../Modules/kind.o
-d2mxc.o : ../../Modules/xc_lda_lsda_drivers.o
+d2mxc.o : ../../XClib/xc_input_params_mod.o
 d3_basis.o : ../../Modules/kind.o
 d3_debug.o : ../../LR_Modules/lrcom.o
 d3_debug.o : ../../Modules/cell_base.o
@@ -37,7 +36,6 @@ d3_exc.o : ./d3_iofiles.o
 d3_exc_gc.o : ../../LR_Modules/lrcom.o
 d3_exc_gc.o : ../../Modules/cell_base.o
 d3_exc_gc.o : ../../Modules/fft_base.o
-d3_exc_gc.o : ../../Modules/funct.o
 d3_exc_gc.o : ../../Modules/io_global.o
 d3_exc_gc.o : ../../Modules/ions_base.o
 d3_exc_gc.o : ../../Modules/kind.o
@@ -48,6 +46,7 @@ d3_exc_gc.o : ../../PHonon/PH/phcom.o
 d3_exc_gc.o : ../../PW/src/pwcom.o
 d3_exc_gc.o : ../../PW/src/scf_mod.o
 d3_exc_gc.o : ../../UtilXlib/mp.o
+d3_exc_gc.o : ../../XClib/xc_input_params_mod.o
 d3_exc_gc.o : ./d3_iofiles.o
 d3_exc_gc.o : ./set_kplus3q.o
 d3_exc_gc.o : ./setup_d3gc.o
@@ -260,7 +259,6 @@ d3q.o : ../../Modules/cell_base.o
 d3q.o : ../../Modules/command_line_options.o
 d3q.o : ../../Modules/control_flags.o
 d3q.o : ../../Modules/environment.o
-d3q.o : ../../Modules/funct.o
 d3q.o : ../../Modules/io_global.o
 d3q.o : ../../Modules/ions_base.o
 d3q.o : ../../Modules/mp_bands.o
@@ -270,6 +268,7 @@ d3q.o : ../../Modules/mp_world.o
 d3q.o : ../../PHonon/PH/phcom.o
 d3q.o : ../../PW/src/pwcom.o
 d3q.o : ../../UtilXlib/mp.o
+d3q.o : ../../XClib/xc_input_params_mod.o
 d3q.o : ../../upflib/uspp.o
 d3q.o : ./allocate_d3.o
 d3q.o : ./d3_basis.o
@@ -352,13 +351,13 @@ dq_vscf.o : ../../LR_Modules/lrcom.o
 dq_vscf.o : ../../Modules/cell_base.o
 dq_vscf.o : ../../Modules/constants.o
 dq_vscf.o : ../../Modules/fft_base.o
-dq_vscf.o : ../../Modules/funct.o
 dq_vscf.o : ../../Modules/ions_base.o
 dq_vscf.o : ../../Modules/kind.o
 dq_vscf.o : ../../Modules/noncol.o
 dq_vscf.o : ../../Modules/recvec.o
 dq_vscf.o : ../../PW/src/pwcom.o
 dq_vscf.o : ../../PW/src/scf_mod.o
+dq_vscf.o : ../../XClib/xc_input_params_mod.o
 dq_vscf.o : ../../upflib/uspp.o
 dq_vscf.o : ./d3_iofiles.o
 dq_vscf.o : ./d3com.o
@@ -491,15 +490,14 @@ setup_d3gc.o : ../../FFTXlib/fft_interfaces.o
 setup_d3gc.o : ../../LR_Modules/lrcom.o
 setup_d3gc.o : ../../Modules/constants.o
 setup_d3gc.o : ../../Modules/fft_base.o
-setup_d3gc.o : ../../Modules/funct.o
 setup_d3gc.o : ../../Modules/io_global.o
 setup_d3gc.o : ../../Modules/kind.o
 setup_d3gc.o : ../../Modules/noncol.o
 setup_d3gc.o : ../../Modules/recvec.o
 setup_d3gc.o : ../../Modules/wavefunctions.o
-setup_d3gc.o : ../../Modules/xc_gga_drivers.o
 setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o
+setup_d3gc.o : ../../XClib/xc_input_params_mod.o
 setup_d3gc.o : ../../upflib/uspp.o
 solve_linter_d3q.o : ../../FFTXlib/fft_interfaces.o
 solve_linter_d3q.o : ../../LR_Modules/lrcom.o

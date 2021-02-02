@@ -171,7 +171,7 @@ SUBROUTINE setup_nscf_d3()
                                  copy_sym, s_axis_to_cart
   USE wvfct,              ONLY : nbnd, nbndx
   USE control_flags,      ONLY : ethr, isolve, david, max_cg_iter, &
-                                 noinv, use_para_diag
+                                 noinv !, use_para_diag
   USE mp_pools,           ONLY : kunit, inter_pool_comm
   USE spin_orb,           ONLY : domag
   USE noncollin_module,   ONLY : noncolin
@@ -190,7 +190,7 @@ SUBROUTINE setup_nscf_d3()
   !
   LOGICAL  ::  magnetic_sym, skip_equivalence, newgrid
   INTEGER :: iq=0
-  LOGICAL, EXTERNAL  :: check_para_diag
+!  LOGICAL, EXTERNAL  :: check_para_diag
   !
   CALL check_stop_init()
   !
@@ -216,7 +216,7 @@ SUBROUTINE setup_nscf_d3()
     WRITE(stdout, '(7x,a,f10.4)') "* new degauss set from d3 input:", degauss
   ENDIF
   !
-  use_para_diag = check_para_diag( nbnd )
+!  use_para_diag = check_para_diag( nbnd )
   !
   ! ... Symmetry and k-point section
   !
