@@ -31,6 +31,8 @@ done
 
 $ESPRESSO_BIN/d3_qha.x  > qha.out
 
+$ESPRESSO_BIN/d3_qha.x --outdir 5kbar --press_kbar 5 > qha_5kbar.out
+
 gnuplot -p plot-voft.gp 
 gnuplot -p plot-gofv.gp
 

@@ -13,6 +13,7 @@ MODULE qha_program
                                freq_phq_positive, &
                                forceconst2_grid, set_nu0
   USE input_fc,           ONLY : ph_system_info, read_fc2, aux_system, div_mass_fc2
+  USE constants,          ONLY : ry_kbar
 
 #include "mpi_thermal.h"
 
@@ -30,6 +31,7 @@ MODULE qha_program
     !REAL(DP) :: smearing = -1._dp
     !
     REAL(DP) :: T0, dT 
+    REAL(DP) :: press ! pressur in Ry/a0^3
     INTEGER :: nT
     CHARACTER(len=8)  :: asr2
     !
@@ -68,6 +70,7 @@ MODULE qha_program
     INTEGER          :: nk(3) = -1
 !    REAL(DP)         :: T = -1._dp
     REAL(DP)         :: T0=0._dp, dT=100._dp
+    REAL(DP)         :: press_kbar=0._dp, press_GPa=0._dp
     INTEGER          :: nT = 6
 !    REAL(DP)         :: smearing = -1._dp
     !
@@ -79,7 +82,8 @@ MODULE qha_program
       calculation, outdir, prefix, &
       asr2, &
       n_volumes, T0, dT, nT, &
-      nk, grid_type
+      nk, grid_type, &
+      press_kbar, press_GPa
       
     WRITE(*,*) "Waiting for input"
     !
@@ -122,6 +126,13 @@ MODULE qha_program
     input%nk                  = nk 
     input%grid_type           = grid_type
     !
+    IF(press_kbar/=0._dp .or. press_GPa/=0._dp)THEN
+      IF(press_kbar/=0._dp .and. press_GPa/=0._dp) &
+          CALL errore("qha","you can only specify pressure once",1)
+      IF(press_kbar/=0._dp) input%press = press_kbar/ry_kbar
+      IF(press_GPa/=0._dp)  input%press = press_GPa*10/ry_kbar
+    ENDIF
+
     ios = f_mkdir_safe(input%outdir)
     !
     ALLOCATE(mat2R_v(n_volumes))
@@ -154,7 +165,9 @@ MODULE qha_program
     TYPE(ph_system_info),INTENT(in)   :: S(input%n_volumes)
     !
     REAL(DP) :: weight, wbeta, T(input%nT)
-    REAL(DP) :: e_zp(input%n_volumes), e_ts(input%n_volumes, input%nT), &
+    REAL(DP) :: e_zp(input%n_volumes), &           ! zero point energy
+                e_ts(input%n_volumes, input%nT), & ! phonon free energy
+                e_pv(input%n_volumes), &           ! idrostatic pV energy
                 g(input%n_volumes), g_fit(input%n_volumes), vol(input%n_volumes)
     REAL(DP) :: g0(input%nT), v0(input%nT), k0(input%nT), dk0(input%nT), d2k0(input%nT), aV_T(input%nT)
     REAL(DP),ALLOCATABLE :: freq(:)
@@ -177,6 +190,7 @@ MODULE qha_program
       WRITE(*,'(i5)',ADVANCE="no") iv
       IF(MOD(iv-1,8)==7 .or. iv==input%n_volumes) WRITE(*,*)
       FLUSH(stdout)
+      e_pv(iv) = input%press * vol(iv)
       CALL setup_grid(input%grid_type, S(iv)%bg, input%nk(1), input%nk(2), input%nk(3), grid, scatter=.false., quiet=.true.)
       e_zp(iv) = 0._dp
       e_ts(iv,:) = 0._dp
@@ -193,8 +207,8 @@ MODULE qha_program
            wbeta = freq(nu)/(K_BOLTZMANN_RY*T(iT))
            e_ts(iv,iT) = e_ts(iv,iT) + weight *( -DLOG(1-DEXP(-wbeta)))!  + wbeta/(DEXP(wbeta)-1))
            IF(ISNAN( -DLOG(1-DEXP(-wbeta)))) THEN
-             print*, "caz!", grid%xq(:,iq)
-             print*, "caz?", freq
+             print*, "problem!", grid%xq(:,iq)
+             print*, "problem?", freq
            ENDIF
            !ENDIF
          ENDDO
@@ -213,7 +227,8 @@ MODULE qha_program
                 //TRIM(write_conf(iT,input%nT,T))//".dat"
       OPEN(unit=90000+it, file=filename)
       WRITE(90000+iT,*) "# temperature", T(iT) 
-      g = input%nrg_v(:) + e_zp(:) - (e_ts(:,iT))
+      WRITE(90000+iT,*) "# pressure (kbar)", input%press*ry_kbar
+      g = input%nrg_v(:) + e_zp(:) - (e_ts(:,iT)) + e_pv(:)
       CALL fit(input%n_volumes, T(iT), vol, g, g_fit, g0(iT), v0(iT), k0(iT), dk0(iT), d2k0(iT))
 !      iv_min = MINLOC(g,1)
 !      WRITE(90000+iT,*) "# minimum:", iv_min,  S(iv_min)%omega, g(iv_min)
@@ -221,11 +236,11 @@ MODULE qha_program
       WRITE(90000+iT,'("#",a21,7a26)') "v0(iT)", "g0(iT)", &
                        "k0(iT)", "dk0(iT)", "d2k0(iT)"
       WRITE(90000+iT,*) "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
-      WRITE(90000+iT,'("#",a21,7a26)') "volume", "gibbs", "electrons", &
-                       "zero-point", "TS", "g-g0", "g_fit"
+      WRITE(90000+iT,'("#",a21,8a26)') "volume", "gibbs_free_nrg", "electrons", &
+                       "zero-point", "ph_free_nrg", "pV", "g-g0", "g_fit"
       DO iv = 1, input%n_volumes
         WRITE(90000+iT,*) vol(iv), g(iv), &
-                          input%nrg_v(iv), e_zp(iv), -(e_ts(iv,iT)), g(iv)-g0(iT), g_fit(iv)
+                          input%nrg_v(iv), e_zp(iv), -(e_ts(iv,iT)), e_pv(iv), g(iv)-g0(iT), g_fit(iv)
       ENDDO
       CLOSE(90000+it)
     ENDDO
