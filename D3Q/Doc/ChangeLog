@@ -1,5 +1,6 @@
 v 1.1.8 - WIP
 * Removed dependency on iotk
+* Removed dependency on Powell
 
 v 1.1.7
 * More bugfixes
