@@ -8,7 +8,7 @@
   file_mat2 = '../PART2/mat2R'
   file_mat3 = '../PART2/mat3R.asr.sparse'
   outdir    = './'  ! where to save the data
-  asr2 = 'spread'   ! second order sum rule, analogous to "crystal"
+  asr2 = 'simple'   ! second order sum rule, analogous to "crystal"
   nk = 10,10,10     ! size of the integration grid
 /
  CONFIGS
