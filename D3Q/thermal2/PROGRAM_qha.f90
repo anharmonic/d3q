@@ -31,7 +31,7 @@ MODULE qha_program
     !REAL(DP) :: smearing = -1._dp
     !
     REAL(DP) :: T0, dT 
-    REAL(DP) :: press ! pressur in Ry/a0^3
+    REAL(DP) :: press=0._dp ! pressur in Ry/a0^3
     INTEGER :: nT
     CHARACTER(len=8)  :: asr2
     !
@@ -126,6 +126,7 @@ MODULE qha_program
     input%nk                  = nk 
     input%grid_type           = grid_type
     !
+    input%press = 0._dp
     IF(press_kbar/=0._dp .or. press_GPa/=0._dp)THEN
       IF(press_kbar/=0._dp .and. press_GPa/=0._dp) &
           CALL errore("qha","you can only specify pressure once",1)
@@ -226,8 +227,8 @@ MODULE qha_program
       filename  = TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_T"&
                 //TRIM(write_conf(iT,input%nT,T))//".dat"
       OPEN(unit=90000+it, file=filename)
-      WRITE(90000+iT,*) "# temperature", T(iT) 
-      WRITE(90000+iT,*) "# pressure (kbar)", input%press*ry_kbar
+      WRITE(90000+iT,'(a,1f20.10)') "# temperature", T(iT) 
+      WRITE(90000+iT,'(a,1f20.10)') "# pressure (kbar)", input%press*ry_kbar
       g = input%nrg_v(:) + e_zp(:) - (e_ts(:,iT)) + e_pv(:)
       CALL fit(input%n_volumes, T(iT), vol, g, g_fit, g0(iT), v0(iT), k0(iT), dk0(iT), d2k0(iT))
 !      iv_min = MINLOC(g,1)
@@ -235,11 +236,11 @@ MODULE qha_program
 !      WRITE(90000+iT,*) "#", MINVAL(input%nrg_v), MINVAL(e_zp), MINVAL(e_ts(:,iT))
       WRITE(90000+iT,'("#",a21,7a26)') "v0(iT)", "g0(iT)", &
                        "k0(iT)", "dk0(iT)", "d2k0(iT)"
-      WRITE(90000+iT,*) "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
+      WRITE(90000+iT,'(a,5f20.10)') "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
       WRITE(90000+iT,'("#",a21,8a26)') "volume", "gibbs_free_nrg", "electrons", &
                        "zero-point", "ph_free_nrg", "pV", "g-g0", "g_fit"
       DO iv = 1, input%n_volumes
-        WRITE(90000+iT,*) vol(iv), g(iv), &
+        WRITE(90000+iT,'(99f20.10)') vol(iv), g(iv), &
                           input%nrg_v(iv), e_zp(iv), -(e_ts(iv,iT)), e_pv(iv), g(iv)-g0(iT), g_fit(iv)
       ENDDO
       CLOSE(90000+it)
@@ -263,6 +264,7 @@ MODULE qha_program
     !
     filename  = TRIM(input%outdir)//"/"//TRIM(input%prefix)//".dat"
     OPEN(unit=90000, file=filename)
+    WRITE(90000,'("#",a21,1f12.6)') "Pressure (kbar):", input%press * ry_kbar
     WRITE(90000,'("#",a21,7a26)') "Temperature", "volume0", "vol.therm.exp",&
                   "energy0", "bulk mod.", "dbulk", "d2bulk"
     DO iT = 1, input%nT
