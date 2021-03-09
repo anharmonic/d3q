@@ -1,5 +1,4 @@
----
----
+Website: https://anharmonic.github.io/thermal2/
 
 Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri. Phys. Rev. B 87, 214303 – Published 7 June 2013
 
