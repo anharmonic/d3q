@@ -6,7 +6,7 @@
   file_mat2 = 'pdh_mat2R'
   file_mat3 = 'pdh_mat3R.asr.sparse'
   outdir    = './'  ! where to save the data
-  asr2 = 'spread'   ! second order sum rule, analogous to "crystal"
+  asr2 = 'simple'   ! second order sum rule, analogous to "crystal"
   nk = 25,25,25     ! size of the integration grid
 
   ne=1000
