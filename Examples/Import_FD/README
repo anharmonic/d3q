@@ -1,12 +1,12 @@
 In order to convert the FORCE_CONSTANTS_3RD file for the 
 format used by thermal2 run the following command:
 
-  d3_import3py.x 2 2 2
+  d3_import_shengbte.x 2 2 2
 
 This will read the system information from mat2R and the
 force constants from FORCE_CONSTANTS_3RD. 
 
-The output file mat3R.centered.3py contains the final force
+The output file mat3R.shengbte contains the final force
 constants in dense format. You can proceed to apply the sum
 rules (which should not be necessary, as thirdorder.py applies
 them itself) and make the force constants sparse with d3_sparse.x
