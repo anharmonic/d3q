@@ -325,6 +325,8 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
     IF(ANY(d3ck)) CALL errore(sub,'could not read all the d3 matrix',40)
   ENDIF
   !
+  CALL xmlr_closetag() !'d3'
+  !
   call xml_closefile( )
   !
   RETURN
