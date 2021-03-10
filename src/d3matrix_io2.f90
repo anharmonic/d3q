@@ -213,8 +213,9 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   !CALL iotk_open_read(u, filename, ierr=ierr)
   u =  xml_openfile ( filename )
       IF ( u == -1 ) CALL errore('read_d3dyn', 'cannot open file '//TRIM(filename),1)
-  call xmlr_opentag("d3")
-  IF(present(file_format_version)) &
+  call xmlr_opentag("d3", ierr)
+  
+  IF(present(file_format_version) .and. ierr==0) &
       CALL get_attr("format_version", file_format_version)
   !
   IF (ierr/=0) THEN
