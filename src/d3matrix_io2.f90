@@ -219,6 +219,7 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
       CALL get_attr("format_version", file_format_version)
   !
   IF (ierr/=0) THEN
+    CALL xml_closefile()
     IF(present(found)) THEN
       found=.false.
       RETURN
