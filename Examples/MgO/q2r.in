@@ -1,5 +1,5 @@
  &input
-   fildyn  =  'dyn'
+   fildyn  =  'FILDYN/dyn'
    zasr    =  'crystal', 
    flfrc   =  'mat2R'
  /

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 rm -rf *.out tmp FILD3DYN
+mkdir -p FILDYN FILDRHO FILD3DYN
 
 export EXAMPLE=$(pwd)
 export ESPRESSO=$(cd ../../../; pwd)
@@ -23,7 +24,7 @@ echo "computing 2-body force constants"
 $bin/d3_q2r.x < q2r.in > d3_q2r.out
 
 echo "computing 3-body force constants"
-ls FILD3DYN/anh* | $bin/d3_qq2rr.x 4 4 4 -o mat3R > d3_qq2rr.out
+ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 2 -o mat3R > d3_qq2rr.out
 
 echo "appying sum rules 3-body force constants"
 $bin/d3_asr3.x -i mat3R -o mat3R.asr -t 1.e-12 -n 10000 -p 2 > d3_asr3.out
@@ -31,14 +32,13 @@ $bin/d3_asr3.x -i mat3R -o mat3R.asr -t 1.e-12 -n 10000 -p 2 > d3_asr3.out
 echo "preparing sparse representation of 3-body force constants"
 $bin/d3_sparse.x -i mat3R.asr -o mat3R.asr.sparse -t 0. -n 10000 > d3_sparse.out
 
-#echo "doing linewidth dispersion calculation"
-#$pref $bin/d3_lw.x -in input.LW > output.LW
-#gnuplot -persist plot-lw.gp
+echo "doing spectra function calculation"
+$pref $bin/d3_lw.x -in input.SPF > output.SPF
+gnuplot -persist plot-spf.gp
 
-#echo "doing SMA thermal conductivity calculation"
-#$pref $bin/d3_tk.x -in input.TK-sma > output.TK-sma
+echo "doing final state calculation"
+$pref $bin/d3_lw.x -in input.FS> output.FS
 
-#echo "doing CGP thermal conductivity calculation"
-#$pref $bin/d3_tk.x -in input.TK-cgp > output.TK-cgp
-
-
+echo "computing phonon dispersion"
+$pref $bin/d3_r2q.x > output.R2Q
+gnuplot -persist plot-fs.gp

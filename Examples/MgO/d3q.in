@@ -7,13 +7,6 @@ MgO
    fildrho_dir = 'FILDRHO'
    fild3dyn = 'FILD3DYN/anh',
    ethr_ph = 1.d-12
-   !offset=__FF
-!   first=10
-!   last=11
-   !step=8
    restart=.true.
-   !max_time=22.00
-   !nk1=16, nk2=16,nk3=4
-   !degauss=0.03d0
  /
- 4 4 4
+ 2 2 2

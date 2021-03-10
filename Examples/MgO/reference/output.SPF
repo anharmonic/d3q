@@ -1,0 +1,132 @@
+  Using      4 MPI processes
+
+      
+     For 2n+1 calculations of force constants please cite:
+      1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
+         Phys. Rev. B 87, 214303 (2013)
+      
+     For thermal transport calculations please cite:
+      2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
+         Phys. Rev. B 88, 045430 (2013)
+      3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
+         Nature communications 6 (2015)
+      4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
+         Nano letters 14 (11), 6109-6114 (2014)
+      
+     For spectral function calculations also cite:
+      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+         Phys. Rev. B 91, 054304 (2015)
+
+  Reading input file 'input.SPF'
+  merging with command line arguments
+&LWINPUT
+ CALCULATION="spf imag        ",
+ OUTDIR="./LW/                                                                                                                                                                                                                                                           ",
+ PREFIX="spfh                                                                                                                                                                                                                                                            ",
+ FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
+ FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
+ ASR2="simple  ",
+ NCONF=-1         ,
+ SKIP_Q=0          ,
+ NQ=-1         ,
+ NK= 3*17         ,
+ GRID_TYPE="simple",
+ XK0= 3*1.0000000000000000       ,
+ OPTIMIZE_GRID=F,
+ OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
+ NE=2000       ,
+ DE= 0.50000000000000000     ,
+ E0=  0.0000000000000000     ,
+ SIGMA_E=  10.000000000000000     ,
+ NU_INITIAL=0          ,
+ E_INITIAL= -1.0000000000000000     ,
+ Q_INITIAL= 3*0.0000000000000000       ,
+ Q_RESOLVED=F,
+ Q_SUMMED=F,
+ SIGMAQ= 0.10000000000000001     ,
+ EXP_T_FACTOR=F,
+ SORT_FREQ="overlap",
+ ISOTOPIC_DISORDER=F,
+ CASIMIR_SCATTERING=F,
+ SAMPLE_LENGTH_AU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MU= -1.0000000000000000     ,
+ SAMPLE_LENGTH_MM= -1.0000000000000000     ,
+ SAMPLE_DIR= 3*0.0000000000000000       ,
+ MAX_SECONDS=-1         ,
+ MAX_TIME= -1.0000000000000000     ,
+ /
+ ** Reading FC2 file: mat2R
+     alat (bohr)    7.984849
+     tpiba (1/bohr)    0.786888
+     at_1 = (   -0.500000    0.000000    0.500000 )
+     at_2 = (    0.000000    0.500000    0.500000 )
+     at_3 = (   -0.500000    0.500000    0.000000 )
+     bg_1 = (   -1.000000   -1.000000    1.000000 )
+     bg_2 = (    1.000000    1.000000    1.000000 )
+     bg_3 = (   -1.000000    1.000000   -1.000000 )
+     volume (bohr^3)  127.274119
+ Original FC2 grid:           4           4           4
+ ** Reading sparse FC3 file mat3R.asr.sparse
+     alat (bohr)    7.984849
+     tpiba (1/bohr)    0.786888
+     at_1 = (   -0.500000    0.000000    0.500000 )
+     at_2 = (    0.000000    0.500000    0.500000 )
+     at_3 = (   -0.500000    0.500000    0.000000 )
+     bg_1 = (   -1.000000   -1.000000    1.000000 )
+     bg_2 = (    1.000000    1.000000    1.000000 )
+     bg_3 = (   -1.000000    1.000000   -1.000000 )
+     volume (bohr^3)  127.274117
+    Original FC3 grid:           2           2           2
+    Number of R:               523
+ WARNING! FC2 and FC3 systems DO NOT MATCH !!!
+ Reading : done.
+ Memory used :            0 Mb
+ calculation: spf             imag            
+ Reading CONFIGS           1
+  Temperatures:
+    300.0
+  Smearings:   
+    5.000
+
+ Reading QPOINTS
+  Read   1 lines, set-up      1 q-points, cartesian coordinates
+
+ --> Setting up inner grid
+  Applying grid shift   -0.029412    0.029412    0.029412
+  Setup a simple grid of     4913 q-points
+  Going to compute     1 points (2)
+     1    0.000001    0.000000    0.000000         0.000510    0.000510    0.000741  390.751011  390.751011  696.571484
+
+   * WALL :      14.0791 s
+   *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
+   *                read data *       67.445585 *       16.861396 *         269.782 *       67.445585 *    0.479 *           4. *
+   * lw contribs 
+   * fine grain terms 
+   *         ph interp & diag *      203.060358 *        0.041298 *         812.241 *        0.165190 *    1.442 *        4917. *
+   *             bose distrib *        1.858582 *        0.000378 *           7.434 *        0.001513 *    0.013 *        4913. *
+   *                sum modes *    12743.419998 *        2.593816 *       50973.680 *       10.375266 *   90.509 *        4913. *
+   *          fc3 interpolate *      282.999335 *        0.057602 *        1131.997 *        0.230409 *    2.010 *        4913. *
+   *           fc3 modulus sq *        1.538893 *        0.000313 *           6.156 *        0.001253 *    0.011 *        4913. *
+   *               fc3 rotate *      209.996507 *        0.042743 *         839.986 *        0.170972 *    1.491 *        4913. *
+   *        mpi communication *       29.636844 *        7.409211 *         118.547 *       29.636844 *    0.210 *           4. *
+   *             read fc data *       65.924203 *       16.481051 *         263.697 *       65.924203 *    0.468 *           4. *
+   *         merge degenerate *       45.552638 *        0.009272 *         182.211 *        0.037087 *    0.324 *        4913. *
+   *        spectral function *        0.063766 *        0.015941 *           0.255 *        0.063766 *    0.000 *           4. *
+
+      
+     For 2n+1 calculations of force constants please cite:
+      1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
+         Phys. Rev. B 87, 214303 (2013)
+      
+     For thermal transport calculations please cite:
+      2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri
+         Phys. Rev. B 88, 045430 (2013)
+      3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,
+         Nature communications 6 (2015)
+      4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
+         Nano letters 14 (11), 6109-6114 (2014)
+      
+     For spectral function calculations also cite:
+      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+         Phys. Rev. B 91, 054304 (2015)
+
