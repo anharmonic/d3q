@@ -1,34 +1,57 @@
 
 MODULE decompose_d2 
+   USE kinds, ONLY : dp
 
+   TYPE sym_and_star_q
+      real(DP) :: xq (3)
+      ! xq: q vector
+      integer :: s (3, 3, 48), invs(48)
+      ! invs: list of inverse operation indices
+      integer :: nrot, nsym, nsymq, irotmq
+      ! nrot  symmetry operations of the lattice
+      ! nsym  symmetry operations of the crystal
+      ! nsymq symmetry operations of the q-point
+      ! index of the rotation that send q -> -q
+      logical :: minus_q
+      !
+      integer :: nq_star, nq_trstar, isq (48), imq
+      ! nq  : degeneracy of the star of q
+      ! nq_tr  : degeneracy of the star of q and -q
+      ! isq : index of q in the star for a given sym
+      ! imq : index of -q in the star (0 if not present)
+   
+      real(DP) :: sxq (3, 48)
+      ! list of vectors in the star
+      !
+      real(DP),allocatable :: rtau(:,:,:) !3,48,nat
+      ! position of the rotated atoms
+      integer,allocatable :: irt(:,:)
+      ! the rotated of each atom
+   END TYPE
 
 CONTAINS
+
+SUBROUTINE allocate_sym_and_star_q(nat, symq)
+   IMPLICIT NONE
+   INTEGER,INTENT(IN) :: nat
+   TYPE(sym_and_star_q),INTENT(inout) :: symq
+   ALLOCATE(symq%rtau(3,48,nat))
+   ALLOCATE(symq%irt(48,nat))
+END SUBROUTINE
+
 ! Generate a base for the space of dynamical matrices that respect the
 ! crystal symmetry
 !---------------------------------------------------------------------
-subroutine find_d2_symm_base(xq, rank, basis)
+subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
+                             nsymq, minus_q, irotmq, rtau, irt, s, invs )
 !---------------------------------------------------------------------
 
   USE io_global,  ONLY : stdout
   USE kinds, only : DP
-  USE ions_base, ONLY : nat, tau, ntyp => nsp, ityp, amass
-  USE cell_base, ONLY : at, bg
-  USE symm_base, ONLY : s, sr, invs, nsym, irt, t_rev
-!  USE modes,     ONLY : num_rap_mode, name_rap_mode
-!  USE noncollin_module, ONLY : noncolin, nspin_mag
-!  USE spin_orb,  ONLY : domag
-!  USE constants, ONLY: tpi
-!  USE control_ph, ONLY : search_sym
-!  USE control_flags, ONLY : iverbosity
-!  USE random_numbers, ONLY : randy
-!  USE rap_point_group, ONLY : name_rap
-
-!  use mp, only: mp_bcast
-!  use io_global, only : ionode_id
-!  use mp_images, only : intra_image_comm
-
-  USE lr_symm_base, ONLY : nsymq, minus_q, irotmq, gi, gimq, rtau
-  USE control_lr,   ONLY : lgamma
+  !USE ions_base, ONLY : nat !, tau, ntyp => nsp, ityp, amass
+  !USE cell_base, ONLY : at, bg
+  !USE symm_base, ONLY : s, invs, irt
+  !USE lr_symm_base, ONLY : nsymq, minus_q, irotmq, rtau
 
   implicit none
 !
@@ -37,6 +60,14 @@ subroutine find_d2_symm_base(xq, rank, basis)
   real(DP), INTENT(IN) :: xq (3)
   integer,INTENT(out) :: rank
   complex(DP),ALLOCATABLE,INTENT(out) :: basis(:,:,:)
+  integer,INTENT(in)  :: nat
+  real(DP),INTENT(in) :: at(3,3), bg(3,3)
+  integer,INTENT(in)  :: nsymq
+  logical,INTENT(in)  :: minus_q
+  integer,INTENT(in)  :: irotmq
+  real(DP),INTENT(in) :: rtau(3,48,nat)
+  integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
+
 ! input: the q point
 
 !  INTEGER, INTENT(OUT) :: npert(3*nat), nirr
@@ -156,9 +187,10 @@ subroutine find_d2_symm_base(xq, rank, basis)
        ENDDO
      ENDIF
    ENDDO
-#endif
 
    WRITE(*,*) "+", "Decomposition done"
+#endif
+
 
 !   WRITE(*,*) "total:" 
 !   phi = phi / DSQRT(DBLE(nx))
@@ -209,12 +241,14 @@ end function
 ! Given D(q), comutes the D matrics in the star of q
 !-----------------------------------------------------------------------
 subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
-     nq, sxq, isq, imq, nq_out, star_dyn, star_wdyn)
+     nq, sxq, isq, imq, nq_trstar, star_dyn, star_wdyn)
   !-----------------------------------------------------------------------
-  ! Generates the dynamical matrices for the star of q and writes them on
-  ! disk for later use.
+  ! Generates the dynamical matrices for the star of q a
   ! If there is a symmetry operation such that q -> -q +G then imposes on
   ! dynamical matrix those conditions related to time reversal symmetry.
+  ! It will return nq_trstar dynamical matrices, with
+  !   nq_trstar = nq      if -q is in the star of q
+  !   nq_trstar = 2*nq    otherwise
   !
   USE kinds, only : DP
   USE io_dyn_mat, only : write_dyn_mat
@@ -222,7 +256,7 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
   implicit none
   ! input variables
   integer,INTENT(in) :: nat, nsym, s (3, 3, 48), invs (48), irt (48, nat), &
-       nq, isq (48), imq, nq_out
+       nq, isq (48), imq, nq_trstar
   ! number of atoms in the unit cell
   ! number of symmetry operations
   ! the symmetry operations
@@ -234,8 +268,8 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
   ! unit number
   complex(DP),INTENT(in) :: dyn (3 * nat, 3 * nat)
   ! the input dynamical matrix. if imq.ne.0 the
-  complex(DP),OPTIONAL,INTENT(out) :: star_dyn (3 * nat, 3 * nat, nq_out)
-  complex(DP),OPTIONAL,INTENT(out) :: star_wdyn (3,3,nat,nat, nq_out)
+  complex(DP),OPTIONAL,INTENT(out) :: star_dyn (3 * nat, 3 * nat, nq_trstar)
+  complex(DP),OPTIONAL,INTENT(out) :: star_wdyn (3,3,nat,nat, nq_trstar)
   ! output matrices 
 
   real(DP),INTENT(in) :: at (3, 3), bg (3, 3), rtau (3, 48, nat), sxq (3, 48)
@@ -372,9 +406,6 @@ subroutine tr_star_q (xq, at, bg, nsym, s, invs, nq, nq_tr, sxq, isq, imq, verbo
   USE io_global,  ONLY : stdout
   USE kinds, only : DP
   implicit none
-  !
-  real(DP), parameter :: accep=1.e-5_dp
-
   integer, intent(in) :: nsym, s (3, 3, 48), invs(48)
   ! nsym matrices of symmetry operations
   ! invs: list of inverse operation indices

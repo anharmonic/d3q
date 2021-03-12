@@ -130,9 +130,9 @@ PROGRAM make_wedge
   ! Find the reduced grid of q-points:
   skip_equivalence = .FALSE.
   time_reversal    = .TRUE.
-  nq1 = 4
-  nq2 = 4
-  nq3 = 4
+  nq1 = fc%nq(1)
+  nq2 = fc%nq(2)
+  nq3 = fc%nq(3)
   nqmax = nq1*nq2*nq3
   ALLOCATE(x_q(3,nqmax), w_q(nqmax))
   call kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, bg, nqmax,&

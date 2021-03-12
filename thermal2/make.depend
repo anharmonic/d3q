@@ -13,6 +13,7 @@ PROGRAM_r2q.o : mpi_thermal.o
 PROGRAM_recenter.o : mpi_thermal.o
 PROGRAM_sparse.o : mpi_thermal.o
 PROGRAM_sqom.o : mpi_thermal.o
+PROGRAM_tdph.o : mpi_thermal.o
 PROGRAM_tk.o : mpi_thermal.o
 asr2.o : mpi_thermal.o
 casimir.o : mpi_thermal.o
@@ -25,7 +26,6 @@ f3_bwfft.o : mpi_thermal.o
 fc2_interp.o : mpi_thermal.o
 fc3_interp.o : mpi_thermal.o
 final_state.o : mpi_thermal.o
-forces.o : mpi_thermal.o
 functions.o : mpi_thermal.o
 input_fc.o : mpi_thermal.o
 isotopes.o : mpi_thermal.o
@@ -41,7 +41,6 @@ ph_dos.o : mpi_thermal.o
 ph_system.o : mpi_thermal.o
 ph_velocity.o : mpi_thermal.o
 posix_signal.o : mpi_thermal.o
-powell.o : mpi_thermal.o
 q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
 timers.o : mpi_thermal.o
@@ -167,6 +166,13 @@ PROGRAM_sqom.o : ./more_constants.o
 PROGRAM_sqom.o : ./mpi_thermal.o
 PROGRAM_sqom.o : ./neutrons.o
 PROGRAM_sqom.o : ./q_grids.o
+PROGRAM_tdph.o : ./PROGRAM_tdph.o
+PROGRAM_tdph.o : ./asr2.o
+PROGRAM_tdph.o : ./cmdline_param.o
+PROGRAM_tdph.o : ./decompose_d2.o
+PROGRAM_tdph.o : ./fc2_interp.o
+PROGRAM_tdph.o : ./input_fc.o
+PROGRAM_tdph.o : ./quter.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
 PROGRAM_tk.o : ./code_input.o
