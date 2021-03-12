@@ -80,8 +80,7 @@ PROGRAM tdph
   CHARACTER(len=256) :: fildyn, filout
   INTEGER :: ierr, nargs
   !
-  INTEGER       :: nq1, nq2, nq3, nqmax, nq_wedge, nqq
-  INTEGER       :: nq_done
+  INTEGER       :: nq1, nq2, nq3, nqmax, nq_wedge, nqq, nq_done
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
   REAL(DP) :: xq(3), syq(3,48)
   !
@@ -89,8 +88,8 @@ PROGRAM tdph
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:)
-  INTEGER :: i,j, icar,jcar, na,nb, iq, ndf
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), phonons(:)
+  INTEGER :: i,j, icar,jcar, na,nb, iq, ndf, iph
   INTEGER,ALLOCATABLE :: rank(:)
   TYPE(ph_system_info) :: Si
   TYPE(forceconst2_grid) :: fc, fcout
@@ -235,17 +234,43 @@ PROGRAM tdph
   ndf = SUM(rank)
   WRITE(stdout, '("=================")')
   WRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", ndf  
-
-  nq_done = 0
+  
+  ! Allocate a vector to hold the decomposed phonons over the entire grid
+  ! I need single vector in order to do minimization, otherwise a derived
+  ! type would be more handy
+  ALLOCATE(phonons(ndf))
+  iph = 0
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
     xq = symq(iq)%xq
     !
     ! Interpolate the system dynamical matrix at this q
     CALL fftinterp_mat2(xq, Si, fc, d2)
-    ! Remove the mass factor, I cannot remove it before becaus the effective
+    ! Remove the mass factor, I cannot remove it before because the effective
     ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Si,d2)
+    !
+    ! Decompose the dynamical matrix over the symmetric basis at this q-point
+    print*, "== DECOMPOSITION =="
+    DO i = 1,rank(iq)
+      iph = iph +1
+      phonons(iph) = dotprodmat(3*Si%nat,d2, dmb(iq)%basis(:,:,i))
+      WRITE(stdout,"(i3,1f12.6)") i, phonons(iph)
+    ENDDO
+    !
+  ENDDO Q_POINTS_LOOP2
+  !
+  nq_done = 0
+  iph = 0
+  Q_POINTS_LOOP3 : &
+  DO iq = 1, nq_wedge
+    !
+    ! Reconstruct the dynamical matrix from the coefficients
+    d2 = 0._dp
+    DO i = 1,rank(iq)
+      iph = iph+1
+      d2 = d2+ (phonons(iph)*(1.05_dp-rand()/10._dp)) *dmb(iq)%basis(:,:,i)
+    ENDDO
     !
     IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
     !
@@ -271,10 +296,6 @@ PROGRAM tdph
     DEALLOCATE(star_dyn)
   
     !CALL compact_dyn(nat, d2, phi)
-    print*, "== DECOMPOSITION =="
-    DO i = 1,rank(iq)
-      WRITE(stdout,"(i3,1f12.6)") i, dotprodmat(3*Si%nat,d2, dmb(iq)%basis(:,:,i))
-    ENDDO
     !
     !d2 = 0
     ! print*, "== RECOMPOSITION =="
@@ -282,7 +303,7 @@ PROGRAM tdph
     !  d2 = d2 + decomposition(i)*basis(:,:,i)
     !ENDDO
 
-  ENDDO Q_POINTS_LOOP2
+  ENDDO Q_POINTS_LOOP3
   !
   CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, 2)
   CALL write_fc2("matOUZ", Si, fcout)
