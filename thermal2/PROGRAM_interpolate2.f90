@@ -180,16 +180,16 @@ PROGRAM interpolate2
     DO nb = 1,S%nat
     DO na = 1,S%nat
     DO b = 1,3
-    nub = (nb-1)*3+b
-    DO a = 1,3
-    nua = (na-1)*3+a
-      matq(a,b,na,nb, nq) = Dout2(nua,nub)
+     nub = (nb-1)*3+b
+     DO a = 1,3
+      nua = (na-1)*3+a
+      matq(a,b,na,nb, nq) = Dout(nua,nub)
+     ENDDO
     ENDDO
     ENDDO
     ENDDO
-    ENDDO
-    CALL rgd_blk (nqi,nqj,nqk,S%nat,matq(:,:,:,:,nq),gridq(:,nq), &
-                  S%tau,Smld%epsil,Smld%zeu,S%bg,S%omega,S%celldm(1), .false.,-1._dp)
+    !CALL rgd_blk (nqi,nqj,nqk,S%nat,matq(:,:,:,:,nq),gridq(:,nq), &
+    !              S%tau,Smld%epsil,Smld%zeu,S%bg,S%omega,S%celldm(1), .false.,-1._dp)
   ENDDO
   ENDDO
   ENDDO

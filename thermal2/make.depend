@@ -296,31 +296,31 @@ variational_tk.o : ./mpi_thermal.o
 variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
-PROGRAM_db.o : 
-PROGRAM_gruneisen.o : 
-PROGRAM_import_shengbte.o : 
-PROGRAM_interpolate2.o : 
-PROGRAM_lw.o : 
-PROGRAM_qha.o : 
-PROGRAM_r2q.o : 
-PROGRAM_recenter.o : 
-PROGRAM_sqom.o : 
-PROGRAM_tk.o : 
-code_input.o : 
-dynbubble.o : 
-fc2_interp.o : 
-fc3_interp.o : 
-final_state.o : 
-input_fc.o : 
-linewidth.o : 
-mc_grids.o : 
-merge_degenerate.o : 
-more_constants.o : 
-mpi_thermal.o : 
-nanoclock.o : 
-nist_isotopes_db.o : 
-ph_system.o : 
-posix_signal.o : 
-q_grids.o : 
-timers.o : 
-variational_tk.o : 
+PROGRAM_db.o : mpi_thermal.h
+PROGRAM_gruneisen.o : mpi_thermal.h
+PROGRAM_import_shengbte.o : mpi_thermal.h
+PROGRAM_interpolate2.o : mpi_thermal.h
+PROGRAM_lw.o : mpi_thermal.h
+PROGRAM_qha.o : mpi_thermal.h
+PROGRAM_r2q.o : mpi_thermal.h
+PROGRAM_recenter.o : mpi_thermal.h
+PROGRAM_sqom.o : mpi_thermal.h
+PROGRAM_tk.o : mpi_thermal.h
+code_input.o : mpi_thermal.h
+dynbubble.o : mpi_thermal.h
+fc2_interp.o : mpi_thermal.h
+fc3_interp.o : mpi_thermal.h
+final_state.o : mpi_thermal.h
+input_fc.o : mpi_thermal.h
+linewidth.o : mpi_thermal.h
+mc_grids.o : mpi_thermal.h
+merge_degenerate.o : mpi_thermal.h
+more_constants.o : mpi_thermal.h
+mpi_thermal.o : mpi_thermal.h
+nanoclock.o : mpi_thermal.h
+nist_isotopes_db.o : mpi_thermal.h
+ph_system.o : mpi_thermal.h
+posix_signal.o : mpi_thermal.h
+q_grids.o : mpi_thermal.h
+timers.o : mpi_thermal.h
+variational_tk.o : mpi_thermal.h

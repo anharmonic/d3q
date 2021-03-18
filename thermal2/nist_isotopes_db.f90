@@ -50,7 +50,7 @@ MODULE nist_isotopes_db
       CONTAINS
         procedure :: assign_element
         generic   :: assignment(=) => assign_element
-#ifdef __INTEL        
+#ifdef __INTEL
         final     :: destroy_element
 #endif        
     END TYPE
