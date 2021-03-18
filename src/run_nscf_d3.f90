@@ -181,7 +181,7 @@ SUBROUTINE setup_nscf_d3()
   USE lr_symm_base,       ONLY : nsymq, invsymq, minus_q !, gi, gimq, irgq, irotmq, minus_q
   USE kplus3q,            ONLY : kplus3q_grids, kplusq
   USE mp,                 ONLY : mp_sum
-  USE uspp_param,         ONLY : n_atom_wfc
+  USE upf_ions,           ONLY : n_atom_wfc
   USE d3_kgrid,           ONLY : d3_nk1, d3_nk2, d3_nk3, d3_k1, d3_k2, d3_k3, d3_degauss
   USE check_stop,         ONLY : check_stop_init
   USE control_lr,      ONLY : ethr_nscf
