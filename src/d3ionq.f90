@@ -89,7 +89,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
                  upperbound, charge,  &! total charge in the cell
                  dtau(3)               ! aux: tau_s1 - tau_s2
   INTEGER :: abc(3)                    ! aux: {\alpha,\beta,\gamma}
-  REAL (DP), EXTERNAL ::  qe_erfc
+!  REAL (DP), EXTERNAL ::  qe_erfc
   COMPLEX (DP), ALLOCATABLE :: d3dion (:,:,:), d3dy2 (:,:,:) ! workspace
   COMPLEX (DP) :: work ! more workspace
   !
@@ -121,7 +121,7 @@ SUBROUTINE d3ionq ( q1,q2,q3, u1,u2,u3, ethr, d3dyn)
      alpha = alpha*0.9_dp ! - 0.1d0
      IF (alpha <= 0._dp) CALL errore ('d3ion', 'optimal alpha not found', 1)
      upperbound = 2 * charge**2 * SQRT(2 * alpha / tpi) &
-                 * qe_erfc( SQRT((tpi/alat)**2 * gcutm / 4 / alpha) )
+                 * erfc( SQRT((tpi/alat)**2 * gcutm / 4 / alpha) )
   ENDDO
   !
 !   alpha=0.7000
@@ -414,10 +414,10 @@ END SUBROUTINE d3ionq
     REAL(DP) :: d2f_fct
     REAL(DP),INTENT(IN) :: xx, eta
     REAL(DP)            :: xeta
-    REAL(DP), EXTERNAL  :: qe_erfc
+!    REAL(DP), EXTERNAL  :: qe_erfc
     xeta = xx*eta
     !
-    d2f_fct = 3._dp*qe_erfc(xeta) + a_fct(xeta)*(3._dp + 2*(xeta**2))
+    d2f_fct = 3._dp*erfc(xeta) + a_fct(xeta)*(3._dp + 2*(xeta**2))
     d2f_fct = d2f_fct/xx**5
     !-----------------------------------------------------------------------
   END FUNCTION
@@ -432,10 +432,10 @@ END SUBROUTINE d3ionq
     REAL(DP) :: d3f_fct
     REAL(DP),INTENT(IN) :: xx, eta
     REAL(DP)            :: xeta, xeta2
-    REAL(DP), EXTERNAL  :: qe_erfc
+!    REAL(DP), EXTERNAL  :: qe_erfc
     xeta  = xx*eta
     xeta2 = xeta**2
-    d3f_fct = 15._dp*qe_erfc(xeta) &
+    d3f_fct = 15._dp*erfc(xeta) &
             + a_fct(xeta)*(15._dp + 10._dp*xeta2 + 4*(xeta2**2))
     d3f_fct = -d3f_fct/xx**7
     !-----------------------------------------------------------------------
