@@ -54,6 +54,7 @@ PROGRAM interpolate2
                              Din(:,:), Dref(:,:), Dmld(:,:), Dout(:,:), Dout2(:,:), &
                              U(:,:), Uref(:,:), Umld(:,:), Umld0(:,:), WWout(:,:)
   REAL(DP) :: xq(3), olap, maxolap
+  LOGICAL :: lrigid_save
   !
 
   filein  = cmdline_param_char("i", "mat2R")
@@ -118,7 +119,10 @@ PROGRAM interpolate2
   ALLOCATE(Umld(S%nat3,S%nat3))
   ALLOCATE(Umld0(S%nat3,S%nat3))
 
-! Smld%lrigid = .false.
+ lrigid_save = S%lrigid
+ S%lrigid    = .false.
+ Sref%lrigid = .false.
+ Smld%lrigid = .false.
 
   nq = 0
   DO i = 0,nqi-1
@@ -194,6 +198,7 @@ PROGRAM interpolate2
   ENDDO
   ENDDO
 
+  S%lrigid    = lrigi
 
   CALL quter(nqi, nqj, nqk, S%nat,S%tau,S%at,S%bg, matq, gridq, fcout)
   CALL write_fc2(fileout, S, fcout)
