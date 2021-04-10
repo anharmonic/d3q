@@ -529,7 +529,7 @@ PROGRAM sqom
       ENDDO
       !
     ELSE
-      CALL errore("sqom", "not a valid type of calculation: "//TRIM(sqi%calculation))
+      CALL errore("sqom", "not a valid type of calculation: "//TRIM(sqi%calculation),1)
     ENDIF CALCULATION_TYPE
     !
     spf_merge = spf_merge + spf

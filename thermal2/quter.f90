@@ -74,7 +74,7 @@ MODULE quter_module
         END DO
         END DO
         IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
-        WRITE(*,*) "seeking over ", nRbig," vectors"
+ !       WRITE(*,*) "seeking over ", nRbig," vectors"
     ELSE
         nRbig = nq1*nq2*nq3
         ALLOCATE(Rbig(3,nRbig))
@@ -88,7 +88,7 @@ MODULE quter_module
         END DO
         END DO
         IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
-        WRITE(*,*) "nfar==0 => standard FT over ", nRbig," vectors"
+!        WRITE(*,*) "nfar==0 => standard FT over ", nRbig," vectors"
     ENDIF
     !
     ! dyn.mat. FFT

@@ -198,7 +198,7 @@ PROGRAM interpolate2
   ENDDO
   ENDDO
 
-  S%lrigid    = lrigi
+  S%lrigid    = lrigid_save
 
   CALL quter(nqi, nqj, nqk, S%nat,S%tau,S%at,S%bg, matq, gridq, fcout)
   CALL write_fc2(fileout, S, fcout)
