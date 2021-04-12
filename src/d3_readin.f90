@@ -46,7 +46,7 @@ SUBROUTINE d3_readin()
   USE mp,               ONLY : mp_bcast
   USE mp_world,         ONLY : world_comm
   USE wrappers,       ONLY : f_mkdir_safe
-  USE cmdline_param_module, ONLY : cmdline_to_namelist
+  USE cmdline_param_module, ONLY : cmdline_to_namelist, fgetpid
   !
   IMPLICIT NONE
   !
@@ -63,6 +63,7 @@ SUBROUTINE d3_readin()
   !
   CHARACTER(len=256),EXTERNAL :: trimcheck
   LOGICAL,EXTERNAL :: eqvect, imatches
+  CHARACTER(len=6),EXTERNAL :: int_to_char
 
   NAMELIST / inputd3q / ethr_ph, amass, prefix, & ! controls, pw.x prefix
        outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
@@ -150,24 +151,20 @@ SUBROUTINE d3_readin()
           aux_unit = 5
         ELSE IF (PASS==2) THEN
           WRITE(stdout,'(2x,3a)') "merging with command line arguments"
-          OPEN(newunit=aux_unit, file="d3q.tmp~", status="UNKNOWN", action="READWRITE")
+          OPEN(newunit=aux_unit, file="d3q."//TRIM(int_to_char(fgetpid()))//"~", status="UNKNOWN", action="READWRITE")
           CALL cmdline_to_namelist("inputd3q", aux_unit)
           REWIND(aux_unit)
         ENDIF
 
         READ (aux_unit, inputd3q, iostat = ios)
         !
+        IF(ios==0 .and. PASS==2) CLOSE(aux_unit, status='delete')
      ENDDO PASSES
 
      WRITE(stdout,'(5x,a)') "_____________ input start _____________"
      WRITE(stdout, inputd3q)
      WRITE(stdout,'(5x,a)') "_____________  input end  _____________"
      
-     IF(only>0) THEN 
-       first = only
-       last = only
-     ENDIF
-
      outdir= trimcheck(outdir)//"/"
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      d3dir = trimcheck(d3dir)//"/"
@@ -254,6 +251,11 @@ SUBROUTINE d3_readin()
        max_seconds = max_seconds + 3600*INT(max_time)
      ENDIF
      IF(max_seconds>0) WRITE(stdout, '(5x,a,i10,a)') "Max time:",max_seconds,"s"
+     !
+     IF(only>0) THEN 
+       first = only
+       last = only
+     ENDIF
      !
   END IF &
   ONLY_IONODE
