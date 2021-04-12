@@ -6,8 +6,10 @@ allocate_d3.o : ./efermi_shift.o
 allocate_pert_d3.o : ../../Modules/ions_base.o
 allocate_pert_d3.o : ../../Modules/kind.o
 allocate_pert_d3.o : ../../PHonon/PH/phcom.o
+cmdline_param.o : ../../Modules/kind.o
 d2mxc.o : ../../Modules/constants.o
 d2mxc.o : ../../Modules/kind.o
+d2mxc.o : ../../XClib/qe_drivers_lda_lsda.o
 d2mxc.o : ../../XClib/xc_input_params_mod.o
 d3_basis.o : ../../Modules/kind.o
 d3_debug.o : ../../LR_Modules/lrcom.o
@@ -149,6 +151,7 @@ d3_readin.o : ../../PHonon/PH/save_ph_input.o
 d3_readin.o : ../../PW/src/pwcom.o
 d3_readin.o : ../../UtilXlib/mp.o
 d3_readin.o : ../../upflib/uspp.o
+d3_readin.o : ./cmdline_param.o
 d3_readin.o : ./d3_debug.o
 d3_readin.o : ./d3_grid.o
 d3_readin.o : ./d3_iofiles.o
@@ -472,7 +475,7 @@ run_nscf_d3.o : ../../PW/src/scf_mod.o
 run_nscf_d3.o : ../../PW/src/start_k.o
 run_nscf_d3.o : ../../PW/src/symm_base.o
 run_nscf_d3.o : ../../UtilXlib/mp.o
-run_nscf_d3.o : ../../upflib/uspp.o
+run_nscf_d3.o : ../../upflib/upf_ions.o
 run_nscf_d3.o : ./d3_restart.o
 run_nscf_d3.o : ./d3com.o
 run_nscf_d3.o : ./d3matrix_io2.o
@@ -497,6 +500,8 @@ setup_d3gc.o : ../../Modules/recvec.o
 setup_d3gc.o : ../../Modules/wavefunctions.o
 setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o
+setup_d3gc.o : ../../XClib/qe_drivers_d_gga.o
+setup_d3gc.o : ../../XClib/qe_drivers_gga.o
 setup_d3gc.o : ../../XClib/xc_input_params_mod.o
 setup_d3gc.o : ../../upflib/uspp.o
 solve_linter_d3q.o : ../../FFTXlib/fft_interfaces.o

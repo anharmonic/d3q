@@ -46,13 +46,14 @@ SUBROUTINE d3_readin()
   USE mp,               ONLY : mp_bcast
   USE mp_world,         ONLY : world_comm
   USE wrappers,       ONLY : f_mkdir_safe
+  USE cmdline_param_module, ONLY : cmdline_to_namelist
   !
   IMPLICIT NONE
   !
   REAL(DP):: xq1(3),xq2(3),xq3(3)
   INTEGER :: nq1, nq2, nq3
   !
-  INTEGER :: ios, ipol, it
+  INTEGER :: ios, ipol, it, aux_unit, pass
   INTEGER :: first, last, step, offset
   ! counters
   CHARACTER(len=256) :: outdir, fildrho, mode, fild3dir
@@ -164,9 +165,21 @@ SUBROUTINE d3_readin()
      !
      FLUSH( stdout )
 
-     READ (5, inputd3q, iostat = ios)
-     IF(ios/=0) READ (5, inputph, iostat = ios)
-     IF(ios/=0) CALL errore (sub, 'reading inputd3q/inputph namelist', ABS (ios) )
+
+     PASSES : DO PASS = 1,2
+        IF(PASS==1) THEN
+          aux_unit = 5
+        ELSE IF (PASS==2) THEN
+          WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+          OPEN(newunit=aux_unit, file="d3q.tmp~", status="UNKNOWN", action="READWRITE")
+          CALL cmdline_to_namelist("inputd3q", aux_unit)
+          REWIND(aux_unit)
+        ENDIF
+
+        READ (aux_unit, inputd3q, iostat = ios)
+        !
+     ENDDO PASSES
+
      WRITE(stdout,'(5x,a)') "_____________ input start _____________"
      WRITE(stdout, inputd3q)
      WRITE(stdout,'(5x,a)') "_____________  input end  _____________"

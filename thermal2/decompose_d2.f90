@@ -1,6 +1,6 @@
-
 MODULE decompose_d2 
    USE kinds, ONLY : dp
+#include "mpi_thermal.h"
 
    TYPE sym_and_star_q
       real(DP) :: xq (3)
@@ -46,13 +46,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
                              nsymq, minus_q, irotmq, rtau, irt, s, invs )
 !---------------------------------------------------------------------
 
-  USE io_global,  ONLY : stdout
-  USE kinds, only : DP
-  !USE ions_base, ONLY : nat !, tau, ntyp => nsp, ityp, amass
-  !USE cell_base, ONLY : at, bg
-  !USE symm_base, ONLY : s, invs, irt
-  !USE lr_symm_base, ONLY : nsymq, minus_q, irotmq, rtau
-
+  USE kinds,     ONLY : DP
   implicit none
 !
 !   first the dummy variables
@@ -108,7 +102,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
      mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
    ENDDO
    ENDDO
-   WRITE(*,*) "Initial basis size:", nx
+   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
   
    ! symmetrize each matrix
    DO i = 1,nx
@@ -138,7 +132,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
       !print*, i, jx, normtx
      ENDIF
    ENDDO
-   WRITE(*,*) "Number of non-zero symmetric matrices::", jx
+   ioWRITE(stdout,'(2x,a,i8)') "Number of non-zero symmetric matrices: ", jx
    nx = jx
 
    ! Graham-Schmidt
@@ -158,7 +152,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
        !print*, jx, i, normtx
      ENDIF
    ENDDO
-   PRINT*, "Number of orthonormal matrices:", jx
+   ioWRITE(stdout,'(2x,a,i8)') "Number of orthonormal matrices:", jx
    nx = jx
 
   rank = nx
@@ -167,28 +161,28 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
 
 #ifdef __DEBUG
   phi = 0._dp
-   WRITE(*,*) "++++++++++"
+   ioWRITE(*,*) "++++++++++"
    DO i = 1, nx
      IF(ANY(ABS(mtx(:,:,i))>1.d-8))THEN
        phi  = phi+mtx(:,:,i)
        CALL scompact_dyn(nat, mtx(:,:,i), wdyn)
-       WRITE(*,*) "+", i
+       ioWRITE(*,*) "+", i
        DO j = 1,nat
        DO k = 1,nat
-            WRITE(*,*) j,k
-            WRITE(*,'(3(2f7.3,3x),5x)') wdyn(:,:,j,k)
+            ioWRITE(*,*) j,k
+            ioWRITE(*,'(3(2f7.3,3x),5x)') wdyn(:,:,j,k)
        ENDDO
        ENDDO
        call cdiagh (3 * nat, phi, 3 * nat, eigen, u)
        DO k = 1,3*nat
          IF(abs(eigen(k))>1.d-8) THEN
-            WRITE(*,'("a", f10.6, 3x, 6(2f7.3,3x))') eigen(k), u(:,k)
+            ioWRITE(*,'("a", f10.6, 3x, 6(2f7.3,3x))') eigen(k), u(:,k)
          ENDIF
        ENDDO
      ENDIF
    ENDDO
 
-   WRITE(*,*) "+", "Decomposition done"
+   ioWRITE(*,*) "+", "Decomposition done"
 #endif
 
 
@@ -384,7 +378,7 @@ subroutine make_qstar_d2 (dyn, at, bg, nat, nsym, s, invs, irt, rtau, &
         enddo
         !
         ! and writes it 
-        print*, "iq done", iq+nq
+        !print*, "iq done", iq+nq
         IF(present(star_dyn)) CALL compact_dyn(nat, star_dyn(:,:,iq+nq), phi2)
         IF(present(star_wdyn)) star_wdyn(:,:,:,:, iq)= phi2
      endif
@@ -403,7 +397,6 @@ subroutine tr_star_q (xq, at, bg, nsym, s, invs, nq, nq_tr, sxq, isq, imq, verbo
   ! NB: input s(:,:,1:nsym) must contain all crystal symmetries,
   ! i.e. not those of the small-qroup of q only
   !
-  USE io_global,  ONLY : stdout
   USE kinds, only : DP
   implicit none
   integer, intent(in) :: nsym, s (3, 3, 48), invs(48)
