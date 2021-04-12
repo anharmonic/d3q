@@ -54,7 +54,7 @@ SUBROUTINE d3_readin()
   INTEGER :: nq1, nq2, nq3
   !
   INTEGER :: ios, ipol, it, aux_unit, pass
-  INTEGER :: first, last, step, offset
+  INTEGER :: only, first, last, step, offset
   ! counters
   CHARACTER(len=256) :: outdir, fildrho, mode, fild3dir
   CHARACTER(len=9),PARAMETER :: sub='d3_readin'
@@ -68,33 +68,11 @@ SUBROUTINE d3_readin()
        outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
        fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
        istop, mode, iverbosity, &  ! legacy, to be removed or fixed
-       first, last, step, offset, & ! partial grid definition
+       only, first, last, step, offset, & ! partial grid definition
        safe_io, restart, max_time, max_seconds, & ! restart controls (sort of)
        print_star, print_perm, print_trev, &  ! fildrho files to write
        nk1, nk2, nk3, k1, k2, k3, degauss
-  ! convergence threshold
-  ! atomic masses
-  ! write control
-  ! directory for temporary files
-  ! the punch file produced by pwscf
-  ! file with the dynamical matrix (output)
-  ! file with deltarho at q
-  ! file with deltarho at p (gamma in the old code)
-  ! file with deltarho at -p-q (new)
-  ! list of the q=0 modes to be computed
-  ! .true.==> writes some auxiliary
-  ! .true.==> this is a recover run
-  ! to stop the program at a given point
-  ! variables used for testing purposes
-  NAMELIST / inputph / ethr_ph, amass, prefix, & ! controls, pw.x prefix
-       outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
-       fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
-       istop, mode, iverbosity, &  ! legacy, to be removed or fixed
-       first, last, step, offset, & ! partial grid definition
-       safe_io, restart, max_time, max_seconds, & ! restart controls (sort of)
-       print_star, print_perm, print_trev, &  ! fildrho files to write
-       nk1, nk2, nk3, k1, k2, k3, degauss
-  !
+ !
   CALL start_clock('d3_readin')
   !
   IF ( ionode ) THEN
@@ -142,6 +120,7 @@ SUBROUTINE d3_readin()
      nq2=0
      nq3=0
      ! definition of triplets to compute, for manual parallelisation:
+     only=-1
      first=-1
      last=-1
      step=1
@@ -184,6 +163,10 @@ SUBROUTINE d3_readin()
      WRITE(stdout, inputd3q)
      WRITE(stdout,'(5x,a)') "_____________  input end  _____________"
      
+     IF(only>0) THEN 
+       first = only
+       last = only
+     ENDIF
 
      outdir= trimcheck(outdir)//"/"
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
@@ -368,6 +351,7 @@ SUBROUTINE d3_readin()
     CALL mp_bcast(fild2rho, ionode_id, world_comm)
     CALL mp_bcast(fild3rho, ionode_id, world_comm)
     !
+    CALL mp_bcast(only,   ionode_id, world_comm)
     CALL mp_bcast(first,   ionode_id, world_comm)
     CALL mp_bcast(last,    ionode_id, world_comm)
     CALL mp_bcast(step,    ionode_id, world_comm)
