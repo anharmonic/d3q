@@ -58,7 +58,6 @@ mpi_thermal.o \
 asr2.o \
 casimir.o \
 code_input.o \
-cmdline_param.o \
 eos.o \
 decompose_d2.o \
 final_state.o \

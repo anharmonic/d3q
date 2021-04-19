@@ -46,14 +46,15 @@ SUBROUTINE d3_readin()
   USE mp,               ONLY : mp_bcast
   USE mp_world,         ONLY : world_comm
   USE wrappers,       ONLY : f_mkdir_safe
+  USE cmdline_param_module, ONLY : cmdline_to_namelist, fgetpid
   !
   IMPLICIT NONE
   !
   REAL(DP):: xq1(3),xq2(3),xq3(3)
   INTEGER :: nq1, nq2, nq3
   !
-  INTEGER :: ios, ipol, it
-  INTEGER :: first, last, step, offset
+  INTEGER :: ios, ipol, it, aux_unit, pass
+  INTEGER :: only, first, last, step, offset
   ! counters
   CHARACTER(len=256) :: outdir, fildrho, mode, fild3dir
   CHARACTER(len=9),PARAMETER :: sub='d3_readin'
@@ -62,38 +63,17 @@ SUBROUTINE d3_readin()
   !
   CHARACTER(len=256),EXTERNAL :: trimcheck
   LOGICAL,EXTERNAL :: eqvect, imatches
+  CHARACTER(len=6),EXTERNAL :: int_to_char
 
   NAMELIST / inputd3q / ethr_ph, amass, prefix, & ! controls, pw.x prefix
        outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
        fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
        istop, mode, iverbosity, &  ! legacy, to be removed or fixed
-       first, last, step, offset, & ! partial grid definition
+       only, first, last, step, offset, & ! partial grid definition
        safe_io, restart, max_time, max_seconds, & ! restart controls (sort of)
        print_star, print_perm, print_trev, &  ! fildrho files to write
        nk1, nk2, nk3, k1, k2, k3, degauss
-  ! convergence threshold
-  ! atomic masses
-  ! write control
-  ! directory for temporary files
-  ! the punch file produced by pwscf
-  ! file with the dynamical matrix (output)
-  ! file with deltarho at q
-  ! file with deltarho at p (gamma in the old code)
-  ! file with deltarho at -p-q (new)
-  ! list of the q=0 modes to be computed
-  ! .true.==> writes some auxiliary
-  ! .true.==> this is a recover run
-  ! to stop the program at a given point
-  ! variables used for testing purposes
-  NAMELIST / inputph / ethr_ph, amass, prefix, & ! controls, pw.x prefix
-       outdir, fildrho_dir, d3dir, & ! directories (of $prefix.save, of fildrho files, for scratch)
-       fild3dyn, fildrho, fild1rho, fild2rho, fild3rho, & ! output/input
-       istop, mode, iverbosity, &  ! legacy, to be removed or fixed
-       first, last, step, offset, & ! partial grid definition
-       safe_io, restart, max_time, max_seconds, & ! restart controls (sort of)
-       print_star, print_perm, print_trev, &  ! fildrho files to write
-       nk1, nk2, nk3, k1, k2, k3, degauss
-  !
+ !
   CALL start_clock('d3_readin')
   !
   IF ( ionode ) THEN
@@ -141,6 +121,7 @@ SUBROUTINE d3_readin()
      nq2=0
      nq3=0
      ! definition of triplets to compute, for manual parallelisation:
+     only=-1
      first=-1
      last=-1
      step=1
@@ -164,14 +145,26 @@ SUBROUTINE d3_readin()
      !
      FLUSH( stdout )
 
-     READ (5, inputd3q, iostat = ios)
-     IF(ios/=0) READ (5, inputph, iostat = ios)
-     IF(ios/=0) CALL errore (sub, 'reading inputd3q/inputph namelist', ABS (ios) )
+
+     PASSES : DO PASS = 1,2
+        IF(PASS==1) THEN
+          aux_unit = 5
+        ELSE IF (PASS==2) THEN
+          WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+          OPEN(newunit=aux_unit, file="d3q."//TRIM(int_to_char(fgetpid()))//"~", status="UNKNOWN", action="READWRITE")
+          CALL cmdline_to_namelist("inputd3q", aux_unit)
+          REWIND(aux_unit)
+        ENDIF
+
+        READ (aux_unit, inputd3q, iostat = ios)
+        !
+        IF(ios==0 .and. PASS==2) CLOSE(aux_unit, status='delete')
+     ENDDO PASSES
+
      WRITE(stdout,'(5x,a)') "_____________ input start _____________"
      WRITE(stdout, inputd3q)
      WRITE(stdout,'(5x,a)') "_____________  input end  _____________"
      
-
      outdir= trimcheck(outdir)//"/"
      IF ( TRIM( d3dir ) == ' ' ) d3dir=outdir
      d3dir = trimcheck(d3dir)//"/"
@@ -258,6 +251,11 @@ SUBROUTINE d3_readin()
        max_seconds = max_seconds + 3600*INT(max_time)
      ENDIF
      IF(max_seconds>0) WRITE(stdout, '(5x,a,i10,a)') "Max time:",max_seconds,"s"
+     !
+     IF(only>0) THEN 
+       first = only
+       last = only
+     ENDIF
      !
   END IF &
   ONLY_IONODE
@@ -355,6 +353,7 @@ SUBROUTINE d3_readin()
     CALL mp_bcast(fild2rho, ionode_id, world_comm)
     CALL mp_bcast(fild3rho, ionode_id, world_comm)
     !
+    CALL mp_bcast(only,   ionode_id, world_comm)
     CALL mp_bcast(first,   ionode_id, world_comm)
     CALL mp_bcast(last,    ionode_id, world_comm)
     CALL mp_bcast(step,    ionode_id, world_comm)

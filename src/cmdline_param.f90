@@ -61,8 +61,20 @@ MODULE cmdline_param_module
   ! Usually work, but it is a bit magic
   INTEGER :: length = -1
   CHARACTER(len=:),ALLOCATABLE :: command
+  PUBLIC :: fgetpid
   !
   CONTAINS
+
+  INTEGER FUNCTION fgetpid()
+#if defined(__INTEL_COMPILER)
+    USE IFPORT, ONLY : getpid
+    fgetpid = INT(getpid(), kind=8)
+#elif defined (__GFORTRAN__)
+    fgetpid = INT(getpid(), kind=8)
+#else 
+    fgetpid = INT(rand()*1.d+6)
+#endif
+  END FUNCTION
 
   REAL(DP) FUNCTION cmdline_param_dble(switch, default, found)
     IMPLICIT NONE

@@ -17,7 +17,6 @@ PROGRAM_tdph.o : mpi_thermal.o
 PROGRAM_tk.o : mpi_thermal.o
 asr2.o : mpi_thermal.o
 casimir.o : mpi_thermal.o
-cmdline_param.o : mpi_thermal.o
 code_input.o : mpi_thermal.o
 decompose_d2.o : mpi_thermal.o
 dynbubble.o : mpi_thermal.o
@@ -27,6 +26,7 @@ fc2_interp.o : mpi_thermal.o
 fc3_interp.o : mpi_thermal.o
 final_state.o : mpi_thermal.o
 functions.o : mpi_thermal.o
+harmonic.o : mpi_thermal.o
 input_fc.o : mpi_thermal.o
 isotopes.o : mpi_thermal.o
 linewidth.o : mpi_thermal.o
@@ -46,7 +46,6 @@ quter.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
 PROGRAM_asr3.o : ./PROGRAM_asr3.o
-PROGRAM_asr3.o : ./cmdline_param.o
 PROGRAM_asr3.o : ./fc3_interp.o
 PROGRAM_asr3.o : ./input_fc.o
 PROGRAM_asr3.o : ./more_constants.o
@@ -74,14 +73,12 @@ PROGRAM_gruneisen.o : ./mpi_thermal.o
 PROGRAM_gruneisen.o : ./ph_velocity.o
 PROGRAM_gruneisen.o : ./q_grids.o
 PROGRAM_import_shengbte.o : ./PROGRAM_import_shengbte.o
-PROGRAM_import_shengbte.o : ./cmdline_param.o
 PROGRAM_import_shengbte.o : ./f3_bwfft.o
 PROGRAM_import_shengbte.o : ./fc3_interp.o
 PROGRAM_import_shengbte.o : ./input_fc.o
 PROGRAM_import_shengbte.o : ./ph_system.o
 PROGRAM_interpolate2.o : ./PROGRAM_interpolate2.o
 PROGRAM_interpolate2.o : ./asr2.o
-PROGRAM_interpolate2.o : ./cmdline_param.o
 PROGRAM_interpolate2.o : ./fc2_interp.o
 PROGRAM_interpolate2.o : ./input_fc.o
 PROGRAM_interpolate2.o : ./ph_system.o
@@ -102,7 +99,6 @@ PROGRAM_lw.o : ./overlap.o
 PROGRAM_lw.o : ./q_grids.o
 PROGRAM_lw.o : ./timers.o
 PROGRAM_make_wedge.o : ./asr2.o
-PROGRAM_make_wedge.o : ./cmdline_param.o
 PROGRAM_make_wedge.o : ./decompose_d2.o
 PROGRAM_make_wedge.o : ./fc2_interp.o
 PROGRAM_make_wedge.o : ./input_fc.o
@@ -111,7 +107,6 @@ PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
 PROGRAM_qha.o : ./PROGRAM_qha.o
 PROGRAM_qha.o : ./asr2.o
-PROGRAM_qha.o : ./cmdline_param.o
 PROGRAM_qha.o : ./code_input.o
 PROGRAM_qha.o : ./eos.o
 PROGRAM_qha.o : ./fc2_interp.o
@@ -122,7 +117,6 @@ PROGRAM_qha.o : ./nanoclock.o
 PROGRAM_qha.o : ./ph_velocity.o
 PROGRAM_qha.o : ./q_grids.o
 PROGRAM_qha.o : ./timers.o
-PROGRAM_qq2rr.o : ./cmdline_param.o
 PROGRAM_qq2rr.o : ./f3_bwfft.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
@@ -144,13 +138,11 @@ PROGRAM_r2q.o : ./ph_velocity.o
 PROGRAM_r2q.o : ./q_grids.o
 PROGRAM_r2q.o : ./timers.o
 PROGRAM_recenter.o : ./PROGRAM_recenter.o
-PROGRAM_recenter.o : ./cmdline_param.o
 PROGRAM_recenter.o : ./f3_bwfft.o
 PROGRAM_recenter.o : ./fc3_interp.o
 PROGRAM_recenter.o : ./input_fc.o
 PROGRAM_recenter.o : ./ph_system.o
 PROGRAM_sparse.o : ./PROGRAM_sparse.o
-PROGRAM_sparse.o : ./cmdline_param.o
 PROGRAM_sparse.o : ./fc3_interp.o
 PROGRAM_sparse.o : ./input_fc.o
 PROGRAM_sparse.o : ./more_constants.o
@@ -168,10 +160,11 @@ PROGRAM_sqom.o : ./neutrons.o
 PROGRAM_sqom.o : ./q_grids.o
 PROGRAM_tdph.o : ./PROGRAM_tdph.o
 PROGRAM_tdph.o : ./asr2.o
-PROGRAM_tdph.o : ./cmdline_param.o
 PROGRAM_tdph.o : ./decompose_d2.o
 PROGRAM_tdph.o : ./fc2_interp.o
+PROGRAM_tdph.o : ./harmonic.o
 PROGRAM_tdph.o : ./input_fc.o
+PROGRAM_tdph.o : ./mpi_thermal.o
 PROGRAM_tdph.o : ./quter.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
@@ -193,7 +186,6 @@ asr2.o : ./input_fc.o
 casimir.o : ./input_fc.o
 casimir.o : ./ph_velocity.o
 code_input.o : ./asr2.o
-code_input.o : ./cmdline_param.o
 code_input.o : ./fc3_interp.o
 code_input.o : ./input_fc.o
 code_input.o : ./more_constants.o
@@ -227,6 +219,8 @@ final_state.o : ./more_constants.o
 final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
+harmonic.o : ./input_fc.o
+harmonic.o : ./mpi_thermal.o
 input_fc.o : ./mpi_thermal.o
 input_fc.o : ./ph_system.o
 isotopes.o : ./fc2_interp.o
@@ -305,12 +299,15 @@ PROGRAM_qha.o : mpi_thermal.h
 PROGRAM_r2q.o : mpi_thermal.h
 PROGRAM_recenter.o : mpi_thermal.h
 PROGRAM_sqom.o : mpi_thermal.h
+PROGRAM_tdph.o : mpi_thermal.h
 PROGRAM_tk.o : mpi_thermal.h
 code_input.o : mpi_thermal.h
+decompose_d2.o : mpi_thermal.h
 dynbubble.o : mpi_thermal.h
 fc2_interp.o : mpi_thermal.h
 fc3_interp.o : mpi_thermal.h
 final_state.o : mpi_thermal.h
+harmonic.o : mpi_thermal.h
 input_fc.o : mpi_thermal.h
 linewidth.o : mpi_thermal.h
 mc_grids.o : mpi_thermal.h
