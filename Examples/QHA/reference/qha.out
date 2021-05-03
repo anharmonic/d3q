@@ -31,6 +31,8 @@
  NT=100        ,
  NK= 3*20         ,
  GRID_TYPE="simple",
+ PRESS_KBAR=  0.0000000000000000     ,
+ PRESS_GPA=  0.0000000000000000     ,
  /
  ** Reading FC2 file: a10.0/mat2R
      alat (bohr)   10.000000
@@ -43,7 +45,6 @@
      bg_3 = (   -1.000000    1.000000   -1.000000 )
      volume (bohr^3)  250.000000
  Original FC2 grid:           4           4           4
- doing zeu asr
  ** Reading FC2 file: a10.1/mat2R
      alat (bohr)   10.100000
      tpiba (1/bohr)    0.622098
@@ -55,7 +56,6 @@
      bg_3 = (   -1.000000    1.000000   -1.000000 )
      volume (bohr^3)  257.575250
  Original FC2 grid:           4           4           4
- doing zeu asr
  ** Reading FC2 file: a10.2/mat2R
      alat (bohr)   10.200000
      tpiba (1/bohr)    0.615999
@@ -67,7 +67,6 @@
      bg_3 = (   -1.000000    1.000000   -1.000000 )
      volume (bohr^3)  265.302000
  Original FC2 grid:           4           4           4
- doing zeu asr
  ** Reading FC2 file: a10.3/mat2R
      alat (bohr)   10.300000
      tpiba (1/bohr)    0.610018
@@ -79,7 +78,6 @@
      bg_3 = (   -1.000000    1.000000   -1.000000 )
      volume (bohr^3)  273.181750
  Original FC2 grid:           4           4           4
- doing zeu asr
  ** Reading FC2 file: a10.4/mat2R
      alat (bohr)   10.400000
      tpiba (1/bohr)    0.604152
@@ -91,7 +89,6 @@
      bg_3 = (   -1.000000    1.000000   -1.000000 )
      volume (bohr^3)  281.216000
  Original FC2 grid:           4           4           4
- doing zeu asr
  gibbs!
 Computing zero-point and phonon-free energy for each volume,
     1    2    3    4    5

@@ -1,10 +1,96 @@
+--------------------------------------------------------------------------
+[[24928,1],0]: A high-performance Open MPI point-to-point messaging module
+was unable to find any relevant network interfaces:
 
-     Program D3_Q2R v.6.4.1 starts on 25Jun2019 at 10:29:47 
+Module: OpenFabrics (openib)
+  Host: H388X
+
+Another transport will be used instead, although this may result in
+lower performance.
+
+NOTE: You can disable this warning by setting the MCA parameter
+btl_base_warn_component_unused to 0.
+--------------------------------------------------------------------------
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+At line 792 of file PROGRAM_q2r.f90
+Fortran runtime warning: An array temporary was created
+
+     Program D3_Q2R v.6.7GPU starts on 19Apr2021 at 10:57: 4 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
          "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
          "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+         "P. Giannozzi et al., J. Chem. Phys. 152 154105 (2020);
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
@@ -16,18 +102,18 @@
      reading grid info from file dyn0
   reading force constants from file dyn1
  macroscopic fields = T
-  24.14881   0.00000  -0.00000
-   0.00000  24.14881   0.00000
-  -0.00000   0.00000  24.14881
+  24.14879  -0.00000   0.00000
+   0.00000  24.14879   0.00000
+   0.00000  -0.00000  24.14879
   na=            1
   -1.22876  -0.00000  -0.00000
   -0.00000  -1.22876   0.00000
   -0.00000   0.00000  -1.22876
   na=            2
   -1.22876   0.00000   0.00000
-   0.00000  -1.22876   0.00000
-  -0.00000   0.00000  -1.22876
-Norm of the difference between old and new effective charges:    3.00983248087052546182
+   0.00000  -1.22876  -0.00000
+   0.00000  -0.00000  -1.22876
+Norm of the difference between old and new effective charges:    3.00982545217238506297
   nqs=            1
          0.000000    0.000000    0.000000
   reading force constants from file dyn2
@@ -109,12 +195,11 @@ Norm of the difference between old and new effective charges:    3.0098324808705
          0.000000   -0.500000   -1.000000
 
       q-space grid ok, #points =   64
- seeking over         4913  vectors
 
-     D3_Q2R       :      0.04s CPU      0.04s WALL
+     D3_Q2R       :      0.03s CPU      0.03s WALL
 
 
-   This run was terminated on:  10:29:47  25Jun2019            
+   This run was terminated on:  10:57: 4  19Apr2021            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

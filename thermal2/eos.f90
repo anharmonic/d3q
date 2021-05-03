@@ -99,11 +99,8 @@ MODULE eos
       SUBROUTINE find_minimum2(istat,npar,par,npt,v0,etot,efit,emin,chisq)
 !-----------------------------------------------------------------------
 !
-!     Very Stupid Minimization
-!
       USE random_numbers, ONLY : randy
-      !USE powell, ONLY : POWELL_MIN
-      USE lmdif_module, ONLY : lmdif1
+      USE lmdif_module, ONLY : lmdif0
       IMPLICIT NONE
       INTEGER ,INTENT(in)  :: istat, npar, npt
       REAL(DP),INTENT(in)  :: v0(npt),etot(npt)
@@ -111,51 +108,36 @@ MODULE eos
       REAL(DP),INTENT(out) :: par(maxpar)
       REAL(DP),INTENT(out) :: chisq
       !
-      REAL(DP) :: vchisq(npar)
-      INTEGER :: lwa, iwa(npar)
-      REAL(DP),ALLOCATABLE :: wa(:) 
+      REAL(DP) :: ediff(npt)
 
-      !
-      !REAL(DP) :: xi(npar,npar)
       INTEGER :: i
-      !
-      !xi = 0._dp
-      !FORALL(i=1:npar) xi(i,i) = 1._dp
-      lwa = npar**2 + 6*npar
-      ALLOCATE(wa(lwa))
+
       par(1) = v0(npt/2)
       par(2) = 500.0d0
       par(3) = 5.0d0
       par(4) = -0.01d0
       !
-!     CALL POWELL_MIN(func,par,xi,npar,npar,1.d-6,i,chisq)
-      CALL lmdif1(SCHISQ, npar, npar, par, vchisq, 1.d-12, i, iwa, wa, lwa)
+      CALL lmdif0(EOSDIFF, npt, npar, par, ediff, 1.d-12, i)
       !
       CALL eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)
       
-      DEALLOCATE(wa)   
 
       CONTAINS
 
       ! This subroutine is passed to LMDIF to be minimized
-      SUBROUTINE SCHISQ(m_, n_, par_, f_, i_)
-           IMPLICIT NONE
-           INTEGER,INTENT(in)  :: m_, n_
-           INTEGER,INTENT(inout)   :: i_
-           REAL(DP),INTENT(in)    :: par_(n_)
-           REAL(DP),INTENT(out)   :: f_(m_)
-           REAL(DP) :: chisq_
-           IF(m_/=n_) THEN
-              i_ = -999
-              RETURN
-           ENDIF
-           !
-           !CALL eqstate(n_,par_,chisq_)
-           CALL eqstate(istat,n_,par_,npt,v0,etot,efit,emin,chisq_)
-
-           f_=0._dp
-           f_(1) = chisq_
-        END SUBROUTINE
+      ! LMDIF takes as input the difference between f_fit and f_real
+      !       and computes the chi^2 internally.
+      SUBROUTINE EOSDIFF(m_, n_, par_, f_, i_)
+            IMPLICIT NONE
+              INTEGER,INTENT(in)  :: m_, n_
+              INTEGER,INTENT(inout)   :: i_
+              REAL(DP),INTENT(in)    :: par_(n_)
+              REAL(DP),INTENT(out)   :: f_(m_)
+              REAL(DP) :: chisq_
+              !
+              CALL eqstate(istat,n_,par_,npt,v0,etot,efit,emin,chisq_)
+              f_ = etot - efit
+            END SUBROUTINE
    
       END SUBROUTINE
 !-----------------------------------------------------------------------
