@@ -1,8 +1,9 @@
  ! This module contains subroutines and functions for compute_force.90 code
-!	10th Feb., 2021
+! 10th Feb., 2021
 !
 !-------------------------------------------------------------------------
 MODULE harmonic_module
+#include "mpi_thermal.h"
   !
  CONTAINS
   !
@@ -11,39 +12,40 @@ MODULE harmonic_module
   ! Make supercell
   !
   USE Kinds, ONLY    : DP
-  USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info, &	
-                       read_system, aux_system	! use only: .. to know precisely what comes from where, a good practice
+  USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info, &  
+                       read_system, aux_system  ! use only: .. to know precisely what comes from where, a good practice
   !
   IMPLICIT NONE
   !
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc2
-  INTEGER        	 :: i, j, k, jj, kk, nu, mu, nat_sc
+  INTEGER          :: i, j, k, jj, kk, nu, mu, nat_sc
   REAL(DP),ALLOCATABLE   :: ta_sc(:,:)
   !
-  nat_sc = S%nat * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)						
+  nat_sc = S%nat * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)            
   ALLOCATE(ta_sc(3,nat_sc))
-  OPEN(unit=112, file='new.txt', status='unknown')	
-  k = 0		! initialize
+  OPEN(unit=112, file='new.txt', status='unknown')  
+  k = 0   ! initialize
   DO j = 1, fc2%n_R
-  DO i = 1, S%nat							
+  DO i = 1, S%nat             
   k = k + 1     ! accummulate
-  ta_sc(:,k) = S%tau(:,i)+fc2%xR(:,j)					
-    WRITE(112,*) ta_sc(:,k)				
+  ta_sc(:,k) = S%tau(:,i)+fc2%xR(:,j)         
+    ioWRITE(112,*) ta_sc(:,k)       
   ENDDO
   ENDDO
   CLOSE(112)
   !
-  END SUBROUTINE	
+  END SUBROUTINE  
   !
  SUBROUTINE read_md(first_step, n_skip, n_steps,S,fc2,u_disp,force_sc)
   !----------------------------------------------------------------------
   ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
   ! at finite temperature md.out. 
   !
-  USE Kinds, ONLY    : DP
-  USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info, &	
-                       read_system, aux_system	! use only: .. to know precisely what comes from where, a good practice
+  USE kinds,     ONLY : DP
+  USE input_fc,  ONLY : read_fc2, forceconst2_grid, ph_system_info, & 
+                        read_system, aux_system ! use only: .. to know precisely what comes from where, a good practice
+  USE mpi_thermal, ONLY : my_id, num_procs, mpi_bsum
   !
   IMPLICIT NONE
   !
@@ -51,16 +53,16 @@ MODULE harmonic_module
   TYPE(forceconst2_grid) :: fc2
   INTEGER,INTENT(in) :: first_step, n_skip
   INTEGER,INTENT(inout) :: n_steps
-  INTEGER        	 :: i, j, k, nu, mu, beta, nat_sc, &
-			                jat, kat, iat, ios, uni, i_step, k_step
+  INTEGER          :: i, j, k, nu, mu, beta, nat_sc, &
+                      jat, kat, iat, ios, uni, i_step, k_step
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: tau_scmd(:,:,:), tot_ene(:), force_sc(:,:,:), &
-			    u_disp(:,:,:), tau_sc(:,:), aa(:,:), bb(:,:), &
-			    h_force(:,:,:)
-  CHARACTER(len=1024) 	 :: line
-  CHARACTER(len=8) 	 :: dummy, dummyc, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
-  LOGICAL,EXTERNAL	 :: matches 
-  LOGICAL 		 :: look_for_forces, look_for_toten, actually_read_the_forces
+          u_disp(:,:,:), tau_sc(:,:), aa(:,:), bb(:,:), &
+          h_force(:,:,:)
+  CHARACTER(len=1024)    :: line
+  CHARACTER(len=8)   :: dummy, dummyc, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
+  LOGICAL,EXTERNAL   :: matches 
+  LOGICAL      :: look_for_forces, look_for_toten, actually_read_the_forces
   !
   !n_steps = 100
   ALLOCATE(force_sc(3,S%nat*fc2%n_R,n_steps))
@@ -80,11 +82,11 @@ MODULE harmonic_module
   nat_sc = S%nat * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)
   ! generate equilibrium positions of the atoms in bohr units
   ALLOCATE(tau_sc(3,nat_sc))
-  k = 0		! initialize
-  DO j = 1, fc2%n_R						!
-    DO i = 1, S%nat						! loop over cart. coord in file fc2
+  k = 0   ! initialize
+  DO j = 1, fc2%n_R           !
+    DO i = 1, S%nat           ! loop over cart. coord in file fc2
     k = k + 1     ! accummulate
-    tau_sc(:,k) = (S%tau(:,i)+fc2%xR(:,j))*S%alat			! 		
+    tau_sc(:,k) = (S%tau(:,i)+fc2%xR(:,j))*S%alat     !     
     ENDDO
   ENDDO
   uni = 1122
@@ -99,12 +101,12 @@ MODULE harmonic_module
   READ_LOOP : &
   DO
    READ(uni,"(a1024)", iostat=ios) line ! reads a line to variable "line"
-    IF(ios /= 0 ) EXIT READ_LOOP 			! stop reading if there is an error
+    IF(ios /= 0 ) EXIT READ_LOOP      ! stop reading if there is an error
 ! READ atomic poistions from initail configuration before md run 
     !IF(matches("positions (alat units)",line))THEN
     IF(matches("positions (cryst. coord.)",line))THEN
       k_step = k_step+1
-      IF(k_step >= first_step .and. MODULO(k_step-first_step, n_skip) == 0)THEN
+      IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
       ELSE
          actually_read_the_forces = .false.
@@ -112,17 +114,18 @@ MODULE harmonic_module
       !
       IF(actually_read_the_forces)THEN
         i_step = i_step+1
-        print*, "Reading step", k_step, " as ", i_step
-	      look_for_toten = .true.
-	      look_for_forces = .true.
-	      k=0
+        !print*, "Reading step", k_step, " as ", i_step
+        WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu", my_id
+        look_for_toten = .true.
+        look_for_forces = .true.
+        k=0
         DO j = 1, fc2%n_R
-	      DO iat = 1, S%nat
-	      k = k + 1
+        DO iat = 1, S%nat
+        k = k + 1
           READ(uni,"(a1024)", iostat=ios) line
           !print*, TRIM(line) ! remove spaces
           READ(line, *) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, tau_scmd(:,k, i_step)
-	      ENDDO
+        ENDDO
         ENDDO
         CALL cryst_to_cart(fc2%n_R*S%nat,tau_scmd(:,:, i_step), aa, +1)
         tau_scmd(:,:, i_step) = tau_scmd(:,:, i_step)*S%alat
@@ -135,7 +138,8 @@ MODULE harmonic_module
       IF(look_for_forces .or. look_for_toten) CALL errore("read_md","i found coordinates twice",1)
 
       k_step = k_step+1
-      IF(k_step > first_step .and. MODULO(k_step, n_skip) == 0)THEN
+      !IF(k_step >= first_step .and. MODULO(k_step, n_skip) == 0)THEN
+      IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
       ELSE
          actually_read_the_forces = .false.
@@ -143,22 +147,22 @@ MODULE harmonic_module
           
       IF(actually_read_the_forces)THEN
         i_step = i_step + 1
-        print*, "Reading step", k_step, " as ", i_step
+        WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
         IF(i_step > n_steps) THEN
             print*, "nstep reached... exiting"
             EXIT READ_LOOP
         ENDIF
-	      look_for_toten = .true.  ! this...
-	      look_for_forces = .true. ! ..and this moved after the IF
-	      k=0 
+        look_for_toten = .true.  ! this...
+        look_for_forces = .true. ! ..and this moved after the IF
+        k=0 
         DO j = 1, fc2%n_R
-	      DO iat = 1, S%nat
+        DO iat = 1, S%nat
           k = k + 1
           READ(uni,"(a1024)", iostat=ios) line
           !print*, TRIM(line)
           READ(line, *) dummyc, tau_scmd(:,k, i_step)
-	      ENDDO
-	      ENDDO
+        ENDDO
+        ENDDO
         CALL cryst_to_cart(fc2%n_R*S%nat,tau_scmd(:,:, i_step), aa, +1)
         tau_scmd(:,:, i_step) = tau_scmd(:,:, i_step)*S%alat
       ENDIF
@@ -183,8 +187,12 @@ MODULE harmonic_module
     ENDIF
   ENDDO READ_LOOP
 
+  i_step = n_steps
+  CALL mpi_bsum(i_step)
+  ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
+
   IF(i_step<n_steps)THEN
-    print*, "Looking for ", n_steps, "I only found", i_step
+    ioWRITE(*,'(2x,a,i8,a,i3)') "Looking for ", n_steps, "I only found", i_step, " on cpu", my_id
     n_steps = i_step
   ENDIF
 
@@ -196,20 +204,20 @@ MODULE harmonic_module
  ! compute F_aimd
   OPEN(441, file="F_aimd.dat", status="unknown")
   DO i_step = 1, n_steps
-	   k=0 
-      DO j = 1, fc2%n_R	! loop over all atoms in the super cell
+     k=0 
+      DO j = 1, fc2%n_R ! loop over all atoms in the super cell
       DO jat = 1, S%nat
         k=k+1
-        WRITE(441,'(3f14.9)') force_sc(:,k,i_step)     
+        ioWRITE(441,'(3f14.9)') force_sc(:,k,i_step)     
       ENDDO
       ENDDO
-  WRITE(441,*)
+  ioWRITE(441,*)
   ENDDO
   CLOSE(441)
  !-------------------------------------------------------------------------------------
  !  Compute Displacement from Molecular Dynamics 
- !						Feb. 4th - 12th: 
- PRINT*, "---------------------------------------------------------------------"
+ !            Feb. 4th - 12th: 
+ !PRINT*, "---------------------------------------------------------------------"
    i_step = 0
    OPEN(2244,file="new_disp-md.dat", status="unknown")
    DO i_step = 1, n_steps
@@ -221,12 +229,12 @@ MODULE harmonic_module
         u_disp(1,k,i_step) = tau_scmd(1, k, i_step) - tau_sc(1, k) 
         u_disp(2,k,i_step) = tau_scmd(2, k, i_step) - tau_sc(2, k) 
         u_disp(3,k,i_step) = tau_scmd(3, k, i_step) - tau_sc(3, k)
-        WRITE(2244,'(3(3f10.5,10x))') u_disp(:,k,i_step),tau_scmd(:, k, i_step),tau_sc(:, k)
+        ioWRITE(2244,'(3(3f10.5,10x))') u_disp(:,k,i_step),tau_scmd(:, k, i_step),tau_sc(:, k)
         ! MSD = 1./n_steps*(DABS(u())**2
       ENDDO
       ENDDO
       !CALL cryst_to_cart(fc2%n_R*S%nat, u_disp(:,:,i_step), aa, +1)
-      WRITE(2244,*)
+      ioWRITE(2244,*)
       !u_disp(:,:,i_step) = u_disp(:,:,i_step)/S%alat ! bohr units
       u_disp(:,:,i_step) = u_disp(:,:,i_step)
     ENDDO
@@ -248,8 +256,8 @@ MODULE harmonic_module
   ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
   ! at finite temperature md.out. 
   !
-  USE Kinds, ONLY    	: DP
-  USE input_fc, ONLY 	: read_fc2, forceconst2_grid, ph_system_info, &	
+  USE Kinds, ONLY     : DP
+  USE input_fc, ONLY  : read_fc2, forceconst2_grid, ph_system_info, & 
                           read_system, aux_system ! use only: .. to know precisely what comes from where, a good practice
   !USE harmonic_subroutines
   !
@@ -257,8 +265,8 @@ MODULE harmonic_module
   !
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc2
-  INTEGER        	 :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
-			    i_step, n_steps, jat, kat, cR(3)
+  INTEGER          :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
+          i_step, n_steps, jat, kat, cR(3)
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:) !, force_sc(:,:,:)
 
@@ -291,33 +299,33 @@ MODULE harmonic_module
 
 
   ! compute force
-   OPEN(331, file="F_harm.dat", status="unknown")
+  ! OPEN(331, file="F_harm.dat", status="unknown")
    h_force(:,:,:) = 0._dp
    DO i_step = 1, n_steps
-	   jj=0 
-	   DO j = 1, fc2%n_R	! loop over all atoms in the super cell
-	   DO jat = 1, S%nat
-	      jj=jj+1      
-	      kk=0
-	      DO k = 1, fc2%n_R 	!loop over index of vector of the cell in the supercell
-	      DO kat = 1, S%nat	! ... over all atoms in the unit cell
-	      kk=kk+1
-	      DO beta = 1,3	! ... over cartesian axes x,y,z for each atom
-          nu = (jat-1)*3
+     jj=0 
+     DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
+     DO jat = 1, S%nat
+        jj=jj+1      
+        nu = (jat-1)*3
+        kk=0
+        DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
+        DO kat = 1, S%nat ! ... over all atoms in the unit cell
+        kk=kk+1
+        DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
           mu = (kat-1)*3 + beta
           i = idx_R_map(j,k)
           h_force(:,jj, i_step) = h_force(:,jj, i_step) &
-                              - fc2%FC(nu+1:nu+3,mu,i) * u_disp(:,kk,i_step)
-	      ENDDO
-	      ENDDO
-	      ENDDO
-	      WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
-	   END DO
-	   END DO
-	   WRITE(331,*)
+                                - fc2%FC(nu+1:nu+3,mu,i) * u_disp(:,kk,i_step)
+        ENDDO
+        ENDDO
+        ENDDO
+        !WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
+     END DO
+     END DO
+     !WRITE(331,*)
     ENDDO
-   CLOSE(331)
+ !  CLOSE(331)
  !
- END SUBROUTINE	
+ END SUBROUTINE 
  !
 END MODULE

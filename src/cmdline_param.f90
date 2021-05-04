@@ -66,14 +66,14 @@ MODULE cmdline_param_module
   CONTAINS
 
   INTEGER FUNCTION fgetpid()
-#if defined(__INTEL_COMPILER)
-    USE IFPORT, ONLY : getpid
-    fgetpid = INT(getpid(), kind=8)
-#elif defined (__GFORTRAN__)
-    fgetpid = INT(getpid(), kind=8)
-#else 
+!#if defined(__INTEL_COMPILER)
+!    USE IFPORT, ONLY : getpid
+!    fgetpid = INT(getpid(), kind=8)
+!#elif defined (__GFORTRAN__)
+!    fgetpid = INT(getpid(), kind=8)
+!#else 
     fgetpid = INT(rand()*1.d+6)
-#endif
+!#endif
   END FUNCTION
 
   REAL(DP) FUNCTION cmdline_param_dble(switch, default, found)

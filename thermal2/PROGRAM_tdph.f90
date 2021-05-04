@@ -7,10 +7,13 @@
 !
 MODULE tdph_module
   USE kinds, ONLY : DP
+#include "mpi_thermal.h"
   !
   TYPE dynmat_basis
      COMPLEX(DP),ALLOCATABLE :: basis(:,:,:)
   END TYPE
+
+  INTEGER :: nfar=0
 
   CONTAINS
 
@@ -55,7 +58,6 @@ PROGRAM tdph
   USE mp,                 ONLY : mp_bcast
   USE mp_global,          ONLY : mp_startup, mp_global_end
   USE mp_world,           ONLY : world_comm
-  USE io_global,          ONLY : ionode_id, ionode, stdout
   USE environment,        ONLY : environment_start, environment_end
   ! symmetry
   USE symm_base,          ONLY : s, invs, nsym, find_sym, set_sym_bl, &
@@ -70,9 +72,13 @@ PROGRAM tdph
   USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE asr2_module,        ONLY : impose_asr2
   USE quter_module,       ONLY : quter
+  USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs
   USE tdph_module
-
-
+  ! harmonic
+  USE harmonic_module,    ONLY : read_md, harmonic_force
+  ! minipack
+  USE lmdif_module,       ONLY : lmdif1, lmdif
+  USE timers
   !
   IMPLICIT NONE
   !
@@ -81,23 +87,35 @@ PROGRAM tdph
   INTEGER :: ierr, nargs
   !
   INTEGER       :: nq1, nq2, nq3, nqmax, nq_wedge, nqq, nq_done
+
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
-  REAL(DP) :: xq(3), syq(3,48)
+  ! for harmonic_module
+  REAL(DP),ALLOCATABLE      :: u(:,:,:), F_HAR(:,:,:), F_AI(:,:,:), force_diff(:), wa(:)
+  INTEGER 		    :: n_steps, j_steps, mfcn, lwa 
+  ! for lmdf1
+  INTEGER, ALLOCATABLE	    :: iwa(:)
   !
+  REAL(DP) :: xq(3), syq(3,48)
   LOGICAL :: sym(48), lrigid, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), phonons(:)
-  INTEGER :: i,j, icar,jcar, na,nb, iq, ndf, iph
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), ph_coefficients(:), metric(:)
+  INTEGER :: i,j, icar,jcar, na,nb, iq, nph, iph, iswitch, first_step, n_skip
   INTEGER,ALLOCATABLE :: rank(:)
   TYPE(ph_system_info) :: Si
   TYPE(forceconst2_grid) :: fc, fcout
   TYPE(dynmat_basis),ALLOCATABLE :: dmb(:)
   TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
+
+  ! used for lmdif
+  INTEGER :: nfev
+  REAL(DP) :: factor
+  INTEGER,ALLOCATABLE :: ipvt(:)
+  REAL(DP),ALLOCATABLE :: fjac(:,:),qtf(:),wa1(:),wa2(:),wa3(:),wa4(:)
+  TYPE(nanotimer) :: t_minim = nanotimer("minimization")
   !
-  CALL mp_startup()
-  CALL environment_start(CODE)
+  CALL start_mpi()
   !
   ! setup output
   !fileout = cmdline_param_char("o", TRIM(fildyn)//".out")
@@ -121,7 +139,7 @@ PROGRAM tdph
   ! at the beginning.
   ! ~~~~~~~~ setup bravais lattice symmetry ~~~~~~~~ 
   CALL set_sym_bl ( )
-  WRITE(stdout, '(5x,a,i3)') "Symmetries of bravais lattice: ", nrot
+  ioWRITE(stdout, '(5x,a,i3)') "Symmetries of bravais lattice: ", nrot
   !
   ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~ 
   IF(.not.allocated(m_loc))  THEN
@@ -130,7 +148,7 @@ PROGRAM tdph
   ENDIF
   
   CALL find_sym ( Si%nat, Si%tau, Si%ityp, .false., m_loc )
-  WRITE(stdout, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
+  ioWRITE(stdout, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
   !
   ! Find the reduced grid of q-points:
   skip_equivalence = .FALSE.
@@ -143,7 +161,7 @@ PROGRAM tdph
   call kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, Si%bg, nqmax,&
                     0,0,0, nq1,nq2,nq3, nq_wedge, x_q, w_q )
   !
-  WRITE(stdout, *) "Generated ", nq_wedge, "points"
+  ioWRITE(stdout, *) "Generated ", nq_wedge, "points"
   
   ALLOCATE(rtau( 3, 48, Si%nat), d2(3*Si%nat,3*Si%nat))
 
@@ -153,7 +171,7 @@ PROGRAM tdph
   ALLOCATE(xqmax(3,nqmax))
 
   ! For every q-point in the irreducible wedge, we find its symmetry
-  ! and the basis of the space of symmetry-constrained dynamical matrices
+  ! and the basis of the space of symmetry-constrained dynfactoramical matrices
   ! Again, this part uses gloabl variables which is a annoying, but once
   ! we have the set of basis matrices, we don't have to touch it
   ! anymore.
@@ -163,8 +181,8 @@ PROGRAM tdph
 
   Q_POINTS_LOOP : &
   DO iq = 1, nq_wedge
-    WRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
-    WRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
+    ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
+    ioWRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
     !
     ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~ 
     ! part 1: call smallg_q and the copy_sym, 
@@ -216,7 +234,7 @@ PROGRAM tdph
                    symq(iq)%nq_star, symq(iq)%nq_trstar, symq(iq)%sxq, &
                    symq(iq)%isq, symq(iq)%imq, .false. )
 
-    WRITE(stdout, '(5x,a,2i5)') "Found star of q and -q", symq(iq)%nq_star, symq(iq)%nq_trstar
+    ioWRITE(stdout, '(5x,a,2i5)') "Found star of q and -q", symq(iq)%nq_star, symq(iq)%nq_trstar
     syq = symq(iq)%sxq
     call cryst_to_cart(symq(iq)%nq_trstar, syq, Si%at, -1)
     DO i = 1, symq(iq)%nq_trstar
@@ -224,21 +242,21 @@ PROGRAM tdph
        syq(2,i) = MODULO(syq(2,i), 1._dp)
        syq(3,i) = MODULO(syq(3,i), 1._dp)
        syq(:,i) = syq(:,i) * (/nq1, nq2, nq3/)
-       WRITE(stdout,'(i4,3i3,l2)') i, NINT(syq(:,i)), (i>symq(iq)%nq_star)
+       ioWRITE(stdout,'(i4,3i3,l2)') i, NINT(syq(:,i)), (i>symq(iq)%nq_star)
     ENDDO
 
   ENDDO Q_POINTS_LOOP
 
   !
   ! Number of degrees of freedom for the entire grid:
-  ndf = SUM(rank)
-  WRITE(stdout, '("=================")')
-  WRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", ndf  
+  nph = SUM(rank)
+  ioWRITE(stdout, '("=================")')
+  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
   ! type would be more handy
-  ALLOCATE(phonons(ndf))
+  ALLOCATE(ph_coefficients(nph))
   iph = 0
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
@@ -251,15 +269,121 @@ PROGRAM tdph
     d2 = multiply_mass_dyn(Si,d2)
     !
     ! Decompose the dynamical matrix over the symmetric basis at this q-point
-    print*, "== DECOMPOSITION =="
+    ioWRITE(stdout,'(2x,a)') "== DECOMPOSITION =="
     DO i = 1,rank(iq)
       iph = iph +1
-      phonons(iph) = dotprodmat(3*Si%nat,d2, dmb(iq)%basis(:,:,i))
-      WRITE(stdout,"(i3,1f12.6)") i, phonons(iph)
+      ph_coefficients(iph) = dotprodmat(3*Si%nat,d2, dmb(iq)%basis(:,:,i))
+      ioWRITE(stdout,"(i3,1f12.6)") i, ph_coefficients(iph)
     ENDDO
     !
   ENDDO Q_POINTS_LOOP2
   !
+!-----------------------------------------------------------------------
+  ! Variables that can be adjusted according to need ...
+  !
+  n_steps = 60  		! total molecular dynamics steps TO READ
+  n_steps = n_steps/num_procs
+  first_step = 800    ! start reading from this step
+  n_skip = 20        ! number of steps to skip
+  !eq_time = 1000               ! timesteps untill equilibrium 
+  CALL read_md(first_step, n_skip, n_steps,Si,fc,u,F_AI)
+   ! Redefine input variables for minimization
+  !nf = n_steps*3*Si%nat*fc%n_R ! m
+  mfcn = 3*Si%nat*fc%n_R ! m
+   ! ndf -> n
+  ALLOCATE(force_diff(mfcn))
+  nfar = 0
+  !CALL minimize(nf, ndf, phonons, force_diff, iswitch)
+
+   !
+  ! ALLOCATE(iwa(mfcn))
+  !  !lwa = n*m+5*n+m
+  ! lwa = nph*mfcn+5*nph+mfcn
+  ! ALLOCATE(wa(lwa))
+  !
+  !CALL lmdif1(minimize, mfcn, nph, phonons, force_diff, 1.d-14, iswitch, iwa, wa, lwa)
+
+
+  ALLOCATE(fjac(mfcn, nph), ipvt(nph), qtf(nph))
+  ALLOCATE(wa1(nph),wa2(nph),wa3(nph),wa4(mfcn))
+  !       subroutine lmdif(fcn,m,n,x,fvec,ftol,xtol,gtol,maxfev,epsfcn,
+  !                        diag,mode,factor,nprint,info,nfev,fjac,
+  !                        ldfjac,ipvt,qtf,wa1,wa2,wa3,wa4)
+  !
+  ! Use complete lmdif for more control
+  ALLOCATE(metric(nph))
+  metric = 1._dp !ABS(ph_coefficients)**1.5
+!  DO i = 1, nph
+!    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
+!  ENDDO
+  factor = 1.d-3
+  CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,1.d-8,0.d0,huge(1),0.d0, &
+             metric,1,factor,0,iswitch,nfev,fjac, &
+             mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
+
+  ! --->   CALL minimize(nfnc, ndf, phonons, force_diff, jswitch)
+  !
+  !CALL lmdif1(minimize, nfunctions, nparameters, fdiff2, final_fdiff2)
+  ! Generate FCs to be used for interpolation
+  ioWRITE(stdout,'(a,2i6)') "Output code, numer iterations:", iswitch, nfev
+  select case (iswitch)
+         CASE(1)
+            ioWRITE(stdout,'(a)') "Both actual and predicted relative reductions in the sum of squares are at most FTOL."
+         CASE(2)
+            ioWRITE(stdout,'(a)') "Relative error between two consecutive iterates is at most XTOL."
+         CASE(3)
+            ioWRITE(stdout,'(a)') "Conditions for INFO = 1 and INFO = 2 both hold."
+         CASE(4)
+            ioWRITE(stdout,'(a)') "The cosine of the angle between FVEC and"//&
+                                  "any column of the Jacobian is at most GTOL in absolute value."
+         CASE(5)
+            ioWRITE(stdout,'(a)') "Number of calls to FCN has reached or exceeded MAXFEV."
+         CASE(6)
+            ioWRITE(stdout,'(a)') "FTOL is too small.  No further reduction in the sum of squares is possible."
+         CASE(7)
+            ioWRITE(stdout,'(a)') "XTOL is too small.  No further improvement in the approximate solution X is possible."
+         CASE(8)
+            ioWRITE(stdout,'(a)') "GTOL is too small.  FVEC is orthogonal to the columns of the Jacobian to machine precision."
+  END SELECT
+  !
+  nfar = 0
+  iswitch = 0
+  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL write_fc2("matOUT.periodic", Si, fcout)
+
+  nfar = 2
+  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL write_fc2("matOUT.centered", Si, fcout)
+
+  CALL t_minim%print()
+
+  CALL stop_mpi()
+
+  !write fcout to file (final result)
+ ! ---- the program is over ---- !
+ !
+ CONTAINS
+!-----------------------------------------------------------------------
+ SUBROUTINE minimize(mfc, nph, ph_coef, fdiff2, iswitch)
+  !-----------------------------------------------------------------------
+  ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
+  ! forces for n_steps molecur dyanmics simulation 
+  !
+  USE tdph_module, ONLY : nfar
+  USE mpi_thermal, ONLY : mpi_bsum
+  IMPLICIT NONE
+    INTEGER,INTENT(in)    :: mfc, nph
+    REAL(DP),INTENT(in)   :: ph_coef(nph)
+    REAL(DP),INTENT(out)  :: fdiff2(mfc)
+    INTEGER,INTENT(inout) :: iswitch
+  
+    INTEGER :: nq_done, iph, iq, i
+    INTEGER,SAVE :: iter = 0
+    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+    REAL(DP) :: chi2
+
+    CALL t_minim%start()
+
   nq_done = 0
   iph = 0
   Q_POINTS_LOOP3 : &
@@ -269,7 +393,7 @@ PROGRAM tdph
     d2 = 0._dp
     DO i = 1,rank(iq)
       iph = iph+1
-      d2 = d2+ (phonons(iph)*(1.05_dp-rand()/10._dp)) *dmb(iq)%basis(:,:,i)
+      d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
     ENDDO
     !
     IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
@@ -305,12 +429,37 @@ PROGRAM tdph
 
   ENDDO Q_POINTS_LOOP3
   !
-  CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, 2)
-  CALL write_fc2("matOUZ", Si, fcout)
+  CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
+  IF(nfar.ne.0) RETURN
+  !
+  ! READ atomic positions, forces, etc, and compute harmonic forces
+  CALL harmonic_force(n_steps, Si,fcout,u,F_HAR)
+  !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
+  !IF(.NOT.ALLOCATED(fdiff2)) ALLOCATE(fdiff2(nf))
+  !
+  !WRITE(*,'(2(3f14.6))') F_HAR, F_AI
+  !print*, "-->", nf, size(fdiff2), size(F_HAR), size(F_AI)
+  fdiff2 = 0._dp
+  DO i = 1, n_steps
+    fdiff2 = fdiff2 + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
+  ENDDO
+  CALL mpi_bsum(mfc, fdiff2) 
 
+  !IF(ANY(ABS(ph_coefficients)>2._dp)) fdiff2 = 100._dp
+  ! iswitch =1 are real steps, while iswitch=2 are evaluations used to compute the gradient
+  IF(iswitch==1)THEN
+    iter = iter+1
+    chi2 = SUM(fdiff2**2)/(n_steps*num_procs)
+    ioWRITE(*,'(i10,f14.6)') iter, chi2
+    ioWRITE(9999, "(i10,9999f12.6)") iter, chi2, ph_coefficients
+    ! Every 1000 steps have a look
+    IF(MODULO(iter,1000)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+  ENDIF
 
-  ! print*, d2
-
+  CALL t_minim%stop()
+  !
+  END SUBROUTINE
+  !
   !DEALLOCATE(phi, d2, w2)
   !DEALLOCATE(rtau, tau, ityp)
   !DEALLOCATE(irt) ! from symm_base
