@@ -166,6 +166,7 @@ PROGRAM_tdph.o : ./harmonic.o
 PROGRAM_tdph.o : ./input_fc.o
 PROGRAM_tdph.o : ./mpi_thermal.o
 PROGRAM_tdph.o : ./quter.o
+PROGRAM_tdph.o : ./timers.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
 PROGRAM_tk.o : ./code_input.o

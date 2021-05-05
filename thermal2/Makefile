@@ -17,7 +17,7 @@ IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH
 DFLAGS+= -D__HASVTRIG
 
 # lines for xlf90 on bluegene
-F90FLAGS += -fcheck=all -fbacktrace
+F90FLAGS += -fcheck=all -fbacktrace -pg
 #F90FLAGS += -qxlf2003=polymorphic -qsmp=omp
 #F90FLAGS += -qsmp=omp
 # intel fortran, use -fopenmp on gfortran:
@@ -65,6 +65,7 @@ functions.o \
 fc2_interp.o \
 f3_bwfft.o \
 fc3_interp.o \
+harmonic.o \
 input_fc.o \
 isotopes.o \
 linewidth.o \

@@ -13,6 +13,7 @@ D3QOBJS = d3q.o
 
 D3QLIBS = \
 allocate_d3.o \
+cmdline_param.o \
 d2mxc.o \
 d3_basis.o \
 d3com.o \
