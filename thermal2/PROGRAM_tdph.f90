@@ -65,7 +65,8 @@ PROGRAM tdph
   USE noncollin_module,   ONLY : m_loc, nspin_mag
   USE lr_symm_base,       ONLY : rtau, nsymq, minus_q, irotmq, gi, gimq, invsymq
   USE control_lr,         ONLY : lgamma
-  USE decompose_d2
+  USE decompose_d2,       ONLY : smallg_q_fullmq, find_d2_symm_base, sym_and_star_q, dotprodmat, &
+                                 make_qstar_d2, allocate_sym_and_star_q, tr_star_q
   USE cmdline_param_module
   USE input_fc,           ONLY : forceconst2_grid, ph_system_info, read_system, aux_system, read_fc2, &
                                  div_mass_fc2, multiply_mass_dyn, write_fc2
@@ -90,13 +91,14 @@ PROGRAM tdph
 
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
   ! for harmonic_module
-  REAL(DP),ALLOCATABLE      :: u(:,:,:), F_HAR(:,:,:), F_AI(:,:,:), force_diff(:), wa(:)
-  INTEGER 		    :: n_steps, j_steps, mfcn, lwa 
+  REAL(DP),ALLOCATABLE      :: u(:,:,:), F_HAR(:,:,:), F_AI(:,:,:), force_diff(:), wa(:), &
+			       force_ratio(:,:,:)
   ! for lmdf1
+  INTEGER 		    :: n_steps, j_steps, mfcn, lwa 
   INTEGER, ALLOCATABLE	    :: iwa(:)
   !
   REAL(DP) :: xq(3), syq(3,48)
-  LOGICAL :: sym(48), lrigid, skip_equivalence, time_reversal
+  LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
@@ -127,6 +129,8 @@ PROGRAM tdph
   !CLOSE(999)
 
   CALL read_fc2("mat2R", Si, fc)
+  lrigid_save = Si%lrigid
+  Si%lrigid = .false.
   CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
   CALL aux_system(Si)
   CALL div_mass_fc2(Si, fc)
@@ -158,7 +162,7 @@ PROGRAM tdph
   nq3 = fc%nq(3)
   nqmax = nq1*nq2*nq3
   ALLOCATE(x_q(3,nqmax), w_q(nqmax))
-  call kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, Si%bg, nqmax,&
+  CALL kpoint_grid( nsym, time_reversal, skip_equivalence, s, t_rev, Si%bg, nqmax,&
                     0,0,0, nq1,nq2,nq3, nq_wedge, x_q, w_q )
   !
   ioWRITE(stdout, *) "Generated ", nq_wedge, "points"
@@ -191,7 +195,7 @@ PROGRAM tdph
   
     sym = .false.
     sym(1:nsym) = .true.
-    CALL smallg_q(xq, 0, Si%at, Si%bg, nsym, s, sym, minus_q)
+    CALL smallg_q_fullmq(xq, 0, Si%at, Si%bg, nsym, s, sym, minus_q)
     nsymq = copy_sym(nsym, sym)
     ! recompute the inverses as the order of sym.ops. has changed
     CALL inverse_s ( ) 
@@ -224,9 +228,12 @@ PROGRAM tdph
     !
     ! the next subroutine uses symmetry from global variables to find he basis of crystal-symmetric
     ! matrices at this q point
+    CALL fftinterp_mat2(xq, Si, fc, d2)
+    d2 = multiply_mass_dyn(Si,d2)
+
     CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
        Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
-       symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs )
+       symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2 )
     !
     !
     ! Calculate the list of points making up the star of q and of -q
@@ -261,12 +268,16 @@ PROGRAM tdph
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
     xq = symq(iq)%xq
+    !IF(iq==1) xq=xq+1.d-6
     !
     ! Interpolate the system dynamical matrix at this q
     CALL fftinterp_mat2(xq, Si, fc, d2)
     ! Remove the mass factor, I cannot remove it before because the effective
     ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Si,d2)
+    WRITE(998,'(i3,3f12.6)') iq, symq(iq)%xq
+    WRITE(998,'(3(2f12.6,4x))') d2
+
     !
     ! Decompose the dynamical matrix over the symmetric basis at this q-point
     ioWRITE(stdout,'(2x,a)') "== DECOMPOSITION =="
@@ -278,13 +289,14 @@ PROGRAM tdph
     !
   ENDDO Q_POINTS_LOOP2
   !
+  !Si%lrigid = .false.
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
-  n_steps = 60  		! total molecular dynamics steps TO READ
+  n_steps = 13000                ! total molecular dynamics steps TO READ
   n_steps = n_steps/num_procs
-  first_step = 800    ! start reading from this step
-  n_skip = 20        ! number of steps to skip
+  first_step = 1 !800    ! start reading from this step
+  n_skip = 1 !        ! number of steps to skip
   !eq_time = 1000               ! timesteps untill equilibrium 
   CALL read_md(first_step, n_skip, n_steps,Si,fc,u,F_AI)
    ! Redefine input variables for minimization
@@ -293,37 +305,23 @@ PROGRAM tdph
    ! ndf -> n
   ALLOCATE(force_diff(mfcn))
   nfar = 0
-  !CALL minimize(nf, ndf, phonons, force_diff, iswitch)
-
-   !
-  ! ALLOCATE(iwa(mfcn))
-  !  !lwa = n*m+5*n+m
-  ! lwa = nph*mfcn+5*nph+mfcn
-  ! ALLOCATE(wa(lwa))
-  !
-  !CALL lmdif1(minimize, mfcn, nph, phonons, force_diff, 1.d-14, iswitch, iwa, wa, lwa)
-
 
   ALLOCATE(fjac(mfcn, nph), ipvt(nph), qtf(nph))
   ALLOCATE(wa1(nph),wa2(nph),wa3(nph),wa4(mfcn))
-  !       subroutine lmdif(fcn,m,n,x,fvec,ftol,xtol,gtol,maxfev,epsfcn,
-  !                        diag,mode,factor,nprint,info,nfev,fjac,
-  !                        ldfjac,ipvt,qtf,wa1,wa2,wa3,wa4)
   !
   ! Use complete lmdif for more control
   ALLOCATE(metric(nph))
-  metric = 1._dp !ABS(ph_coefficients)**1.5
+  !metric = 1._dp !ABS(ph_coefficients)**1.5
+  metric = (ph_coefficients)**2
 !  DO i = 1, nph
 !    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
 !  ENDDO
   factor = 1.d-3
-  CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,1.d-8,0.d0,huge(1),0.d0, &
-             metric,1,factor,0,iswitch,nfev,fjac, &
-             mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
 
-  ! --->   CALL minimize(nfnc, ndf, phonons, force_diff, jswitch)
-  !
-  !CALL lmdif1(minimize, nfunctions, nparameters, fdiff2, final_fdiff2)
+  CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,0.d0,0.d0,huge(1),0.d0, &
+   			metric,1,factor,0,iswitch,nfev,fjac, &
+			mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
+
   ! Generate FCs to be used for interpolation
   ioWRITE(stdout,'(a,2i6)') "Output code, numer iterations:", iswitch, nfev
   select case (iswitch)
@@ -349,7 +347,17 @@ PROGRAM tdph
   nfar = 0
   iswitch = 0
   CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.periodic", Si, fcout)
+
+   ! Force ratio
+   OPEN(116,file="force_ratio.dat",status="unknown") 
+   DO i = 1, n_steps
+   DO j = 1, Si%nat*nqmax
+      WRITE(116,'(3(3f14.9,5x))') F_HAR(:,j,i)/F_AI(:,j,i), F_HAR(:,j,i), F_AI(:,j,i) 
+   END DO
+   END DO
+   CLOSE(116)
 
   nfar = 2
   CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
@@ -377,7 +385,7 @@ PROGRAM tdph
     REAL(DP),INTENT(out)  :: fdiff2(mfc)
     INTEGER,INTENT(inout) :: iswitch
   
-    INTEGER :: nq_done, iph, iq, i
+    INTEGER :: nq_done, iph, iq, i, j, k
     INTEGER,SAVE :: iter = 0
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     REAL(DP) :: chi2
@@ -389,12 +397,20 @@ PROGRAM tdph
   Q_POINTS_LOOP3 : &
   DO iq = 1, nq_wedge
     !
+    !IF(rank(iq)==0) CYCLE 
+    !
     ! Reconstruct the dynamical matrix from the coefficients
     d2 = 0._dp
+    !
     DO i = 1,rank(iq)
       iph = iph+1
       d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
     ENDDO
+    !
+    !
+    WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
+    WRITE(999,'(3(2f12.6,4x))') d2
+
     !
     IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
     !
@@ -411,23 +427,17 @@ PROGRAM tdph
         = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
 
     nq_done = nq_done + symq(iq)%nq_trstar
-    !
-    ! Just a simple check
-!    DO i = 1, nq_trstar
-!       WRITE(stdout,'(i4,3f12.4,l2, 1f15.9)') i, sxq(:,i), (i>nq_star), &
-!                       dotprodmat(3*nat,star_dyn(:,:,i), star_dyn(:,:,i))
-!    ENDDO
+     
+     DO i = 1, symq(iq)%nq_trstar
+      WRITE(777,'(2i3,3f12.6)') iph,iq,symq(iq)%sxq(:,i)
+      WRITE(777,'(3(2f12.6,4x))') star_dyn(:,:,i)
+     ENDDO
+
     DEALLOCATE(star_dyn)
-  
-    !CALL compact_dyn(nat, d2, phi)
-    !
-    !d2 = 0
-    ! print*, "== RECOMPOSITION =="
-    !DO i = 1,rank
-    !  d2 = d2 + decomposition(i)*basis(:,:,i)
-    !ENDDO
 
   ENDDO Q_POINTS_LOOP3
+
+  IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
   !
   CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
   IF(nfar.ne.0) RETURN
@@ -445,11 +455,21 @@ PROGRAM tdph
   ENDDO
   CALL mpi_bsum(mfc, fdiff2) 
 
+  !
+  !force_ratio = 0._dp
+  !OPEN(115,file="forces.dat",status="unknown")
+  !DO i = 1, n_steps
+  !   forces_ratio = forces_ratio + F_HAR(:,:,i)/F_AI(:,:,i)
+  !WRITE(115,'(3f14.9)') forces_ratio(:,:,i)
+  !WRITE(115,*)
+  !END DO
+  !CLOSE(115)
+
   !IF(ANY(ABS(ph_coefficients)>2._dp)) fdiff2 = 100._dp
   ! iswitch =1 are real steps, while iswitch=2 are evaluations used to compute the gradient
   IF(iswitch==1)THEN
     iter = iter+1
-    chi2 = SUM(fdiff2**2)/(n_steps*num_procs)
+    chi2 = SQRT(SUM(fdiff2**2))/(n_steps*num_procs)
     ioWRITE(*,'(i10,f14.6)') iter, chi2
     ioWRITE(9999, "(i10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every 1000 steps have a look

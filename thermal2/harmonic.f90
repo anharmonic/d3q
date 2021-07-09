@@ -53,7 +53,7 @@ MODULE harmonic_module
   TYPE(forceconst2_grid) :: fc2
   INTEGER,INTENT(in) :: first_step, n_skip
   INTEGER,INTENT(inout) :: n_steps
-  INTEGER          :: i, j, k, nu, mu, beta, nat_sc, &
+  INTEGER          :: i, j, k, nu, mu, beta, nat_sc, n_steps0, &
                       jat, kat, iat, ios, uni, i_step, k_step
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: tau_scmd(:,:,:), tot_ene(:), force_sc(:,:,:), &
@@ -81,14 +81,24 @@ MODULE harmonic_module
 
   nat_sc = S%nat * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)
   ! generate equilibrium positions of the atoms in bohr units
+
+  uni=1123
+  OPEN(unit=uni,file="sc.dat",action="WRITE",form="formatted")
   ALLOCATE(tau_sc(3,nat_sc))
+  WRITE(uni,'("CELL_PARAMETERS bohr")') 
+  WRITE(uni,'(3f14.8)') aa*S%alat
+  WRITE(uni,'("ATOMIC_POSITIONS bohr")') 
   k = 0   ! initialize
   DO j = 1, fc2%n_R           !
     DO i = 1, S%nat           ! loop over cart. coord in file fc2
     k = k + 1     ! accummulate
     tau_sc(:,k) = (S%tau(:,i)+fc2%xR(:,j))*S%alat     !     
+    WRITE(uni,'(a3,3f14.8)') S%atm(S%ityp(i)), tau_sc(:,k)
     ENDDO
   ENDDO
+  CLOSE(uni)
+
+
   uni = 1122
   OPEN(uni,file="md.out",action="READ",form="formatted")
   i_step = 0
@@ -113,9 +123,13 @@ MODULE harmonic_module
       ENDIF
       !
       IF(actually_read_the_forces)THEN
+        IF(i_step >= n_steps) THEN
+          print*, "nstep reached... exiting"
+          EXIT READ_LOOP
+        ENDIF        
         i_step = i_step+1
         !print*, "Reading step", k_step, " as ", i_step
-        WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu", my_id
+        WRITE(*,*) "Reading initial coords step", k_step, " as ", i_step, " on cpu", my_id
         look_for_toten = .true.
         look_for_forces = .true.
         k=0
@@ -130,7 +144,7 @@ MODULE harmonic_module
         CALL cryst_to_cart(fc2%n_R*S%nat,tau_scmd(:,:, i_step), aa, +1)
         tau_scmd(:,:, i_step) = tau_scmd(:,:, i_step)*S%alat
        ENDIF
-! READ atomic poistions after md steps
+! READ atomic positions after md steps
     ELSEIF(matches("ATOMIC_POSITIONS",line) &
           .and. .not. (look_for_forces .or. look_for_toten))THEN
       
@@ -146,12 +160,14 @@ MODULE harmonic_module
       ENDIF
           
       IF(actually_read_the_forces)THEN
+        IF(i_step >= n_steps) THEN
+          print*, "nstep reached... exiting"
+          EXIT READ_LOOP
+        ENDIF
+
         i_step = i_step + 1
         WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
-        IF(i_step > n_steps) THEN
-            print*, "nstep reached... exiting"
-            EXIT READ_LOOP
-        ENDIF
+
         look_for_toten = .true.  ! this...
         look_for_forces = .true. ! ..and this moved after the IF
         k=0 
@@ -187,11 +203,12 @@ MODULE harmonic_module
     ENDIF
   ENDDO READ_LOOP
 
-  i_step = n_steps
+  !i_step = n_steps
+  n_steps = i_step
   CALL mpi_bsum(i_step)
   ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
 
-  IF(i_step<n_steps)THEN
+  IF(i_step<n_steps0*num_procs)THEN
     ioWRITE(*,'(2x,a,i8,a,i3)') "Looking for ", n_steps, "I only found", i_step, " on cpu", my_id
     n_steps = i_step
   ENDIF
@@ -236,7 +253,7 @@ MODULE harmonic_module
       !CALL cryst_to_cart(fc2%n_R*S%nat, u_disp(:,:,i_step), aa, +1)
       ioWRITE(2244,*)
       !u_disp(:,:,i_step) = u_disp(:,:,i_step)/S%alat ! bohr units
-      u_disp(:,:,i_step) = u_disp(:,:,i_step)
+      !u_disp(:,:,i_step) = u_disp(:,:,i_step)
     ENDDO
   !DEALLOCATE(tot_ene)
   !DEALLOCATE(tau_scmd)
@@ -267,36 +284,41 @@ MODULE harmonic_module
   TYPE(forceconst2_grid) :: fc2
   INTEGER          :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
           i_step, n_steps, jat, kat, cR(3)
-  INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
+  INTEGER, ALLOCATABLE,SAVE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:) !, force_sc(:,:,:)
 
-  !n_steps = 100
-  ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
-  !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
   IF(.NOT.ALLOCATED(h_force)) ALLOCATE(h_force(3,S%nat*fc2%n_R,n_steps))
 
-  ! Build map (i,j)->i such that 
-  !    (R_j-R_k) = (R_i + RR),
-  ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
-  idx_R_map = -1
-  !fc2%i_0 
-  DO j = 1, fc2%n_R
-  DO k = 1, fc2%n_R
-    cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
-    cR(1) = MODULO( cR(1), fc2%nq(1))
-    cR(2) = MODULO( cR(2), fc2%nq(2))
-    cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
-    DO i = 1, fc2%n_R
-      IF(ALL(cR==fc2%yR(:,i))) THEN
-        ! is the index that we are looking for
-        idx_R_map(j,k) = i
-        EXIT ! <- stop the loop and exit
-      ENDIF
-    ENDDO
-  IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
-  ENDDO
-  ENDDO
+  !n_steps = 100
+  IF(.not.ALLOCATED(idx_R_map)) THEN
+    !
+    ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
+    !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
 
+    ! Build map (i,j)->i such that 
+    !    (R_j-R_k) = (R_i + RR),
+    ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
+    idx_R_map = -1
+    !fc2%i_0 
+    DO j = 1, fc2%n_R
+    DO k = 1, fc2%n_R
+      cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
+      cR(1) = MODULO( cR(1), fc2%nq(1))
+      cR(2) = MODULO( cR(2), fc2%nq(2))
+      cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
+      DO i = 1, fc2%n_R
+        IF(ALL(cR==fc2%yR(:,i))) THEN
+          ! is the index that we are looking for
+          idx_R_map(j,k) = i
+          EXIT ! <- stop the loop and exit
+        ENDIF
+      ENDDO
+      !WRITE(666,'(3(3i4,5x))') fc2%yR(:,j), fc2%yR(:,k), fc2%yR(:,idx_R_map(j,k))
+    IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
+    ENDDO
+    ENDDO
+    !
+  ENDIF
 
   ! compute force
   ! OPEN(331, file="F_harm.dat", status="unknown")
