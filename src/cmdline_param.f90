@@ -303,10 +303,19 @@ MODULE cmdline_param_module
         ! So I check if first character is not a number
 
         IF(.not.matches(argv(1:1),"01234567890-+")) THEN
-          WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
-          CYCLE
+          ! it could still be a logical type (.f. ot .false. or just false)  
+          READ(argv,*,iostat=ios) ldummy
+          IF(ios==0) THEN
+            WRITE(nunit,*) TRIM(argv), ","
+            CYCLE
+          ELSE
+            WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
+            CYCLE
+          ENDIF
         ELSE
+          ! here it is definitely a number
           WRITE(nunit,*) argv, ","
+          CYCLE
         ENDIF
       ENDIF
     ENDDO
