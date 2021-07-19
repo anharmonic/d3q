@@ -109,7 +109,7 @@ SUBROUTINE setup_d3_iofiles(xq1, xq2, xq3)
   USE mp,               ONLY : mp_bcast, mp_barrier
   USE d3matrix_io2,     ONLY : d3matrix_filename2
   USE d3_control,       ONLY : d3dir
-  USE wrappers,         ONLY : f_mkdir
+  USE clib_wrappers,    ONLY : f_mkdir
   USE io_files,         ONLY : tmp_dir, wfc_dir
   ! to copy rho:
   USE lsda_mod,         ONLY : nspin

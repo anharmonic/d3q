@@ -45,7 +45,7 @@ SUBROUTINE d3_readin()
   USE d3_debug,         ONLY : read_d3_debug, bcast_d3_debug
   USE mp,               ONLY : mp_bcast
   USE mp_world,         ONLY : world_comm
-  USE wrappers,       ONLY : f_mkdir_safe
+  USE clib_wrappers,    ONLY : f_mkdir_safe
   USE cmdline_param_module, ONLY : cmdline_to_namelist, fgetpid
   !
   IMPLICIT NONE
