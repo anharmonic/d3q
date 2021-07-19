@@ -91,7 +91,7 @@ MODULE code_input
     USE q_grids,              ONLY : q_grid, setup_path, setup_grid, setup_plane_grid
     USE constants,            ONLY : RY_TO_CMM1, BOHR_RADIUS_SI
     USE more_constants,       ONLY : INVALID, DHUGE, MASS_DALTON_TO_RY
-    USE wrappers,             ONLY : f_mkdir_safe
+    USE clib_wrappers,             ONLY : f_mkdir_safe
     USE fc3_interpolate,      ONLY : forceconst3
     USE nist_isotopes_db,     ONLY : compute_gs
     USE input_fc,             ONLY : div_mass_fc2, forceconst2_grid, ph_system_info
@@ -899,7 +899,7 @@ MODULE code_input
     USE asr2_module,        ONLY : impose_asr2
     !USE io_global,          ONLY : stdout
     USE fc3_interpolate,    ONLY : read_fc3, forceconst3
-    USE wrappers,           ONLY : memstat
+    USE clib_wrappers,           ONLY : memstat
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)        :: input

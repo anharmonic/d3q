@@ -42,7 +42,7 @@ PROGRAM gen_sparse
     USE random_numbers, ONLY : randy
     USE mpi_thermal,    ONLY : start_mpi, stop_mpi, ionode
     USE more_constants,  ONLY : print_citations_linewidth
-    USE wrappers,        ONLY : memstat
+    USE clib_wrappers,        ONLY : memstat
     USE cmdline_param_module
     IMPLICIT NONE
     !

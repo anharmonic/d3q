@@ -714,7 +714,7 @@ PROGRAM asr3
 !  USE io_global,       ONLY : *
   USE asr3_module
   USE more_constants,  ONLY : print_citations_linewidth
-  USE wrappers,        ONLY : memstat
+  USE clib_wrappers,        ONLY : memstat
   USE cmdline_param_module
   USE timers
   IMPLICIT NONE

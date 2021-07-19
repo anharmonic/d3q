@@ -52,7 +52,7 @@ MODULE sqom_program
     USE q_grids,        ONLY : q_grid, setup_path, setup_simple_grid
     USE constants,      ONLY : RY_TO_CMM1
     USE more_constants, ONLY : INVALID, write_conf
-    USE wrappers,       ONLY : f_mkdir_safe
+    USE clib_wrappers,       ONLY : f_mkdir_safe
     USE code_input,     ONLY : parse_command_line
     !
     IMPLICIT NONE
@@ -162,7 +162,7 @@ MODULE sqom_program
     USE input_fc,       ONLY : same_system, read_fc2, &
                                aux_system, div_mass_fc2
     USE asr2_module,    ONLY : impose_asr2
-    USE wrappers,        ONLY : memstat
+    USE clib_wrappers,        ONLY : memstat
     IMPLICIT NONE
     !
     TYPE(sqom_input_type),INTENT(in)        :: input

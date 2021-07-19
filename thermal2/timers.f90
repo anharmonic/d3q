@@ -169,7 +169,7 @@ MODULE timers
   END SUBROUTINE print_timers_header
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE print_memory()
-    USE wrappers,           ONLY : memstat
+    USE clib_wrappers,           ONLY : memstat
     IMPLICIT NONE
     INTEGER :: kb
     CHARACTER(len=2)    :: unit
