@@ -1,6 +1,9 @@
-v 1.1.8 - WIP
+v 1.1.9
+* CMake build added
+
+v 1.1.8 
 * Removed dependency on iotk
-* Removed dependency on Powell
+* Removed dependency on Powell, replaced with lmdif
 
 v 1.1.7
 * More bugfixes
