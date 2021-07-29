@@ -23,8 +23,8 @@ F90FLAGS += -fcheck=all -fbacktrace -pg
 # intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
-#F90FLAGS += -openmp 
-#LDFLAGS  += -openmp #-pg -g
+F90FLAGS += -fopenmp 
+LDFLAGS  += -fopenmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
@@ -55,26 +55,31 @@ print-%  : ; @echo $* = $($*)
 
 THERMALK2_OBJS = \
 mpi_thermal.o \
+ACRS.o \
 asr2.o \
 casimir.o \
 code_input.o \
-eos.o \
 decompose_d2.o \
+dynbubble.o \
+eos.o \
+f3_bwfft.o \
+fc2_interp.o \
+fc3_interp.o \
 final_state.o \
 functions.o \
-fc2_interp.o \
-f3_bwfft.o \
-fc3_interp.o \
 harmonic.o \
 input_fc.o \
 isotopes.o \
 linewidth.o \
+mc_grids.o \
 merge_degenerate.o \
 more_constants.o \
 nanoclock.o \
 nanosec.o \
 neutrons.o \
 nist_isotopes_db.o \
+overlap.o \
+ph_dos.o \
 ph_system.o \
 ph_velocity.o \
 posix_signal.o \
@@ -89,7 +94,7 @@ MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 tdph 
+EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 tdph rmzeu
 #make_wedge decompose_d2
 #gruneisen
 #interpolate2
