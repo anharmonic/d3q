@@ -11,7 +11,7 @@ set ylabel "Energy (cm^{-1})"
 
 set yrange [0:800]
 set ar 1 from   1.000000, 0 to 1.000000, 800 nohead  front
-set ar 2 from   1.500000, 0 to 1.500000, 800 nohead  front  dt "-
+set ar 2 from   1.500000, 0 to 1.500000, 800 nohead  front  dt "-"
 set ar 3 from   2.000000, 0 to 2.000000, 800 nohead  front
 set ar 4 from   3.414214, 0 to 3.414214, 800 nohead  front
 
