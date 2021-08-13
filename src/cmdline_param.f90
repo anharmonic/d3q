@@ -66,13 +66,14 @@ MODULE cmdline_param_module
   CONTAINS
 
   INTEGER FUNCTION fgetpid()
+    USE random_numbers, ONLY : randy
 !#if defined(__INTEL_COMPILER)
 !    USE IFPORT, ONLY : getpid
 !    fgetpid = INT(getpid(), kind=8)
 !#elif defined (__GFORTRAN__)
 !    fgetpid = INT(getpid(), kind=8)
 !#else 
-    fgetpid = INT(rand()*1.d+6)
+    fgetpid = INT(randy()*1.d+6)
 !#endif
   END FUNCTION
 
