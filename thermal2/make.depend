@@ -1,3 +1,4 @@
+ACRS.o : mpi_thermal.o
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
 PROGRAM_decompose_d2.o : mpi_thermal.o
@@ -11,6 +12,7 @@ PROGRAM_qha.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
 PROGRAM_r2q.o : mpi_thermal.o
 PROGRAM_recenter.o : mpi_thermal.o
+PROGRAM_rmzeu.o : mpi_thermal.o
 PROGRAM_sparse.o : mpi_thermal.o
 PROGRAM_sqom.o : mpi_thermal.o
 PROGRAM_tdph.o : mpi_thermal.o
@@ -142,6 +144,12 @@ PROGRAM_recenter.o : ./f3_bwfft.o
 PROGRAM_recenter.o : ./fc3_interp.o
 PROGRAM_recenter.o : ./input_fc.o
 PROGRAM_recenter.o : ./ph_system.o
+PROGRAM_rmzeu.o : ./PROGRAM_interpolate2.o
+PROGRAM_rmzeu.o : ./asr2.o
+PROGRAM_rmzeu.o : ./fc2_interp.o
+PROGRAM_rmzeu.o : ./input_fc.o
+PROGRAM_rmzeu.o : ./ph_system.o
+PROGRAM_rmzeu.o : ./quter.o
 PROGRAM_sparse.o : ./PROGRAM_sparse.o
 PROGRAM_sparse.o : ./fc3_interp.o
 PROGRAM_sparse.o : ./input_fc.o
@@ -299,6 +307,7 @@ PROGRAM_lw.o : mpi_thermal.h
 PROGRAM_qha.o : mpi_thermal.h
 PROGRAM_r2q.o : mpi_thermal.h
 PROGRAM_recenter.o : mpi_thermal.h
+PROGRAM_rmzeu.o : mpi_thermal.h
 PROGRAM_sqom.o : mpi_thermal.h
 PROGRAM_tdph.o : mpi_thermal.h
 PROGRAM_tk.o : mpi_thermal.h

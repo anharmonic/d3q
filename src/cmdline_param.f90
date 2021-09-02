@@ -66,13 +66,14 @@ MODULE cmdline_param_module
   CONTAINS
 
   INTEGER FUNCTION fgetpid()
+    USE random_numbers, ONLY : randy
 !#if defined(__INTEL_COMPILER)
 !    USE IFPORT, ONLY : getpid
 !    fgetpid = INT(getpid(), kind=8)
 !#elif defined (__GFORTRAN__)
 !    fgetpid = INT(getpid(), kind=8)
 !#else 
-    fgetpid = INT(rand()*1.d+6)
+    fgetpid = INT(randy()*1.d+6)
 !#endif
   END FUNCTION
 
@@ -274,7 +275,7 @@ MODULE cmdline_param_module
     CHARACTER(len=*),INTENT(in) :: nname
     INTEGER,INTENT(in) :: nunit
     INTEGER :: nargs, i, ios, alen, astatus
-    CHARACTER(len=512) :: argv
+    CHARACTER(len=512) :: argv, cdummy
     REAL(dp) :: rdummy
     LOGICAL  :: ldummy
     LOGICAL, EXTERNAL :: matches
@@ -297,21 +298,26 @@ MODULE cmdline_param_module
           IF(argv(1:1) == "-") WRITE(nunit,*)
         ENDIF
       ELSE
+        ! Try to determine if command is a number, a logical or a string
+        ! unfortunately compilers can be very generous when readin, i.e.
+        ! "file_02" could be read as a number and break this mechanism
+        ! So I check if first character is not a number
 
-        READ(argv,*,iostat=ios) rdummy
-        IF(ios==0) THEN
-           WRITE(nunit,*) TRIM(argv), ","
+        IF(.not.matches(argv(1:1),"01234567890-+")) THEN
+          ! it could still be a logical type (.f. ot .false. or just false)  
+          READ(argv,*,iostat=ios) ldummy
+          IF(ios==0) THEN
+            WRITE(nunit,*) TRIM(argv), ","
+            CYCLE
+          ELSE
+            WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
+            CYCLE
+          ENDIF
+        ELSE
+          ! here it is definitely a number
+          WRITE(nunit,*) argv, ","
           CYCLE
         ENDIF
-
-        READ(argv,*,iostat=ios) ldummy
-        IF(ios==0) THEN
-          WRITE(nunit,*) TRIM(argv), ","
-          CYCLE
-        ENDIF
-
-        WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
-
       ENDIF
     ENDDO
 

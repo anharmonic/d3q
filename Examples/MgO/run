@@ -43,4 +43,6 @@ gnuplot -persist plot-fs1.gp
 echo "computing phonon dispersion"
 $pref $bin/d3_r2q.x > output.R2Q
 gnuplot -persist plot-fs.gp
+gnuplot -persist plot-projected.gp
+
 

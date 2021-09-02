@@ -44,7 +44,7 @@ MODULE qha_program
     USE q_grids,              ONLY : q_grid, setup_simple_grid
     USE constants,            ONLY : RY_TO_CMM1, RY_KBAR
     USE more_constants,       ONLY : INVALID, write_conf
-    USE wrappers,             ONLY : f_mkdir_safe
+    USE clib_wrappers,             ONLY : f_mkdir_safe
     USE code_input,           ONLY : parse_command_line
     USE fc2_interpolate,      ONLY : forceconst2_grid, freq_phq_safe
     USE asr2_module,          ONLY : impose_asr2
