@@ -39,11 +39,85 @@ SUBROUTINE allocate_sym_and_star_q(nat, symq)
    ALLOCATE(symq%irt(48,nat))
 END SUBROUTINE
 
+
+subroutine generate_simple_base(ndim, mtx, nx)
+   implicit none
+   integer,intent(in) :: ndim
+   integer,intent(out) :: nx
+   complex(DP),intent(out) :: mtx(ndim, ndim, ndim**2)
+   integer :: i,j
+
+   nx = 0  
+   !first matrices with a single 1 along the diagonal
+   mtx = 0._dp
+   DO i = 1, ndim
+     nx=nx+1
+     mtx(i,i, nx) = 1._dp
+   ENDDO
+   !second, matrices with a single non-zero off-diagonal real term
+   DO i = 1,ndim
+   DO j = i+1, ndim
+     nx=nx+1
+     mtx(i,j,nx) = dsqrt(0.5_dp)
+     mtx(j,i,nx) = dsqrt(0.5_dp)
+   ENDDO
+   ENDDO
+   !third, matrices with a single non-zero off-diagonal imaginary term
+   DO i = 1,ndim
+   DO j = i+1, ndim
+     nx=nx+1
+     mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+     mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+   ENDDO
+   ENDDO
+   IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
+
+   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
+
+end subroutine
+
+subroutine generate_mu_base(ndim, mtx, u0, nx)
+   implicit none
+   integer,intent(in)      :: ndim
+   complex(dp),INTENT(in)  :: u0(ndim,ndim)
+   integer,intent(out)     :: nx
+   complex(DP),intent(out) :: mtx(ndim, ndim, ndim**2)
+   !
+   integer :: i,j
+   real(dp)  :: e(ndim)
+   complex(dp)  :: u(ndim,ndim), ev(ndim,ndim), v1(ndim,1), v2(1,ndim)
+
+   ! diagonalize u0
+   u=u0
+   call cdiagh (ndim, u, ndim, e, ev)
+
+
+   nx = 0  
+   !first matrices with a single 1 along the diagonal
+   mtx = 0._dp
+   DO i = 1, ndim
+   DO j = 1, ndim
+     IF(ABS(e(i))>1.d-6 .and. ABS(e(j))>1.d-6 )THEN
+      nx=nx+1
+      v1(:,1) = ev(:,i)
+      v2(1,:) = CONJG(ev(j,:))
+      mtx(:,:, nx) = matmul(v1,v2)
+     ENDIF
+   ENDDO
+   ENDDO
+
+   IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
+
+   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
+
+end subroutine
+
+
 ! Generate a base for the space of dynamical matrices that respect the
 ! crystal symmetry
 !---------------------------------------------------------------------
 subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
-                             nsymq, minus_q, irotmq, rtau, irt, s, invs )
+                             nsymq, minus_q, irotmq, rtau, irt, s, invs, u0 )
 !---------------------------------------------------------------------
 
   USE kinds,     ONLY : DP
@@ -61,6 +135,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   integer,INTENT(in)  :: irotmq
   real(DP),INTENT(in) :: rtau(3,48,nat)
   integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
+  complex(dp),INTENT(in),optional :: u0(3*nat,3*nat)
 
 ! input: the q point
 
@@ -73,37 +148,14 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
   complex(DP) :: mtx(3*nat, 3*nat, 9*nat**2)
   real(DP)    :: normtx
-!
-!call write_matrix('random matrix',wdyn,nat)
-!
-! symmetrize the random matrix with the little group of q
-!
-   nx = 0  
-   !first matrices with a single 1 along the diagonal
-   mtx = 0._dp
-   DO i = 1, 3*nat
-     nx=nx+1
-     mtx(i,i, nx) = 1._dp
-   ENDDO
-   !second, matrices with a single non-zero off-diagonal real term
-   DO i = 1,3*nat
-   DO j = i+1, 3*nat
-!   DO j = 1, 3*nat
-     nx=nx+1
-     mtx(i,j,nx) = dsqrt(0.5_dp)
-     mtx(j,i,nx) = dsqrt(0.5_dp)
-   ENDDO
-   ENDDO
-   !third, matrices with a single non-zero off-diagonal imaginary term
-   DO i = 1,3*nat
-   DO j = i+1, 3*nat
-     nx=nx+1
-     mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-     mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-   ENDDO
-   ENDDO
-   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
-  
+
+   ! build an initial trivial basis for the hermitean matrices space
+   IF(present(u0))THEN
+      call generate_mu_base(3*nat, mtx, u0, nx)
+   ELSE
+      call generate_simple_base(3*nat, mtx, nx)
+   ENDIF
+
    ! symmetrize each matrix
    DO i = 1,nx
      CALL scompact_dyn(nat, mtx(:,:,i), wdyn)
@@ -429,6 +481,113 @@ subroutine tr_star_q (xq, at, bg, nsym, s, invs, nq, nq_tr, sxq, isq, imq, verbo
   ENDIF
 
 end subroutine
+
+
+! The original smallg_q, only looks for minus_q in a very specific case, 
+! this subroutine always does.
+!-----------------------------------------------------------------------
+SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
+   !-----------------------------------------------------------------------
+   !
+   ! This routine selects, among the symmetry matrices of the point group
+   ! of a crystal, the symmetry operations which leave q unchanged.
+   ! Furthermore it checks if one of the above matrices send q --> -q+G.
+   ! In this case minus_q is set true.
+   !
+   !  input-output variables
+   !
+   USE kinds, ONLY : DP
+   USE symm_base, ONLY : t_rev
+   
+   implicit none
+ 
+   real(DP), parameter :: accep = 1.e-5_dp
+ 
+   real(DP), intent(in) :: bg (3, 3), at (3, 3), xq (3)
+   ! input: the reciprocal lattice vectors
+   ! input: the direct lattice vectors
+   ! input: the q point of the crystal
+ 
+   integer, intent(in) :: s (3, 3, 48), nrot, modenum
+   ! input: the symmetry matrices
+   ! input: number of symmetry operations
+   ! input: main switch of the program, used for
+   !        q<>0 to restrict the small group of q
+   !        to operation such that Sq=q (exactly,
+   !        without G vectors) when iswitch = -3.
+   logical, intent(inout) :: sym (48), minus_q
+   ! input-output: .true. if symm. op. S q = q + G
+   ! output: .true. if there is an op. sym.: S q = - q + G
+   !
+   !  local variables
+   !
+ 
+   real(DP) :: aq (3), raq (3), zero (3)
+   ! q vector in crystal basis
+   ! the rotated of the q vector
+   ! the zero vector
+ 
+   integer :: irot, ipol, jpol
+   ! counter on symmetry op.
+   ! counter on polarizations
+   ! counter on polarizations
+ 
+   logical :: eqvect
+   ! logical function, check if two vectors are equa
+   !
+   ! return immediately (with minus_q=.true.) if xq=(0,0,0)
+   !
+   minus_q = .true.
+   if ( (xq (1) == 0.d0) .and. (xq (2) == 0.d0) .and. (xq (3) == 0.d0) ) &
+        return
+   !
+   !   Set to zero some variables
+   !
+   minus_q = .false.
+   zero(:) = 0.d0
+   !
+   !   Transform xq to the crystal basis
+   !
+   aq = xq
+   call cryst_to_cart (1, aq, at, - 1)
+   !
+   !   Test all symmetries to see if this operation send Sq in q+G or in -q+G
+   !
+   do irot = 1, nrot
+      if (.not.sym (irot) ) goto 100
+      raq(:) = 0.d0
+      do ipol = 1, 3
+         do jpol = 1, 3
+            raq(ipol) = raq(ipol) + DBLE( s(ipol,jpol,irot) ) * aq( jpol)
+         enddo
+      enddo
+      IF (t_rev(irot)==1) raq=-raq
+      sym (irot) = eqvect (raq, aq, zero, accep)
+      !
+      !  if "iswitch.le.-3" (modenum.ne.0) S must be such that Sq=q exactly !
+      !
+      if (modenum.ne.0 .and. sym(irot) ) then
+         do ipol = 1, 3
+            sym(irot) = sym(irot) .and. (abs(raq(ipol)-aq(ipol)) < 1.0d-5)
+         enddo
+      endif
+      if (.not.minus_q) then
+ !     if (sym(irot).and..not.minus_q) then
+         raq = - raq
+         minus_q = eqvect (raq, aq, zero, accep)
+      endif
+ 100  continue
+   enddo
+   !
+   !  if "iswitch.le.-3" (modenum.ne.0) time reversal symmetry is not included !
+   !
+   if (modenum.ne.0) minus_q = .false.
+   !
+   return
+   !
+ END SUBROUTINE smallg_q_fullmq
+ 
+ 
 
 END MODULE
 

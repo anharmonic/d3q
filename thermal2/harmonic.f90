@@ -123,7 +123,7 @@ MODULE harmonic_module
         DO iat = 1, S%nat
         k = k + 1
           READ(uni,"(a1024)", iostat=ios) line
-          !print*, TRIM(line) ! remove spaces
+          print*, TRIM(line) ! remove spaces
           READ(line, *) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, tau_scmd(:,k, i_step)
         ENDDO
         ENDDO
@@ -265,8 +265,8 @@ MODULE harmonic_module
   !
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc2
-  INTEGER          :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
-          i_step, n_steps, jat, kat, cR(3)
+  INTEGER          	 :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
+   			    i_step, n_steps, jat, kat, cR(3)
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:) !, force_sc(:,:,:)
 
