@@ -664,7 +664,7 @@ MODULE linewidth
       timer_CALL t_mkspf%start()
     DO it = 1,nconf
       DO i = 1,S%nat3
-        aux  = ZSQRT(tepsilon(:,i,it))
+        aux  = SQRT(tepsilon(:,i,it))
         aux2 = (aux-1)/(aux+1)
         reflectivity(:,i,it) = DBLE(aux2*CONJG(aux2))
       ENDDO

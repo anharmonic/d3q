@@ -382,7 +382,7 @@ MODULE linewidth_program
              caux = tepsilon_q(qpath%xq(:,iq), input%nconf, input%T, sigma_ry, &
                                S, grid, fc2, fc3, input%ne, ener, w2, D)
            IF(TRIM(input%calculation) == "refl") THEN
-             caux = (ZSQRT(caux)-1)/(ZSQRT(caux)+1)
+             caux = (SQRT(caux)-1)/(ZSQRT(caux)+1)
              caux = caux*CONJG(caux)
            ENDIF
         ELSE IF (TRIM(input%calculation) == "selfnrg") THEN
