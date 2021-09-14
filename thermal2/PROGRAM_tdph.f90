@@ -44,7 +44,7 @@ MODULE tdph_module
     CHARACTER(len=8) :: fit_type = "force"
     INTEGER :: nfirst=1000, nskip=100, nmax=10000, nprint=1000
 
-    INTEGER :: input_unit, aux_unit
+    INTEGER :: input_unit, aux_unit, err1, err2
     !CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
     REAL(DP) :: e0 = 0._dp
@@ -61,20 +61,27 @@ MODULE tdph_module
     IF(TRIM(input_file)=="-")THEN
       ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
       input_unit = 5
+      err1=0
     ELSE
       ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
       !input_unit = find_free_unit()
-      OPEN(newunit=input_unit, file=input_file, status="OLD", action="READ")
+      OPEN(newunit=input_unit, file=input_file, status="OLD", action="READ",iostat=err1)
     ENDIF
     !
-    aux_unit = find_free_unit()
-    READ(input_unit, tdphinput)
-    WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+    IF(err1==0)THEN
+      aux_unit = find_free_unit()
+      READ(input_unit, tdphinput, iostat=err1)
+      WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+    ELSE
+      WRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
+    ENDIF
     OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
     CALL cmdline_to_namelist("tdphinput", aux_unit)
     REWIND(aux_unit)
-    READ(aux_unit, tdphinput)
-    CLOSE(aux_unit, status="DELETE")
+    READ(aux_unit, tdphinput, iostat=err2)
+    IF(err2==0)CLOSE(aux_unit, status="DELETE")
+     
+    IF(err1/=0 .and. err2/=0)  WRITE(stdout,'(2x,3a)') "Warning: no input file or parameters!"
 
     WRITE(stdout, tdphinput)
     !
