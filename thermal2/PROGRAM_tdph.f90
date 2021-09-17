@@ -15,7 +15,96 @@ MODULE tdph_module
 
   INTEGER :: nfar=0
 
+  TYPE tdph_input_type
+    !
+    CHARACTER(len=256) :: md = 'md.out'
+    CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
+    CHARACTER(len=8) :: fit_type = "force"
+    INTEGER :: nfirst, nskip, nmax, nprint
+    REAL(DP) :: e0
+    !
+  END TYPE tdph_input_type
+  !
   CONTAINS
+  !
+  ! read everything from files mat2R and mat3R
+  SUBROUTINE READ_INPUT_TDPH(input)
+    USE code_input,           ONLY : parse_command_line
+    USE cmdline_param_module, ONLY : cmdline_to_namelist
+    !
+    IMPLICIT NONE
+    !
+    TYPE(tdph_input_type),INTENT(out) :: input
+    CHARACTER(len=256)  :: input_file
+    INTEGER :: ios
+    !
+    ! Input variable, and defaul values:
+    CHARACTER(len=256) :: md = 'md.out'
+    CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
+    CHARACTER(len=8) :: fit_type = "force"
+    INTEGER :: nfirst=1000, nskip=100, nmax=10000, nprint=1000
+
+    INTEGER :: input_unit, aux_unit, err1, err2
+    !CHARACTER(len=6), EXTERNAL :: int_to_char
+    INTEGER,EXTERNAL :: find_free_unit
+    REAL(DP) :: e0 = 0._dp
+    !
+    NAMELIST  / tdphinput / &
+        md, file_mat2, fit_type, &
+        nfirst, nskip, nmax, nprint, &
+        e0
+
+    WRITE(*,*) "Waiting for input"
+    !
+    input_file="input.TDPH"
+    CALL parse_command_line(input_file)
+    IF(TRIM(input_file)=="-")THEN
+      ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
+      input_unit = 5
+      err1=0
+    ELSE
+      ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
+      !input_unit = find_free_unit()
+      OPEN(newunit=input_unit, file=input_file, status="OLD", action="READ",iostat=err1)
+    ENDIF
+    !
+    IF(err1==0)THEN
+      aux_unit = find_free_unit()
+      READ(input_unit, tdphinput, iostat=err1)
+      WRITE(stdout,'(2x,3a)') "merging with command line arguments"
+    ELSE
+      WRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
+    ENDIF
+    OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
+    CALL cmdline_to_namelist("tdphinput", aux_unit)
+    REWIND(aux_unit)
+    READ(aux_unit, tdphinput, iostat=err2)
+    IF(err2==0)CLOSE(aux_unit, status="DELETE")
+     
+    IF(err1/=0 .and. err2/=0)  WRITE(stdout,'(2x,3a)') "Warning: no input file or parameters!"
+
+    WRITE(stdout, tdphinput)
+    !
+    !IF(ANY(<1))  CALL errore("READ_INPUT_TDPH","Invalid nk",1)
+
+    IF(e0==0._dp .and. fit_type=='energy') &
+        CALL errore("tdph","need zero energy to fit energy difference", 1)
+
+    IF(ANY((/nfirst,nmax,nskip/)<1)) &
+        CALL errore("tdph","wrong parameters", 1)
+    !
+    input%md            = md
+    input%file_mat2     = file_mat2
+    input%fit_type      = fit_type
+    input%nfirst        = nfirst
+    input%nskip         = nskip
+    input%nmax          = nmax
+    input%nprint        = nprint
+    input%e0            = e0
+    !
+  END SUBROUTINE READ_INPUT_TDPH
+
+
 
   SUBROUTINE set_qe_global_geometry(Si)
     USE input_fc,           ONLY : ph_system_info
@@ -53,7 +142,7 @@ PROGRAM tdph
   !----------------------------------------------------------------------------
   !
   USE kinds,              ONLY : DP
-  USE constants,          ONLY : amu_ry
+  USE constants,          ONLY : amu_ry, K_BOLTZMANN_SI, K_BOLTZMANN_RY, RYTOEV !ry_to_kelvin
   USE parameters,         ONLY : ntypx
   USE mp,                 ONLY : mp_bcast
   USE mp_global,          ONLY : mp_startup, mp_global_end
@@ -92,17 +181,18 @@ PROGRAM tdph
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
   ! for harmonic_module
   REAL(DP),ALLOCATABLE      :: u(:,:,:), F_HAR(:,:,:), F_AI(:,:,:), force_diff(:), wa(:), &
-			       force_ratio(:,:,:)
+                               force_ratio(:,:,:), tot_ene(:), h_energy(:)
   ! for lmdf1
-  INTEGER 		    :: n_steps, j_steps, mfcn, lwa 
-  INTEGER, ALLOCATABLE	    :: iwa(:)
+  INTEGER                   :: n_steps, j_steps, mfcn, lwa 
+  INTEGER, ALLOCATABLE      :: iwa(:)
   !
   REAL(DP) :: xq(3), syq(3,48)
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), ph_coefficients(:), metric(:)
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), ph_coefficients(:), &
+                          ph_coefficients0(:), metric(:)
   INTEGER :: i,j, icar,jcar, na,nb, iq, nph, iph, iswitch, first_step, n_skip
   INTEGER,ALLOCATABLE :: rank(:)
   TYPE(ph_system_info) :: Si
@@ -116,19 +206,14 @@ PROGRAM tdph
   INTEGER,ALLOCATABLE :: ipvt(:)
   REAL(DP),ALLOCATABLE :: fjac(:,:),qtf(:),wa1(:),wa2(:),wa3(:),wa4(:)
   TYPE(nanotimer) :: t_minim = nanotimer("minimization")
+  TYPE(tdph_input_type) :: input
   !
   CALL start_mpi()
   !
-  ! setup output
-  !fileout = cmdline_param_char("o", TRIM(fildyn)//".out")
-  !
-  ! Read system info from a mat2R file
-  !OPEN(unit=999,file="mat2R",action='READ',status='OLD')
-  !CALL read_system(999, Si)
-  !CALL aux_system(Si)
-  !CLOSE(999)
+  ! Read namelist tdphinput
+  CALL READ_INPUT_TDPH(input)
 
-  CALL read_fc2("mat2R", Si, fc)
+  CALL read_fc2(input%file_mat2, Si, fc)
   lrigid_save = Si%lrigid
   Si%lrigid = .false.
   CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
@@ -257,13 +342,13 @@ PROGRAM tdph
   !
   ! Number of degrees of freedom for the entire grid:
   nph = SUM(rank)
-  ioWRITE(stdout, '("=================")')
+  ioWRITE(stdout, '("=====================")')
   ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
   ! type would be more handy
-  ALLOCATE(ph_coefficients(nph))
+  ALLOCATE(ph_coefficients(nph), ph_coefficients0(nph))
   iph = 0
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
@@ -289,60 +374,50 @@ PROGRAM tdph
     !
   ENDDO Q_POINTS_LOOP2
   !
+  ph_coefficients0 = ph_coefficients
   !Si%lrigid = .false.
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
-  n_steps = 13000                ! total molecular dynamics steps TO READ
-  n_steps = n_steps/num_procs
-  first_step = 1 !800    ! start reading from this step
-  n_skip = 1 !        ! number of steps to skip
-  !eq_time = 1000               ! timesteps untill equilibrium 
-  CALL read_md(first_step, n_skip, n_steps,Si,fc,u,F_AI)
-   ! Redefine input variables for minimization
-  !nf = n_steps*3*Si%nat*fc%n_R ! m
-  mfcn = 3*Si%nat*fc%n_R ! m
-   ! ndf -> n
+  n_steps = input%nmax/num_procs ! total molecular dynamics steps TO READ
+  first_step = input%nfirst ! start reading from this step
+  n_skip = input%nskip !        ! number of steps to skip
+
+  CALL read_md(input%md, input%e0, first_step, n_skip, n_steps,Si,fc,u,F_AI,tot_ene)
+
+  mfcn = 3*Si%nat*fc%n_R 
   ALLOCATE(force_diff(mfcn))
   nfar = 0
 
-  ALLOCATE(fjac(mfcn, nph), ipvt(nph), qtf(nph))
-  ALLOCATE(wa1(nph),wa2(nph),wa3(nph),wa4(mfcn))
+  !ALLOCATE(fjac(mfcn, nph), ipvt(nph), qtf(nph))
+  !ALLOCATE(wa1(nph),wa2(nph),wa3(nph),wa4(mfcn))
   !
   ! Use complete lmdif for more control
-  ALLOCATE(metric(nph))
-  !metric = 1._dp !ABS(ph_coefficients)**1.5
-  metric = (ph_coefficients)**2
+  !ALLOCATE(metric(nph))
+  !metric = ABS(ph_coefficients)
+  !metric = 1._dp !(ph_coefficients)**2 !(ph_coefficients)**2
 !  DO i = 1, nph
 !    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
 !  ENDDO
-  factor = 1.d-3
+  !factor = 1.d-3
+!CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
+! before minimization
+  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  OPEN(118,file="h_enr.dat0",status="unknown") 
+  DO i = 1, n_steps
+  !WRITE(117,*) "i_step = ",i
+        WRITE(118,'(E14.8)') h_energy(i) !
+  END DO
+  CLOSE(118)
+  ! where
 
-  CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,0.d0,0.d0,huge(1),0.d0, &
-   			metric,1,factor,0,iswitch,nfev,fjac, &
-			mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
+  !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
 
-  ! Generate FCs to be used for interpolation
-  ioWRITE(stdout,'(a,2i6)') "Output code, numer iterations:", iswitch, nfev
-  select case (iswitch)
-         CASE(1)
-            ioWRITE(stdout,'(a)') "Both actual and predicted relative reductions in the sum of squares are at most FTOL."
-         CASE(2)
-            ioWRITE(stdout,'(a)') "Relative error between two consecutive iterates is at most XTOL."
-         CASE(3)
-            ioWRITE(stdout,'(a)') "Conditions for INFO = 1 and INFO = 2 both hold."
-         CASE(4)
-            ioWRITE(stdout,'(a)') "The cosine of the angle between FVEC and"//&
-                                  "any column of the Jacobian is at most GTOL in absolute value."
-         CASE(5)
-            ioWRITE(stdout,'(a)') "Number of calls to FCN has reached or exceeded MAXFEV."
-         CASE(6)
-            ioWRITE(stdout,'(a)') "FTOL is too small.  No further reduction in the sum of squares is possible."
-         CASE(7)
-            ioWRITE(stdout,'(a)') "XTOL is too small.  No further improvement in the approximate solution X is possible."
-         CASE(8)
-            ioWRITE(stdout,'(a)') "GTOL is too small.  FVEC is orthogonal to the columns of the Jacobian to machine precision."
-  END SELECT
+  CALL ACRS0(nph,ph_coefficients, force_diff, minimize2)
+
+  !CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,0.d0,0.d0,huge(1),0.d0, &
+  !           metric,2,factor,0,iswitch,nfev,fjac, &
+  !           mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
   !
   nfar = 0
   iswitch = 0
@@ -353,12 +428,24 @@ PROGRAM tdph
    ! Force ratio
    OPEN(116,file="force_ratio.dat",status="unknown") 
    DO i = 1, n_steps
+   WRITE(116,*) "i_step = ",i
    DO j = 1, Si%nat*nqmax
-      WRITE(116,'(3(3f14.9,5x))') F_HAR(:,j,i)/F_AI(:,j,i), F_HAR(:,j,i), F_AI(:,j,i) 
+      WRITE(116,'(3(3f14.9,5x))') F_HAR(:,j,i)/F_AI(:,j,i), F_HAR(:,j,i), F_AI(:,j,i)
+      !WRITE(116,'(3(f14.9,5x))') NORM2(F_AI(:,j,i)), NORM2(F_HAR(:,j,i)), F_HAR(:,j,i)/F_AI(:,j,i)  
    END DO
    END DO
    CLOSE(116)
-
+   ! 
+   ! Harmonic energy
+   ! 
+   OPEN(117,file="h_enr.dat",status="unknown") 
+   DO i = 1, n_steps
+   !WRITE(117,*) "i_step = ",i
+         WRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), tot_ene(i), &
+                                         EXP(-tot_ene(i)/(K_BOLTZMANN_RY*300.0_DP))
+   END DO
+   CLOSE(117)
+   !
   nfar = 2
   CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
   CALL write_fc2("matOUT.centered", Si, fcout)
@@ -388,7 +475,7 @@ PROGRAM tdph
     INTEGER :: nq_done, iph, iq, i, j, k
     INTEGER,SAVE :: iter = 0
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-    REAL(DP) :: chi2
+    REAL(DP) :: chi2, kb, T, e0
 
     CALL t_minim%start()
 
@@ -397,17 +484,12 @@ PROGRAM tdph
   Q_POINTS_LOOP3 : &
   DO iq = 1, nq_wedge
     !
-    !IF(rank(iq)==0) CYCLE 
-    !
     ! Reconstruct the dynamical matrix from the coefficients
     d2 = 0._dp
-    !
     DO i = 1,rank(iq)
       iph = iph+1
       d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
     ENDDO
-    !
-    !
     WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
     WRITE(999,'(3(2f12.6,4x))') d2
 
@@ -427,11 +509,6 @@ PROGRAM tdph
         = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
 
     nq_done = nq_done + symq(iq)%nq_trstar
-     
-     DO i = 1, symq(iq)%nq_trstar
-      WRITE(777,'(2i3,3f12.6)') iph,iq,symq(iq)%sxq(:,i)
-      WRITE(777,'(3(2f12.6,4x))') star_dyn(:,:,i)
-     ENDDO
 
     DEALLOCATE(star_dyn)
 
@@ -442,35 +519,46 @@ PROGRAM tdph
   CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
   IF(nfar.ne.0) RETURN
   !
-  ! READ atomic positions, forces, etc, and compute harmonic forces
-  CALL harmonic_force(n_steps, Si,fcout,u,F_HAR)
+  ! READ atomic positions, forces, etc, and compute harmonic force and energy
+  CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
+  !CALL read_md(first_step, n_skip, n_steps,Si,fc,u,F_AI)
   !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
   !IF(.NOT.ALLOCATED(fdiff2)) ALLOCATE(fdiff2(nf))
   !
   !WRITE(*,'(2(3f14.6))') F_HAR, F_AI
   !print*, "-->", nf, size(fdiff2), size(F_HAR), size(F_AI)
-  fdiff2 = 0._dp
-  DO i = 1, n_steps
-    fdiff2 = fdiff2 + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
-  ENDDO
-  CALL mpi_bsum(mfc, fdiff2) 
-
+  !e0 = 40.31064793_dp
+  !e0 = 136.04711842_dp
+  e0 = 322.48516551
+  T = 300.0_DP
+  kb = K_BOLTZMANN_RY*T
   !
-  !force_ratio = 0._dp
-  !OPEN(115,file="forces.dat",status="unknown")
+  fdiff2 = 0._dp
+
+  DO i = 1, n_steps
+    !fdiff2 = fdiff2 + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
+    !fdiff2 = fdiff2 + ( NORM2(F_HAR(:,:,i)) - NORM2(F_AI(:,:,i)))
+    !
+    ! x weight = exp(-E_ai/kbT)
+    !fdiff2 = fdiff2 + RESHAPE( (ABS(F_HAR(:,:,i) - F_AI(:,:,i))*EXP(-tot_ene(i)) ), (/ mfc /) )
+    fdiff2 = fdiff2 + (h_energy(i)-tot_ene(i))
+  ENDDO
+
+
   !DO i = 1, n_steps
-  !   forces_ratio = forces_ratio + F_HAR(:,:,i)/F_AI(:,:,i)
-  !WRITE(115,'(3f14.9)') forces_ratio(:,:,i)
-  !WRITE(115,*)
-  !END DO
-  !CLOSE(115)
+  !  DO j = 1, Si%nat*fc%n_R
+  !  fdiff2(j) = fdiff2(j) + SQRT(SUM((F_HAR(:,j,i) - F_AI(:,j,i))**2))
+  ! + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
+  ! ENDDO
+  !ENDDO
+  CALL mpi_bsum(mfc, fdiff2) 
 
   !IF(ANY(ABS(ph_coefficients)>2._dp)) fdiff2 = 100._dp
   ! iswitch =1 are real steps, while iswitch=2 are evaluations used to compute the gradient
   IF(iswitch==1)THEN
     iter = iter+1
-    chi2 = SQRT(SUM(fdiff2**2))/(n_steps*num_procs)
-    ioWRITE(*,'(i10,f14.6)') iter, chi2
+    chi2 = SUM(fdiff2**2)/(n_steps*num_procs)
+    ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(9999, "(i10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every 1000 steps have a look
     IF(MODULO(iter,1000)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
@@ -480,10 +568,97 @@ PROGRAM tdph
   !
   END SUBROUTINE
   !
-  !DEALLOCATE(phi, d2, w2)
-  !DEALLOCATE(rtau, tau, ityp)
-  !DEALLOCATE(irt) ! from symm_base
+
+!-----------------------------------------------------------------------
+  SUBROUTINE minimize2(ph_coef, nph, fdiff2)
+    !-----------------------------------------------------------------------
+    ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
+    ! forces for n_steps molecur dyanmics simulation 
+    !
+    USE tdph_module, ONLY : nfar
+    USE mpi_thermal, ONLY : mpi_bsum
+    IMPLICIT NONE
+      INTEGER,INTENT(in)    :: nph
+      REAL(DP),INTENT(in)   :: ph_coef(nph)
+      REAL(DP),INTENT(out)  :: fdiff2
+    
+      INTEGER :: nq_done, iph, iq, i, j, k
+      INTEGER,SAVE :: iter = 0
+      CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+      REAL(DP) :: chi2, kb, T, e0
+  
+      CALL t_minim%start()
+  
+    nq_done = 0
+    iph = 0
+    Q_POINTS_LOOP3 : &
+    DO iq = 1, nq_wedge
+      !
+      ! Reconstruct the dynamical matrix from the coefficients
+      d2 = 0._dp
+      DO i = 1,rank(iq)
+        iph = iph+1
+        d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
+      ENDDO
+      WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
+      WRITE(999,'(3(2f12.6,4x))') d2
+  
+      !
+      IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
+      !
+      ! Rotate the dynamical matrices to generate D(q) for every q in the star
+      ALLOCATE(star_dyn(3*Si%nat,3*Si%nat, symq(iq)%nq_trstar))
+      CALL make_qstar_d2 (d2, Si%at, Si%bg, Si%nat, symq(iq)%nsym, symq(iq)%s, &
+                          symq(iq)%invs, symq(iq)%irt, symq(iq)%rtau, &
+                          symq(iq)%nq_star, symq(iq)%sxq, symq(iq)%isq, &
+                          symq(iq)%imq, symq(iq)%nq_trstar, star_dyn, &
+                          star_wdyn(:,:,:,:,nq_done+1:nq_done+symq(iq)%nq_trstar))
+  
+      ! rebuild the full list of q vectors in the grid by concatenating all the stars
+      xqmax(:,nq_done+1:nq_done+symq(iq)%nq_trstar) &
+          = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
+  
+      nq_done = nq_done + symq(iq)%nq_trstar
+  
+      DEALLOCATE(star_dyn)
+  
+    ENDDO Q_POINTS_LOOP3
+  
+    IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
+    !
+    CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
+    IF(nfar.ne.0) RETURN
+    !
+    ! READ atomic positions, forces, etc, and compute harmonic forces
+    CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
+    !
+    fdiff2 = 0._dp
+  
+    DO i = 1, n_steps
+      SELECT CASE(input%fit_type)
+      CASE('force', 'forces')
+        fdiff2 = fdiff2 + SUM((F_HAR(:,:,i) - F_AI(:,:,i))**2 )
+      CASE('energy')
+        fdiff2 = fdiff2 + (h_energy(i)-tot_ene(i))**2
+      CASE('thforce')
+        fdiff2 = fdiff2 + SUM( (F_HAR(:,:,i) - F_AI(:,:,i))**2 )*EXP(-tot_ene(i))
+      CASE DEFAULT
+        CALL errore("tdph", 'unknown chi2 method', 1)
+      END SELECT
+    ENDDO
+
+    iter = iter+1
+    chi2 = SQRT(fdiff2)/(n_steps*num_procs)
+    ioWRITE(*,'(i10,e12.2)') iter, chi2
+    ioWRITE(9999, "(i10,9999f12.6)") iter, chi2, ph_coef
+    ! Every 1000 steps have a look
+    IF(input%nprint>0 .and. MODULO(iter,input%nprint)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+    !ENDIF
+  
+    CALL t_minim%stop()
+    !
+    END SUBROUTINE minimize2
+  
   !----------------------------------------------------------------------------
  END PROGRAM tdph
-!----------------------------------------------------------------------------
-!
+!------------------------------------------------------------------------------

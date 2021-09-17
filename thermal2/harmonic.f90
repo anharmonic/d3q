@@ -37,7 +37,7 @@ MODULE harmonic_module
   !
   END SUBROUTINE  
   !
- SUBROUTINE read_md(first_step, n_skip, n_steps,S,fc2,u_disp,force_sc)
+ SUBROUTINE read_md(md_file, e0, first_step, n_skip, n_steps,S,fc2,u_disp,force_sc,tot_ene)
   !----------------------------------------------------------------------
   ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
   ! at finite temperature md.out. 
@@ -49,6 +49,8 @@ MODULE harmonic_module
   !
   IMPLICIT NONE
   !
+  CHARACTER(len=*),INTENT(in) :: md_file
+  REAL(DP),INTENT(in)  :: e0
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc2
   INTEGER,INTENT(in) :: first_step, n_skip
@@ -58,16 +60,17 @@ MODULE harmonic_module
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: tau_scmd(:,:,:), tot_ene(:), force_sc(:,:,:), &
           u_disp(:,:,:), tau_sc(:,:), aa(:,:), bb(:,:), &
-          h_force(:,:,:)
+          h_force(:,:,:), v(:,:,:)
+  REAL(DP)		:: dt, avg_x, avg_y, avg_z, avgsq_x, avgsq_y, avgsq_z
   CHARACTER(len=1024)    :: line
   CHARACTER(len=8)   :: dummy, dummyc, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
   LOGICAL,EXTERNAL   :: matches 
   LOGICAL      :: look_for_forces, look_for_toten, actually_read_the_forces
   !
   !n_steps = 100
-  ALLOCATE(force_sc(3,S%nat*fc2%n_R,n_steps))
+  IF(.not.ALLOCATED(force_sc)) ALLOCATE(force_sc(3,S%nat*fc2%n_R,n_steps))
   ALLOCATE(tau_scmd(3,S%nat*fc2%n_R,n_steps))
-  ALLOCATE(u_disp(3,S%nat*fc2%n_R,n_steps))
+  IF(.not.ALLOCATED(u_disp)) ALLOCATE(u_disp(3,S%nat*fc2%n_R,n_steps))
   ALLOCATE(tot_ene(n_steps))
 
   ALLOCATE(aa(3,3))
@@ -91,7 +94,7 @@ MODULE harmonic_module
   k = 0   ! initialize
   DO j = 1, fc2%n_R           !
     DO i = 1, S%nat           ! loop over cart. coord in file fc2
-    k = k + 1     ! accummulate
+    k = k + 1                 ! 
     tau_sc(:,k) = (S%tau(:,i)+fc2%xR(:,j))*S%alat     !     
     WRITE(uni,'(a3,3f14.8)') S%atm(S%ityp(i)), tau_sc(:,k)
     ENDDO
@@ -100,7 +103,7 @@ MODULE harmonic_module
 
 
   uni = 1122
-  OPEN(uni,file="md.out",action="READ",form="formatted")
+  OPEN(uni,file=md_file,action="READ",form="formatted")
   i_step = 0
   k_step = 0
   look_for_forces=.false.
@@ -231,6 +234,15 @@ MODULE harmonic_module
   ioWRITE(441,*)
   ENDDO
   CLOSE(441)
+ !
+  !--------------------------------------------------------------------------------------
+  OPEN(442, file="e_aimd.dat", status="unknown")
+  DO i_step = 1, n_steps
+        tot_ene(i_step) = tot_ene(i_step) + e0 
+        ioWRITE(442,'(E14.8)') tot_ene(i_step)
+  !ioWRITE(442,*)
+  ENDDO
+  CLOSE(442)
  !-------------------------------------------------------------------------------------
  !  Compute Displacement from Molecular Dynamics 
  !            Feb. 4th - 12th: 
@@ -253,22 +265,85 @@ MODULE harmonic_module
       !CALL cryst_to_cart(fc2%n_R*S%nat, u_disp(:,:,i_step), aa, +1)
       ioWRITE(2244,*)
       !u_disp(:,:,i_step) = u_disp(:,:,i_step)/S%alat ! bohr units
-      !u_disp(:,:,i_step) = u_disp(:,:,i_step)
+      u_disp(:,:,i_step) = u_disp(:,:,i_step)
     ENDDO
-  !DEALLOCATE(tot_ene)
-  !DEALLOCATE(tau_scmd)
-  !DEALLOCATE(u_disp)
-  !DEALLOCATE(aa)
-  !DEALLOCATE(force_sc)
   CLOSE(2244)
   CLOSE(uni)
   !
+ !-------------------------------------------------------------------------------------
+ !  Compute velocity from position of atoms tau_scmd()
+ !            June 5th, 2021 
+   i_step = 0
+   dt = 0.4838
+   ALLOCATE(v(3,S%nat*fc2%n_R,n_steps))
+   OPEN(2240,file="velocity.dat", status="unknown")
+   DO i_step = 1, n_steps
+      k=0
+      DO j = 1, fc2%n_R
+      DO iat = 1, S%nat
+        ! ...cartesian components of displacement for each atom in supercell
+        k=k+1
+        IF(i_step==1)THEN
+	v(:,k,i_step) = (tau_scmd(:, k, i_step) - tau_scmd(:, k, i_step+1))/dt
+	ELSE IF(i_step==n_steps)THEN
+	v(:,k,i_step) = (tau_scmd(:, k, i_step) - tau_scmd(:, k, i_step-1))/dt
+	ELSE
+        v(:,k,i_step) = (tau_scmd(:, k, i_step-1) - tau_scmd(:, k, i_step+1))/(2*dt)
+        !v(:,k,i_step) = v(:,k,i_step)
+        ENDIF
+        ioWRITE(2240,'(3f14.8,10x)') v(:, k, i_step)
+
+      ENDDO
+      ENDDO
+        ioWRITE(2240,*)
+      !u_disp(:,:,i_step) = u_disp(:,:,i_step)/S%alat ! bohr units
+      !u_disp(:,:,i_step) = u_disp(:,:,i_step)
+    ENDDO
+  CLOSE(2240)
+  !
+  !
+  !----------------------------------------------------
+  ! Compute standard deviation of atomic positions 13th July
+  !
+   i_step = 0
+   OPEN(2245,file="stdev.m", status="unknown")
+   DO i_step = 1, n_steps
+      k=0
+      DO j = 1, fc2%n_R
+      DO iat = 1, S%nat
+        
+        k=k+1        
+        tau_scmd(:, k, i_step) = tau_scmd(:, k, i_step) !*1.0_dp
+       
+        !ioWRITE(2245,'(3f10.5,10x)') tau_scmd(:, 1, i_step) 
+       ENDDO
+       ENDDO
+      !ioWRITE(2245,*)
+      !
+    ENDDO
+     ! 
+     !ioWRITE(2245,'(3f10.5,10x)') tau_scmd(:,1,n_steps)
+     !
+     avg_x = SUM(tau_scmd(1,1,:))/n_steps
+     avg_y = SUM(tau_scmd(2,1,:))/n_steps
+     avg_z = SUM(tau_scmd(3,1,:))/n_steps
+     !
+     avgsq_x = SUM(tau_scmd(1,1,:)**2)/n_steps
+     avgsq_y = SUM(tau_scmd(2,1,:)**2)/n_steps
+     avgsq_z = SUM(tau_scmd(3,1,:)**2)/n_steps
+      
+     ioWRITE(2245,'(3f10.5,10x)') tau_scmd(:, 1, :) !/S%alat
+     ioWRITE(2245,*) "===========STANDARD DEVIATION==========="
+     ioWRITE(2245,'(3f10.5,10x)') SQRT(avgsq_x -avg_x**2 ), SQRT(avgsq_y -avg_y**2 ), SQRT(avgsq_z -avg_z**2 )
+      
+   CLOSE(2245)
+   !
   !
  END SUBROUTINE
   !------------------------------------------------------------------------
   !
   !
- SUBROUTINE harmonic_force(n_steps,S,fc2,u_disp,h_force)
+ SUBROUTINE harmonic_force(n_steps,S,fc2,u_disp,h_force,h_energy)
   !----------------------------------------------------------------------
   ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
   ! at finite temperature md.out. 
@@ -283,42 +358,37 @@ MODULE harmonic_module
   TYPE(ph_system_info)   :: S
   TYPE(forceconst2_grid) :: fc2
   INTEGER          :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
-          i_step, n_steps, jat, kat, cR(3)
-  INTEGER, ALLOCATABLE,SAVE   :: idx_R_map(:,:) 
-  REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:) !, force_sc(:,:,:)
-
+          i_step, n_steps, jat, kat, cR(3), alpha
+  INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
+  REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:), h_energy(:), tot_ene(:)
+  !n_steps = 100
+  ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
+  !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
   IF(.NOT.ALLOCATED(h_force)) ALLOCATE(h_force(3,S%nat*fc2%n_R,n_steps))
 
-  !n_steps = 100
-  IF(.not.ALLOCATED(idx_R_map)) THEN
-    !
-    ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
-    !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
+  ! Build map (i,j)->i such that 
+  !    (R_j-R_k) = (R_i + RR),
+  ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
+  idx_R_map = -1
+  !fc2%i_0 
+  DO j = 1, fc2%n_R
+  DO k = 1, fc2%n_R
+    cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
+    cR(1) = MODULO( cR(1), fc2%nq(1))
+    cR(2) = MODULO( cR(2), fc2%nq(2))
+    cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
+    DO i = 1, fc2%n_R
+      IF(ALL(cR==fc2%yR(:,i))) THEN
+        ! is the index that we are looking for
+        IF(idx_R_map(j,k)>0) CALL errore('map','found twice',1)
+        idx_R_map(j,k) = i
+        !EXIT ! <- stop the loop and exit
+      ENDIF
+    ENDDO
+  IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
+  ENDDO
+  ENDDO
 
-    ! Build map (i,j)->i such that 
-    !    (R_j-R_k) = (R_i + RR),
-    ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
-    idx_R_map = -1
-    !fc2%i_0 
-    DO j = 1, fc2%n_R
-    DO k = 1, fc2%n_R
-      cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
-      cR(1) = MODULO( cR(1), fc2%nq(1))
-      cR(2) = MODULO( cR(2), fc2%nq(2))
-      cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
-      DO i = 1, fc2%n_R
-        IF(ALL(cR==fc2%yR(:,i))) THEN
-          ! is the index that we are looking for
-          idx_R_map(j,k) = i
-          EXIT ! <- stop the loop and exit
-        ENDIF
-      ENDDO
-      !WRITE(666,'(3(3i4,5x))') fc2%yR(:,j), fc2%yR(:,k), fc2%yR(:,idx_R_map(j,k))
-    IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
-    ENDDO
-    ENDDO
-    !
-  ENDIF
 
   ! compute force
   ! OPEN(331, file="F_harm.dat", status="unknown")
@@ -327,8 +397,9 @@ MODULE harmonic_module
      jj=0 
      DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
      DO jat = 1, S%nat
-        jj=jj+1      
-        nu = (jat-1)*3
+        jj=jj+1
+        DO alpha = 1,3      
+        nu = (jat-1)*3 + alpha
         kk=0
         DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
         DO kat = 1, S%nat ! ... over all atoms in the unit cell
@@ -336,18 +407,54 @@ MODULE harmonic_module
         DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
           mu = (kat-1)*3 + beta
           i = idx_R_map(j,k)
-          h_force(:,jj, i_step) = h_force(:,jj, i_step) &
-                                - fc2%FC(nu+1:nu+3,mu,i) * u_disp(:,kk,i_step)
+          h_force(alpha,jj, i_step) = h_force(alpha,jj, i_step) &
+                                - fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)
+	!h_force(:,jj, i_step) = h_force(:,jj, i_step) &
+        !                        - fc2%FC(nu,mu,i) * u_disp(:,kk,i_step)
         ENDDO
         ENDDO
         ENDDO
+	ENDDO
         !WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
      END DO
      END DO
      !WRITE(331,*)
     ENDDO
  !  CLOSE(331)
+ !---------------------------------------------------------------------------
  !
+ !  compute harmonic energy
+ ! !
+   IF(.NOT.ALLOCATED(h_energy)) ALLOCATE(h_energy(n_steps))
+   h_energy(:) = 0._dp
+   DO i_step = 1, n_steps
+     jj=0 
+     DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
+     DO jat = 1, S%nat
+        jj=jj+1
+        DO alpha = 1,3      
+        nu = (jat-1)*3 + alpha
+        kk=0
+        DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
+        DO kat = 1, S%nat ! ... over all atoms in the unit cell
+        kk=kk+1
+        DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
+          mu = (kat-1)*3 + beta
+          i = idx_R_map(j,k)
+          h_energy(i_step) = h_energy(i_step) &
+				+ 0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)*u_disp(beta,jj,i_step)
+	  ! + tot_ene(i_step)
+          !RESHAPE( (0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)*u_disp(beta,jj,i_step)), (/ n_steps /) )
+        ENDDO
+        ENDDO
+        ENDDO
+	ENDDO
+        !WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
+     END DO
+     END DO
+     !WRITE(331,*)
+    ENDDO
+ ! 
  END SUBROUTINE 
  !
 END MODULE

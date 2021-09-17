@@ -48,18 +48,11 @@ SUBROUTINE ACRS0(N,XSOL,FOUT,FUNCT)
    FVAL = 0.d0
    UB=MAXVAL(ABS(XSOL))*10
    LB=-UB(1)
-   ! WHERE(XSOL>0) 
-   !   UB=XSOL*4
-   !   LB=XSOL*0.25
-   ! ELSEWHERE
-   !    UB = XSOL*0.25
-   !    LB = XSOL*4
-   ! END WHERE
-   print*,">>> bounds:", ub(1), lb(1)
-   MAXITER = 10000
-   CPU_LIMIT = 10000
-   MAXTGEN = 10000
-   TOL = 1.d-10
+   ! max number of steps and function evaluations
+   MAXITER = 50000
+   MAXTGEN = 50000
+   CPU_LIMIT = 36000 ! 10 hours
+   TOL = 1.d-12
    PRNLEV = 1
    diff_initial = 100.d0
    omega = 100.d0
