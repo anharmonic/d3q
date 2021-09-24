@@ -14,7 +14,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   !-----------------------------------------------------------------------
   !
   USE kinds,      ONLY : DP
-  USE phcom,      ONLY : lrdwf
+  USE units_lr,   ONLY : lrdwf
   USE control_lr, ONLY : nbnd_occ
   !
   USE ions_base,  ONLY : nat

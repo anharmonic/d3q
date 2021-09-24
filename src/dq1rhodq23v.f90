@@ -276,8 +276,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE wvfct,           ONLY : nbnd, npwx
   USE uspp,            ONLY : dvan, nkb
   USE uspp_param,      ONLY : nh
-  USE units_ph,        ONLY : lrdwf
-  USE units_lr,        ONLY : iuwfc, lrwfc
+  USE units_lr,        ONLY : iuwfc, lrwfc, lrdwf
   USE control_lr,      ONLY : nbnd_occ
   USE mp_pools,        ONLY : intra_pool_comm
   USE mp,              ONLY : mp_sum

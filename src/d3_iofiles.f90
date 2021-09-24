@@ -441,9 +441,7 @@ SUBROUTINE openfild3
   !
   USE kinds,           ONLY : DP
   USE pwcom,           ONLY : npwx, nbnd, degauss
-  USE units_ph,        ONLY : lrdwf
-  USE units_lr,        ONLY : iuwfc, lrwfc
-  !USE control_flags,   ONLY : twfcollect
+  USE units_lr,        ONLY : iuwfc, lrwfc, lrdwf
   USE io_files,        ONLY : prefix, seqopn
   USE io_global,       ONLY : ionode
   USE kplus3q,         ONLY : kplusq, q_sum_rule, q_names

@@ -190,8 +190,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE uspp,           ONLY : nkb
   USE control_lr,     ONLY : nbnd_occ
   USE qpoint,         ONLY : nksq
-  USE units_ph,       ONLY : lrdwf
-  USE units_lr,       ONLY : iuwfc, lrwfc
+  USE units_lr,       ONLY : iuwfc, lrwfc, lrdwf
   USE d3com,          ONLY : ethr_ph
   USE kplus3q,        ONLY : kplusq, q_sum_rule, nbnd_max
   USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
