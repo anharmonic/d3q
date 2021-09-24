@@ -5,6 +5,8 @@
 MODULE harmonic_module
 #include "mpi_thermal.h"
   !
+  INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
+  !
  CONTAINS
   !
  SUBROUTINE new_sc(S,fc2,ta_sc)
@@ -115,14 +117,16 @@ MODULE harmonic_module
   DO
    READ(uni,"(a1024)", iostat=ios) line ! reads a line to variable "line"
     IF(ios /= 0 ) EXIT READ_LOOP      ! stop reading if there is an error
-! READ atomic poistions from initail configuration before md run 
+! READ atomic positions from initial configuration before md run 
     !IF(matches("positions (alat units)",line))THEN
     IF(matches("positions (cryst. coord.)",line))THEN
       k_step = k_step+1
       IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
+         WRITE(3000,*) TRIM(line)
       ELSE
          actually_read_the_forces = .false.
+         WRITE(3000,*) TRIM(line), " skip"
       ENDIF
       !
       IF(actually_read_the_forces)THEN
@@ -140,7 +144,7 @@ MODULE harmonic_module
         DO iat = 1, S%nat
         k = k + 1
           READ(uni,"(a1024)", iostat=ios) line
-          !print*, TRIM(line) ! remove spaces
+          WRITE(3000,*) TRIM(line)
           READ(line, *) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, tau_scmd(:,k, i_step)
         ENDDO
         ENDDO
@@ -158,8 +162,10 @@ MODULE harmonic_module
       !IF(k_step >= first_step .and. MODULO(k_step, n_skip) == 0)THEN
       IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
+         WRITE(3000,*) TRIM(line)
       ELSE
          actually_read_the_forces = .false.
+         WRITE(3000,*) TRIM(line), " skip"
       ENDIF
           
       IF(actually_read_the_forces)THEN
@@ -178,7 +184,7 @@ MODULE harmonic_module
         DO iat = 1, S%nat
           k = k + 1
           READ(uni,"(a1024)", iostat=ios) line
-          !print*, TRIM(line)
+          WRITE(3000,*) TRIM(line), actually_read_the_forces
           READ(line, *) dummyc, tau_scmd(:,k, i_step)
         ENDDO
         ENDDO
@@ -187,6 +193,8 @@ MODULE harmonic_module
       ENDIF
 ! READ forces on atoms after md steps
     ELSE IF(matches("Forces acting on atoms",line) .and. look_for_forces) THEN 
+      WRITE(3000,*) TRIM(line), actually_read_the_forces
+      WRITE(3000,*)
       look_for_forces = .false.
       READ(uni,*)
       k=0
@@ -194,14 +202,14 @@ MODULE harmonic_module
       DO iat = 1, S%nat
         k=k+1
         READ(uni,"(a1024)", iostat=ios) line
-        !print*, TRIM(line)
+        WRITE(3000,*) TRIM(line), actually_read_the_forces
         READ(line,*) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, force_sc(:, k, i_step)
       ENDDO
       ENDDO
 ! READ total energy after md steps
     ELSE IF(matches("!    total energy ",line) .and. look_for_toten) THEN
       look_for_toten = .false.
-      !print*, TRIM(line)
+      WRITE(3000,*) TRIM(line), actually_read_the_forces
       READ(line,*)  dummy1, dummy2, dummy3, dummy4, tot_ene(i_step)
     ENDIF
   ENDDO READ_LOOP
@@ -359,36 +367,36 @@ MODULE harmonic_module
   TYPE(forceconst2_grid) :: fc2
   INTEGER          :: i, j, k, jj, kk, nu, mu, beta, nat_sc, &
           i_step, n_steps, jat, kat, cR(3), alpha
-  INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
   REAL(DP),ALLOCATABLE   :: h_force(:,:,:), u_disp(:,:,:), h_energy(:), tot_ene(:)
-  !n_steps = 100
-  ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
-  !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
+
   IF(.NOT.ALLOCATED(h_force)) ALLOCATE(h_force(3,S%nat*fc2%n_R,n_steps))
-
-  ! Build map (i,j)->i such that 
-  !    (R_j-R_k) = (R_i + RR),
-  ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
-  idx_R_map = -1
-  !fc2%i_0 
-  DO j = 1, fc2%n_R
-  DO k = 1, fc2%n_R
-    cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
-    cR(1) = MODULO( cR(1), fc2%nq(1))
-    cR(2) = MODULO( cR(2), fc2%nq(2))
-    cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
-    DO i = 1, fc2%n_R
-      IF(ALL(cR==fc2%yR(:,i))) THEN
-        ! is the index that we are looking for
-        IF(idx_R_map(j,k)>0) CALL errore('map','found twice',1)
-        idx_R_map(j,k) = i
-        !EXIT ! <- stop the loop and exit
-      ENDIF
+  !
+  ! Only allocate and compute the index map on first call
+  IF(.not.ALLOCATED(idx_R_map)) THEN
+    ALLOCATE(idx_R_map(fc2%n_R,fc2%n_R))
+    ! Build map (i,j)->i such that 
+    !    (R_j-R_k) = (R_i + RR),
+    ! for R_i, R_j and R_k unit-cell vectors in the super-cell and RR a super-lattice vector
+    idx_R_map = -1
+    !fc2%i_0 
+    DO j = 1, fc2%n_R
+    DO k = 1, fc2%n_R
+      cR = fc2%yR(:,j) - fc2%yR(:,k) ! R~ = R-R'
+      cR(1) = MODULO( cR(1), fc2%nq(1))
+      cR(2) = MODULO( cR(2), fc2%nq(2))
+      cR(3) = MODULO( cR(3), fc2%nq(3))   ! R^ is R~ but taken inside the grid
+      DO i = 1, fc2%n_R
+        IF(ALL(cR==fc2%yR(:,i))) THEN
+          ! is the index that we are looking for
+          IF(idx_R_map(j,k)>0) CALL errore('map','found twice',1)
+          idx_R_map(j,k) = i
+          !EXIT ! <- stop the loop and exit
+        ENDIF
+      ENDDO
+      IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
     ENDDO
-  IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
-  ENDDO
-  ENDDO
-
+    ENDDO
+  ENDIF
 
   ! compute force
   ! OPEN(331, file="F_harm.dat", status="unknown")
@@ -399,28 +407,25 @@ MODULE harmonic_module
      DO jat = 1, S%nat
         jj=jj+1
         DO alpha = 1,3      
-        nu = (jat-1)*3 + alpha
-        kk=0
-        DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
-        DO kat = 1, S%nat ! ... over all atoms in the unit cell
-        kk=kk+1
-        DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
-          mu = (kat-1)*3 + beta
-          i = idx_R_map(j,k)
-          h_force(alpha,jj, i_step) = h_force(alpha,jj, i_step) &
-                                - fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)
-	!h_force(:,jj, i_step) = h_force(:,jj, i_step) &
-        !                        - fc2%FC(nu,mu,i) * u_disp(:,kk,i_step)
-        ENDDO
-        ENDDO
-        ENDDO
-	ENDDO
-        !WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
-     END DO
-     END DO
-     !WRITE(331,*)
+          nu = (jat-1)*3 + alpha
+          ! ((j,jat)->jj, alpha) -> nu
+          kk=0
+          DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
+          DO kat = 1, S%nat ! ... over all atoms in the unit cell
+          kk=kk+1
+          DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
+            ! ((k,kat)->kk, beta) -> mu
+            mu = (kat-1)*3 + beta
+            i = idx_R_map(j,k)
+            h_force(alpha,jj, i_step) = h_force(alpha,jj, i_step) &
+                                  - fc2%FC(nu,mu,i) * u_disp(beta,kk,i_step)
+          ENDDO
+          ENDDO
+          ENDDO
+	      ENDDO
+     ENDDO
+     ENDDO
     ENDDO
- !  CLOSE(331)
  !---------------------------------------------------------------------------
  !
  !  compute harmonic energy
@@ -435,24 +440,20 @@ MODULE harmonic_module
         DO alpha = 1,3      
         nu = (jat-1)*3 + alpha
         kk=0
-        DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
-        DO kat = 1, S%nat ! ... over all atoms in the unit cell
-        kk=kk+1
-        DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
-          mu = (kat-1)*3 + beta
-          i = idx_R_map(j,k)
-          h_energy(i_step) = h_energy(i_step) &
-				+ 0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)*u_disp(beta,jj,i_step)
-	  ! + tot_ene(i_step)
-          !RESHAPE( (0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)*u_disp(beta,jj,i_step)), (/ n_steps /) )
-        ENDDO
-        ENDDO
-        ENDDO
-	ENDDO
-        !WRITE(331,'(3f14.9)') h_force(:,jj,i_step) !, force_sc(:,jj,i_step) !/force(:,jj,i_step)
-     END DO
-     END DO
-     !WRITE(331,*)
+          DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
+          DO kat = 1, S%nat ! ... over all atoms in the unit cell
+          kk=kk+1
+          DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
+            mu = (kat-1)*3 + beta
+            i = idx_R_map(j,k)
+            h_energy(i_step) = h_energy(i_step) &
+              + 0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk,i_step)*u_disp(beta,jj,i_step)
+          ENDDO
+          ENDDO
+          ENDDO
+    	ENDDO
+     ENDDO
+     ENDDO
     ENDDO
  ! 
  END SUBROUTINE 

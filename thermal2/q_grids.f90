@@ -612,7 +612,7 @@ MODULE q_grids
           !ioWRITE(*,'(a,2(3f12.6,5x))') "equiv a", dqG, REAL(NINT(dq))
           dq = dq-NINT(dq)
         ENDIF
-        equiv=SUM(dq**2)<1.d-6
+        equiv=SUM(dq**2)<1.d-8
         !
         !IF(equiv.and.nq_new==1)THEN
         IF(equiv)THEN

@@ -20,6 +20,7 @@ MODULE tdph_module
     CHARACTER(len=256) :: md = 'md.out'
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
+    CHARACTER(len=8) :: minimization = "acrs"
     INTEGER :: nfirst, nskip, nmax, nprint
     REAL(DP) :: e0
     !
@@ -42,7 +43,8 @@ MODULE tdph_module
     CHARACTER(len=256) :: md = 'md.out'
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
-    INTEGER :: nfirst=1000, nskip=100, nmax=10000, nprint=1000
+    CHARACTER(len=8) :: minimization = "acrs"
+    INTEGER :: nfirst=1000, nskip=100, nmax=-1, nprint=1000, nread=-1
 
     INTEGER :: input_unit, aux_unit, err1, err2
     !CHARACTER(len=6), EXTERNAL :: int_to_char
@@ -51,8 +53,8 @@ MODULE tdph_module
     !
     NAMELIST  / tdphinput / &
         md, file_mat2, fit_type, &
-        nfirst, nskip, nmax, nprint, &
-        e0
+        nfirst, nskip, nmax, nprint, nread, &
+        e0, minimization
 
     WRITE(*,*) "Waiting for input"
     !
@@ -90,12 +92,16 @@ MODULE tdph_module
     IF(e0==0._dp .and. fit_type=='energy') &
         CALL errore("tdph","need zero energy to fit energy difference", 1)
 
+    IF(nmax>0 .and. nread>0) CALL errore("tdph", "You cannot specify both nread and nmax",1)
+    IF(nmax<0 .and. nread>0) nmax = nfirst+nskip*nread
+    IF(nmax<0 .and. nread<0) nmax = 50000 ! default value when nothing specified
     IF(ANY((/nfirst,nmax,nskip/)<1)) &
         CALL errore("tdph","wrong parameters", 1)
     !
     input%md            = md
     input%file_mat2     = file_mat2
     input%fit_type      = fit_type
+    input%minimization  = minimization
     input%nfirst        = nfirst
     input%nskip         = nskip
     input%nmax          = nmax
@@ -167,12 +173,12 @@ PROGRAM tdph
   ! harmonic
   USE harmonic_module,    ONLY : read_md, harmonic_force
   ! minipack
-  USE lmdif_module,       ONLY : lmdif1, lmdif
+  USE lmdif_module,       ONLY : lmdif0
   USE timers
   !
   IMPLICIT NONE
   !
-  CHARACTER(len=7),PARAMETER :: CODE="MKWEDGE"
+  CHARACTER(len=7),PARAMETER :: CODE="TDPH"
   CHARACTER(len=256) :: fildyn, filout
   INTEGER :: ierr, nargs
   !
@@ -200,11 +206,6 @@ PROGRAM tdph
   TYPE(dynmat_basis),ALLOCATABLE :: dmb(:)
   TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
 
-  ! used for lmdif
-  INTEGER :: nfev
-  REAL(DP) :: factor
-  INTEGER,ALLOCATABLE :: ipvt(:)
-  REAL(DP),ALLOCATABLE :: fjac(:,:),qtf(:),wa1(:),wa2(:),wa3(:),wa4(:)
   TYPE(nanotimer) :: t_minim = nanotimer("minimization")
   TYPE(tdph_input_type) :: input
   !
@@ -389,19 +390,12 @@ PROGRAM tdph
   ALLOCATE(force_diff(mfcn))
   nfar = 0
 
-  !ALLOCATE(fjac(mfcn, nph), ipvt(nph), qtf(nph))
-  !ALLOCATE(wa1(nph),wa2(nph),wa3(nph),wa4(mfcn))
-  !
-  ! Use complete lmdif for more control
-  !ALLOCATE(metric(nph))
-  !metric = ABS(ph_coefficients)
-  !metric = 1._dp !(ph_coefficients)**2 !(ph_coefficients)**2
-!  DO i = 1, nph
-!    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
-!  ENDDO
+  !  DO i = 1, nph
+  !    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
+  !  ENDDO
   !factor = 1.d-3
-!CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
-! before minimization
+  !CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
+  ! before minimization
   CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
   DO i = 1, n_steps
@@ -413,8 +407,16 @@ PROGRAM tdph
 
   !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
 
-  CALL ACRS0(nph,ph_coefficients, force_diff, minimize2)
-
+  SELECT CASE (input%minimization)
+  CASE("acrs")
+    CALL ACRS0(nph,ph_coefficients, force_diff, minimize2)
+  CASE("lmdif")
+    CALL lmdif0(minimize, mfcn, nph, ph_coefficients, force_diff, 1.d-10, iswitch)
+  CASE("none")
+    ! Do nothing
+  CASE DEFAULT
+    CALL errore("tdph","unknown minimization engine requested",1)
+  END SELECT
   !CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,0.d0,0.d0,huge(1),0.d0, &
   !           metric,2,factor,0,iswitch,nfev,fjac, &
   !           mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
@@ -431,7 +433,6 @@ PROGRAM tdph
    WRITE(116,*) "i_step = ",i
    DO j = 1, Si%nat*nqmax
       WRITE(116,'(3(3f14.9,5x))') F_HAR(:,j,i)/F_AI(:,j,i), F_HAR(:,j,i), F_AI(:,j,i)
-      !WRITE(116,'(3(f14.9,5x))') NORM2(F_AI(:,j,i)), NORM2(F_HAR(:,j,i)), F_HAR(:,j,i)/F_AI(:,j,i)  
    END DO
    END DO
    CLOSE(116)
@@ -467,17 +468,17 @@ PROGRAM tdph
   USE tdph_module, ONLY : nfar
   USE mpi_thermal, ONLY : mpi_bsum
   IMPLICIT NONE
-    INTEGER,INTENT(in)    :: mfc, nph
-    REAL(DP),INTENT(in)   :: ph_coef(nph)
-    REAL(DP),INTENT(out)  :: fdiff2(mfc)
-    INTEGER,INTENT(inout) :: iswitch
-  
-    INTEGER :: nq_done, iph, iq, i, j, k
-    INTEGER,SAVE :: iter = 0
-    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-    REAL(DP) :: chi2, kb, T, e0
+  INTEGER,INTENT(in)    :: mfc, nph
+  REAL(DP),INTENT(in)   :: ph_coef(nph)
+  REAL(DP),INTENT(out)  :: fdiff2(mfc)
+  INTEGER,INTENT(inout) :: iswitch
 
-    CALL t_minim%start()
+  INTEGER :: nq_done, iph, iq, i, j, k
+  INTEGER,SAVE :: iter = 0
+  CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+  REAL(DP) :: chi2, kb, T, e0
+
+  CALL t_minim%start()
 
   nq_done = 0
   iph = 0
@@ -521,47 +522,33 @@ PROGRAM tdph
   !
   ! READ atomic positions, forces, etc, and compute harmonic force and energy
   CALL harmonic_force(n_steps, Si,fcout,u,F_HAR,h_energy)
-  !CALL read_md(first_step, n_skip, n_steps,Si,fc,u,F_AI)
-  !IF(.not.ALLOCATED(f_harm)) ALLOCATE(f_harm(....))
-  !IF(.NOT.ALLOCATED(fdiff2)) ALLOCATE(fdiff2(nf))
-  !
-  !WRITE(*,'(2(3f14.6))') F_HAR, F_AI
-  !print*, "-->", nf, size(fdiff2), size(F_HAR), size(F_AI)
-  !e0 = 40.31064793_dp
-  !e0 = 136.04711842_dp
-  e0 = 322.48516551
   T = 300.0_DP
   kb = K_BOLTZMANN_RY*T
   !
   fdiff2 = 0._dp
 
   DO i = 1, n_steps
-    !fdiff2 = fdiff2 + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
-    !fdiff2 = fdiff2 + ( NORM2(F_HAR(:,:,i)) - NORM2(F_AI(:,:,i)))
-    !
-    ! x weight = exp(-E_ai/kbT)
-    !fdiff2 = fdiff2 + RESHAPE( (ABS(F_HAR(:,:,i) - F_AI(:,:,i))*EXP(-tot_ene(i)) ), (/ mfc /) )
-    fdiff2 = fdiff2 + (h_energy(i)-tot_ene(i))
+    SELECT CASE(input%fit_type)
+    CASE('force', 'forces')
+      fdiff2 = fdiff2 + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
+    CASE('energy')
+      fdiff2 = fdiff2 + (h_energy(i)-tot_ene(i))
+    CASE('thforce')
+      fdiff2 = fdiff2 + RESHAPE( (ABS(F_HAR(:,:,i) - F_AI(:,:,i))*EXP(-tot_ene(i)) ), (/ mfc /) )
+    CASE DEFAULT
+      CALL errore("tdph", 'unknown chi2 method', 1)
+    END SELECT
   ENDDO
 
-
-  !DO i = 1, n_steps
-  !  DO j = 1, Si%nat*fc%n_R
-  !  fdiff2(j) = fdiff2(j) + SQRT(SUM((F_HAR(:,j,i) - F_AI(:,j,i))**2))
-  ! + RESHAPE( ABS(F_HAR(:,:,i) - F_AI(:,:,i)), (/ mfc /) )
-  ! ENDDO
-  !ENDDO
   CALL mpi_bsum(mfc, fdiff2) 
 
-  !IF(ANY(ABS(ph_coefficients)>2._dp)) fdiff2 = 100._dp
-  ! iswitch =1 are real steps, while iswitch=2 are evaluations used to compute the gradient
   IF(iswitch==1)THEN
     iter = iter+1
     chi2 = SUM(fdiff2**2)/(n_steps*num_procs)
     ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(9999, "(i10,9999f12.6)") iter, chi2, ph_coefficients
-    ! Every 1000 steps have a look
-    IF(MODULO(iter,1000)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+    ! Every input%nprint steps have a look
+    IF(MODULO(iter,input%nprint)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
   ENDIF
 
   CALL t_minim%stop()

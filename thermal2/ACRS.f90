@@ -49,8 +49,8 @@ SUBROUTINE ACRS0(N,XSOL,FOUT,FUNCT)
    UB=MAXVAL(ABS(XSOL))*10
    LB=-UB(1)
    ! max number of steps and function evaluations
-   MAXITER = 50000
-   MAXTGEN = 50000
+   MAXITER =  500000
+   MAXTGEN = 1000000
    CPU_LIMIT = 36000 ! 10 hours
    TOL = 1.d-12
    PRNLEV = 1
@@ -62,7 +62,7 @@ SUBROUTINE ACRS0(N,XSOL,FOUT,FUNCT)
    CALL ACRS(N,LB,UB,M,S,FVAL,FUNCT,cpu_limit,maxtgen,maxiter,prnlev,tol,IOUT,   &
          XSOL,FOUT,iter,nftot,iexit,diff_initial, omega)
 
-   print*, ">>> exit status:", iexit, FOUT,iter,nftot
+   !print*, ">>> exit status:", iexit, FOUT,iter,nftot
    DEALLOCATE(S, FVAL)
 
 END SUBROUTINE
