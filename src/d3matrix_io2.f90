@@ -69,7 +69,7 @@ SUBROUTINE write_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm,
   WRITE(stdout,"(5x,' -->',a)") TRIM(filename)
   !
   !CALL iotk_free_unit(u)
-  u = xml_openfile(filename)
+  u = xml_open_file(filename)
   IF(u==-1) CALL errore("write_d3dyn_xml", "cannot open "//TRIM(filename),1)
   CALL date_and_tim( cdate, ctime )
   !
@@ -211,7 +211,7 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   !
   !CALL iotk_free_unit(u)
   !CALL iotk_open_read(u, filename, ierr=ierr)
-  u =  xml_openfile ( filename )
+  u =  xml_open_file ( filename )
       IF ( u == -1 ) CALL errore('read_d3dyn', 'cannot open file '//TRIM(filename),1)
   call xmlr_opentag("d3", ierr)
   
