@@ -7,6 +7,7 @@ allocate_pert_d3.o : ../../Modules/ions_base.o
 allocate_pert_d3.o : ../../Modules/kind.o
 allocate_pert_d3.o : ../../PHonon/PH/phcom.o
 cmdline_param.o : ../../Modules/kind.o
+cmdline_param.o : ../../Modules/random_numbers.o
 d2mxc.o : ../../Modules/constants.o
 d2mxc.o : ../../Modules/kind.o
 d2mxc.o : ../../XClib/qe_drivers_lda_lsda.o
@@ -308,7 +309,6 @@ dpsi1dpsi2dv3.o : ../../Modules/io_global.o
 dpsi1dpsi2dv3.o : ../../Modules/ions_base.o
 dpsi1dpsi2dv3.o : ../../Modules/kind.o
 dpsi1dpsi2dv3.o : ../../Modules/mp_pools.o
-dpsi1dpsi2dv3.o : ../../PHonon/PH/phcom.o
 dpsi1dpsi2dv3.o : ../../PW/src/pwcom.o
 dpsi1dpsi2dv3.o : ../../UtilXlib/mp.o
 dpsi1dpsi2dv3.o : ./d3_iofiles.o
@@ -320,7 +320,6 @@ dpsi1dv2dpsi3.o : ../../Modules/io_global.o
 dpsi1dv2dpsi3.o : ../../Modules/ions_base.o
 dpsi1dv2dpsi3.o : ../../Modules/kind.o
 dpsi1dv2dpsi3.o : ../../Modules/mp_pools.o
-dpsi1dv2dpsi3.o : ../../PHonon/PH/phcom.o
 dpsi1dv2dpsi3.o : ../../PW/src/pwcom.o
 dpsi1dv2dpsi3.o : ../../UtilXlib/mp.o
 dpsi1dv2dpsi3.o : ../../upflib/uspp.o
@@ -339,7 +338,6 @@ dq1rhodq23v.o : ../../Modules/ions_base.o
 dq1rhodq23v.o : ../../Modules/kind.o
 dq1rhodq23v.o : ../../Modules/mp_pools.o
 dq1rhodq23v.o : ../../Modules/recvec.o
-dq1rhodq23v.o : ../../PHonon/PH/phcom.o
 dq1rhodq23v.o : ../../PW/src/pwcom.o
 dq1rhodq23v.o : ../../UtilXlib/mp.o
 dq1rhodq23v.o : ../../upflib/uspp.o
@@ -401,7 +399,6 @@ gen_dpdvp.o : ../../Modules/io_global.o
 gen_dpdvp.o : ../../Modules/ions_base.o
 gen_dpdvp.o : ../../Modules/kind.o
 gen_dpdvp.o : ../../Modules/mp_pools.o
-gen_dpdvp.o : ../../PHonon/PH/phcom.o
 gen_dpdvp.o : ../../PW/src/pwcom.o
 gen_dpdvp.o : ../../UtilXlib/mp.o
 gen_dpdvp.o : ../../upflib/uspp.o
@@ -514,7 +511,6 @@ solve_linter_d3q.o : ../../Modules/kind.o
 solve_linter_d3q.o : ../../Modules/mp_pools.o
 solve_linter_d3q.o : ../../Modules/mp_world.o
 solve_linter_d3q.o : ../../Modules/recvec.o
-solve_linter_d3q.o : ../../PHonon/PH/phcom.o
 solve_linter_d3q.o : ../../PW/src/pwcom.o
 solve_linter_d3q.o : ../../UtilXlib/mp.o
 solve_linter_d3q.o : ../../upflib/uspp.o
