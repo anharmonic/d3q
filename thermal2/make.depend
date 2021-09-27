@@ -168,6 +168,7 @@ PROGRAM_sqom.o : ./neutrons.o
 PROGRAM_sqom.o : ./q_grids.o
 PROGRAM_tdph.o : ./PROGRAM_tdph.o
 PROGRAM_tdph.o : ./asr2.o
+PROGRAM_tdph.o : ./code_input.o
 PROGRAM_tdph.o : ./decompose_d2.o
 PROGRAM_tdph.o : ./fc2_interp.o
 PROGRAM_tdph.o : ./harmonic.o

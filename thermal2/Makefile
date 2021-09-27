@@ -23,8 +23,8 @@ F90FLAGS += -fcheck=all -fbacktrace -pg
 # intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
-F90FLAGS += -fopenmp 
-LDFLAGS  += -fopenmp #-pg -g
+#F90FLAGS += -fopenmp 
+#LDFLAGS  += -fopenmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
