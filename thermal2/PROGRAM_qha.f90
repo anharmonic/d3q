@@ -142,7 +142,9 @@ MODULE qha_program
     ALLOCATE(S(n_volumes))
     ALLOCATE(fc2(n_volumes))
     DO i = 1,n_volumes
-      READ(input_unit,*) mat2R_v(i), input%nrg_v(i) !, input%press_v(i)
+      READ(input_unit,*,iostat=ios) mat2R_v(i), input%nrg_v(i) !, input%press_v(i)
+      IF(ios/=0) CALL errore("qha readin","Cannot read energy/volume number "//int_to_char(i)//&
+                             " is n_volumes too large?", 1)
       CALL read_fc2(mat2R_v(i), S(i),  fc2(i))
       CALL impose_asr2(input%asr2, S(i)%nat, fc2(i), S(i)%zeu)
       CALL aux_system(S(i))
