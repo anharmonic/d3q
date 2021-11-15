@@ -34,6 +34,12 @@ MODULE qha_program
     REAL(DP) :: press=0._dp ! pressur in Ry/a0^3
     INTEGER :: nT
     CHARACTER(len=8)  :: asr2
+    INTEGER :: ieos 
+    ! ieos:
+!  1: birch 1st order
+!  2: birch 3rd order
+!  3: keane       
+!  4: murnaghan
     !
   END TYPE qha_input_type
   !
@@ -72,15 +78,17 @@ MODULE qha_program
     REAL(DP)         :: T0=0._dp, dT=100._dp
     REAL(DP)         :: press_kbar=0._dp, press_GPa=0._dp
     INTEGER          :: nT = 6
+    CHARACTER(len=64) :: eos = "murn"
 !    REAL(DP)         :: smearing = -1._dp
     !
     INTEGER :: i, input_unit, aux_unit
     CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
+    LOGICAL,EXTERNAL :: matches
     !
     NAMELIST  / qhainput / &
       calculation, outdir, prefix, &
-      asr2, &
+      asr2, eos, &
       n_volumes, T0, dT, nT, &
       nk, grid_type, &
       press_kbar, press_GPa
@@ -126,6 +134,18 @@ MODULE qha_program
     input%nk                  = nk 
     input%grid_type           = grid_type
     !
+    IF(matches(eos,"birch1")) THEN
+      input%ieos = 1
+    ELSE IF(matches(eos,"birch3")) THEN
+      input%ieos = 2
+    ELSE IF(matches(eos,"keane")) THEN
+      input%ieos = 3
+    ELSE IF(matches(eos,"murn")) THEN
+      input%ieos = 4
+    ELSE
+      CALL errore("qha input", "bad input eos", 1)
+    ENDIF
+      !
     input%press = 0._dp
     IF(press_kbar/=0._dp .or. press_GPa/=0._dp)THEN
       IF(press_kbar/=0._dp .and. press_GPa/=0._dp) &
@@ -277,7 +297,7 @@ MODULE qha_program
   END SUBROUTINE GIBBS
 
   SUBROUTINE fit(nv,T,vol, nrg, nrg_fit, nrg0, vol0, k0, dk0, d2k0)
-    USE eos,       ONLY : find_minimum, find_minimum2
+    USE eos,       ONLY : find_minimum2
     USE constants, ONLY : ry_kbar
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nv
