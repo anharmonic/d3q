@@ -205,6 +205,9 @@ code_input.o : ./mpi_thermal.o
 code_input.o : ./nist_isotopes_db.o
 code_input.o : ./q_grids.o
 code_input.o : ./timers.o
+decompose_d2.o : ./functions.o
+decompose_d2.o : ./input_fc.o
+decompose_d2.o : ./quter.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
 dynbubble.o : ./functions.o

@@ -9,10 +9,6 @@ MODULE tdph_module
   USE kinds, ONLY : DP
 #include "mpi_thermal.h"
   !
-  TYPE dynmat_basis
-     COMPLEX(DP),ALLOCATABLE :: basis(:,:,:)
-  END TYPE
-
   INTEGER :: nfar=0
 
   TYPE tdph_input_type
@@ -22,7 +18,7 @@ MODULE tdph_module
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "acrs"
     INTEGER :: nfirst, nskip, nmax, nprint
-    REAL(DP) :: e0, thr
+    REAL(DP) :: e0, thr, T
     !
   END TYPE tdph_input_type
   !
@@ -49,12 +45,12 @@ MODULE tdph_module
     INTEGER :: input_unit, aux_unit, err1, err2
     !CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
-    REAL(DP) :: e0 = 0._dp, thr = 1.d-8
+    REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp
     !
     NAMELIST  / tdphinput / &
         md, file_mat2, fit_type, &
         nfirst, nskip, nmax, nprint, nread, &
-        e0, minimization, thr
+        e0, minimization, thr, T
 
     ioWRITE(*,*) "Waiting for input"
     !
@@ -108,6 +104,7 @@ MODULE tdph_module
     input%nprint        = nprint
     input%e0            = e0
     input%thr           = thr
+    input%T             = T
     !
   END SUBROUTINE READ_INPUT_TDPH
 
@@ -162,7 +159,7 @@ PROGRAM tdph
   USE lr_symm_base,       ONLY : rtau, nsymq, minus_q, irotmq, gi, gimq, invsymq
   USE control_lr,         ONLY : lgamma
   USE decompose_d2,       ONLY : smallg_q_fullmq, find_d2_symm_base, sym_and_star_q, dotprodmat, &
-                                 make_qstar_d2, allocate_sym_and_star_q, tr_star_q
+                                 make_qstar_d2, allocate_sym_and_star_q, tr_star_q, dynmat_basis
   USE cmdline_param_module
   USE input_fc,           ONLY : forceconst2_grid, ph_system_info, read_system, aux_system, read_fc2, &
                                  div_mass_fc2, multiply_mass_dyn, write_fc2
@@ -403,7 +400,7 @@ PROGRAM tdph
   !factor = 1.d-3
   !CALL harmonic_force(n_steps, Si,fcout,u,force_harm,h_energy)
   ! before minimization
-  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
   DO i = 1, n_steps
   !WRITE(117,*) "i_step = ",i
@@ -417,21 +414,18 @@ PROGRAM tdph
 
   SELECT CASE (input%minimization)
   CASE("acrs")
-    CALL ACRS0(nph,ph_coefficients, force_diff, minimize2)
+    CALL ACRS0(nph,ph_coefficients, force_diff, chisq_acrs)
   CASE("lmdif")
-    CALL lmdif0(minimize, mfcn, nph, ph_coefficients, force_diff, input%thr, iswitch)
+    CALL lmdif0(chi_lmdif, mfcn, nph, ph_coefficients, force_diff, input%thr, iswitch)
   CASE("none")
     ! Do nothing
   CASE DEFAULT
     CALL errore("tdph","unknown minimization engine requested",1)
   END SELECT
-  !CALL lmdif(minimize,mfcn,nph,ph_coefficients,force_diff,1.d-8,0.d0,0.d0,huge(1),0.d0, &
-  !           metric,2,factor,0,iswitch,nfev,fjac, &
-  !           mfcn,ipvt,qtf,wa1,wa2,wa3,wa4)
   !
   nfar = 0
   iswitch = 0
-  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
   Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.periodic", Si, fcout)
 
@@ -463,7 +457,7 @@ PROGRAM tdph
   CLOSE(117)
    !
   nfar = 2
-  CALL minimize(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
@@ -475,14 +469,19 @@ PROGRAM tdph
  ! ---- the program is over ---- !
  !
  CONTAINS
+
+! Penalty function in the form required by LMDIF : return an array of size
+! at least as large as the number of degrees of freedom containing the penalty
+! (NOT SQUARED) for each dimension. 
 !-----------------------------------------------------------------------
- SUBROUTINE minimize(mfc, nph, ph_coef, fdiff2, iswitch)
+ SUBROUTINE chi_lmdif(mfc, nph, ph_coef, fdiff2, iswitch)
   !-----------------------------------------------------------------------
   ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
   ! forces for n_steps molecur dyanmics simulation 
   !
-  USE tdph_module, ONLY : nfar
-  USE mpi_thermal, ONLY : mpi_bsum
+  USE tdph_module,  ONLY : nfar
+  USE mpi_thermal,  ONLY : mpi_bsum
+  USE decompose_d2, ONLY : recompose_fc
   IMPLICIT NONE
   INTEGER,INTENT(in)    :: mfc, nph
   REAL(DP),INTENT(in)   :: ph_coef(nph)
@@ -492,54 +491,19 @@ PROGRAM tdph
   INTEGER :: nq_done, iph, iq, i, j, k
   INTEGER,SAVE :: iter = 0
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-  REAL(DP) :: chi2, kb, T, e0
+  REAL(DP) :: chi2, e0
 
   CALL t_minim%start()
 
-  nq_done = 0
-  iph = 0
-  Q_POINTS_LOOP3 : &
-  DO iq = 1, nq_wedge
-    !
-    ! Reconstruct the dynamical matrix from the coefficients
-    d2 = 0._dp
-    DO i = 1,rank(iq)
-      iph = iph+1
-      d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
-    ENDDO
-    !WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
-    !WRITE(999,'(3(2f12.6,4x))') d2
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef,&
+                    nq1, nq2, nq3, nqmax, nfar, fcout)
 
-    !
-    IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
-    !
-    ! Rotate the dynamical matrices to generate D(q) for every q in the star
-    ALLOCATE(star_dyn(3*Si%nat,3*Si%nat, symq(iq)%nq_trstar))
-    CALL make_qstar_d2 (d2, Si%at, Si%bg, Si%nat, symq(iq)%nsym, symq(iq)%s, &
-                        symq(iq)%invs, symq(iq)%irt, symq(iq)%rtau, &
-                        symq(iq)%nq_star, symq(iq)%sxq, symq(iq)%isq, &
-                        symq(iq)%imq, symq(iq)%nq_trstar, star_dyn, &
-                        star_wdyn(:,:,:,:,nq_done+1:nq_done+symq(iq)%nq_trstar))
-
-    ! rebuild the full list of q vectors in the grid by concatenating all the stars
-    xqmax(:,nq_done+1:nq_done+symq(iq)%nq_trstar) &
-        = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
-
-    nq_done = nq_done + symq(iq)%nq_trstar
-
-    DEALLOCATE(star_dyn)
-
-  ENDDO Q_POINTS_LOOP3
-
-  IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
-  !
-  CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
   IF(nfar.ne.0) RETURN
   !
   ! READ atomic positions, forces, etc, and compute harmonic force and energy
   CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)
-  T = 300.0_DP
-  kb = K_BOLTZMANN_RY*T
+  ! T = input%T
+  ! kbT = K_BOLTZMANN_RY*T
   !
   fdiff2 = 0._dp
 
@@ -564,7 +528,8 @@ PROGRAM tdph
     ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every input%nprint steps have a look
-    IF(MODULO(iter,input%nprint)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+    IF(MODULO(iter,input%nprint)==0) &
+      CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
   ENDIF
 
   CALL t_minim%stop()
@@ -572,64 +537,31 @@ PROGRAM tdph
   END SUBROUTINE
   !
 
-!-----------------------------------------------------------------------
-  SUBROUTINE minimize2(ph_coef, nph, fdiff2)
+  ! Penalty function as required by ACRS: return a single positive real number to minimize.
+  !-----------------------------------------------------------------------
+  SUBROUTINE chisq_acrs(ph_coef, nph, fdiff2)
     !-----------------------------------------------------------------------
     ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
     ! forces for n_steps molecur dyanmics simulation 
     !
-    USE tdph_module, ONLY : nfar
-    USE mpi_thermal, ONLY : mpi_bsum
+    USE tdph_module,  ONLY : nfar
+    USE mpi_thermal,  ONLY : mpi_bsum
+    USE decompose_d2, ONLY : recompose_fc
     IMPLICIT NONE
-      INTEGER,INTENT(in)    :: nph
-      REAL(DP),INTENT(in)   :: ph_coef(nph)
-      REAL(DP),INTENT(out)  :: fdiff2
-    
-      INTEGER :: nq_done, iph, iq, i, j, k
-      INTEGER,SAVE :: iter = 0
-      CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-      REAL(DP) :: chi2, kb, T, e0
+    INTEGER,INTENT(in)    :: nph
+    REAL(DP),INTENT(in)   :: ph_coef(nph)
+    REAL(DP),INTENT(out)  :: fdiff2
   
-      CALL t_minim%start()
+    INTEGER :: nq_done, iph, iq, i, j, k
+    INTEGER,SAVE :: iter = 0
+    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+    REAL(DP) :: chi2
+
+    CALL t_minim%start()
   
-    nq_done = 0
-    iph = 0
-    Q_POINTS_LOOP3 : &
-    DO iq = 1, nq_wedge
-      !
-      ! Reconstruct the dynamical matrix from the coefficients
-      d2 = 0._dp
-      DO i = 1,rank(iq)
-        iph = iph+1
-        d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
-      ENDDO
-      WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
-      WRITE(999,'(3(2f12.6,4x))') d2
-  
-      !
-      IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
-      !
-      ! Rotate the dynamical matrices to generate D(q) for every q in the star
-      ALLOCATE(star_dyn(3*Si%nat,3*Si%nat, symq(iq)%nq_trstar))
-      CALL make_qstar_d2 (d2, Si%at, Si%bg, Si%nat, symq(iq)%nsym, symq(iq)%s, &
-                          symq(iq)%invs, symq(iq)%irt, symq(iq)%rtau, &
-                          symq(iq)%nq_star, symq(iq)%sxq, symq(iq)%isq, &
-                          symq(iq)%imq, symq(iq)%nq_trstar, star_dyn, &
-                          star_wdyn(:,:,:,:,nq_done+1:nq_done+symq(iq)%nq_trstar))
-  
-      ! rebuild the full list of q vectors in the grid by concatenating all the stars
-      xqmax(:,nq_done+1:nq_done+symq(iq)%nq_trstar) &
-          = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
-  
-      nq_done = nq_done + symq(iq)%nq_trstar
-  
-      DEALLOCATE(star_dyn)
-  
-    ENDDO Q_POINTS_LOOP3
-  
-    IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
-    !
-    CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
+    CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef,&
+                      nq1, nq2, nq3, nqmax, nfar, fcout)
+          !
     IF(nfar.ne.0) RETURN
     !
     ! READ atomic positions, forces, etc, and compute harmonic forces
@@ -656,12 +588,13 @@ PROGRAM tdph
     ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coef
     ! Every 1000 steps have a look
-    IF(input%nprint>0 .and. MODULO(iter,input%nprint)==0) CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+    IF(input%nprint>0 .and. MODULO(iter,input%nprint)==0)&
+       CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
     !ENDIF
   
     CALL t_minim%stop()
     !
-    END SUBROUTINE minimize2
+    END SUBROUTINE chisq_acrs
   
   !----------------------------------------------------------------------------
  END PROGRAM tdph

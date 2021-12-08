@@ -28,6 +28,11 @@ MODULE decompose_d2
       integer,allocatable :: irt(:,:)
       ! the rotated of each atom
    END TYPE
+   !
+   TYPE dynmat_basis
+      COMPLEX(DP),ALLOCATABLE :: basis(:,:,:)
+   END TYPE
+
 
 CONTAINS
 
@@ -590,7 +595,72 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    !
  END SUBROUTINE smallg_q_fullmq
  
- 
+ SUBROUTINE recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef, nq1, nq2, nq3, nqmax, nfar, fcout)
+   USE kinds, ONLY : DP
+   USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info
+   USE quter_module,       ONLY : quter
+
+   IMPLICIT NONE
+   TYPE(ph_system_info),INTENT(in)   :: Si
+   TYPE(sym_and_star_q),INTENT(in) :: symq(nq_wedge)
+   TYPE(forceconst2_grid),INTENT(inout) :: fcout
+   TYPE(dynmat_basis),INTENT(in) :: dmb(nq_wedge)
+   INTEGER,INTENT(in) :: rank(nq_wedge)
+   REAL(DP),INTENT(in) :: ph_coef(nph)
+
+   INTEGER, INTENT(in) :: nq1, nq2, nq3, nqmax, nq_wedge, nfar, nph
+   !
+   INTEGER :: i, iph, iq, nq_done
+   COMPLEX(DP) :: d2(Si%nat3, Si%nat3)
+   !
+   COMPLEX(DP),ALLOCATABLE :: star_wdyn(:,:,:,:,:), star_dyn(:,:,:)
+   REAL(DP),ALLOCATABLE :: xqmax(:,:)
+
+   ALLOCATE(star_wdyn(3,3,Si%nat,Si%nat, nqmax))
+   ALLOCATE(xqmax(3,nqmax))
+   
+   ! Reconstruct the dynamical matrix from the coefficients
+   nq_done = 0
+   iph = 0
+   Q_POINTS_LOOP3 : &
+   DO iq = 1, nq_wedge
+      d2 = 0._dp
+      DO i = 1,rank(iq)
+         iph = iph+1
+         d2 = d2+ ph_coef(iph)*dmb(iq)%basis(:,:,i)
+      ENDDO
+      ! WRITE(999,'(i3,3f12.6)') iq,symq(iq)%xq
+      ! WRITE(999,'(3(2f12.6,4x))') d2
+
+      !
+      IF(nq_done+symq(iq)%nq_trstar> nqmax) CALL errore("tdph","too many q-points",1)
+      !
+      ! Rotate the dynamical matrices to generate D(q) for every q in the star
+      ALLOCATE(star_dyn(3*Si%nat,3*Si%nat, symq(iq)%nq_trstar))
+      CALL make_qstar_d2 (d2, Si%at, Si%bg, Si%nat, symq(iq)%nsym, symq(iq)%s, &
+                        symq(iq)%invs, symq(iq)%irt, symq(iq)%rtau, &
+                        symq(iq)%nq_star, symq(iq)%sxq, symq(iq)%isq, &
+                        symq(iq)%imq, symq(iq)%nq_trstar, star_dyn, &
+                        star_wdyn(:,:,:,:,nq_done+1:nq_done+symq(iq)%nq_trstar))
+
+      ! rebuild the full list of q vectors in the grid by concatenating all the stars
+      xqmax(:,nq_done+1:nq_done+symq(iq)%nq_trstar) &
+         = symq(iq)%sxq(:,1:symq(iq)%nq_trstar)
+
+      nq_done = nq_done + symq(iq)%nq_trstar
+
+      DEALLOCATE(star_dyn)
+
+   ENDDO Q_POINTS_LOOP3
+
+   IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
+   !
+   CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
+   !
+   DEALLOCATE(xqmax, star_wdyn)
+
+   IF(nfar.ne.0) RETURN
+   END SUBROUTINE
 
 END MODULE
 
