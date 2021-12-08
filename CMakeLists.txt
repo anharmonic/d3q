@@ -115,6 +115,7 @@ set (src_thermal2
      thermal2/posix_signal.f90
      thermal2/q_grids.f90
      thermal2/quter.f90
+     thermal2/read_md.f90
      thermal2/timers.f90
      thermal2/variational_tk.f90)
 

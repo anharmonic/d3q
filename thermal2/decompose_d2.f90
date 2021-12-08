@@ -77,6 +77,7 @@ subroutine generate_simple_base(ndim, mtx, nx)
 end subroutine
 
 subroutine generate_mu_base(ndim, mtx, u0, nx)
+   USE functions,          ONLY : cdiag_serial
    implicit none
    integer,intent(in)      :: ndim
    complex(dp),INTENT(in)  :: u0(ndim,ndim)
@@ -89,8 +90,7 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
 
    ! diagonalize u0
    u=u0
-   call cdiagh (ndim, u, ndim, e, ev)
-
+   call cdiag_serial (ndim, u, ndim, e, ev)
 
    nx = 0  
    !first matrices with a single 1 along the diagonal
@@ -148,6 +148,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
   complex(DP) :: mtx(3*nat, 3*nat, 9*nat**2)
   real(DP)    :: normtx
+  print*, 10000040
 
    ! build an initial trivial basis for the hermitean matrices space
    IF(present(u0))THEN
@@ -155,6 +156,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ELSE
       call generate_simple_base(3*nat, mtx, nx)
    ENDIF
+   print*, 10000050
 
    ! symmetrize each matrix
    DO i = 1,nx
@@ -173,6 +175,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
      CALL compact_dyn(nat, mtx(:,:,i), wdyn)
      !WRITE(*,'(6(2f7.3,3x),5x)') mtx(:,:,i)
    ENDDO
+   print*, 10000051
 
    ! Some matrices can be zero at this point, we throw them away
    jx = 0

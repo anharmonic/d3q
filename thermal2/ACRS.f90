@@ -62,7 +62,6 @@ SUBROUTINE ACRS0(N,XSOL,FOUT,FUNCT)
    CALL ACRS(N,LB,UB,M,S,FVAL,FUNCT,cpu_limit,maxtgen,maxiter,prnlev,tol,IOUT,   &
          XSOL,FOUT,iter,nftot,iexit,diff_initial, omega)
 
-   !print*, ">>> exit status:", iexit, FOUT,iter,nftot
    DEALLOCATE(S, FVAL)
 
 END SUBROUTINE

@@ -45,6 +45,7 @@ ph_velocity.o : mpi_thermal.o
 posix_signal.o : mpi_thermal.o
 q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
+read_md.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
 PROGRAM_asr3.o : ./PROGRAM_asr3.o
@@ -175,6 +176,7 @@ PROGRAM_tdph.o : ./harmonic.o
 PROGRAM_tdph.o : ./input_fc.o
 PROGRAM_tdph.o : ./mpi_thermal.o
 PROGRAM_tdph.o : ./quter.o
+PROGRAM_tdph.o : ./read_md.o
 PROGRAM_tdph.o : ./timers.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
@@ -230,7 +232,6 @@ final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
 harmonic.o : ./input_fc.o
-harmonic.o : ./mpi_thermal.o
 input_fc.o : ./mpi_thermal.o
 input_fc.o : ./ph_system.o
 isotopes.o : ./fc2_interp.o
@@ -284,6 +285,8 @@ q_grids.o : ./mpi_thermal.o
 q_grids.o : ./ph_velocity.o
 quter.o : ./functions.o
 quter.o : ./input_fc.o
+read_md.o : ./input_fc.o
+read_md.o : ./mpi_thermal.o
 timers.o : ./mpi_thermal.o
 timers.o : ./nanoclock.o
 variational_tk.o : ./casimir.o
@@ -330,5 +333,6 @@ nist_isotopes_db.o : mpi_thermal.h
 ph_system.o : mpi_thermal.h
 posix_signal.o : mpi_thermal.h
 q_grids.o : mpi_thermal.h
+read_md.o : mpi_thermal.h
 timers.o : mpi_thermal.h
 variational_tk.o : mpi_thermal.h

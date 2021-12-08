@@ -379,6 +379,68 @@ end subroutine quicksort_idx
       sigma_mgo = a*w**2 + b*w
   END FUNCTION
 
+!----------------------------------------------------------------------------
+  SUBROUTINE cdiag_serial( n, h, ldh, e, v )
+    !----------------------------------------------------------------------------
+    !! Calculates all the eigenvalues and eigenvectors of a complex
+    !! hermitean matrix H. On output, the matrix is unchanged.
+    !
+    USE kinds,            ONLY : DP
+    USE mp_bands,         ONLY : nbgrp, me_bgrp, root_bgrp, intra_bgrp_comm
+    USE mp,               ONLY : mp_bcast
+    !
+    IMPLICIT NONE
+    !
+    ! ... on INPUT
+    !
+    INTEGER :: n
+    !! Dimension of the matrix to be diagonalized
+    INTEGER :: ldh
+    !! Leading dimension of h, as declared in the calling pgm unit
+    COMPLEX(DP) :: h(ldh,n)
+    !! Matrix to be diagonalized
+    !
+    ! ... on OUTPUT
+    !
+    REAL(DP)    :: e(n)
+    !! eigenvalues
+    COMPLEX(DP) :: v(ldh,n)
+    !! eigenvectors (column-wise)
+    !
+    ! ... local variables for LAPACK 
+    !
+    INTEGER                  :: lwork, nb, info
+    REAL(DP),    ALLOCATABLE :: rwork(:)
+    COMPLEX(DP), ALLOCATABLE :: work(:)
+    INTEGER, EXTERNAL :: ILAENV
+    ! ILAENV returns optimal block size "nb"
+    ! ... check for the block size
+    !
+    nb = ILAENV( 1, 'ZHETRD', 'U', n, - 1, - 1, - 1 )
+    IF ( nb < 1 .OR. nb >= n ) THEN
+       lwork = 2*n
+    ELSE
+       lwork = ( nb + 1 )*n
+    END IF
+    !
+    v = h
+    !
+    ALLOCATE( work( lwork ) )    
+    ALLOCATE( rwork( 3 * n - 2 ) )    
+    !
+    CALL ZHEEV( 'V', 'U', n, v, ldh, e, work, lwork, rwork, info )
+    !
+    CALL errore( 'cdiagh', 'diagonalization (ZHEEV) failed', ABS( info ) )
+    !
+    ! ... deallocate workspace
+    !
+    DEALLOCATE( rwork )
+    DEALLOCATE( work )
+    !
+    RETURN
+    !
+  END SUBROUTINE cdiag_serial
+
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 
