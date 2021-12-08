@@ -13,7 +13,9 @@ MODULE tdph_module
 
   TYPE tdph_input_type
     !
-    CHARACTER(len=256) :: md = 'md.out'
+    CHARACTER(len=256) :: ai = 'md'
+    CHARACTER(len=256) :: fmd = 'md.out'
+    CHARACTER(len=256) :: ftau, fforce, ftoten
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "acrs"
@@ -36,7 +38,11 @@ MODULE tdph_module
     INTEGER :: ios
     !
     ! Input variable, and defaul values:
-    CHARACTER(len=256) :: md = 'md.out'
+    CHARACTER(len=256) :: ai  = 'md'
+    CHARACTER(len=256) :: fmd = 'md.out'
+    CHARACTER(len=256) :: ftau   = 'positions.dat'
+    CHARACTER(len=256) :: fforce = 'forces.dat'
+    CHARACTER(len=256) :: ftoten = 'pioud.dat'
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "acrs"
@@ -48,40 +54,45 @@ MODULE tdph_module
     REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp
     !
     NAMELIST  / tdphinput / &
-        md, file_mat2, fit_type, &
+        fmd, fforce, ftau, ftoten, &
+        ai, file_mat2, fit_type, &
         nfirst, nskip, nmax, nprint, nread, &
         e0, minimization, thr, T
 
     ioWRITE(*,*) "Waiting for input"
     !
-    input_file="input.TDPH"
-    CALL parse_command_line(input_file)
-    IF(TRIM(input_file)=="-")THEN
-      ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
-      input_unit = 5
-      err1=0
-    ELSE
-      ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
-      !input_unit = find_free_unit()
-      OPEN(newunit=input_unit, file=input_file, status="OLD", action="READ",iostat=err1)
+    IF(ionode)THEN
+      input_file="input.TDPH"
+      CALL parse_command_line(input_file)
+      IF(TRIM(input_file)=="-")THEN
+        ioWRITE(stdout,'(2x,3a)') "Warning! Reading standard input will probably not work with MPI"
+        input_unit = 5
+        err1=0
+      ELSE
+        ioWRITE(stdout,'(2x,3a)') "Reading input file '", TRIM(input_file), "'"
+        !input_unit = find_free_unit()
+        OPEN(newunit=input_unit, file=input_file, status="OLD", action="READ",iostat=err1)
+      ENDIF
+      !
+      IF(err1==0)THEN
+        aux_unit = find_free_unit()
+        READ(input_unit, tdphinput, iostat=err1)
+        ioWRITE(stdout,'(2x,3a)') "merging with command line arguments"
+      ELSE
+        ioWRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
+      ENDIF
+      OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
+      CALL cmdline_to_namelist("tdphinput", aux_unit)
+      REWIND(aux_unit)
+      READ(aux_unit, tdphinput, iostat=err2)
+      IF(err2==0)CLOSE(aux_unit, status="DELETE")
+      
+      IF(err1/=0 .and. err2/=0 .and. ionode)  WRITE(stdout,'(2x,3a)') "Warning: no input file or parameters!"
+
+      ioWRITE(stdout, tdphinput)
     ENDIF
     !
-    IF(err1==0)THEN
-      aux_unit = find_free_unit()
-      READ(input_unit, tdphinput, iostat=err1)
-      WRITE(stdout,'(2x,3a)') "merging with command line arguments"
-    ELSE
-      WRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
-    ENDIF
-    OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
-    CALL cmdline_to_namelist("tdphinput", aux_unit)
-    REWIND(aux_unit)
-    READ(aux_unit, tdphinput, iostat=err2)
-    IF(err2==0)CLOSE(aux_unit, status="DELETE")
-     
-    IF(err1/=0 .and. err2/=0)  WRITE(stdout,'(2x,3a)') "Warning: no input file or parameters!"
-
-    WRITE(stdout, tdphinput)
+    CALL bcast_namelist_variables()
     !
     !IF(ANY(<1))  CALL errore("READ_INPUT_TDPH","Invalid nk",1)
 
@@ -94,7 +105,11 @@ MODULE tdph_module
     IF(ANY((/nfirst,nmax,nskip/)<1)) &
         CALL errore("tdph","wrong parameters", 1)
     !
-    input%md            = md
+    input%ai            = ai
+    input%fmd           = fmd
+    input%ftau          = ftau
+    input%fforce        = fforce
+    input%ftoten        = ftoten
     input%file_mat2     = file_mat2
     input%fit_type      = fit_type
     input%minimization  = minimization
@@ -106,10 +121,29 @@ MODULE tdph_module
     input%thr           = thr
     input%T             = T
     !
+    CONTAINS 
+    SUBROUTINE bcast_namelist_variables()
+        USE mpi_thermal, ONLY : mpi_broadcast
+        IMPLICIT NONE
+        CALL mpi_broadcast(ai)
+        CALL mpi_broadcast(fmd)
+        CALL mpi_broadcast(ftau)
+        CALL mpi_broadcast(fforce)
+        CALL mpi_broadcast(ftoten)
+        CALL mpi_broadcast(file_mat2)
+        CALL mpi_broadcast(fit_type)
+        CALL mpi_broadcast(nfirst)
+        CALL mpi_broadcast(nskip)
+        CALL mpi_broadcast(nmax)
+        CALL mpi_broadcast(nprint)
+        CALL mpi_broadcast(nread)
+        CALL mpi_broadcast(e0)
+        CALL mpi_broadcast(minimization)
+        CALL mpi_broadcast(thr)
+        CALL mpi_broadcast(T)
+    END SUBROUTINE
   END SUBROUTINE READ_INPUT_TDPH
-
-
-
+  !
   SUBROUTINE set_qe_global_geometry(Si)
     USE input_fc,           ONLY : ph_system_info
     USE cell_base,          ONLY : at, bg, celldm, ibrav, omega
@@ -166,10 +200,10 @@ PROGRAM tdph
   USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE asr2_module,        ONLY : impose_asr2
   USE quter_module,       ONLY : quter
-  USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs
+  USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs, mpi_broadcast
   USE tdph_module
   ! harmonic
-  USE read_md_module,     ONLY : read_md, fc_to_supercell
+  USE read_md_module,     ONLY : read_md, read_pioud, fc_to_supercell
   USE harmonic_module,    ONLY : harmonic_force_md
   ! minipack
   USE lmdif_module,       ONLY : lmdif0
@@ -315,10 +349,16 @@ PROGRAM tdph
     CALL fftinterp_mat2(xq, Si, fc, d2)
     d2 = multiply_mass_dyn(Si,d2)
 
+    IF(ionode)THEN
     CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
        Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
        symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2 )
-    !
+    ENDIF
+    ! 
+    call mpi_broadcast(rank(iq))
+    IF(.not.ionode) ALLOCATE(dmb(iq)%basis(Si%nat3, Si%nat3, rank(iq)))
+    CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis)
+      !
     ! Calculate the list of points making up the star of q and of -q
     CALL tr_star_q(symq(iq)%xq, Si%at, Si%bg, symq(iq)%nsym, symq(iq)%s, symq(iq)%invs, &
                    symq(iq)%nq_star, symq(iq)%nq_trstar, symq(iq)%sxq, &
@@ -376,7 +416,7 @@ PROGRAM tdph
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
-  n_steps = input%nmax/num_procs ! total molecular dynamics steps TO READ
+  n_steps = input%nmax ! total molecular dynamics steps TO READ
   first_step = input%nfirst ! start reading from this step
   n_skip = input%nskip !        ! number of steps to skip
 
@@ -386,10 +426,15 @@ PROGRAM tdph
   ALLOCATE(tau_md(3,nat_sc,n_steps))
   ALLOCATE(force_md(3,nat_sc,n_steps))
   ALLOCATE(toten_md(n_steps))
-  CALL read_md(input%md, input%e0, nat_sc, Si%alat, at_sc, first_step, n_skip, n_steps, &
+  IF(input%ai=="md") THEN
+  CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, first_step, n_skip, n_steps, &
                tau_md, force_md, toten_md, tau_sc, u)
-  !CALL read_md(input%md, input%e0, first_step, n_skip, n_steps,Si,fc,u,force_md,toten_md)
-
+  ELSE IF(input%ai=="pioud")THEN
+    CALL read_pioud(input%ftau, input%fforce, input%ftoten, input%e0, nat_sc, Si%alat, &
+                    first_step, n_skip, n_steps, tau_md, force_md, toten_md, tau_sc, u)
+  ELSE
+    CALL errore("tdph","unknown input format", 1)
+  ENDIF
   mfcn = 3*Si%nat*fc%n_R 
   ALLOCATE(force_diff(mfcn))
   nfar = 0
@@ -441,7 +486,8 @@ PROGRAM tdph
        force_ratio = 0._dp
      END WHERE
  
-     WRITE(116,'(1f12.6,5x,3(3f15.9,5x))') DSQRT(norm2(force_ratio)), force_ratio, force_harm(:,j,i), force_md(:,j,i)
+     ioWRITE(116,'(1f12.6,5x,3(3f15.9,5x))') DSQRT(norm2(force_ratio)),&
+                             force_ratio, force_harm(:,j,i), force_md(:,j,i)
      END DO
   END DO
   CLOSE(116)
@@ -451,7 +497,7 @@ PROGRAM tdph
   OPEN(117,file="h_enr.dat",status="unknown") 
   DO i = 1, n_steps
   !WRITE(117,*) "i_step = ",i
-    WRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), toten_md(i), &
+    ioWRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), toten_md(i), &
                                          EXP(-toten_md(i)/(K_BOLTZMANN_RY*300.0_DP))
   END DO
   CLOSE(117)
@@ -534,7 +580,7 @@ PROGRAM tdph
 
   CALL t_minim%stop()
   !
-  END SUBROUTINE
+  END SUBROUTINE chi_lmdif
   !
 
   ! Penalty function as required by ACRS: return a single positive real number to minimize.

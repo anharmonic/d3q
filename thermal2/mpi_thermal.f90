@@ -50,6 +50,12 @@ MODULE mpi_thermal
      MODULE PROCEDURE mpi_bcast_tns
      MODULE PROCEDURE mpi_bcast_tns4
      !
+     MODULE PROCEDURE mpi_bcast_zscl
+     MODULE PROCEDURE mpi_bcast_zvec
+     MODULE PROCEDURE mpi_bcast_zmat
+     MODULE PROCEDURE mpi_bcast_ztns
+     MODULE PROCEDURE mpi_bcast_ztns4
+     !
      MODULE PROCEDURE mpi_bcast_integer
      MODULE PROCEDURE mpi_bcast_integer_vec
      !
@@ -346,7 +352,54 @@ MODULE mpi_thermal
     CALL MPI_BCAST(tns4, ll*mm*nn*oo, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
-!!
+  !
+  ! Now broadcast for complex numbers
+  !
+  SUBROUTINE mpi_bcast_zscl(scl)
+    IMPLICIT NONE
+    COMPLEX(DP),INTENT(inout) :: scl
+#ifdef __MPI
+    CALL MPI_BCAST(scl, 1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_zvec(nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     ::  nn
+    COMPLEX(DP),INTENT(inout) :: mat(nn)
+#ifdef __MPI
+    CALL MPI_BCAST(mat, nn, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_zmat(mm, nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: mm, nn
+    COMPLEX(DP),INTENT(inout) :: mat(mm,nn)
+#ifdef __MPI
+    CALL MPI_BCAST(mat, mm*nn, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_ztns(ll, mm, nn, tns)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: ll, mm, nn
+    COMPLEX(DP),INTENT(inout) :: tns(ll, mm,nn)
+#ifdef __MPI
+    CALL MPI_BCAST(tns, ll*mm*nn, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_ztns4(ll, mm, nn, oo, tns4)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: ll, mm, nn, oo
+    COMPLEX(DP),INTENT(inout) :: tns4(ll, mm,nn, oo)
+#ifdef __MPI
+    CALL MPI_BCAST(tns4, ll*mm*nn*oo, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  !!
   ! Scatter in-place a vector
   SUBROUTINE scatteri_vec(nn, vec, ii)
     IMPLICIT NONE

@@ -78,6 +78,32 @@ MODULE read_md_module
 
   END SUBROUTINE 
   !
+
+  SUBROUTINE read_pioud(file_tau, file_for, file_toten, toten0, nat_tot, alat, first_step, n_skip, n_steps,&
+                    tau_md, force_md, toten_md, tau0, u_disp)
+    !----------------------------------------------------------------------
+    ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
+    ! at finite temperature md.out. 
+    !
+    USE kinds,     ONLY : DP
+    USE mpi_thermal, ONLY : my_id, num_procs, mpi_bsum
+    !
+    IMPLICIT NONE
+    !
+    CHARACTER(len=*),INTENT(in) :: file_tau, file_for, file_toten
+    REAL(DP),INTENT(in)  :: toten0 ! energy of unperturbed system, for reference
+    INTEGER,INTENT(in)   :: nat_tot ! number of atoms to read
+    REAL(DP),INTENT(in)  :: alat ! alat  in bohr and cell size in units of alat
+    INTEGER,INTENT(in)   :: first_step, n_skip ! first step to read, number of steps to skip between two read
+    INTEGER,INTENT(inout) :: n_steps         ! input: maximum number of steps to read, 
+                                            ! output : number of steps actually read
+    REAL(DP),ALLOCATABLE,INTENT(out)   :: tau_md(:,:,:), toten_md(:), force_md(:,:,:)
+    REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot) ! equilibrium atomic positions, only used to compute displacements
+    REAL(DP),INTENT(out),ALLOCATABLE,OPTIONAL :: u_disp(:,:,:) ! displacements
+
+
+  END SUBROUTINE
+
   SUBROUTINE read_md(md_file, toten0, nat_tot, alat, aa, first_step, n_skip, n_steps,&
                     tau_md, force_md, toten_md, tau0, u_disp)
   !----------------------------------------------------------------------
@@ -120,14 +146,23 @@ MODULE read_md_module
   ALLOCATE(toten_md(n_steps))
 
   OPEN(newunit=uni,file=md_file,action="READ",form="formatted")
-  OPEN(newunit=uni_f, file=TRIM(md_file)//".filter", action="WRITE",form="formatted")
+  OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="WRITE",form="formatted")
+  !
+  ! total number of steps to read
+  n_steps0 = n_steps
+  ! number of steps to read on this CPU
+  n_steps = n_steps/num_procs
+  IF( my_id<(n_steps0-n_steps*num_procs) ) n_steps = n_steps+1
+  i_step = n_steps
+  CALL mpi_bsum(i_step)
+  IF(i_step/=n_steps0) CALL errore("md_read","parallel steps distribution not ok",1)
+  !
   i_step = 0
   k_step = 0
   look_for_forces=.false.
   look_for_toten_md =.false.
   actually_read_the_forces = .false.
-  n_steps0 = n_steps
-
+  ! 
   READ_LOOP : &
   DO
    READ(uni,"(a1024)", iostat=ios) line ! reads a line to variable "line"
@@ -151,7 +186,7 @@ MODULE read_md_module
       !
       IF(actually_read_the_forces)THEN
         IF(i_step >= n_steps) THEN
-          print*, "nstep reached... exiting"
+          !ioWRITE(*,*) "nstep reached... exiting"
           EXIT READ_LOOP
         ENDIF        
         i_step = i_step+1
@@ -185,7 +220,7 @@ MODULE read_md_module
 
       k_step = k_step+1
       !IF(k_step >= first_step .and. MODULO(k_step, n_skip) == 0)THEN
-      IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
+      IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step-n_skip*my_id, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
          WRITE(uni_f,*) TRIM(line)
       ELSE
@@ -195,7 +230,7 @@ MODULE read_md_module
           
       IF(actually_read_the_forces)THEN
         IF(i_step >= n_steps) THEN
-          print*, "nstep reached... exiting"
+          !print*, "nstep reached... exiting"
           EXIT READ_LOOP
         ENDIF
 
@@ -240,9 +275,9 @@ MODULE read_md_module
   CALL mpi_bsum(i_step)
   ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
 
-  IF(i_step<n_steps0*num_procs)THEN
-    ioWRITE(*,'(2x,a,i8,a,i3)') "NOTICE: Looking for ", n_steps, "I only found", i_step, " on cpu", my_id
-    n_steps = i_step
+  IF(i_step<n_steps0)THEN
+    ioWRITE(*,'(2x,a,i8,a,i8,a)') "NOTICE: Looking for ", n_steps0, "  steps, only", i_step, "  found."
+    !n_steps = i_step
   ENDIF
 
   IF(look_for_toten_md .or. look_for_forces)THEN
