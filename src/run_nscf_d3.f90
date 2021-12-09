@@ -173,8 +173,8 @@ SUBROUTINE setup_nscf_d3()
   USE control_flags,      ONLY : ethr, isolve, david, max_cg_iter, &
                                  noinv !, use_para_diag
   USE mp_pools,           ONLY : kunit, inter_pool_comm
-  USE spin_orb,           ONLY : domag
-  USE noncollin_module,   ONLY : noncolin
+  !USE spin_orb,           ONLY : domag
+  USE noncollin_module,   ONLY : noncolin,domag
   USE start_k,            ONLY : nks_start, xk_start, wk_start, &
                                  nk1, nk2, nk3, k1, k2, k3, reset_grid
   USE klist,              ONLY : degauss

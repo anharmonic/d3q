@@ -17,19 +17,22 @@ FUNCTION d2mxc (rho)
   USE kinds,       ONLY : DP
   USE constants,   ONLY : pi
 !  USE dft_mod,     ONLY : get_dft_namea
-  USE dft_par_mod, ONLY: iexch,icorr
+!  USE dft_par_mod, ONLY: iexch,icorr
 !  USE dft_mod,       ONLY : get_icorr, get_iexch
 !  USE funct,       ONLY : init_lda_xc
 !  USE qe_drivers_lda_lsda, ONLY :  xc_lda
   USE qe_drivers_lda_lsda, ONLY :  xc_lda
+  USE xc_lib,       ONLY: xclib_get_id
   IMPLICIT NONE
-
+  integer :: iexch, icorr
   real (DP) :: rho, d2mxc
   ! input: the charge density ( positive )
   ! output: the second derivative of the xc potent
 
   real (DP) :: b1, b2, gc, a, b, c, d, thofpi_3, fpioth_3, &
        thopi_3, tm1, tm2, tm3, tm4, tm5, tm6
+
+
   ! _ parameters defining the functionals
   ! /
   !    pi
@@ -62,6 +65,8 @@ FUNCTION d2mxc (rho)
   !real(DP),parameter ::  coeffs(-2:2) = (/ m_1over12, p_4over3, m_5over2, p_4over3, m_1over12 /)
   real(DP),parameter :: coeffs(3) = (/ 1._dp, -2._dp, 1._dp /)
 
+  iexch = xclib_get_id('LDA','EXCH')
+  icorr = xclib_get_id('LDA','CORR')
 !  CALL init_lda_xc()
 !print*, "mux", get_iexch() , get_icorr()
   if (iexch == 1 .and. icorr == 1) then

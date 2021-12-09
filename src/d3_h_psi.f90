@@ -199,11 +199,11 @@ SUBROUTINE d3_h_psiq (lda, n, m, psi, hpsi, spsi, igk_)
   USE kinds,                 ONLY : DP
   USE wavefunctions,         ONLY : psic, psic_nc
   USE becmod,                ONLY : bec_type, becp, calbec
-  USE noncollin_module,      ONLY : npol
+  USE noncollin_module,      ONLY : npol,domag
   USE lsda_mod,              ONLY : current_spin
   USE gvecs,                 ONLY : nls
   USE fft_base,              ONLY : dffts
-  USE spin_orb,              ONLY : domag
+  !USE spin_orb,              ONLY : domag
   USE scf,                   ONLY : vrs
   USE uspp,                  ONLY : vkb
   USE wvfct,                 ONLY : npwx

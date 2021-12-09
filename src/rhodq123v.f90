@@ -37,6 +37,7 @@ SUBROUTINE rhodq123v(d3dyn)
   USE kplus3q,        ONLY : kplusq
   USE d3_basis,       ONLY : patq
   USE d3_debug,       ONLY : dbgwrite_d3dyn
+  USE uspp_init,      ONLY : init_us_2
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn( 3 * nat, 3 * nat, 3 * nat)

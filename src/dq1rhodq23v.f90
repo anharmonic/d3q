@@ -283,6 +283,7 @@ SUBROUTINE dq23v_nonlocal(nu_drho, iq_drho, d3dyn_d23v)
   USE kplus3q,         ONLY : nksq, kplusq, nbnd_max 
   USE d3_iofiles,      ONLY : iu_dwfc
   USE d3_efermi_shift, ONLY : read_efsh
+  USE uspp_init,       ONLY : init_us_2
   !
   IMPLICIT NONE
   COMPLEX(DP),INTENT(inout) :: d3dyn_d23v( 3*nat, 3*nat)

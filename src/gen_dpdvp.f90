@@ -121,6 +121,7 @@ SUBROUTINE dpsi1dv2psi(unit, iq_dp, iq_v)
   USE d3_basis,    ONLY : patq
   USE d3_iofiles,  ONLY : iu_dwfc, lrdpdvp
   USE io_global,   ONLY : stdout
+  USE uspp_init,   ONLY : init_us_2
   ! D3 subroutines called:
   USE dvdpsi_module
   USE dq_vscf_module
@@ -262,6 +263,7 @@ SUBROUTINE dpsi1dv2psi_gamma(unit, iq)
   USE d3_basis,    ONLY : patq
   USE d3_iofiles,  ONLY : iu_dwfc, lrdpdvp
   USE io_global,   ONLY : stdout
+  USE uspp_init,   ONLY : init_us_2
   ! D3 subroutines called:
   USE dvdpsi_module
   USE dq_vscf_module

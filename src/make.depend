@@ -11,7 +11,7 @@ cmdline_param.o : ../../Modules/random_numbers.o
 d2mxc.o : ../../Modules/constants.o
 d2mxc.o : ../../Modules/kind.o
 d2mxc.o : ../../XClib/qe_drivers_lda_lsda.o
-d2mxc.o : ../../XClib/xc_input_params_mod.o
+d2mxc.o : ../../XClib/xc_lib.o
 d3_basis.o : ../../Modules/kind.o
 d3_debug.o : ../../LR_Modules/lrcom.o
 d3_debug.o : ../../Modules/cell_base.o
@@ -49,7 +49,7 @@ d3_exc_gc.o : ../../PHonon/PH/phcom.o
 d3_exc_gc.o : ../../PW/src/pwcom.o
 d3_exc_gc.o : ../../PW/src/scf_mod.o
 d3_exc_gc.o : ../../UtilXlib/mp.o
-d3_exc_gc.o : ../../XClib/xc_input_params_mod.o
+d3_exc_gc.o : ../../XClib/xc_lib.o
 d3_exc_gc.o : ./d3_iofiles.o
 d3_exc_gc.o : ./set_kplus3q.o
 d3_exc_gc.o : ./setup_d3gc.o
@@ -272,7 +272,7 @@ d3q.o : ../../Modules/mp_world.o
 d3q.o : ../../PHonon/PH/phcom.o
 d3q.o : ../../PW/src/pwcom.o
 d3q.o : ../../UtilXlib/mp.o
-d3q.o : ../../XClib/xc_input_params_mod.o
+d3q.o : ../../XClib/xc_lib.o
 d3q.o : ../../upflib/uspp.o
 d3q.o : ./allocate_d3.o
 d3q.o : ./d3_basis.o
@@ -320,6 +320,7 @@ dpsi1dv2dpsi3.o : ../../Modules/io_global.o
 dpsi1dv2dpsi3.o : ../../Modules/ions_base.o
 dpsi1dv2dpsi3.o : ../../Modules/kind.o
 dpsi1dv2dpsi3.o : ../../Modules/mp_pools.o
+dpsi1dv2dpsi3.o : ../../PW/src/init_us_2.o
 dpsi1dv2dpsi3.o : ../../PW/src/pwcom.o
 dpsi1dv2dpsi3.o : ../../UtilXlib/mp.o
 dpsi1dv2dpsi3.o : ../../upflib/uspp.o
@@ -338,6 +339,7 @@ dq1rhodq23v.o : ../../Modules/ions_base.o
 dq1rhodq23v.o : ../../Modules/kind.o
 dq1rhodq23v.o : ../../Modules/mp_pools.o
 dq1rhodq23v.o : ../../Modules/recvec.o
+dq1rhodq23v.o : ../../PW/src/init_us_2.o
 dq1rhodq23v.o : ../../PW/src/pwcom.o
 dq1rhodq23v.o : ../../UtilXlib/mp.o
 dq1rhodq23v.o : ../../upflib/uspp.o
@@ -358,7 +360,7 @@ dq_vscf.o : ../../Modules/noncol.o
 dq_vscf.o : ../../Modules/recvec.o
 dq_vscf.o : ../../PW/src/pwcom.o
 dq_vscf.o : ../../PW/src/scf_mod.o
-dq_vscf.o : ../../XClib/xc_input_params_mod.o
+dq_vscf.o : ../../XClib/xc_lib.o
 dq_vscf.o : ../../upflib/uspp.o
 dq_vscf.o : ./d3_iofiles.o
 dq_vscf.o : ./d3com.o
@@ -399,6 +401,7 @@ gen_dpdvp.o : ../../Modules/io_global.o
 gen_dpdvp.o : ../../Modules/ions_base.o
 gen_dpdvp.o : ../../Modules/kind.o
 gen_dpdvp.o : ../../Modules/mp_pools.o
+gen_dpdvp.o : ../../PW/src/init_us_2.o
 gen_dpdvp.o : ../../PW/src/pwcom.o
 gen_dpdvp.o : ../../UtilXlib/mp.o
 gen_dpdvp.o : ../../upflib/uspp.o
@@ -438,6 +441,7 @@ rhodq123v.o : ../../Modules/ions_base.o
 rhodq123v.o : ../../Modules/kind.o
 rhodq123v.o : ../../Modules/mp_pools.o
 rhodq123v.o : ../../Modules/recvec.o
+rhodq123v.o : ../../PW/src/init_us_2.o
 rhodq123v.o : ../../PW/src/pwcom.o
 rhodq123v.o : ../../PW/src/scf_mod.o
 rhodq123v.o : ../../UtilXlib/mp.o
@@ -499,7 +503,7 @@ setup_d3gc.o : ../../PW/src/pwcom.o
 setup_d3gc.o : ../../PW/src/scf_mod.o
 setup_d3gc.o : ../../XClib/qe_drivers_d_gga.o
 setup_d3gc.o : ../../XClib/qe_drivers_gga.o
-setup_d3gc.o : ../../XClib/xc_input_params_mod.o
+setup_d3gc.o : ../../XClib/xc_lib.o
 setup_d3gc.o : ../../upflib/uspp.o
 solve_linter_d3q.o : ../../FFTXlib/fft_interfaces.o
 solve_linter_d3q.o : ../../LR_Modules/lrcom.o
@@ -511,6 +515,7 @@ solve_linter_d3q.o : ../../Modules/kind.o
 solve_linter_d3q.o : ../../Modules/mp_pools.o
 solve_linter_d3q.o : ../../Modules/mp_world.o
 solve_linter_d3q.o : ../../Modules/recvec.o
+solve_linter_d3q.o : ../../PW/src/init_us_2.o
 solve_linter_d3q.o : ../../PW/src/pwcom.o
 solve_linter_d3q.o : ../../UtilXlib/mp.o
 solve_linter_d3q.o : ../../upflib/uspp.o

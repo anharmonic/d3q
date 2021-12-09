@@ -28,6 +28,7 @@ SUBROUTINE dpsi1dv2dpsi3 (iq_rgt,iq_dv,iq_lft,d3dyn) !, order)
   USE d3_basis,   ONLY : patq
   USE kplus3q,    ONLY : nksq, kplusq, q_sum_rule, q_names, nbnd_max
   USE d3_iofiles, ONLY : iu_dwfc
+  USE uspp_init,  ONLY : init_us_2
   ! D3 subroutines called:
   USE dvdpsi_module
   USE dq_vscf_module

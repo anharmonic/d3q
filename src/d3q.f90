@@ -59,7 +59,8 @@ program d3q
   USE d3_debug
   USE mp_world,           ONLY : world_comm
   !USE funct,              ONLY : dft_is_gradient
-  USE dft_par_mod,  ONLY: isgradient
+  USE xc_lib,             ONLY : xclib_dft_is
+  !USE dft_par_mod,  ONLY: isgradient
   USE gc_d3,            ONLY : setup_d3gc
 !
   USE mp_pools,        ONLY : intra_pool_comm
@@ -99,19 +100,19 @@ program d3q
   !
   ! Initialize MPI, clocks, print initial messages
   !
-#ifdef __MPI
+!#ifdef __MPI
 !  CALL mp_startup ( )
 !  CALL mp_startup ( start_images=.false. )
 !  CALL mp_start_diag ( ndiag_, world_comm, intra_bgrp_comm, &
 !       do_distr_diag_inside_bgrp_ = .true. )
 !  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
 !       inter_bgrp_comm )
-  CALL mp_startup ( start_images=.true. )
-  CALL laxlib_start ( ndiag_, world_comm, intra_bgrp_comm, &
-       do_distr_diag_inside_bgrp_ = .true. )
-  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
-       inter_bgrp_comm )
-#endif
+!  CALL mp_startup ( start_images=.true. )
+!  CALL laxlib_start ( ndiag_, world_comm, intra_bgrp_comm, &
+!       do_distr_diag_inside_bgrp_ = .true. )
+!  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
+!       inter_bgrp_comm )
+!#endif
   CALL environment_start ( code )
   !
   CALL start_clock('D3TOTEN')
@@ -591,7 +592,7 @@ program d3q
     write( stdout, '(/,5x,"================ exc contrib start",i3," =============",/)') 
     d3dyn_exc = (0._dp, 0._dp)
     !printed = .false.
-    IF ( isgradient .and. dbg_exc_do_gga) THEN
+    IF ( xclib_dft_is('gradient') .and. dbg_exc_do_gga) THEN
       WRITE( stdout, '(/,5x,"Calculating the exchange-correlation contribution with GGA")')
       d3tmp = (0._dp, 0._dp)
       DO ip = 1,nperms

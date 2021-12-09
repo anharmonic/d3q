@@ -23,12 +23,12 @@ SUBROUTINE h_psiq (lda, n, m, psi, hpsi, spsi)
   USE kinds,  ONLY : DP
   USE wavefunctions,  ONLY : psic, psic_nc
   USE becmod, ONLY : bec_type, becp, calbec
-  USE noncollin_module, ONLY : noncolin, npol
+  USE noncollin_module, ONLY : noncolin, npol,domag
   USE lsda_mod, ONLY : current_spin
   USE fft_base, ONLY : dffts
   USE fft_interfaces, ONLY: fwfft, invfft
   !USE gvecs, ONLY: nls
-  USE spin_orb, ONLY : domag
+  !USE spin_orb, ONLY : domag
   USE scf,    ONLY : vrs
   USE uspp,   ONLY : vkb
   USE wvfct,  ONLY : g2kin, npwx

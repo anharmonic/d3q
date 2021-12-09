@@ -21,7 +21,8 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   USE scf,          ONLY : rho, rho_core
   USE lsda_mod,     ONLY : nspin
   !USE funct,        ONLY : dft_is_gradient
-  USE dft_par_mod,  ONLY: isgradient
+  !USE dft_par_mod,  ONLY: isgradient
+  USE xc_lib,       ONLY : xclib_dft_is
   USE fft_base,     ONLY : dfftp
   USE gvect,        ONLY : g, ngm !, nl
   USE qpoint,       ONLY : xq
@@ -54,7 +55,7 @@ SUBROUTINE d3_exc_gc(iq_i, iq_j, iq_k, d3dyn)
   REAL(DP), PARAMETER :: epsr = 1.0d-5, epsg = 1.0d-10
   REAL(DP),EXTERNAL :: d2mxc
   !
-  IF( .NOT. isgradient ) RETURN
+  IF( .NOT. xclib_dft_is('gradient') ) RETURN
   CALL start_clock('d3_exc_gc')
   !
   nspin0=nspin

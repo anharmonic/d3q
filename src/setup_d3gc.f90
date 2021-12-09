@@ -30,12 +30,13 @@ MODULE gc_d3
     USE constants,            ONLY : e2
     USE gvect,                ONLY : ngm, g !, nl
     USE lsda_mod,             ONLY : nspin
-    USE spin_orb,             ONLY : domag
+    !USE spin_orb,             ONLY : domag
     USE scf,                  ONLY : rho, rho_core, rhog_core
-    USE noncollin_module,     ONLY : noncolin
+    USE noncollin_module,     ONLY : noncolin,domag
     USE kinds,                ONLY : DP
     !USE funct,                ONLY : dft_is_gradient
-    USE dft_par_mod,  ONLY: isgradient
+    !USE dft_par_mod,  ONLY: isgradient
+    USE xc_lib,               ONLY : xclib_dft_is
     USE qe_drivers_gga,       ONLY : gcxc
 !     USE gc_ph,            ONLY : grho, dvxc_rr,  dvxc_sr,  dvxc_ss, dvxc_s
   !   USE gc_d3,            ONLY : dvxc_rrr, dvxc_srr, &
@@ -62,7 +63,7 @@ MODULE gc_d3
     COMPLEX(DP), ALLOCATABLE :: rho_tot_g(:,:)
     REAL (DP), PARAMETER :: epsr = 1.0d-6, epsg = 1.0d-10
     !
-    IF ( .NOT. isgradient ) RETURN
+    IF ( .NOT. xclib_dft_is('gradient') ) RETURN
 
     WRITE(stdout, '(5x,a)') "Setting up GGA 2nd derivative"
     grho2 = 0._dp

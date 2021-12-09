@@ -196,6 +196,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
   USE mp_pools,       ONLY : inter_pool_comm, intra_pool_comm
   USE mp,             ONLY : mp_sum
   USE d3_iofiles,     ONLY : lrpdqvp
+  USE uspp_init,      ONLY : init_us_2
   !
   ! D3 subroutines called:
   USE dvdpsi_module
