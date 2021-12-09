@@ -139,14 +139,26 @@ MODULE read_md_module
   LOGICAL      :: look_for_forces, look_for_toten_md, actually_read_the_forces, &
                   is_crystal_coords, is_alat_units, is_bohr_units, is_angstrom_units
   REAL(DP),PARAMETER :: ANGS_TO_BOHR = 1/BOHR_RADIUS_ANGS
+  INTEGER :: first_step_=-1, n_skip_=-1, n_steps_=-1
   !
   !n_steps = 100
   IF(.not.ALLOCATED(force_md)) ALLOCATE(force_md(3,nat_tot,n_steps))
   ALLOCATE(tau_md(3,nat_tot,n_steps))
   ALLOCATE(toten_md(n_steps))
 
-  OPEN(newunit=uni,file=md_file,action="READ",form="formatted")
-  OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="WRITE",form="formatted")
+  OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="READ",form="formatted")
+  READ(uni_f, *, iostat=ios) dummy, first_step_, n_skip_, n_steps_
+  IF(ios==0 .and. dummy == "EXTRACT:" .and. &
+          first_step_==first_step .and. n_skip_==n_skip .and. n_steps_==n_steps) THEN
+    ioWRITE(*,*) "NOTICE: Reading from "//TRIM(md_file)//".extract"
+    uni = uni_f
+    OPEN(newunit=uni_f, file="/dev/null", action="WRITE",form="formatted")
+  ELSE
+    CLOSE(uni_f)
+    OPEN(newunit=uni,file=md_file,action="READ",form="formatted")
+    OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="WRITE",form="formatted")
+  ENDIF
+  WRITE(uni_f,*) "EXTRACT:", first_step, n_skip, n_steps
   !
   ! total number of steps to read
   n_steps0 = n_steps

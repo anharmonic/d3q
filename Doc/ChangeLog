@@ -1,3 +1,7 @@
+v 1.1.10
+* Compatibility with QE 7.0
+* Sort of working TDPH code (experimental!)
+
 v 1.1.9
 * CMake build added
 
