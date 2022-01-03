@@ -184,5 +184,9 @@ foreach(exe IN ITEMS ${qe_thermal2_exe})
 endforeach()
 
 ##########################################################
-
-#install(PROGRAMS bin/pp.py TYPE BIN RENAME epw_pp.py)
+add_custom_target(d3q
+    DEPENDS
+        qe_d3q_exe
+        qe_d3_thermal2
+    COMMENT
+        "D3Q code to compute third derivative of total energy, and tools to compute phonon linewidth and thermal conductivity")
