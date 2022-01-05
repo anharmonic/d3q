@@ -628,6 +628,8 @@ PROGRAM tdph
         CALL errore("tdph", 'unknown chi2 method', 1)
       END SELECT
     ENDDO
+   
+    CALL mpi_bsum(fdiff2) 
 
     iter = iter+1
     chi2 = SQRT(fdiff2)/(n_steps*num_procs)
