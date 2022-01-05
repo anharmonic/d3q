@@ -78,15 +78,14 @@ MODULE read_md_module
 
   END SUBROUTINE 
   !
-
   SUBROUTINE read_pioud(file_tau, file_for, file_toten, toten0, nat_tot, alat, first_step, n_skip, n_steps,&
                     tau_md, force_md, toten_md, tau0, u_disp)
     !----------------------------------------------------------------------
-    ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
-    ! at finite temperature md.out. 
+    ! Compute the harmonic force from DFPT FCs (mat2R) and c-PIOUD in NVT
     !
     USE kinds,     ONLY : DP
     USE mpi_thermal, ONLY : my_id, num_procs, mpi_bsum
+    USE constants, ONLY : BOHR_RADIUS_ANGS, AMU_RY
     !
     IMPLICIT NONE
     !
@@ -98,12 +97,97 @@ MODULE read_md_module
     INTEGER,INTENT(inout) :: n_steps         ! input: maximum number of steps to read, 
                                             ! output : number of steps actually read
     REAL(DP),ALLOCATABLE,INTENT(out)   :: tau_md(:,:,:), toten_md(:), force_md(:,:,:)
-    REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot) ! equilibrium atomic positions, only used to compute displacements
+    REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot)!, tau_sc(:,:) ! equilibrium atomic positions, only used to compute displacements
     REAL(DP),INTENT(out),ALLOCATABLE,OPTIONAL :: u_disp(:,:,:) ! displacements
+    REAL(DP),PARAMETER :: ANGS_TO_BOHR = 1/BOHR_RADIUS_ANGS
+    INTEGER :: i, j, k, nu, mu, beta, n_steps0, uni, i_step, k_step, &
+                      jat, kat, iat, ios, uni_tau, uni_for, uni_toten
+    CHARACTER(len=1024)    :: line
+    LOGICAL      :: look_for_forces, look_for_toten_md, actually_read_the_forces, &
+                  is_crystal_coords, is_alat_units, is_bohr_units, is_angstrom_units
+    !
+    ! READ ATOMIC POSITIONS from pioud.x output --> positions.dat
+  !
+  IF(.not.ALLOCATED(tau_md))  ALLOCATE(tau_md(3,nat_tot,n_steps))
+  !IF(.not.ALLOCATED(tau0))  ALLOCATE(tau_0(3,nat_tot))
+  IF(.not.ALLOCATED(force_md)) ALLOCATE(force_md(3,nat_tot,n_steps))
+  IF(.not.ALLOCATED(toten_md)) ALLOCATE(toten_md(n_steps))
 
+  n_steps0 = n_steps
+  n_steps = n_steps/num_procs
+  IF( my_id<(n_steps0-n_steps*num_procs) ) n_steps = n_steps+1
+  i_step = n_steps
+  CALL mpi_bsum(i_step)
+  IF(i_step/=n_steps0) CALL errore("md_read","parallel steps distribution not ok",1)
+  i_step = 0
 
+  !n_steps0 = n_steps
+  !i_step = 0
+  k_step = 0
+  ! 
+  OPEN(newunit=uni_tau,file=file_tau,action="READ",form="formatted")
+  OPEN(newunit=uni_for,file=file_for,action="READ",form="formatted")
+  OPEN(newunit=uni_toten,file=file_toten,action="READ",form="formatted")
+  !
+  READ_LOOP : &
+  DO 
+      k_step = k_step+1
+      !IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
+      IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step-n_skip*my_id, n_skip*num_procs) == 0)THEN
+          i_step = i_step+1
+          WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
+! READ AND WRITE ATOMIC POSITIONS, ATOMIC FORCES AND TOTAL-ENERGY TO SCREEN
+          READ(uni_tau, *) tau_md(:,:, i_step)
+          !WRITE(*,'(3E14.5)') tau_md(:,:, i_step)  
+          READ(uni_for,*) force_md(:, :, i_step)
+          force_md(:,:, i_step) = force_md(:,:, i_step)*2 ! Hartree to Ry
+          !WRITE(*,'(3E14.5)') force_md(:,:, i_step)
+          READ(uni_toten,*) toten_md(i_step)
+          toten_md(i_step) = toten_md(i_step)*2 ! Hartree to ry
+          !WRITE(*,'(E14.5)') toten_md(i_step)
+       ELSE
+           READ(uni_tau, *)
+           READ(uni_for, *)
+           READ(uni_toten, *)
+        ENDIF
+        
+       IF(i_step >= n_steps) THEN
+          print*, "nsteps reached... exiting"
+          EXIT READ_LOOP
+       ENDIF
+  ENDDO READ_LOOP
+
+  IF(i_step<n_steps) THEN
+     print*, "only found ", i_step, "steps"
+     n_steps = i_step
+  ENDIF
+
+  CLOSE(uni_tau)
+  CLOSE(uni_for)
+  CLOSE(uni_toten)  
+!
+! compute displacement
+  IF(present(u_disp) .and. present(tau0)) THEN
+    IF(.not.ALLOCATED(u_disp)) ALLOCATE(u_disp(3,nat_tot,n_steps))
+    i_step = 0
+    OPEN(newunit=uni,file="disp-pioud.dat", status="unknown")
+    DO i_step = 1, n_steps
+      DO k=1, nat_tot
+        u_disp(1,k,i_step) = tau_md(1, k, i_step) - tau0(1, k) 
+        u_disp(2,k,i_step) = tau_md(2, k, i_step) - tau0(2, k) 
+        u_disp(3,k,i_step) = tau_md(3, k, i_step) - tau0(3, k)
+        ioWRITE(uni,'(3(3f10.5,10x))') u_disp(:,k,i_step),tau_md(:, k, i_step),tau0(:, k)
+        ! MSD = 1./n_steps*(DABS(u())**2
+      ENDDO
+      ioWRITE(uni,*)
+      u_disp(:,:,i_step) = u_disp(:,:,i_step)
+    ENDDO
+    CLOSE(uni)
+  ENDIF
+  !
+  !
   END SUBROUTINE
-
+  !
   SUBROUTINE read_md(md_file, toten0, nat_tot, alat, aa, first_step, n_skip, n_steps,&
                     tau_md, force_md, toten_md, tau0, u_disp)
   !----------------------------------------------------------------------

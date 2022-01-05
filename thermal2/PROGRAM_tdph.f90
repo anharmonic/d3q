@@ -486,7 +486,7 @@ PROGRAM tdph
        force_ratio = 0._dp
      END WHERE
  
-     ioWRITE(116,'(1f12.6,5x,3(3f15.9,5x))') DSQRT(norm2(force_ratio)),&
+     ioWRITE(116,'(1f14.6,5x,3(3f14.6,5x))') DSQRT(norm2(force_ratio)),&
                              force_ratio, force_harm(:,j,i), force_md(:,j,i)
      END DO
   END DO
