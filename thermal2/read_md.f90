@@ -79,7 +79,7 @@ MODULE read_md_module
   END SUBROUTINE 
   !
   SUBROUTINE read_pioud(file_tau, file_for, file_toten, toten0, nat_tot, alat, first_step, n_skip, n_steps,&
-                    tau_md, force_md, toten_md, tau0, u_disp)
+                        n_steps_tot, tau_md, force_md, toten_md, tau0, u_disp)
     !----------------------------------------------------------------------
     ! Compute the harmonic force from DFPT FCs (mat2R) and c-PIOUD in NVT
     !
@@ -95,7 +95,8 @@ MODULE read_md_module
     REAL(DP),INTENT(in)  :: alat ! alat  in bohr and cell size in units of alat
     INTEGER,INTENT(in)   :: first_step, n_skip ! first step to read, number of steps to skip between two read
     INTEGER,INTENT(inout) :: n_steps         ! input: maximum number of steps to read, 
-                                            ! output : number of steps actually read
+                                            ! output : number of steps actually read 
+    INTEGER,INTENT(out) :: n_steps_tot    ! output : number of steps read among all CPUs
     REAL(DP),ALLOCATABLE,INTENT(out)   :: tau_md(:,:,:), toten_md(:), force_md(:,:,:)
     REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot)!, tau_sc(:,:) ! equilibrium atomic positions, only used to compute displacements
     REAL(DP),INTENT(out),ALLOCATABLE,OPTIONAL :: u_disp(:,:,:) ! displacements
@@ -161,6 +162,9 @@ MODULE read_md_module
      print*, "only found ", i_step, "steps"
      n_steps = i_step
   ENDIF
+  n_steps_tot = n_steps
+  CALL mpi_bsum(n_steps_tot)
+  ioWRITE(*,*) "Number of steps read among all CPUs : ", n_steps_tot
 
   CLOSE(uni_tau)
   CLOSE(uni_for)
@@ -189,7 +193,7 @@ MODULE read_md_module
   END SUBROUTINE
   !
   SUBROUTINE read_md(md_file, toten0, nat_tot, alat, aa, first_step, n_skip, n_steps,&
-                    tau_md, force_md, toten_md, tau0, u_disp)
+                     n_steps_tot, tau_md, force_md, toten_md, tau0, u_disp)
   !----------------------------------------------------------------------
   ! Compute the harmonic force from DFPT FCs (mat2R) and molecular dynamics displacement
   ! at finite temperature md.out. 
@@ -209,6 +213,7 @@ MODULE read_md_module
   INTEGER,INTENT(in)   :: first_step, n_skip ! first step to read, number of steps to skip between two read
   INTEGER,INTENT(inout) :: n_steps         ! input: maximum number of steps to read, 
                                            ! output : number of steps actually read
+  INTEGER,INTENT(out) :: n_steps_tot    ! output : number of steps read among all CPUs
   REAL(DP),ALLOCATABLE,INTENT(out)   :: tau_md(:,:,:), toten_md(:), force_md(:,:,:)
   REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot) ! equilibrium atomic positions, only used to compute displacements
   REAL(DP),INTENT(out),ALLOCATABLE,OPTIONAL :: u_disp(:,:,:) ! displacements
@@ -230,8 +235,8 @@ MODULE read_md_module
   ALLOCATE(tau_md(3,nat_tot,n_steps))
   ALLOCATE(toten_md(n_steps))
 
-  OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="READ",form="formatted")
-  READ(uni_f, *, iostat=ios) dummy, first_step_, n_skip_, n_steps_
+  OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="READ",form="formatted", iostat=ios)
+  IF(ios==0) READ(uni_f, *, iostat=ios) dummy, first_step_, n_skip_, n_steps_
   IF(ios==0 .and. dummy == "EXTRACT:" .and. &
           first_step_==first_step .and. n_skip_==n_skip .and. n_steps_==n_steps) THEN
     ioWRITE(*,*) "NOTICE: Reading from "//TRIM(md_file)//".extract"
@@ -367,11 +372,13 @@ MODULE read_md_module
   CLOSE(uni_f)
 
   !i_step = n_steps
-  n_steps = i_step
-  CALL mpi_bsum(i_step)
   ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
+  n_steps_tot = n_steps
+  CALL mpi_bsum(n_steps_tot)
+  ioWRITE(*,*) "Number of steps read among all CPUs : ", n_steps_tot
 
-  IF(i_step<n_steps0)THEN
+
+  IF(n_steps_tot<n_steps0)THEN
     ioWRITE(*,'(2x,a,i8,a,i8,a)') "NOTICE: Looking for ", n_steps0, "  steps, only", i_step, "  found."
     !n_steps = i_step
   ENDIF

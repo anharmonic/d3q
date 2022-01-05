@@ -220,9 +220,10 @@ PROGRAM tdph
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
   ! for harmonic_module
   REAL(DP),ALLOCATABLE      :: u(:,:,:), force_harm(:,:,:), force_md(:,:,:), tau_md(:,:,:), tau_sc(:,:), &
-                               force_diff(:), toten_md(:), h_energy(:)
+                               force_diff(:), diff_tot(:), toten_md(:), h_energy(:)
   ! for lmdf1
-  INTEGER                   :: n_steps, j_steps, mfcn, nat_sc, ulog
+  INTEGER                   :: n_steps, n_steps_tot, j_steps, nat_sc, ulog
+  INTEGER :: mfcn, mdata, mdata_tot
   !
   REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3)
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
@@ -428,15 +429,18 @@ PROGRAM tdph
   ALLOCATE(toten_md(n_steps))
   IF(input%ai=="md") THEN
   CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, first_step, n_skip, n_steps, &
-               tau_md, force_md, toten_md, tau_sc, u)
+               n_steps_tot, tau_md, force_md, toten_md, tau_sc, u)
   ELSE IF(input%ai=="pioud")THEN
     CALL read_pioud(input%ftau, input%fforce, input%ftoten, input%e0, nat_sc, Si%alat, &
-                    first_step, n_skip, n_steps, tau_md, force_md, toten_md, tau_sc, u)
+                    first_step, n_skip, n_steps, n_steps_tot, tau_md, force_md, toten_md, tau_sc, u)
   ELSE
     CALL errore("tdph","unknown input format", 1)
   ENDIF
   mfcn = 3*Si%nat*fc%n_R 
+  mdata = mfcn*n_steps
+  mdata_tot = mfcn*n_steps_tot
   ALLOCATE(force_diff(mfcn))
+  ALLOCATE(diff_tot(mdata_tot))
   nfar = 0
 
   !  DO i = 1, nph
@@ -445,7 +449,7 @@ PROGRAM tdph
   !factor = 1.d-3
   !CALL harmonic_force(n_steps, Si,fcout,u,force_harm,h_energy)
   ! before minimization
-  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
   DO i = 1, n_steps
   !WRITE(117,*) "i_step = ",i
@@ -461,7 +465,7 @@ PROGRAM tdph
   CASE("acrs")
     CALL ACRS0(nph,ph_coefficients, force_diff, chisq_acrs)
   CASE("lmdif")
-    CALL lmdif0(chi_lmdif, mfcn, nph, ph_coefficients, force_diff, input%thr, iswitch)
+    CALL lmdif0(chi_lmdif, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("none")
     ! Do nothing
   CASE DEFAULT
@@ -470,7 +474,7 @@ PROGRAM tdph
   !
   nfar = 0
   iswitch = 0
-  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.periodic", Si, fcout)
 
@@ -503,7 +507,7 @@ PROGRAM tdph
   CLOSE(117)
    !
   nfar = 2
-  CALL chi_lmdif(mfcn, nph, ph_coefficients, force_diff, iswitch)
+  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
@@ -520,18 +524,19 @@ PROGRAM tdph
 ! at least as large as the number of degrees of freedom containing the penalty
 ! (NOT SQUARED) for each dimension. 
 !-----------------------------------------------------------------------
- SUBROUTINE chi_lmdif(mfc, nph, ph_coef, fdiff2, iswitch)
+ SUBROUTINE chi_lmdif(mdata_tot, nph, ph_coef, diff_tot, iswitch)
   !-----------------------------------------------------------------------
   ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
   ! forces for n_steps molecur dyanmics simulation 
   !
   USE tdph_module,  ONLY : nfar
-  USE mpi_thermal,  ONLY : mpi_bsum
+  USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec
   USE decompose_d2, ONLY : recompose_fc
   IMPLICIT NONE
-  INTEGER,INTENT(in)    :: mfc, nph
+  INTEGER,INTENT(in)    :: mdata_tot, nph
   REAL(DP),INTENT(in)   :: ph_coef(nph)
-  REAL(DP),INTENT(out)  :: fdiff2(mfc)
+  REAL(DP),INTENT(out)  :: diff_tot(mdata_tot)
+  REAL(DP)  :: diff(mdata)
   INTEGER,INTENT(inout) :: iswitch
 
   INTEGER :: nq_done, iph, iq, i, j, k
@@ -551,26 +556,29 @@ PROGRAM tdph
   ! T = input%T
   ! kbT = K_BOLTZMANN_RY*T
   !
-  fdiff2 = 0._dp
+  !diff = 0._dp
 
-  DO i = 1, n_steps
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
-      fdiff2 = fdiff2 + RESHAPE( ABS(force_harm(:,:,i) - force_md(:,:,i)), (/ mfc /) )
+      diff = RESHAPE( force_harm(:,:,:) - force_md(:,:,:), (/ mdata /) )
     CASE('energy')
-      fdiff2 = fdiff2 + (h_energy(i)-toten_md(i))
+      STOP 100
+      !DO i = 1, n_steps
+      !diff = diff + (h_energy(i)-toten_md(i))**2
+      !ENDDO
     CASE('thforce')
-      fdiff2 = fdiff2 + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))*EXP(-toten_md(i)) ), (/ mfc /) )
+      STOP 100
+      !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
     CASE DEFAULT
       CALL errore("tdph", 'unknown chi2 method', 1)
     END SELECT
-  ENDDO
 
-  CALL mpi_bsum(mfc, fdiff2) 
+  CALL allgather_vec(mdata, diff, diff_tot)
 
   IF(iswitch==1)THEN
+  WRITE(88888,*) iter, diff_tot
     iter = iter+1
-    chi2 = SUM(fdiff2**2)/(n_steps*num_procs)
+    chi2 = SUM(diff_tot**2)/mdata_tot
     ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every input%nprint steps have a look

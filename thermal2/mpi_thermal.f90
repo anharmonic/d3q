@@ -533,6 +533,56 @@ MODULE mpi_thermal
   END SUBROUTINE
 
   ! Divide a vector among all the CPUs
+  SUBROUTINE allgather_vec(nn_send, vec_send, vec_recv) !, ii_recv)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: nn_send
+    REAL(DP),INTENT(in) :: vec_send(nn_send)
+    REAL(DP),INTENT(out) :: vec_recv(:) 
+    !INTEGER,OPTIONAL,INTENT(out)  :: ii_recv
+    !
+    !INTEGER :: nn_summed, i
+    INTEGER :: i, nn_recv
+    INTEGER,ALLOCATABLE  :: nn_scatt(:), ii_scatt(:)
+    CHARACTER(len=11),PARAMETER :: sub='scatter_vec'
+    !
+    IF(.not.mpi_started) CALL errore(sub, 'MPI not started', 1)
+!    IF(num_procs>nn_send) CALL errore(sub, 'num_procs > nn_send, this can work but makes no sense', 1)
+
+#ifdef __MPI
+    ALLOCATE(nn_scatt(num_procs))
+    ALLOCATE(ii_scatt(num_procs))
+
+    nn_scatt = 0
+    nn_scatt(my_id+1) = nn_send
+    CALL mpi_bsum(num_procs, nn_scatt)
+    ii_scatt = 0
+    ii_scatt(my_id+1) = SUM(nn_scatt(1:my_id))
+    CALL mpi_bsum(num_procs, ii_scatt)
+    nn_recv = nn_send
+    CALL mpi_bsum(nn_recv)
+
+    !IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    !IF(my_id==0) THEN
+    !  ALLOCATE(vec_recv(nn_recv))
+    !ELSE
+    !  ALLOCATE(vec_recv(0))
+    !ENDIF
+    IF(size(vec_recv)<nn_recv) STOP 888
+!    print*, "ALLGATHER",  my_id, nn_send, nn_recv, size(vec_send), size(vec_recv)
+
+    CALL MPI_allgatherv(vec_send, nn_send, MPI_DOUBLE_PRECISION, &
+                        vec_recv, nn_scatt, ii_scatt, MPI_DOUBLE_PRECISION, &
+                        MPI_COMM_WORLD, ierr )
+#else
+    !nn_recv = nn_send
+    !IF(allocated(vec_recv)) DEALLOCATE(vec_recv)
+    !ALLOCATE(vec_recv(nn_recv))
+    vec_recv = vec_send
+#endif
+  END SUBROUTINE allgather_vec
+
+
+  ! Divide a vector among all the CPUs
   SUBROUTINE gather_vec(nn_send, vec_send, vec_recv) !, ii_recv)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nn_send
