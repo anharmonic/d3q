@@ -47,7 +47,7 @@ EXTOBJS = ../src/libd3q.a \
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib
 
-LIBOBJS = ../../clib/clib.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+LIBOBJS = ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
 
 SRC = $(shell ls *.f90 *.c|grep -v PROGRAM_)
 OBJ = $(shell ls *.f90 *.c|grep -v PROGRAM_|sed -e 's/\.f90$$/.o/' -e 's/\.c$$/.o/')
