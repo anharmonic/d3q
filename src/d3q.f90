@@ -100,22 +100,14 @@ program d3q
   !
   ! Initialize MPI, clocks, print initial messages
   !
-!#ifdef __MPI
-!  CALL mp_startup ( )
-!  CALL mp_startup ( start_images=.false. )
-!  CALL mp_start_diag ( ndiag_, world_comm, intra_bgrp_comm, &
-!       do_distr_diag_inside_bgrp_ = .true. )
-!  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
-!       inter_bgrp_comm )
-!  CALL mp_startup ( start_images=.true. )
-!  CALL laxlib_start ( ndiag_, world_comm, intra_bgrp_comm, &
-!       do_distr_diag_inside_bgrp_ = .true. )
-!  CALL set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, &
-!       inter_bgrp_comm )
-!#endif
-  CALL environment_start ( code )
   !
-  CALL start_clock('D3TOTEN')
+  !CALL init_clocks(.TRUE.)
+  !
+  !CALL start_clock('D3TOTEN')
+  !
+  CALL mp_startup(start_images = .false.)
+  !
+  CALL environment_start ( code )
   !
 #ifndef __XLF
   WRITE(stdout, '(4(5x,a,/) )') &

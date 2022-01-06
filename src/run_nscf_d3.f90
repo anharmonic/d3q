@@ -171,7 +171,7 @@ SUBROUTINE setup_nscf_d3()
                                  copy_sym, s_axis_to_cart
   USE wvfct,              ONLY : nbnd, nbndx
   USE control_flags,      ONLY : ethr, isolve, david, max_cg_iter, &
-                                 noinv !, use_para_diag
+                                 noinv, use_para_diag
   USE mp_pools,           ONLY : kunit, inter_pool_comm
   !USE spin_orb,           ONLY : domag
   USE noncollin_module,   ONLY : noncolin,domag
@@ -209,6 +209,8 @@ SUBROUTINE setup_nscf_d3()
   max_cg_iter=100
   nbndx = david*nbnd
   natomwfc = n_atom_wfc( nat, ityp, noncolin )
+ 
+  CALL set_para_diag( nbnd, use_para_diag )
   
   !lkpoint_dir=.false. ! to avoid very large number of directories
   IF(d3_degauss>0._dp) THEN
