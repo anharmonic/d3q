@@ -103,7 +103,7 @@ program d3q
   !
   !CALL init_clocks(.TRUE.)
   !
-  !CALL start_clock('D3TOTEN')
+  CALL start_clock('D3TOTEN')
   !
   CALL mp_startup(start_images = .false.)
   !
