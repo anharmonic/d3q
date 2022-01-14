@@ -6,7 +6,7 @@ STRIP = true #strip
 
 # location of needed modules
 MODFLAGS= $(MOD_FLAG)../../Modules $(MOD_FLAG)../../LAXlib $(MOD_FLAG)../../UtilXlib \
-          $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
+          $(MOD_FLAG)../../FFTXlib/src $(MOD_FLAG)../../PW/src $(MOD_FLAG)../../LR_Modules $(MOD_FLAG)../../PHonon/PH \
 	  $(MOD_FLAG)../src \
 	  $(MOD_FLAG).
 
@@ -16,13 +16,9 @@ IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH
 # vectorized vdCos and vdSin
 DFLAGS+= -D__HASVTRIG
 
-# lines for xlf90 on bluegene
-#F90FLAGS += -fcheck=all -fbacktrace -pg
-#F90FLAGS += -qxlf2003=polymorphic -qsmp=omp
-#F90FLAGS += -qsmp=omp
-# intel fortran, use -fopenmp on gfortran:
 #F90FLAGS += -check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
+
 #F90FLAGS += -fopenmp 
 #LDFLAGS  += -fopenmp #-pg -g
 
@@ -33,7 +29,6 @@ DFLAGS+= -D__HASVTRIG
 # For PGI
 #F90FLAGS += -g77libs
 #F90FLAGS += -Mbounds -Mchkptr -Mchkstk -traceback
-
 
 
 PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
