@@ -128,100 +128,18 @@ MODULE eos
       ! LMDIF takes as input the difference between f_fit and f_real
       !       and computes the chi^2 internally.
       SUBROUTINE EOSDIFF(m_, n_, par_, f_, i_)
-            IMPLICIT NONE
-              INTEGER,INTENT(in)  :: m_, n_
-              INTEGER,INTENT(inout)   :: i_
-              REAL(DP),INTENT(in)    :: par_(n_)
-              REAL(DP),INTENT(out)   :: f_(m_)
-              REAL(DP) :: chisq_
-              !
-              CALL eqstate(istat,n_,par_,npt,v0,etot,efit,emin,chisq_)
-              f_ = etot - efit
-            END SUBROUTINE
+          IMPLICIT NONE
+            INTEGER,INTENT(in)  :: m_, n_
+            INTEGER,INTENT(inout)   :: i_
+            REAL(DP),INTENT(in)    :: par_(n_)
+            REAL(DP),INTENT(out)   :: f_(m_)
+            REAL(DP) :: chisq_
+            !
+            CALL eqstate(istat,n_,par_,npt,v0,etot,efit,emin,chisq_)
+            f_ = etot - efit
+       END SUBROUTINE
    
-      END SUBROUTINE
-!-----------------------------------------------------------------------
-      SUBROUTINE find_minimum(istat,npar,par,npt,v0,etot,efit,emin,chisq)
-!-----------------------------------------------------------------------
-!
-!     Very Stupid Minimization
-!
-      USE random_numbers, ONLY : randy
-      IMPLICIT NONE
-      INTEGER ,INTENT(in)  :: istat, npar, npt
-      REAL(DP),INTENT(in)  :: v0(npt),etot(npt)
-      REAL(DP),INTENT(out) :: efit(npt), emin
-      REAL(DP),INTENT(out) :: par(maxpar)
-      REAL(DP),INTENT(out) :: chisq
-      
-      INTEGER  :: n,j,i
-      INTEGER, PARAMETER :: nmin=10, nseek=10000
-      REAL(DP) :: parnew(maxpar), &
-                  parmin(maxpar), deltapar(maxpar), parmax(maxpar)
-      REAL(DP) :: chinew
-!
-!      various initializations
-!
-!       print*, "istat", istat
-!       print*, "npar", npar
-!       print*, "npt", npt
-!       print*, "v0", v0
-!       print*, "etot", etot
-
-      par(1) = v0(npt/2)
-      par(2) = 500.0d0
-      par(3) = 5.0d0
-      par(4) = -0.01d0
-!
-      parmin(1) = 0.0d0
-      parmin(2) = 0.0d0
-      parmin(3) = 1.0d0
-      parmin(4) = -1.0d0
-!
-      parmax(1) = 100000.d0
-      parmax(2) = 100000.d0
-      parmax(3) = 15.0d0
-      parmax(4) = 0.0d0
-!
-      deltapar(1) = 1.0d0
-      deltapar(2) = 100.d0
-      deltapar(3) = 1.0d0
-      deltapar(4) = 0.01d0
-
-      chisq = 1.0d30
-      chinew= 1.0d30
-      CALL eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)
-      DO j = 1,nmin
-         DO i = 1,nseek
-            DO n = 1,npar
-10             parnew(n) = par(n) + (0.5d0 - randy())*deltapar(n)
-               IF(parnew(n)>parmax(n) .or. parnew(n)<parmin(n)) &
-                  GOTO 10
-            ENDDO
-!
-            CALL eqstate(istat,npar,parnew,npt,v0,etot,efit,emin,chinew)
-!
-            IF(chinew<chisq) THEN
-               DO n = 1,npar
-                  par(n) = parnew(n)
-               ENDDO
-               chisq = chinew
-            ENDIF
-         ENDDO
-         DO n = 1,npar
-            deltapar(n) = deltapar(n)/10.d0
-         ENDDO
-      ENDDO
-!
-      CALL eqstate(istat,npar,par,npt,v0,etot,efit,emin,chisq)
-!
-!       print*, "par", par
-!       print*, "efit", efit
-!       print*, "emin", emin
-!       print*, "chisq", chisq
-!       stop 0
-      RETURN
-    END SUBROUTINE find_minimum
+    END SUBROUTINE
 
 END MODULE eos
 ! <<^V^\\=========================================//-//-//========//O\\//
