@@ -256,10 +256,10 @@ MODULE qha_program
 !      iv_min = MINLOC(g,1)
 !      WRITE(90000+iT,*) "# minimum:", iv_min,  S(iv_min)%omega, g(iv_min)
 !      WRITE(90000+iT,*) "#", MINVAL(input%nrg_v), MINVAL(e_zp), MINVAL(e_ts(:,iT))
-      WRITE(90000+iT,'("#",a21,7a26)') "v0(iT)", "g0(iT)", &
+      WRITE(90000+iT,'(a,a21,7a26)') "#", "v0(iT)", "g0(iT)", &
                        "k0(iT)", "dk0(iT)", "d2k0(iT)"
       WRITE(90000+iT,'(a,5f20.10)') "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
-      WRITE(90000+iT,'("#",a21,8a26)') "volume", "gibbs_free_nrg", "electrons", &
+      WRITE(90000+iT,'(a,a21,8a26)') "#", "volume", "gibbs_free_nrg", "electrons", &
                        "zero-point", "ph_free_nrg", "pV", "g-g0", "g_fit"
       DO iv = 1, input%n_volumes
         WRITE(90000+iT,'(99f20.10)') vol(iv), g(iv), &

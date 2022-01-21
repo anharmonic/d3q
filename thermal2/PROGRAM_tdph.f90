@@ -223,7 +223,7 @@ PROGRAM tdph
                                force_diff(:), diff_tot(:), toten_md(:), h_energy(:)
   ! for lmdf1
   INTEGER                   :: n_steps, n_steps_tot, j_steps, nat_sc, ulog
-  INTEGER :: mfcn, mdata, mdata_tot
+  INTEGER :: mdata, mdata_tot !, mfcn
   !
   REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3)
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
@@ -353,7 +353,7 @@ PROGRAM tdph
     IF(ionode)THEN
     CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
        Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
-       symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2 )
+       symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2)
     ENDIF
     ! 
     call mpi_broadcast(rank(iq))
@@ -436,11 +436,12 @@ PROGRAM tdph
   ELSE
     CALL errore("tdph","unknown input format", 1)
   ENDIF
-  mfcn = 3*Si%nat*fc%n_R 
-  mdata = mfcn*n_steps
-  mdata_tot = mfcn*n_steps_tot
-  ALLOCATE(force_diff(mfcn))
+  !mfcn = 3*Si%nat*fc%n_R 
+  mdata = 3*nat_sc*n_steps
+  mdata_tot = 3*nat_sc*n_steps_tot
+  ALLOCATE(force_diff(3*nat_sc))
   ALLOCATE(diff_tot(mdata_tot))
+  ALLOCATE(force_harm(3,nat_sc,n_steps))
   nfar = 0
 
   !  DO i = 1, nph
@@ -449,6 +450,7 @@ PROGRAM tdph
   !factor = 1.d-3
   !CALL harmonic_force(n_steps, Si,fcout,u,force_harm,h_energy)
   ! before minimization
+  iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
   DO i = 1, n_steps
@@ -530,7 +532,7 @@ PROGRAM tdph
   ! forces for n_steps molecur dyanmics simulation 
   !
   USE tdph_module,  ONLY : nfar
-  USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec
+  USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec, my_id
   USE decompose_d2, ONLY : recompose_fc
   IMPLICIT NONE
   INTEGER,INTENT(in)    :: mdata_tot, nph
@@ -560,7 +562,7 @@ PROGRAM tdph
 
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
-      diff = RESHAPE( force_harm(:,:,:) - force_md(:,:,:), (/ mdata /) )
+      diff = RESHAPE( (force_harm(:,:,:) - force_md(:,:,:)), (/ mdata /) )
     CASE('energy')
       STOP 100
       !DO i = 1, n_steps
@@ -576,11 +578,18 @@ PROGRAM tdph
   CALL allgather_vec(mdata, diff, diff_tot)
 
   IF(iswitch==1)THEN
-  WRITE(88888,*) iter, diff_tot
+  !WRITE(80000+my_id,"(i10,99(/,24f9.5))") iter, diff_tot*1000
+  !WRITE(80000+my_id,"(i10,99(/,24f9.5))") iter, (force_harm(:,:,:) - force_md(:,:,:))*1000
     iter = iter+1
-    chi2 = SUM(diff_tot**2)/mdata_tot
+    chi2 = SQRT(SUM(diff_tot**2))
     ioWRITE(*,'(i10,e12.2)') iter, chi2
-    ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coefficients
+
+    !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
+    !CALL mpi_bsum(chi2)
+    !chi2=SQRT(chi2)
+    !print*,"caz", iter,  chi2, (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
+
+    ioWRITE(ulog, "(i10,f14.10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every input%nprint steps have a look
     IF(MODULO(iter,input%nprint)==0) &
       CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
@@ -640,7 +649,7 @@ PROGRAM tdph
     CALL mpi_bsum(fdiff2) 
 
     iter = iter+1
-    chi2 = SQRT(fdiff2)/(n_steps*num_procs)
+    chi2 = SQRT(fdiff2)/n_steps_tot
     ioWRITE(*,'(i10,e12.2)') iter, chi2
     ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coef
     ! Every 1000 steps have a look
