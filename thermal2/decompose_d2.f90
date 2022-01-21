@@ -146,22 +146,34 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
 
 !  INTEGER, INTENT(OUT) :: npert(3*nat), nirr
   REAL(DP)   :: eigen(3*nat)
+  CHARACTER(len=9) :: method = 'random'
+  logical :: lgamma
   complex(DP):: u(3*nat, 3*nat)
   
   integer :: i, j, k, nx, jx, na, nb
 
   complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
   complex(DP) :: mtx(3*nat, 3*nat, 9*nat**2)
-  real(DP)    :: normtx
-  print*, 10000040
+  real(DP)    :: normtx, sq_normtx_m1
+  real(DP),parameter :: eps_base = 1.d-8
 
    ! build an initial trivial basis for the hermitean matrices space
-   IF(present(u0))THEN
+   IF (method=="mu") THEN
+      IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
       call generate_mu_base(3*nat, mtx, u0, nx)
-   ELSE
+   ELSEIF (method=="simple") THEN
       call generate_simple_base(3*nat, mtx, nx)
+   ELSEIF (method=="random") THEN
+      ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", 9*nat**2
+      DO i = 1, 9*nat**2
+        lgamma = SUM(ABS(xq)) < 1.d-8
+        CALL random_matrix_new (irt, nsymq, minus_q, irotmq, nat, wdyn, lgamma)
+        CALL compact_dyn(nat, mtx(:,:,i), wdyn)
+      ENDDO
+      nx = 9*nat**2
+   ELSE
+      CALL errore("generate d2 base", 'Unknown method (can only be: mu, simple, random)', 1)
    ENDIF
-   print*, 10000050
 
    ! symmetrize each matrix
    DO i = 1,nx
@@ -180,15 +192,16 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
      CALL compact_dyn(nat, mtx(:,:,i), wdyn)
      !WRITE(*,'(6(2f7.3,3x),5x)') mtx(:,:,i)
    ENDDO
-   print*, 10000051
 
    ! Some matrices can be zero at this point, we throw them away
    jx = 0
    DO i = 1,nx
      normtx = dotprodmat(3*nat, mtx(:,:, i),mtx(:,:, i))
-     IF(normtx>1.d-12)THEN
+     IF(normtx > eps_base)THEN
       jx = jx+1
-      mtx(:,:,jx) = mtx(:,:, i)/ DSQRT(normtx)
+      sq_normtx_m1 = 1._dp / DSQRT(normtx)
+      mtx(:,:,jx) = mtx(:,:, i) * sq_normtx_m1
+      CALL enforce_hermitean(3*nat, mtx(:,:,jx))
       !print*, i, jx, normtx
      ENDIF
    ENDDO
@@ -205,9 +218,11 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
 !        mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, phi, mtx(:,:,j))
      ENDDO
      normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
-     IF(normtx > 1.d-12)THEN
+     IF(normtx > eps_base)THEN
        jx = jx+1
-       mtx(:,:,jx) = mtx(:,:,i)/DSQRT(normtx)
+       sq_normtx_m1 = 1._dp / DSQRT(normtx)
+       mtx(:,:,jx) = mtx(:,:,i) * sq_normtx_m1
+       CALL enforce_hermitean(3*nat, mtx(:,:,jx))
        IF(jx<i) mtx(:,:,i) = 0._dp
        !print*, jx, i, normtx
      ENDIF
@@ -265,6 +280,24 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    return
 end subroutine find_d2_symm_base
 
+subroutine enforce_hermitean(n,a)
+  use kinds, only : dp
+  implicit none
+  integer,intent(in) :: n
+  complex(dp),intent(inout) :: a(n,n)
+  integer :: i,j
+  do i = 1, n
+    a(i,i) = DBLE(a(i,i))
+  enddo
+  do i = 1, n
+  do j = i+1, n
+    a(i,j) = 0.5_dp * (a(i,j)+ CONJG(a(j,i)))
+    a(j,i) =  a(i,j)
+  enddo
+  enddo
+end subroutine
+
+
 function dotprodmat(n,a,b) result(r)
   use kinds, only : dp
   implicit none
@@ -287,7 +320,8 @@ function dotprodmat(n,a,b) result(r)
     z = z + CONJG(b(j,i))*a(j,i)
   enddo
   enddo
-  IF(ABS(imag(z))>1.d-8) CALL errore("dotprodmat", "unexpected imaginary part", 1)
+!  IF(ABS(imag(z))>1.d-6*n**2) PRINT*, "Large imaginary part in <D|D'>",  ABS(imag(z))
+  IF(ABS(imag(z))>1.d-4*n**2) CALL errore("dotprodmat", "unexpected imaginary part", 1)
   r = dble(z)
 end function
 
