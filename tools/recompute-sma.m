@@ -21,29 +21,43 @@ for T = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 80 90 100 120 140 160 180 200 220 2
 #T=__T #300
 volume=951.106863;
 # when reading files produced by d3_tk.x, with option store_lw=.true.
-
+ 
+  # velocity 
   f_vel=load("vel.Def.0005.11x11x11.out");
+
+  # linewidth
   f_lw=load( strrep("lw.11x11x11_T__T_s2.out", "__T", mat2str(T)));
-  #f_lwiso=load( strrep("lwiso.Natural.11x11x11_T__T_s2.out", "__T", mat2str(T)));
+
+  # isotopic scattering (if available)
   f_lwiso=load( strrep("lwiso.Def.0005.11x11x11_T__T_s2.out", "__T", mat2str(T)));
+
+  # casimir scattering
   f_lwcas=load("lwcas.250mu.11x11x11.out");
+
+  # phonon frequencies
   f_freq=load("freq.Def.0005.11x11x11.out");
 
   nat3=(size(f_lw,2));
   nq = size(f_lw,1);
 
+  # convert to Ry what is in cm^1 add all scattering ties using Mathiessen's rule
   vel =f_vel; #already in Ry (bohr length/Ry time)
   freq=f_freq*cmm1_to_ry;
+  # 
   lw  =2*(f_lw+f_lwiso+f_lwcas)*cmm1_to_ry;
-  #lw  =2*(f_lw+f_lwiso)*cmm1_to_ry;
   clear f_vel f_lw f_freq f_lwiso f_lwcas
 
-n   = bose(freq, T);
+  # Bose-Einstein occupation
+  n   = bose(freq, T);
 
-pref=1/(volume*T^2*kB_ry*nq) * ry_to_wattmm1km1;
-tk = zeros(3,3);
-for iq = [1:nq];
+  # prefactor of the sum
+  pref=1/(volume*T^2*kB_ry*nq) * ry_to_wattmm1km1;
+  tk = zeros(3,3);
+
+  # integrate over q-points
+  for iq = [1:nq];
   #
+  # Sum over bands
   for nu  = [1:nat3]; 
     #
     aux = pref * freq(iq,nu)^2 * n(iq,nu)*(n(iq,nu)+1) / lw(iq,nu);
@@ -53,19 +67,10 @@ for iq = [1:nq];
       tk(alpha,beta) = tk(alpha,beta) + aux* vel(iq,3*(nu-1)+alpha)*vel(iq,3*(nu-1)+beta);
     end
     end
-  end 
+  end # bands
   #
-end 
+end  # Q-points
 printf("0 0  %.0f   %.5f   %.5f  %.5f\n", T, tk(1,1), tk(2,2), tk(3,3))
 
 end # Temperatures
-
-#tk_base=[0.918628E+00   -0.353574E-01   0.491818E-02
-#         -0.353574E-01  0.889474E+00 -0.244528E-02
-#         0.491818E-02 -0.244528E-02  0.261615E+00]
-#
-#tk ./ tk_base
-
-
-
 
