@@ -117,7 +117,7 @@ SUBROUTINE d3_init
   !
   ! Writes to file the plane-wave ordering of each k (including k+q_x) point.
   !
-  IF(nksq<=0) CALL errore('d3_init', 'nksq is zero', 1)
+  IF(nksq<=0) CALL errore('d3_init', 'nksq is zero: are you using more pools than k-points?', 1)
   !
   ! FIXME: The next subroutine compute the k+q+G lists for all q and k points,
   ! this has already been done somewhere during the nscf calculation
