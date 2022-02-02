@@ -16,11 +16,12 @@ IFLAGS+=-I../../FFTXlib -I../../include -I../../PHonon/PH
 # vectorized vdCos and vdSin
 DFLAGS+= -D__HASVTRIG
 
-#F90FLAGS += -check all -traceback -g
+#F90FLAGS += -heap-arrays 10
+#-check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
 
-#F90FLAGS += -fopenmp 
-#LDFLAGS  += -fopenmp #-pg -g
+F90FLAGS += -qopenmp 
+LDFLAGS  += -qopenmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
@@ -35,14 +36,14 @@ PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
-         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
+         ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
 EXTOBJS = ../src/libd3q.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib
 
-LIBOBJS = ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+LIBOBJS = ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a
 
 SRC = $(shell ls *.f90 *.c|grep -v PROGRAM_)
 OBJ = $(shell ls *.f90 *.c|grep -v PROGRAM_|sed -e 's/\.f90$$/.o/' -e 's/\.c$$/.o/')
@@ -66,6 +67,7 @@ harmonic.o \
 input_fc.o \
 isotopes.o \
 linewidth.o \
+lmdif_p.o \
 mc_grids.o \
 merge_degenerate.o \
 more_constants.o \

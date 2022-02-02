@@ -6,6 +6,8 @@ MODULE harmonic_module
 #include "mpi_thermal.h"
   !
   INTEGER, ALLOCATABLE   :: idx_R_map(:,:) 
+  INTEGER, ALLOCATABLE   :: jj_to_j(:)
+  INTEGER, ALLOCATABLE   :: jj_to_jat(:)
   !
  CONTAINS
   !
@@ -19,6 +21,7 @@ MODULE harmonic_module
   USE Kinds, ONLY     : DP
   USE input_fc, ONLY  : read_fc2, forceconst2_grid, ph_system_info, & 
                           read_system, aux_system ! use only: .. to know precisely what comes from where, a good practice
+  USE timers
   !USE harmonic_subroutines
   !
   IMPLICIT NONE
@@ -37,10 +40,12 @@ MODULE harmonic_module
   !
   ! compute force
   ! OPEN(331, file="F_harm.dat", status="unknown")
-  h_force(:,:,:) = 0._dp
+  CALL t_force%start()
+  !h_force(:,:,:) = 0._dp
   DO i_step = 1, n_steps
     CALL harmonic_force(S,fc2,nat_tot,u_disp(:,:,i_step),h_force(:,:,i_step),h_energy(i_step))
   ENDDO
+  CALL t_force%stop()
 
  ! 
  END SUBROUTINE 
@@ -90,23 +95,43 @@ MODULE harmonic_module
       IF(idx_R_map(j,k)==-1) CALL errore("harm_force", "could not find some R,R'", 1)
     ENDDO
     ENDDO
+    !
+    IF(nat_tot /= fc2%n_R*S%nat) CALL errore("harmonic_f", "unexpected j,jat", 1)
+    jj = 0
+    ALLOCATE(jj_to_j(nat_tot))
+    ALLOCATE(jj_to_jat(nat_tot))
+    DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
+    DO jat = 1, S%nat
+      jj=jj+1
+      jj_to_j(jj) = j
+      jj_to_jat(jj) = jat
+    ENDDO
+    ENDDO
   ENDIF
 
   ! compute force
   ! OPEN(331, file="F_harm.dat", status="unknown")
   h_force(:,:) = 0._dp
   h_energy     = 0._dp
-  jj=0 
-  DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
-  DO jat = 1, S%nat
-    jj=jj+1
+!  jj=0 
+!  DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
+!  DO jat = 1, S%nat
+!    jj=jj+1
+!$OMP PARALLELDO DEFAULT(SHARED) PRIVATE(j, jat, jj, alpha, nu, k, kat, kk, beta, mu, i) REDUCTION(+:h_energy)
+! no need to reduce force because each thread acts on a different memory location REDUCTION(+:h_force)
+   DO jj = 1, nat_tot
+   j   = jj_to_j(jj)
+   jat = jj_to_jat(jj)
     DO alpha = 1,3      
       nu = (jat-1)*3 + alpha
       ! ((j,jat)->jj, alpha) -> nu
-      kk=0
-      DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
-      DO kat = 1, S%nat ! ... over all atoms in the unit cell
-      kk=kk+1
+!     kk=0
+!     DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
+!      DO kat = 1, S%nat ! ... over all atoms in the unit cell
+!      kk=kk+1
+      DO kk = 1, nat_tot
+      k   = jj_to_j(kk)
+      kat = jj_to_jat(kk)
       DO beta = 1,3 ! ... over cartesian axes x,y,z for each atom
         ! ((k,kat)->kk, beta) -> mu
         mu = (kat-1)*3 + beta
@@ -117,11 +142,12 @@ MODULE harmonic_module
                   + 0.5_dp*fc2%FC(nu,mu,i) * u_disp(alpha,kk)*u_disp(beta,jj)
 
       ENDDO
-      ENDDO
-      ENDDO
+      ENDDO ! kk
+      !ENDDO
     ENDDO
-  ENDDO
-  ENDDO
+  ENDDO ! jj
+!  ENDDO
+!$OMP END PARALLELDO
  ! 
  END SUBROUTINE 
 

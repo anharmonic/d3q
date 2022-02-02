@@ -153,9 +153,11 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   integer :: i, j, k, nx, jx, na, nb
 
   complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
-  complex(DP) :: mtx(3*nat, 3*nat, 9*nat**2)
+  complex(DP),allocatable :: mtx(:,:,:) !(3*nat, 3*nat, 9*nat**2)
   real(DP)    :: normtx, sq_normtx_m1
   real(DP),parameter :: eps_base = 1.d-8
+
+  ALLOCATE(mtx(3*nat, 3*nat, 9*nat**2))
 
    ! build an initial trivial basis for the hermitean matrices space
    IF (method=="mu") THEN
@@ -260,6 +262,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ioWRITE(*,*) "+", "Decomposition done"
 #endif
 
+  DEALLOCATE(mtx)
 
 !   WRITE(*,*) "total:" 
 !   phi = phi / DSQRT(DBLE(nx))
@@ -315,11 +318,14 @@ function dotprodmat(n,a,b) result(r)
   !do i = 1,n
   ! z = z+c(i,i)
   !enddo
+!$OMP PARALLELDO COLLAPSE(2) DEFAULT(shared) PRIVATE(i,j) REDUCTION(+:z)
   do i = 1, n
   do j = 1, n
     z = z + CONJG(b(j,i))*a(j,i)
   enddo
   enddo
+!$OMP END PARALLELDO
+
 !  IF(ABS(imag(z))>1.d-6*n**2) PRINT*, "Large imaginary part in <D|D'>",  ABS(imag(z))
   IF(ABS(imag(z))>1.d-4*n**2) CALL errore("dotprodmat", "unexpected imaginary part", 1)
   r = dble(z)
@@ -633,6 +639,7 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    USE kinds, ONLY : DP
    USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info
    USE quter_module,       ONLY : quter
+   USE timers
 
    IMPLICIT NONE
    TYPE(ph_system_info),INTENT(in)   :: Si
@@ -649,6 +656,8 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    !
    COMPLEX(DP),ALLOCATABLE :: star_wdyn(:,:,:,:,:), star_dyn(:,:,:)
    REAL(DP),ALLOCATABLE :: xqmax(:,:)
+
+   CALL t_recom%start()
 
    ALLOCATE(star_wdyn(3,3,Si%nat,Si%nat, nqmax))
    ALLOCATE(xqmax(3,nqmax))
@@ -692,8 +701,8 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
    !
    DEALLOCATE(xqmax, star_wdyn)
+   CALL t_recom%stop()
 
-   IF(nfar.ne.0) RETURN
    END SUBROUTINE
 
 END MODULE

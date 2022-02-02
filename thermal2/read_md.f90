@@ -153,17 +153,18 @@ MODULE read_md_module
         ENDIF
         
        IF(i_step >= n_steps) THEN
-          print*, "nsteps reached... exiting"
+          !print*, "nsteps reached... exiting"
           EXIT READ_LOOP
        ENDIF
   ENDDO READ_LOOP
 
   IF(i_step<n_steps) THEN
-     print*, "only found ", i_step, "steps"
+  !   IF(my_id=num_procs-1) WRITE(*,*) "Only found ", i_step, "steps on last CPU."
      n_steps = i_step
   ENDIF
   n_steps_tot = n_steps
   CALL mpi_bsum(n_steps_tot)
+  IF(n_steps_tot<n_steps0) WRITE(*,*) "WARNING: number of steps requested was larger: ", n_steps0
   ioWRITE(*,*) "Number of steps read among all CPUs : ", n_steps_tot
 
   CLOSE(uni_tau)

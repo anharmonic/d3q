@@ -100,6 +100,7 @@ set (src_thermal2
      thermal2/input_fc.f90
      thermal2/isotopes.f90
      thermal2/linewidth.f90
+     thermal2/lmdif_p.f90
      thermal2/mc_grids.f90
      thermal2/merge_degenerate.f90
      thermal2/more_constants.f90

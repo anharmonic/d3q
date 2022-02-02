@@ -32,6 +32,7 @@ harmonic.o : mpi_thermal.o
 input_fc.o : mpi_thermal.o
 isotopes.o : mpi_thermal.o
 linewidth.o : mpi_thermal.o
+lmdif_p.o : mpi_thermal.o
 mc_grids.o : mpi_thermal.o
 merge_degenerate.o : mpi_thermal.o
 more_constants.o : mpi_thermal.o
@@ -174,6 +175,7 @@ PROGRAM_tdph.o : ./decompose_d2.o
 PROGRAM_tdph.o : ./fc2_interp.o
 PROGRAM_tdph.o : ./harmonic.o
 PROGRAM_tdph.o : ./input_fc.o
+PROGRAM_tdph.o : ./lmdif_p.o
 PROGRAM_tdph.o : ./mpi_thermal.o
 PROGRAM_tdph.o : ./quter.o
 PROGRAM_tdph.o : ./read_md.o
@@ -208,6 +210,7 @@ code_input.o : ./timers.o
 decompose_d2.o : ./functions.o
 decompose_d2.o : ./input_fc.o
 decompose_d2.o : ./quter.o
+decompose_d2.o : ./timers.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
 dynbubble.o : ./functions.o
@@ -235,6 +238,7 @@ final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
 harmonic.o : ./input_fc.o
+harmonic.o : ./timers.o
 input_fc.o : ./mpi_thermal.o
 input_fc.o : ./ph_system.o
 isotopes.o : ./fc2_interp.o

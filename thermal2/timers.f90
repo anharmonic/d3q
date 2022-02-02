@@ -54,7 +54,16 @@ MODULE timers
                      t_qsummed_io   = nanotimer("q-resolved i/o & comm")
                      
   TYPE(nanotimer) :: t_optimize     = nanotimer("optimize grid")
-                    
+                 
+  ! for TDPH   
+  TYPE(nanotimer) :: t_minim = nanotimer("minimization"), &
+                     t_comm  = nanotimer("mpi comm"), &
+                     t_read  = nanotimer("reading data"), &
+                     t_init  = nanotimer("initialization"), &
+                     t_force = nanotimer("forces"), &
+                     t_recom = nanotimer("phonons recon"), &
+                     t_chi2  = nanotimer("chi2")
+
 
   CONTAINS
   SUBROUTINE print_all_timers()

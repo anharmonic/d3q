@@ -182,10 +182,10 @@ PROGRAM tdph
   USE kinds,              ONLY : DP
   USE constants,          ONLY : amu_ry, K_BOLTZMANN_SI, K_BOLTZMANN_RY, RYTOEV !ry_to_kelvin
   USE parameters,         ONLY : ntypx
-  USE mp,                 ONLY : mp_bcast
-  USE mp_global,          ONLY : mp_startup, mp_global_end
-  USE mp_world,           ONLY : world_comm
-  USE environment,        ONLY : environment_start, environment_end
+  !USE mp,                 ONLY : mp_bcast
+  !USE mp_global,          ONLY : mp_startup, mp_global_end
+  !USE mp_world,           ONLY : world_comm
+  !USE environment,        ONLY : environment_start, environment_end
   ! symmetry
   USE symm_base,          ONLY : s, invs, nsym, find_sym, set_sym_bl, &
                                   irt, copy_sym, nrot, inverse_s, t_rev
@@ -207,6 +207,7 @@ PROGRAM tdph
   USE harmonic_module,    ONLY : harmonic_force_md
   ! minipack
   USE lmdif_module,       ONLY : lmdif0
+  USE lmdif_p_module,     ONLY : lmdif_p0
   USE timers
   !
   IMPLICIT NONE
@@ -238,11 +239,6 @@ PROGRAM tdph
   TYPE(forceconst2_grid) :: fc, fcout
   TYPE(dynmat_basis),ALLOCATABLE :: dmb(:)
   TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
-
-  TYPE(nanotimer) :: t_minim = nanotimer("minimization")
-  TYPE(nanotimer) :: t_comm  = nanotimer("mpi comm")
-  TYPE(nanotimer) :: t_read  = nanotimer("reading data")
-  TYPE(nanotimer) :: t_init  = nanotimer("initialization")
   TYPE(tdph_input_type) :: input
   !
   CALL start_mpi()
@@ -406,9 +402,6 @@ PROGRAM tdph
     ! Remove the mass factor, I cannot remove it before because the effective
     ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Si,d2)
-    !WRITE(998,'(i3,3f12.6)') iq, symq(iq)%xq
-    !WRITE(998,'(3(2f12.6,4x))') d2
-
     !
     ! Decompose the dynamical matrix over the symmetric basis at this q-point
     ioWRITE(stdout,'(2x,a)') "== DECOMPOSITION =="
@@ -421,7 +414,6 @@ PROGRAM tdph
   ENDDO Q_POINTS_LOOP2
   !
   ph_coefficients0 = ph_coefficients
-  CALL t_init%stop()
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
@@ -430,6 +422,9 @@ PROGRAM tdph
   n_skip = input%nskip !        ! number of steps to skip
 
   CALL fc_to_supercell(Si, fc, at_sc, bg_sc, nat_sc, tau_sc)
+  CALL t_init%stop()
+!###################  end of initialization ####################################################
+
   ALLOCATE(tau_md(3,nat_sc,n_steps))
   ALLOCATE(force_md(3,nat_sc,n_steps))
   ALLOCATE(toten_md(n_steps))
@@ -445,19 +440,19 @@ PROGRAM tdph
   ENDIF
   CALL t_read%stop()
 
+!###################  end of data input ####################################################
+
   mdata = 3*nat_sc*n_steps
   mdata_tot = 3*nat_sc*n_steps_tot
   ALLOCATE(force_diff(3*nat_sc))
   ALLOCATE(diff_tot(mdata_tot))
   ALLOCATE(force_harm(3,nat_sc,n_steps))
   nfar = 0
-
+  
+  ! FIXME: Compute and save to file the forces before minimization, should be removed
   !  DO i = 1, nph
   !    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
   !  ENDDO
-  !factor = 1.d-3
-  !CALL harmonic_force(n_steps, Si,fcout,u,force_harm,h_energy)
-  ! before minimization
   iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
@@ -466,22 +461,28 @@ PROGRAM tdph
         WRITE(118,'(E16.8)') h_energy(i) !
   END DO
   CLOSE(118)
-  ! where
+  !  -- end of FIXME
+
 
   !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
   OPEN(newunit=ulog, file="tdph.log", form="formatted", status="unknown")
 
+  CALL t_minim%start()
   SELECT CASE (input%minimization)
   CASE("acrs")
     CALL ACRS0(nph,ph_coefficients, force_diff, chisq_acrs)
   CASE("lmdif")
-    CALL lmdif0(chi_lmdif, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+    CALL lmdif_p0(chi_lmdif, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("none")
     ! Do nothing
   CASE DEFAULT
     CALL errore("tdph","unknown minimization engine requested",1)
   END SELECT
+  CALL t_minim%stop()
   !
+!###################  end of minimization ####################################################
+! Now write to file the fial matrices in "centered" and "periodic" form
+
   nfar = 0
   iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
@@ -521,11 +522,17 @@ PROGRAM tdph
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
+  ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
   CALL print_timers_header()
-  CALL t_minim%print()
-  CALL t_comm%print()
   CALL t_read%print()
   CALL t_init%print()
+  CALL t_minim%print()
+  ioWRITE(stdout,'("   * inside minimization ")')
+  CALL t_chi2%print()
+  ioWRITE(stdout,'("   * inside chi2 ")')
+  CALL t_comm%print()
+  CALL t_force%print()
+  CALL t_recom%print()
 
   CALL stop_mpi()
 
@@ -558,7 +565,7 @@ PROGRAM tdph
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   REAL(DP) :: chi2, e0
 
-  CALL t_minim%start()
+  CALL t_chi2%start()
 
   CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef,&
                     nq1, nq2, nq3, nqmax, nfar, fcout)
@@ -592,8 +599,6 @@ PROGRAM tdph
   CALL t_comm%stop() 
 
   IF(iswitch==1)THEN
-  !WRITE(80000+my_id,"(i10,99(/,24f9.5))") iter, diff_tot*1000
-  !WRITE(80000+my_id,"(i10,99(/,24f9.5))") iter, (force_harm(:,:,:) - force_md(:,:,:))*1000
     iter = iter+1
     chi2 = SQRT(SUM(diff_tot**2))
     ioWRITE(*,'(i10,e12.2)') iter, chi2
@@ -601,7 +606,6 @@ PROGRAM tdph
     !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
     !CALL mpi_bsum(chi2)
     !chi2=SQRT(chi2)
-    !print*,"caz", iter,  chi2, (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
 
     ioWRITE(ulog, "(i10,f14.10,9999f12.6)") iter, chi2, ph_coefficients
     ! Every input%nprint steps have a look
@@ -609,7 +613,7 @@ PROGRAM tdph
       CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
   ENDIF
 
-  CALL t_minim%stop()
+  CALL t_chi2%stop()
   !
   END SUBROUTINE chi_lmdif
   !
