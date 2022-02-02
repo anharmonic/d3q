@@ -243,6 +243,7 @@ PROGRAM tdph
   TYPE(tdph_input_type) :: input
   !
   CALL start_mpi()
+  CALL remove_stack_limit()
   !
   ! Read namelist tdphinput
   CALL READ_INPUT_TDPH(input)

@@ -560,6 +560,7 @@ PROGRAM linewidth
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('LW')
   CALL start_mpi()
+  CALL remove_stack_limit()
   CALL init_nanoclock()
   !
   IF(ionode) CALL print_citations_linewidth()

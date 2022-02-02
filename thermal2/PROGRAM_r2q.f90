@@ -549,7 +549,7 @@ MODULE r2q_program
     USE constants,        ONLY : RY_TO_CMM1, pi, tpi
     USE functions,        ONLY : f_bose
     USE fc2_interpolate,  ONLY : freq_phq
-    USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
+    USE mpi_thermal,      ONLY : mpi_bsum, stop_mpi
     IMPLICIT NONE
     TYPE(code_input_type) :: input
     TYPE(q_grid), INTENT(in) :: listq
@@ -709,6 +709,7 @@ PROGRAM r2q
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
   CALL start_mpi()
+  CALL remove_stack_limit()
   CALL init_nanoclock()
   IF(ionode) CALL print_citations_linewidth()
   !  
