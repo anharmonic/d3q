@@ -240,6 +240,9 @@ PROGRAM tdph
   TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
 
   TYPE(nanotimer) :: t_minim = nanotimer("minimization")
+  TYPE(nanotimer) :: t_comm  = nanotimer("mpi comm")
+  TYPE(nanotimer) :: t_read  = nanotimer("reading data")
+  TYPE(nanotimer) :: t_init  = nanotimer("initialization")
   TYPE(tdph_input_type) :: input
   !
   CALL start_mpi()
@@ -303,6 +306,8 @@ PROGRAM tdph
   ALLOCATE(rank(nq_wedge))
   ALLOCATE(symq(nq_wedge))
 
+  CALL t_init%start()
+
   Q_POINTS_LOOP : &
   DO iq = 1, nq_wedge
     ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
@@ -357,9 +362,11 @@ PROGRAM tdph
        symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2)
     ENDIF
     ! 
+    CALL t_comm%start()
     call mpi_broadcast(rank(iq))
     IF(.not.ionode) ALLOCATE(dmb(iq)%basis(Si%nat3, Si%nat3, rank(iq)))
     CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis)
+    CALL t_comm%stop()
       !
     ! Calculate the list of points making up the star of q and of -q
     CALL tr_star_q(symq(iq)%xq, Si%at, Si%bg, symq(iq)%nsym, symq(iq)%s, symq(iq)%invs, &
@@ -414,7 +421,7 @@ PROGRAM tdph
   ENDDO Q_POINTS_LOOP2
   !
   ph_coefficients0 = ph_coefficients
-  !Si%lrigid = .false.
+  CALL t_init%stop()
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
@@ -422,12 +429,11 @@ PROGRAM tdph
   first_step = input%nfirst ! start reading from this step
   n_skip = input%nskip !        ! number of steps to skip
 
-  !read_md(md_file, toten0, nat_tot, alat, aa, first_step, n_skip, n_steps,&
-  !                  tau_md, force_md, toten_md, tau0, u_disp, vel_md)
   CALL fc_to_supercell(Si, fc, at_sc, bg_sc, nat_sc, tau_sc)
   ALLOCATE(tau_md(3,nat_sc,n_steps))
   ALLOCATE(force_md(3,nat_sc,n_steps))
   ALLOCATE(toten_md(n_steps))
+  CALL t_read%start()
   IF(input%ai=="md") THEN
   CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, first_step, n_skip, n_steps, &
                n_steps_tot, tau_md, force_md, toten_md, tau_sc, u)
@@ -437,7 +443,8 @@ PROGRAM tdph
   ELSE
     CALL errore("tdph","unknown input format", 1)
   ENDIF
-  !mfcn = 3*Si%nat*fc%n_R 
+  CALL t_read%stop()
+
   mdata = 3*nat_sc*n_steps
   mdata_tot = 3*nat_sc*n_steps_tot
   ALLOCATE(force_diff(3*nat_sc))
@@ -514,7 +521,11 @@ PROGRAM tdph
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
+  CALL print_timers_header()
   CALL t_minim%print()
+  CALL t_comm%print()
+  CALL t_read%print()
+  CALL t_init%print()
 
   CALL stop_mpi()
 
@@ -575,8 +586,10 @@ PROGRAM tdph
     CASE DEFAULT
       CALL errore("tdph", 'unknown chi2 method', 1)
     END SELECT
-
+  
+  CALL t_comm%start() 
   CALL allgather_vec(mdata, diff, diff_tot)
+  CALL t_comm%stop() 
 
   IF(iswitch==1)THEN
   !WRITE(80000+my_id,"(i10,99(/,24f9.5))") iter, diff_tot*1000
@@ -646,8 +659,10 @@ PROGRAM tdph
         CALL errore("tdph", 'unknown chi2 method', 1)
       END SELECT
     ENDDO
-   
+    
+    CALL  t_comm%start()
     CALL mpi_bsum(fdiff2) 
+    CALL  t_comm%stop()
 
     iter = iter+1
     chi2 = SQRT(fdiff2)/n_steps_tot
