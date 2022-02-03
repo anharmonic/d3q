@@ -21,7 +21,7 @@ MODULE tdph_module
     CHARACTER(len=8) :: minimization = "acrs"
     CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst, nskip, nmax, nprint
-    REAL(DP) :: e0, thr, T
+    REAL(DP) :: e0, thr, T, randomization
     !
   END TYPE tdph_input_type
   !
@@ -53,13 +53,14 @@ MODULE tdph_module
     INTEGER :: input_unit, aux_unit, err1, err2
     !CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
-    REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp
+    REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp, randomization=0._dp
     !
     NAMELIST  / tdphinput / &
         fmd, fforce, ftau, ftoten, &
         ai, file_mat2, fit_type, &
         nfirst, nskip, nmax, nprint, nread, &
-        e0, minimization, thr, T, basis
+        e0, minimization, thr, T, basis, &
+        randomization
 
     ioWRITE(*,*) "Waiting for input"
     !
@@ -124,6 +125,7 @@ MODULE tdph_module
     input%thr           = thr
     input%T             = T
     input%basis         = basis
+    input%randomization = randomization
     !
     CONTAINS 
     SUBROUTINE bcast_namelist_variables()
@@ -146,6 +148,7 @@ MODULE tdph_module
         CALL mpi_broadcast(thr)
         CALL mpi_broadcast(T)
         CALL mpi_broadcast(basis)
+        CALL mpi_broadcast(randomization)
     END SUBROUTINE
   END SUBROUTINE READ_INPUT_TDPH
   !
@@ -232,7 +235,7 @@ PROGRAM tdph
   INTEGER                   :: n_steps, n_steps_tot, j_steps, nat_sc, ulog
   INTEGER :: mdata, mdata_tot !, mfcn
   !
-  REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3)
+  REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3), aux
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
@@ -457,10 +460,28 @@ PROGRAM tdph
   nfar = 0
   
   ! FIXME: Compute and save to file the forces before minimization, should be removed
-!  DO i = 1, nph
-!    !ph_coefficients(i) = ph_coefficients(i) + MAXVAL(ABS(ph_coefficients))*(randy()-.5_dp)*.2_dp
-!    ph_coefficients(i) = SUM(ABS(ph_coefficients))/nph*2*(randy()-.5_dp)
-!  ENDDO
+  IF(input%randomization/=0._dp)THEN
+    IF(ionode)THEN
+      !
+      aux = 2*SUM(ABS(ph_coefficients))/nph*ABS(input%randomization)
+      !
+      IF(input%randomization>0._dp)THEN
+        WRITE(*,"(2x,a,f12.6)") "Adding random noise to initial phonons up to ", aux
+        DO i = 1, nph
+          ph_coefficients(i) = ph_coefficients(i) + aux*(randy()-.5_dp)
+        ENDDO
+      ELSE IF(input%randomization<0._dp)THEN
+        WRITE(*,"(2x,a,f12.6)") "Randomizing initial phonons up to ", aux
+        DO i = 1, nph
+          ph_coefficients(i) = aux*(randy()-.5_dp)
+        ENDDO
+      ENDIF
+      !
+    ENDIF
+    ! be sure that every CPU has the same coefficients
+    CALL mpi_broadcast(nph, ph_coefficients)
+  ENDIF
+
   iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
@@ -573,6 +594,7 @@ PROGRAM tdph
   INTEGER,SAVE :: iter = 0
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   REAL(DP) :: chi2, e0
+  REAL(DP),SAVE :: last_save = 0._dp
 
   CALL t_chi2%start()
 
