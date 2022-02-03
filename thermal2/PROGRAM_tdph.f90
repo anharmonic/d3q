@@ -19,6 +19,7 @@ MODULE tdph_module
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "acrs"
+    CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst, nskip, nmax, nprint
     REAL(DP) :: e0, thr, T
     !
@@ -46,6 +47,7 @@ MODULE tdph_module
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "acrs"
+    CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst=1000, nskip=100, nmax=-1, nprint=1000, nread=-1
 
     INTEGER :: input_unit, aux_unit, err1, err2
@@ -57,7 +59,7 @@ MODULE tdph_module
         fmd, fforce, ftau, ftoten, &
         ai, file_mat2, fit_type, &
         nfirst, nskip, nmax, nprint, nread, &
-        e0, minimization, thr, T
+        e0, minimization, thr, T, basis
 
     ioWRITE(*,*) "Waiting for input"
     !
@@ -79,7 +81,8 @@ MODULE tdph_module
         READ(input_unit, tdphinput, iostat=err1)
         ioWRITE(stdout,'(2x,3a)') "merging with command line arguments"
       ELSE
-        ioWRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
+        !ioWRITE(stdout,'(2x,3a)') "no input file, trying with command line arguments"
+        CALL errore("tdph", "bad input file", 1)
       ENDIF
       OPEN(unit=aux_unit, file=TRIM(input_file)//".tmp~", status="UNKNOWN", action="READWRITE")
       CALL cmdline_to_namelist("tdphinput", aux_unit)
@@ -120,6 +123,7 @@ MODULE tdph_module
     input%e0            = e0
     input%thr           = thr
     input%T             = T
+    input%basis         = basis
     !
     CONTAINS 
     SUBROUTINE bcast_namelist_variables()
@@ -141,6 +145,7 @@ MODULE tdph_module
         CALL mpi_broadcast(minimization)
         CALL mpi_broadcast(thr)
         CALL mpi_broadcast(T)
+        CALL mpi_broadcast(basis)
     END SUBROUTINE
   END SUBROUTINE READ_INPUT_TDPH
   !
@@ -209,6 +214,7 @@ PROGRAM tdph
   USE lmdif_module,       ONLY : lmdif0
   USE lmdif_p_module,     ONLY : lmdif_p0
   USE timers
+  USE random_numbers, ONLY : randy
   !
   IMPLICIT NONE
   !
@@ -347,15 +353,16 @@ PROGRAM tdph
     !integer :: nq, nq_tr, isq (48), imq
     !real(DP) :: sxq (3, 48)
     !
-    ! the next subroutine uses symmetry from global variables to find he basis of crystal-symmetric
+    ! the next subroutine uses symmetry from global variables to find the basis of crystal-symmetric
     ! matrices at this q point
     CALL fftinterp_mat2(xq, Si, fc, d2)
     d2 = multiply_mass_dyn(Si,d2)
 
     IF(ionode)THEN
-    CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
-       Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
-       symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, d2)
+      CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
+         Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
+         symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, &
+         d2, input%basis)
     ENDIF
     ! 
     CALL t_comm%start()
@@ -450,9 +457,10 @@ PROGRAM tdph
   nfar = 0
   
   ! FIXME: Compute and save to file the forces before minimization, should be removed
-  !  DO i = 1, nph
-  !    ph_coefficients(i) = ph_coefficients(i) + (0.5_dp-rand())*.1_dp
-  !  ENDDO
+!  DO i = 1, nph
+!    !ph_coefficients(i) = ph_coefficients(i) + MAXVAL(ABS(ph_coefficients))*(randy()-.5_dp)*.2_dp
+!    ph_coefficients(i) = SUM(ABS(ph_coefficients))/nph*2*(randy()-.5_dp)
+!  ENDDO
   iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
@@ -465,7 +473,8 @@ PROGRAM tdph
 
 
   !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
-  OPEN(newunit=ulog, file="tdph.log", form="formatted", status="unknown")
+  ulog=1119
+  OPEN(unit=ulog, file="tdph.log", form="formatted", status="unknown")
 
   CALL t_minim%start()
   SELECT CASE (input%minimization)
@@ -607,7 +616,7 @@ PROGRAM tdph
     !CALL mpi_bsum(chi2)
     !chi2=SQRT(chi2)
 
-    ioWRITE(ulog, "(i10,f14.10,9999f12.6)") iter, chi2, ph_coefficients
+    ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
     ! Every input%nprint steps have a look
     IF(MODULO(iter,input%nprint)==0) &
       CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
@@ -671,7 +680,7 @@ PROGRAM tdph
     iter = iter+1
     chi2 = SQRT(fdiff2)/n_steps_tot
     ioWRITE(*,'(i10,e12.2)') iter, chi2
-    ioWRITE(ulog, "(i10,9999f12.6)") iter, chi2, ph_coef
+    ioWRITE(ulog, "(i10,' ',f14.6,'  ',9999f12.6)") iter, chi2, ph_coef
     ! Every 1000 steps have a look
     IF(input%nprint>0 .and. MODULO(iter,input%nprint)==0)&
        CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)

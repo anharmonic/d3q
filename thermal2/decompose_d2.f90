@@ -122,7 +122,8 @@ end subroutine
 ! crystal symmetry
 !---------------------------------------------------------------------
 subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
-                             nsymq, minus_q, irotmq, rtau, irt, s, invs, u0 )
+                             nsymq, minus_q, irotmq, rtau, irt, s, invs, &
+                             u0, method )
 !---------------------------------------------------------------------
 
   USE kinds,     ONLY : DP
@@ -141,12 +142,12 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   real(DP),INTENT(in) :: rtau(3,48,nat)
   integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
   complex(dp),INTENT(in),optional :: u0(3*nat,3*nat)
+  CHARACTER(len=9),INTENT(in) :: method 
 
 ! input: the q point
 
 !  INTEGER, INTENT(OUT) :: npert(3*nat), nirr
   REAL(DP)   :: eigen(3*nat)
-  CHARACTER(len=9) :: method = 'random'
   logical :: lgamma
   complex(DP):: u(3*nat, 3*nat)
   
@@ -160,6 +161,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   ALLOCATE(mtx(3*nat, 3*nat, 9*nat**2))
 
    ! build an initial trivial basis for the hermitean matrices space
+   WRITE(*,'(2x,2a)') "Initial basis guess:", TRIM(method)
    IF (method=="mu") THEN
       IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
       call generate_mu_base(3*nat, mtx, u0, nx)
@@ -230,6 +232,18 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
      ENDIF
    ENDDO
    ioWRITE(stdout,'(2x,a,i8)') "Number of orthonormal matrices:", jx
+   nx = jx
+
+  ! Purge zero projection matrices
+   IF(.not.present(u0)) STOP 999
+   jx = 0
+   DO i = 1, nx
+     IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
+       jx = jx+1
+       IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
+     ENDIF
+   ENDDO
+   ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
    nx = jx
 
   rank = nx
