@@ -55,15 +55,18 @@ MODULE casimir_linewidth
     !
     ! FUNCTION RESULT:
     REAL(DP) :: lw(nat3)
-    REAL(DP) :: inv_lcas
+    REAL(DP) :: inv_lcas, norm_s
     INTEGER  :: nu
     REAL(DP),PARAMETER :: eps = 1.e-10_dp
     !
     ! Case 1: Velocity projected along sample_dir
     IF (SUM(ABS(sample_dir)) > eps) THEN
-      inv_lcas = 0.5_dp / l_sample / DSQRT(SUM(sample_dir**2))
+      inv_lcas = 0.5_dp / l_sample
+      norm_s = DSQRT(SUM(sample_dir**2))
       DO nu = 1,nat3
-          lw(nu) = inv_lcas * ABS(DOT_PRODUCT(sample_dir,vel(:,nu)))
+          !lw(nu) = inv_lcas * ABS(DOT_PRODUCT(sample_dir,vel(:,nu)))
+          lw(nu) = inv_lcas* DSQRT( NORM2(vel(:,nu)) - (DOT_PRODUCT(sample_dir,vel(:,nu))/norm_s)**2 )
+
       ENDDO
     !
     ! Case 2: Modulus of velocity (as in PRB 87, 214303 (2013))
@@ -101,7 +104,8 @@ MODULE casimir_linewidth
     !
     ! Case 1: Velocity projected along sample_dir
     IF (SUM(ABS(sample_dir)) > eps) THEN
-      effective_vel = ABS(SUM( vel*sample_dir ))
+      !effective_vel = ABS(SUM( vel*sample_dir ))
+      effective_vel = DSQRT(NORM2(vel)-DOT_PRODUCT(sample_dir,vel)**2 )
     !
     ! Case 2: Modulus of velocity
     ELSE

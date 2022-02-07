@@ -138,8 +138,8 @@ MODULE variational_tk
   FUNCTION A_out_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, isotopic_disorder)
     USE q_grids,            ONLY : q_basis
     USE fc2_interpolate,    ONLY : forceconst2_grid, bose_phq, set_nu0, &
-                                   freq_phq_safe, bose_phq, ip_cart2pat
-    USE fc3_interpolate,    ONLY : forceconst3
+                                   freq_phq_safe, bose_phq
+    USE fc3_interpolate,    ONLY : forceconst3, ip_cart2pat
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_bsum
@@ -524,8 +524,8 @@ MODULE variational_tk
   FUNCTION A_in_times_f_q(f, xq0, nconf, T, sigma, S, basis, grid, fc2, fc3, isotopic_disorder)
     USE q_grids,            ONLY : q_basis
     USE fc2_interpolate,    ONLY : forceconst2_grid, bose_phq, set_nu0, &
-                                   freq_phq_safe, bose_phq, ip_cart2pat
-    USE fc3_interpolate,    ONLY : forceconst3
+                                   freq_phq_safe, bose_phq
+    USE fc3_interpolate,    ONLY : forceconst3, ip_cart2pat
     USE isotopes_linewidth, ONLY : sum_isotope_scattering_modes
     USE input_fc,           ONLY : ph_system_info
     USE mpi_thermal,        ONLY : mpi_bsum

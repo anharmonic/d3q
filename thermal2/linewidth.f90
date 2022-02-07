@@ -24,8 +24,8 @@ MODULE linewidth
   FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc3_interpolate,  ONLY : forceconst3
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -128,8 +128,8 @@ MODULE linewidth
   FUNCTION selfnrg_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -311,8 +311,8 @@ MODULE linewidth
   RESULT(selfnrg_wq)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     !
     IMPLICIT NONE
     !
@@ -423,8 +423,8 @@ MODULE linewidth
   RESULT(spectralf)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     !
     IMPLICIT NONE
     !
@@ -488,8 +488,8 @@ MODULE linewidth
   RESULT(spectralf)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     !
     IMPLICIT NONE
     !
@@ -545,8 +545,8 @@ MODULE linewidth
   RESULT(tepsilon)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     USE constants,        ONLY : fpi
     !
     IMPLICIT NONE
@@ -628,8 +628,8 @@ MODULE linewidth
   RESULT(reflectivity)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
-    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0, ip_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     !
     IMPLICIT NONE
     !

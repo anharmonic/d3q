@@ -16,9 +16,6 @@ MODULE dynbubble
 
   USE kinds,           ONLY : DP
   USE more_constants,  ONLY : eps_freq
-  !USE input_fc,  ONLY : ph_system_info, forceconst2_grid 
-  !USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag, ip_cart2pat
-  !USE fc3_interpolate, ONLY : forceconst3
   USE timers
 #include "mpi_thermal.h"
 
@@ -31,8 +28,8 @@ MODULE dynbubble
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info, div_mass_dyn
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq,&
-                                 set_nu0, ip_cart2pat, dyn_cart2pat
-    USE fc3_interpolate,  ONLY : forceconst3
+                                 set_nu0, dyn_cart2pat
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     USE constants,        ONLY : RY_TO_CMM1
     USE mpi_thermal,      ONLY : mpi_bsum
     IMPLICIT NONE
@@ -178,8 +175,8 @@ MODULE dynbubble
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info, div_mass_dyn, write_dyn
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq,&
-                                 set_nu0, ip_cart2pat, dyn_cart2pat, fftinterp_mat2
-    USE fc3_interpolate,  ONLY : forceconst3
+                                 set_nu0, dyn_cart2pat, fftinterp_mat2
+    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     USE constants,        ONLY : RY_TO_CMM1
     USE mpi_thermal,      ONLY : mpi_bsum
     USE functions,        ONLY : invzmat

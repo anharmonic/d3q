@@ -8,8 +8,7 @@
 MODULE final_state
   USE kinds,           ONLY : DP
   USE input_fc,        ONLY : ph_system_info, forceconst2_grid
-  USE fc2_interpolate, ONLY : ip_cart2pat
-  USE fc3_interpolate, ONLY : forceconst3
+  USE fc3_interpolate, ONLY : forceconst3, ip_cart2pat
   USE mpi_thermal,     ONLY : mpi_bsum, ionode, mpi_wbarrier
 #include "mpi_thermal.h"
   INTEGER,PARAMETER :: TOT=1, C=2, X=3, LW=2, LS=3, NTERMS=3
@@ -394,7 +393,11 @@ MODULE final_state
     ENDIF &
     QSUMMED_IO
     !
-    IF(grid%scattered) CALL mpi_bsum(ne,S%nat3,NTERMS,nconf, fstate_q)
+    IF(grid%scattered) THEN 
+      DO it = 1,nconf
+        CALL mpi_bsum(ne,S%nat3,NTERMS, fstate_q(:,:,:,it))
+      ENDDO
+    ENDIF
     final_state_q = -0.5_dp * fstate_q !-0.5_dp * fstate_q
     !
     DEALLOCATE(U, V3sq, D3, fstate_q)

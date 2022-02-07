@@ -1076,5 +1076,62 @@ MODULE fc3_interpolate
     CALL write_system(unit, S)
     WRITE(unit,*) FC%constant
   END SUBROUTINE write_fc3_constant
+  ! \/o\________\\\______________________//\/___________________/~^>>
+
+  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+    ! Rotates D3 matrix from cartesian axis to the basis
+    ! of the modes. Rotation is not really in place
+    USE kinds, ONLY : DP
+    IMPLICIT NONE
+    ! d3 matrix, input: in cartesian basis, output: on the patterns basis
+    COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
+    INTEGER,INTENT(in)        :: nat3
+    ! patterns (transposed, with respect to what we use in the d3q.x code)
+    COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
+    !
+    INTEGER :: a, b, c, i, j, k
+    COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
+    COMPLEX(DP),ALLOCATABLE :: AUX(:,:)
+    COMPLEX(DP),PARAMETER :: Z1 = (1._dp, 0._dp)
+    COMPLEX(DP) :: u1t(nat3,nat3)
+    !
+    ALLOCATE(AUX(nat3,nat3))
+    ALLOCATE(d3tmp(nat3, nat3, nat3))
+    d3tmp = 0._dp
+    !
+    u1t = TRANSPOSE(CONJG(u1))
+    !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
+    DO c = 1,nat3
+    DO b = 1,nat3
+      ! Precompute u2*u3 to save some FLOPS without 
+      ! compromising memory access order
+      DO k = 1,nat3
+      DO j = 1,nat3
+        AUX(j,k) = CONJG(u2(b,j) * u3(c,k))
+      ENDDO
+      ENDDO
+      !
+      DO a = 1,nat3
+        DO k = 1,nat3
+        DO j = 1,nat3
+        DO i = 1,nat3
+              d3tmp(i, j, k) = d3tmp(i, j, k) &
+                              + u1t(i,a) * AUX(j,k) * d3in(a, b, c) 
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    !
+    d3in = d3tmp
+    DEALLOCATE(d3tmp)
+    !
+    RETURN
+    !
+    RETURN
+  END SUBROUTINE ip_cart2pat
     !
   END MODULE

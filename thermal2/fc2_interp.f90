@@ -413,7 +413,7 @@ MODULE fc2_interpolate
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: epsq = 1.e-8_dp
-    REAL(DP) :: cq(3)
+    REAL(DP) :: cq(3), chk(3)
     INTEGER :: i
     LOGICAL :: gamma
     !
@@ -428,6 +428,10 @@ MODULE fc2_interpolate
       freq(1:3) = 0._dp
       U(:,1:3) = (0._dp, 0._dp)
     ENDIF
+
+    chk(:) = cq(:)*fc2%nq(:)
+    chk=chk-NINT(chk(:))
+    IF(fc2%periodic .AND. SUM(ABS(chk)) > 1.d-8) CALL errore("interp","cannot interpolate with periodic matrices",1 )
     
     IF(ANY(freq<0._dp)) THEN
       WRITE(*,*) gamma
@@ -527,12 +531,17 @@ MODULE fc2_interpolate
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: eps = 0._dp 
-    REAL(DP) :: xq_hat(3), yq(3)
+    REAL(DP) :: xq_hat(3), yq(3), chk(3)
     !
     yq = xq(:,iq)
     CALL cryst_to_cart(1, yq, S%at, -1)
     yq = yq-DBLE(NINT(yq))
     CALL cryst_to_cart(1, yq, S%bg, +1)
+    !
+    chk(:) = yq(:)*fc2%nq(:)
+    chk=chk-NINT(chk(:))
+    IF(fc2%periodic .AND. SUM(ABS(chk)) > 1.d-8) CALL errore("interp","cannot interpolate with periodic matrices",1 )
+    
     ! Check for exactly Gamma, even a tiny displacement works already
     IF(ALL(ABS(yq)< 1.d-8))THEN
       ! We set xq to EXACTLY zero in this case, to avoid double lo-to counting
@@ -655,63 +664,6 @@ MODULE fc2_interpolate
     DEALLOCATE(d2tmp, u_fw, u_bw)
     RETURN
   END SUBROUTINE dyn_cart2pat
-  !
-  ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
-    ! Rotates D3 matrix from cartesian axis to the basis
-    ! of the modes. Rotation is not really in place
-    USE kinds, ONLY : DP
-    IMPLICIT NONE
-    ! d3 matrix, input: in cartesian basis, output: on the patterns basis
-    COMPLEX(DP),INTENT(inout) :: d3in(nat3, nat3, nat3)
-    INTEGER,INTENT(in)        :: nat3
-    ! patterns (transposed, with respect to what we use in the d3q.x code)
-    COMPLEX(DP),INTENT(in)    :: u1(nat3, nat3), u2(nat3, nat3), u3(nat3, nat3) 
-    !
-    INTEGER :: a, b, c, i, j, k
-    COMPLEX(DP),ALLOCATABLE  :: d3tmp(:,:,:)
-    COMPLEX(DP),ALLOCATABLE :: AUX(:,:)
-    COMPLEX(DP),PARAMETER :: Z1 = (1._dp, 0._dp)
-    COMPLEX(DP) :: u1t(nat3,nat3)
-    !
-    ALLOCATE(AUX(nat3,nat3))
-    ALLOCATE(d3tmp(nat3, nat3, nat3))
-    d3tmp = 0._dp
-    !
-    u1t = TRANSPOSE(CONJG(u1))
-    !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,a,b,c,AUX) REDUCTION(+: d3tmp) COLLAPSE(2)
-    DO c = 1,nat3
-    DO b = 1,nat3
-      ! Precompute u2*u3 to save some FLOPS without 
-      ! compromising memory access order
-      DO k = 1,nat3
-      DO j = 1,nat3
-        AUX(j,k) = CONJG(u2(b,j) * u3(c,k))
-      ENDDO
-      ENDDO
-      !
-      DO a = 1,nat3
-        DO k = 1,nat3
-        DO j = 1,nat3
-        DO i = 1,nat3
-              d3tmp(i, j, k) = d3tmp(i, j, k) &
-                              + u1t(i,a) * AUX(j,k) * d3in(a, b, c) 
-        ENDDO
-        ENDDO
-        ENDDO
-      ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
-    !
-    d3in = d3tmp
-    DEALLOCATE(d3tmp)
-    !
-    RETURN
-    !
-    RETURN
-  END SUBROUTINE ip_cart2pat
   !
   ! \/o\________\\\_________________________________________/^>
   ! Compute the derivative of the Dynamical matrix D by 

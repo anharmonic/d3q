@@ -23,6 +23,8 @@ MODULE input_fc
     REAL(DP),ALLOCATABLE :: xR(:,:) ! cartesian coords    3*n_R
     REAL(DP),ALLOCATABLE :: FC(:,:,:) ! 3*nat,3*nat, n_R
     INTEGER :: nq(3) ! initial grid size, only kept for reconstruction purposes
+    LOGICAL :: periodic = .false.
+    LOGICAL :: centered = .true.
   END TYPE forceconst2_grid
   !
   CONTAINS
@@ -81,6 +83,10 @@ MODULE input_fc
     ENDDO
     !
     CLOSE(unit)
+
+    fc%periodic = (fc%nq(1)*fc%nq(2)*fc%nq(3) == fc%n_R)
+    fc%centered = .not. fc%periodic
+
     IF(fc%i_0 < 0) CALL errore("read_fc2","could not find i_0",1)
     ! Compute list of R in cartesian coords
     fc%xR = REAL(fc%yR, kind=DP)

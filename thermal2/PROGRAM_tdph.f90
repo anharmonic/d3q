@@ -258,7 +258,7 @@ PROGRAM tdph
 
   CALL read_fc2(input%file_mat2, Si, fc)
   lrigid_save = Si%lrigid
-  Si%lrigid = .false.
+  !Si%lrigid = .false.
   CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
   CALL aux_system(Si)
   CALL div_mass_fc2(Si, fc)
