@@ -229,10 +229,10 @@ MODULE qha_program
            !IF(freq(nu)/=0._dp) THEN
            wbeta = freq(nu)/(K_BOLTZMANN_RY*T(iT))
            e_ts(iv,iT) = e_ts(iv,iT) + weight *( -DLOG(1-DEXP(-wbeta)))!  + wbeta/(DEXP(wbeta)-1))
-           IF(ISNAN( -DLOG(1-DEXP(-wbeta)))) THEN
-             print*, "problem!", grid%xq(:,iq)
-             print*, "problem?", freq
-           ENDIF
+           !IF(ISNAN( -DLOG(1-DEXP(-wbeta)))) THEN
+           !  print*, "problem!", grid%xq(:,iq)
+           !  print*, "problem?", freq
+           !ENDIF
            !ENDIF
          ENDDO
        ENDDO
