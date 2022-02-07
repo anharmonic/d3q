@@ -48,22 +48,27 @@ PROGRAM interpolate2
   CHARACTER(len=256) :: filein, fileout, fileref, filemld, dummy
   TYPE(forceconst2_grid) :: fcin, fcout, fcref, fcmld
   TYPE(ph_system_info) :: S, Sref, Smld
-  INTEGER :: i,j,k, nqi, nqj, nqk, nq, na,nb,a,b, nua,nub, numax
+  INTEGER :: i,j,k, nqi, nqj, nqk, nq, na,nb,a,b, nua,nub, numax, nfar
   REAL(DP),ALLOCATABLE :: gridq(:,:), w2ref(:), w2mld(:), w2in(:), w2out(:)
   COMPLEX(DP),ALLOCATABLE :: matq(:,:,:,:,:), &
                              Din(:,:), Dref(:,:), Dmld(:,:), Dout(:,:), Dout2(:,:), &
                              U(:,:), Uref(:,:), Umld(:,:), Umld0(:,:), WWout(:,:)
   REAL(DP) :: xq(3), olap, maxolap
   LOGICAL :: lrigid_save
+  INTEGER :: method
+  INTEGER,PARAMETER :: interp_freq=1, interp_freq2=2, interp_dynmat=3
   !
 
   filein  = cmdline_param_char("i", "mat2R")
   fileref = cmdline_param_char("r", "mat2R.ref")
   filemld = cmdline_param_char("m", "mat2R.mld")
   fileout = cmdline_param_char("o", TRIM(filein)//".out")
+  nfar    = cmdline_param_int ("f", 2)
+  method  = cmdline_param_int ("m", 3)
   !
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: d3_interpolate2.x [-i FILEIN] [-o FILEOUT] [-r FILE.reference] [-m FILE.mould]"
+      WRITE(*,*) "Syntax: d3_interpolate2.x [-i FILEIN] [-o FILEOUT] [-r FILE.reference] [-m FILE.mould] "
+      WRITE(*,*) "                          [-f NFAR] [-m METHOD]"
       WRITE(*,*) ""
       WRITE(*,*) "Reads:"
       WRITE(*,*) " * initial force constants FCi from FILEIN (default: mat2R)"
@@ -71,7 +76,13 @@ PROGRAM interpolate2
       WRITE(*,*) " *  mould FCm from FILE.mould (default: mat2R.mould)"
       WRITE(*,*) "Interpolates the difference of FCi-FCr on the grid of FCm and writes the interpolated"
       WRITE(*,*) "(FCi-FCr)+FCm to the output file FILEOUT"
-     
+      WRITE(*,*) ""
+      WRITE(*,*) "Use NFAR>0 to have centered force constants (default: 2),"
+      WRITE(*,*) "or NFAR=0 to have periodic ones."
+      WRITE(*,*) ""
+      WRITE(*,*) "Available values for METHOD are: [1] interp_freq, [2] interp_freq^2,"
+      WRITE(*,*) "                                 [3] interp_dynmat (default)"
+       
       STOP 1
   ENDIF
   !
@@ -136,48 +147,49 @@ PROGRAM interpolate2
     CALL fftinterp_mat2(xq, S,    fcin, Din)
     CALL fftinterp_mat2(xq, Sref, fcref, Dref)
 
-    Uref = Dref
-    CALL mat2_diag(S%nat3, Uref, w2ref)
-    Umld = Dmld
-    CALL mat2_diag(S%nat3, Umld, w2mld)
-    Umld0 = Umld
- 
-    U = Din
-    CALL mat2_diag(S%nat3, U, w2in)
- 
-   DO nub = 1,S%nat3
-      
-      maxolap = 0._dp
-      DO nua = 1,S%nat3
-        olap = ABS(SUM(Uref(:,nub)*Umld(:,nua)))
-        IF(olap>maxolap)THEN
-          numax = nua
-        ENDIF
-      ENDDO
-      Umld(:,numax) = 0._dp
-      !w2out(numax) = w2in(nub)-w2ref(nub)+w2mld(numax)
-      w2out(numax) = (DSQRT(ABS(w2in(nub)))-DSQRT(ABS(w2ref(nub)))+DSQRT(ABS(w2mld(numax))))**2
-    ENDDO
-    write(*,'(99f12.6)') xq
-!    write(*,'(99f12.6)') DSQRT(w2ref)
-!    write(*,'(99f12.6)') DSQRT(w2in)
-!    write(*,'(99f12.6)') DSQRT(w2ref)-DSQRT(w2in)
-!    write(*,'(99f12.6)') 
-!
-!    CALL write_dyn("caz0", xq, Dmld, Smld)
 
-!    CALL dyn_cart2pat(Dmld, S%nat3, Umld0, 1, WWout)
-    WWout=0._dp
-    FORALL(nua=1:S%nat3) WWout(nua,nua) = w2out(nua)
-!    FORALL(nua=1:S%nat3) WWout(nua,nua) = w2mld(nua)
-!    CALL write_dyn("caz1", xq, WWout, Smld)
+    IF(method == interp_freq .or. method==interp_freq2)THEN
+      Uref = Dref
+      CALL mat2_diag(S%nat3, Uref, w2ref)
+      Umld = Dmld
+      CALL mat2_diag(S%nat3, Umld, w2mld)
+      Umld0 = Umld
+ 
+      U = Din
+      CALL mat2_diag(S%nat3, U, w2in)
+ 
+      DO nub = 1,S%nat3
+        maxolap = 0._dp
+        DO nua = 1,S%nat3
+          olap = ABS(SUM(Uref(:,nub)*Umld(:,nua)))
+          IF(olap>maxolap)THEN
+            numax = nua
+          ENDIF
+        ENDDO
+        Umld(:,numax) = 0._dp
+        IF(method==interp_freq2)THEN
+          w2out(numax) = w2in(nub)-w2ref(nub)+w2mld(numax)
+        ELSE IF(method==interp_freq) THEN
+          w2out(numax) = (DSQRT(ABS(w2in(nub)))-DSQRT(ABS(w2ref(nub)))+DSQRT(ABS(w2mld(numax))))**2
+        ENDIF
+
+        WWout=0._dp
+        FORALL(nua=1:S%nat3) WWout(nua,nua) = w2out(nua)
     
-    CALL dyn_cart2pat(WWout, S%nat3, Umld0, -1, Dout2)
-    Dout2 = multiply_mass_dyn(S, Dout2)
-!    CALL write_dyn("caz2", xq, Dout2, S)
-!
-    Dout = multiply_mass_dyn(S,Din-Dref+Dmld)
-!    CALL write_dyn("caz3", xq, Dout, S)
+        CALL dyn_cart2pat(WWout, S%nat3, Umld0, -1, Dout2)
+        Dout = multiply_mass_dyn(S, Dout2)
+      
+      ENDDO
+      !
+    ELSE IF(method==interp_dynmat)THEN
+      Dout = multiply_mass_dyn(S,Din-Dref+Dmld)
+    ELSE
+     CALL errore("interpolate2", "Unknown interpolation method [-m]",1)
+    ENDIF
+
+
+    write(*,'(99f12.6)') xq
+
 
    
 
@@ -200,7 +212,7 @@ PROGRAM interpolate2
 
   S%lrigid    = lrigid_save
 
-  CALL quter(nqi, nqj, nqk, S%nat,S%tau,S%at,S%bg, matq, gridq, fcout)
+  CALL quter(nqi, nqj, nqk, S%nat,S%tau,S%at,S%bg, matq, gridq, fcout, nfar)
   CALL write_fc2(fileout, S, fcout)
   !
   CONTAINS
