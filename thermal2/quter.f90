@@ -62,6 +62,7 @@ MODULE quter_module
     !
     ! Construct a big enough lattice of Supercell vectors
     IF(far_>0)THEN
+        fc%periodic = .false.
         nRbig = (2*far_*nq1+1)*(2*far_*nq2+1)*(2*far_*nq3+1)
         ALLOCATE(Rbig(3,nRbig))
         nRbig=0
@@ -76,6 +77,7 @@ MODULE quter_module
         IF(nRbig/=size(Rbig)/3) call errore('main','wrong nRbig',1)  
  !       WRITE(*,*) "seeking over ", nRbig," vectors"
     ELSE
+        fc%periodic = .true.
         nRbig = nq1*nq2*nq3
         ALLOCATE(Rbig(3,nRbig))
         nRbig=0

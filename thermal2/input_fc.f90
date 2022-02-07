@@ -45,6 +45,7 @@ MODULE input_fc
     INTEGER :: na1,  na2,  j1,  j2, jn1, jn2, jn3
     INTEGER :: na1_, na2_, j1_, j2_
     INTEGER :: n_R, i
+    CHARACTER(len=256) :: dummy, dummy2
     !
     ioWRITE(stdout,*) "** Reading FC2 file: ", TRIM(filename)
     fc%i_0 = -1
@@ -54,8 +55,32 @@ MODULE input_fc
     !
     CALL read_system(unit, S)
     !
-    READ(unit, *) jn1, jn2, jn3
+    ! May need to skip a line
+    dummy=''
+    DO
+      READ(unit, "(a256)") dummy
+      IF(dummy .ne. '') EXIT
+    ENDDO
+    !
+    ! Read the size of the grid and if it is periodic,
+    ! try to guess this information is not available
+    READ(dummy,*, iostat=ios) jn1, jn2, jn3, dummy2
+    IF(ios==0)THEN
+      IF(dummy2=="periodic")THEN
+        fc%periodic=.true.
+      ELSE IF (dummy2=="centered")THEN
+        fc%periodic=.false.
+     ELSE 
+        ! should raise an error here, but let's be future proof
+        dummy2="guess"
+     ENDIF
+    ELSE
+      READ(dummy,*) jn1, jn2, jn3
+      dummy2="guess"
+    ENDIF
     ioWRITE(stdout,*) "Original FC2 grid:", jn1, jn2, jn3
+    !
+    !
     fc%nq(1) = jn1; fc%nq(2) = jn2; fc%nq(3) = jn3
     !
     DO na1=1,S%nat
@@ -84,8 +109,7 @@ MODULE input_fc
     !
     CLOSE(unit)
 
-    fc%periodic = (fc%nq(1)*fc%nq(2)*fc%nq(3) == fc%n_R)
-    fc%centered = .not. fc%periodic
+    IF(dummy2=='guess') fc%periodic = (fc%nq(1)*fc%nq(2)*fc%nq(3) == fc%n_R)
 
     IF(fc%i_0 < 0) CALL errore("read_fc2","could not find i_0",1)
     ! Compute list of R in cartesian coords
@@ -107,6 +131,7 @@ MODULE input_fc
     !
     INTEGER :: na1,  na2,  j1,  j2, jn1, jn2, jn3
     INTEGER :: n_R, i
+    CHARACTER(len=12) :: periodicity
     !
     unit = find_free_unit()
     OPEN(unit=unit,file=filename,action='write',status='unknown',iostat=ios)
@@ -114,7 +139,13 @@ MODULE input_fc
     !
     CALL write_system(unit, S)
     !
-    WRITE(unit, '(3i9)') fc%nq
+    IF(fc%periodic)THEN
+      periodicity="periodic"
+    ELSE
+      periodicity="centered"
+    ENDIF
+    !
+    WRITE(unit, '(3i9,2x,a)') fc%nq, periodicity
     !
     DO na1=1,S%nat
     DO na2=1,S%nat 
