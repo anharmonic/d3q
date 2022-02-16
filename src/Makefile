@@ -100,6 +100,6 @@ ld1 :
 	cd ../../ ; make ld1
 
 clean :
-	- /bin/rm -f  *.o *~ *.d *.mod *.i libd3q.a liblr.a
+	- /bin/rm -f  *.x *.o *~ *.d *.mod *.i libd3q.a liblr.a
 
 include make.depend

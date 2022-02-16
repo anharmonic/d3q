@@ -459,7 +459,6 @@ PROGRAM tdph
   ALLOCATE(force_harm(3,nat_sc,n_steps))
   nfar = 0
   
-  ! FIXME: Compute and save to file the forces before minimization, should be removed
   IF(input%randomization/=0._dp)THEN
     IF(ionode)THEN
       !
@@ -482,6 +481,7 @@ PROGRAM tdph
     CALL mpi_broadcast(nph, ph_coefficients)
   ENDIF
 
+  ! FIXME: Compute and save to file the forces before minimization, should be removed
   iswitch = 0
   CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
@@ -511,7 +511,7 @@ PROGRAM tdph
   CALL t_minim%stop()
   !
 !###################  end of minimization ####################################################
-! Now write to file the fial matrices in "centered" and "periodic" form
+! Now write to file the file matrices in "centered" and "periodic" form
 
   nfar = 0
   iswitch = 0
@@ -605,20 +605,18 @@ PROGRAM tdph
   !
   ! READ atomic positions, forces, etc, and compute harmonic force and energy
   CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)
-  ! T = input%T
-  ! kbT = K_BOLTZMANN_RY*T
-  !
-  !diff = 0._dp
-
+    !
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
       diff = RESHAPE( (force_harm(:,:,:) - force_md(:,:,:)), (/ mdata /) )
     CASE('energy')
+      ! not implemented with MPI_GATHER
       STOP 100
       !DO i = 1, n_steps
       !diff = diff + (h_energy(i)-toten_md(i))**2
       !ENDDO
     CASE('thforce')
+      ! not implemented with MPI_GATHER
       STOP 100
       !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
     CASE DEFAULT
@@ -676,8 +674,6 @@ PROGRAM tdph
           !
     IF(nfar.ne.0) RETURN
     !
-    ! READ atomic positions, forces, etc, and compute harmonic forces
-    !CALL harmonic_force(n_steps, Si,fcout,u,force_harm,h_energy)
     CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)
     !
     fdiff2 = 0._dp
