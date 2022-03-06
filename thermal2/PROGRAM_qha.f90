@@ -26,7 +26,7 @@ MODULE qha_program
     !REAL(DP),POINTER :: press_v(:)
     INTEGER :: n_volumes = -1
     ! 
-    CHARACTER(len=6) :: grid_type
+    CHARACTER(len=12) :: grid_type
     INTEGER :: nk(3) = -1
     !REAL(DP) :: smearing = -1._dp
     !
@@ -72,7 +72,7 @@ MODULE qha_program
     !
     CHARACTER(len=8)    :: asr2 = "simple"
     INTEGER             :: n_volumes = -1
-    CHARACTER(len=6) :: grid_type
+    CHARACTER(len=12)   :: grid_type
     INTEGER          :: nk(3) = -1
 !    REAL(DP)         :: T = -1._dp
     REAL(DP)         :: T0=0._dp, dT=100._dp

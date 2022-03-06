@@ -10,7 +10,6 @@
 ! (no sparse) and applies ASR iteratively.
 ! This file also contains tentative subroutines that applies asr in one go, but 
 ! they are not working properly.
-! This code only reads a file called "mat3R" and writes to a file names "mat3R_asr".
 !
 !
 MODULE asr3_module

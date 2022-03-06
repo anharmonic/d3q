@@ -183,6 +183,9 @@ MODULE q_grids
     ELSE IF(grid_type=="bxsf" .or. grid_type=="xsf")THEN
       CALL setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
       IF(do_scatter) CALL grid%scatter()
+    ELSE IF(grid_type=="spherical" )THEN
+      CALL setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, xq0(1), xq0(2), xq0(3))
+      IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random" .or. grid_type=="randws")THEN
       ! Do not add a random shift in the direction where 
       ! only on point is requested.
@@ -517,6 +520,71 @@ MODULE q_grids
     ENDIF
     !
   END SUBROUTINE setup_scattered_grid
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, max_q, phase_tht, phase_phi)
+    USE input_fc,   ONLY : ph_system_info 
+    USE constants,  ONLY : pi, tpi
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: grid_type
+    REAL(DP),INTENT(in)   :: bg(3,3) ! = System
+    INTEGER,INTENT(in) :: n1,n2,n3
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),INTENT(in) :: max_q
+    REAL(DP),INTENT(in) :: phase_tht
+    REAL(DP),INTENT(in) :: phase_phi
+    !
+    INTEGER :: i,j,k, idx
+    REAL(DP) :: mq, tht, phi
+    
+    grid%type = 'spherical'
+    grid%n(1) = n1
+    grid%n(2) = n2
+    grid%n(3) = n3
+    grid%nq = n1*n2*n3+1
+    !
+    IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
+    ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    !
+    ioWRITE(*,'(2x,"Spherical grid, max |q|: ",f12.6", 2pi/alat")') max_q
+
+    ! I treat Gamma separately, to only have it once
+    idx = 1
+    grid%xq(:,idx) = 0._dp
+    grid%w(1) = 0._dp
+    !
+    DO i = 1, n1
+    DO j = 0, n2-1
+    DO k = 0, n3-1
+      !
+      idx = idx+1
+      !
+      mq  = i*max_q/DBLE(n1)
+      tht =  j*pi/DBLE(n2) +phase_tht
+      phi = k*tpi/DBLE(n3) +phase_phi
+      !
+      grid%xq(1,idx) = mq * sin(tht) * cos(phi)
+      grid%xq(2,idx) = mq * sin(tht) * sin(phi)
+      grid%xq(3,idx) = mq * cos(tht) 
+      !
+    grid%w = mq 
+    !
+    ENDDO
+    ENDDO
+    ENDDO
+    grid%w = grid%w / SUM(grid%w)
+    !
+    CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
+    grid%basis = 'cartesian'
+    !
+    grid%xq0 = 0._dp
+    !
+    grid%nqtot = grid%nq
+    !
+  END SUBROUTINE setup_spherical_grid
+
+
   !
   ! \/o\________\\\_________________________________________/^>
   ! Create a line of nq q-point from the last point in the path end xqi 

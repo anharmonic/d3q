@@ -68,8 +68,8 @@ MODULE code_input
     REAL(DP) :: thr_tk
     INTEGER  :: niter_max
     !
-    CHARACTER(len=6) :: grid_type
-    CHARACTER(len=6) :: grid_type_in
+    CHARACTER(len=12) :: grid_type
+    CHARACTER(len=12) :: grid_type_in
     ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
@@ -126,8 +126,8 @@ MODULE code_input
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
     CHARACTER(len=7)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted)
-    CHARACTER(len=6)   :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
-    CHARACTER(len=6)   :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
+    CHARACTER(len=12)  :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
+    CHARACTER(len=12)  :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
     LOGICAL            :: print_velocity   = .true.    ! print the phonon group velocity for each q (only r2q code)
     LOGICAL            :: print_neutron_cs = .false.    ! print the phonon cross-section for inelastic neutron scattering (only r2q code)
@@ -368,9 +368,18 @@ MODULE code_input
     IF(xk0_in(1)==DHUGE) xk0_in(1) = xk0(1)
     IF(xk0_in(2)==DHUGE) xk0_in(2) = xk0(2)
     IF(xk0_in(3)==DHUGE) xk0_in(3) = xk0(3)
-    input%xk0_in    = 0.5_dp*xk0_in/input%nk_in
+    input%xk0_in = xk0_in
     IF(TRIM(input%grid_type_in)==INVALID) input%grid_type_in = grid_type
-    input%xk0    = 0.5_dp*xk0/input%nk
+    IF(TRIM(input%grid_type_in).ne."spherical") THEN
+       input%xk0_in    = 0.5_dp*input%xk0_in/input%nk_in
+       CALL cryst_to_cart(1,input%xk0_in,S%bg, +1)
+    ENDIF
+
+    input%xk0 = xk0
+    IF(TRIM(input%grid_type).ne."spherical") THEN
+       input%xk0    = 0.5_dp*input%xk0/input%nk
+       CALL cryst_to_cart(1,input%xk0,S%bg, +1)
+    ENDIF
     !
     ios = f_mkdir_safe(input%outdir)
     IF(ios>0) CALL errore('READ_INPUT', 'cannot create directory: "'//TRIM(input%outdir)//'"',1)
@@ -394,9 +403,9 @@ MODULE code_input
     !
 !     IF(nq<0.and.TRIM(input%calculation)/="grid".and.code=="LW") &
 !         CALL errore('READ_INPUT', 'Missing nq', 1)    
-    CALL cryst_to_cart(1,input%xk0,S%bg, +1)
+    !CALL cryst_to_cart(1,input%xk0,S%bg, +1)
     xk0 = input%xk0 ! put it back there to do "outer grid" later (HACK)
-    CALL cryst_to_cart(1,input%xk0_in,S%bg, +1)
+    !CALL cryst_to_cart(1,input%xk0_in,S%bg, +1)
     !
     IF(TRIM(prefix)==INVALID)THEN
       input%prefix = TRIM(input%calculation)//"_"//TRIM(input%mode)
@@ -486,12 +495,12 @@ MODULE code_input
           READ(line,*,iostat=ios) word2, word3
           xk0 = 0._dp
         ENDIF
-        IF(ios==0) qpts%basis = TRIM(word3(1:9))
+        IF(ios==0) qpts%basis = TRIM(word3)
         !
         IF(TRIM(qpts%basis) == "grid" .or. TRIM(qpts%basis) == "bz" &
            .or. TRIM(qpts%basis)=="ws" .or.  TRIM(qpts%basis)=="randws" &
            .or. TRIM(qpts%basis)=="bxsf" .or. TRIM(qpts%basis)=="xsf" &
-           .or. TRIM(qpts%basis)=="random" ) THEN
+           .or. TRIM(qpts%basis)=="random" .or. TRIM(qpts%basis)=="spherical" ) THEN
           !
           grid_type = qpts%basis
           qpts%basis = "cartesian"
@@ -502,8 +511,19 @@ MODULE code_input
           CALL mpi_broadcast(nq1)
           CALL mpi_broadcast(nq2)
           CALL mpi_broadcast(nq3)
-          xq0 = 0.5_dp * xk0 / (/ nq1, nq2, nq3 /)
-          CALL cryst_to_cart(1,xq0,S%bg, +1)
+          CALL mpi_broadcast(3,xk0)
+          IF(TRIM(grid_type)=="spherical")THEN
+            ! First parameter (xk0(1)) is length of radial grid in units of 2pi/alat
+            xq0(1) = xk0(1)
+         !   xq0(2:3) = 0._dp
+         !   CALL cryst_to_cart(1,xq0,S%bg, +1)
+         !   xq0(1) = SQRT(SUM(xq0**2))
+            ! Second and third parameters are theta and phi phases
+            xq0(2:3) = xk0(2:3)
+          ELSE
+            xq0 = 0.5_dp * xk0 / (/ nq1, nq2, nq3 /)
+            CALL cryst_to_cart(1,xq0,S%bg, +1)
+          ENDIF
           IF(ios/=0) CALL errore("READ_INPUT", "Reading QPOINTS nq1, nq2, nq3 for grid calculation", 1)
           line=''
           !this is done later

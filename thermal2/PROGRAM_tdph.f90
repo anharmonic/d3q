@@ -218,6 +218,7 @@ PROGRAM tdph
   USE lmdif_p_module,     ONLY : lmdif_p0
   USE timers
   USE random_numbers, ONLY : randy
+  USE decompose_d2, ONLY : recompose_fc
   !
   IMPLICIT NONE
   !
@@ -511,11 +512,11 @@ PROGRAM tdph
   CALL t_minim%stop()
   !
 !###################  end of minimization ####################################################
-! Now write to file the file matrices in "centered" and "periodic" form
+! Write to file the final matrices in "periodic" form, the final fitted forces, etc
 
-  nfar = 0
-  iswitch = 0
-  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
+  !CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients,&
+                    nq1, nq2, nq3, nqmax, 0, fcout)
   Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.periodic", Si, fcout)
 
@@ -546,9 +547,10 @@ PROGRAM tdph
                                          EXP(-toten_md(i)/(K_BOLTZMANN_RY*300.0_DP))
   END DO
   CLOSE(117)
-   !
-  nfar = 2
-  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
+  !
+  ! Write to file the matrices in "centered" form for later Fourier interpolation
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients,&
+                    nq1, nq2, nq3, nqmax, 2, fcout)
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
@@ -566,7 +568,6 @@ PROGRAM tdph
 
   CALL stop_mpi()
 
-  !write fcout to file (final result)
  ! ---- the program is over ---- !
  !
  CONTAINS
