@@ -68,6 +68,7 @@ MODULE lmdif_p_module
    PUBLIC :: lmdif_p
    PUBLIC :: lmdif_p1 ! easy to use interface, scroll down for documentation
    PUBLIC :: lmdif_p0 ! easier to use interface
+   PUBLIC :: lmdif_c0
 
    CONTAINS
 
@@ -89,20 +90,102 @@ MODULE lmdif_p_module
             STOP 1
       ENDIF
       !
+      ALLOCATE(wa1 (n), wa2(n), wa3(n), wa4(m))
+      ALLOCATE(qtf(n), fjac(m,n), diag(n))
       diag= 1.d0        ! all the variables have the same importance
       mode = 1          ! set diag automatically
       factor = 1.d0     ! initial step factor
       epsdiff = 0d0     ! precision of fcn (used fo finite difference differentiation)
       nprint = 0
       maxfev = 100000   ! take as many iterations as needed
-      ALLOCATE(wa1 (n), wa2(n), wa3(n), wa4(m))
-      ALLOCATE(qtf(n), fjac(m,n), diag(n))
 
       CALL lmdif_p(fcn,m,n,x,fvec,tol,tol,0.d0,maxfev,epsdiff, &
                  diag,mode,factor,0,info,nfev,fjac,  &
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
 
    END SUBROUTINE
+
+
+   SUBROUTINE lmdif_c0(fcn, m, n, x, fvec, tol, info)
+       USE iso_c_binding
+       IMPLICIT NONE
+          EXTERNAL :: fcn
+          INTEGER(kind=C_INT) :: m, n, info
+          REAL(kind=C_DOUBLE)::  tol
+          REAL(kind=C_DOUBLE)::  x (n), fvec (m)
+          ! internal variables
+          INTEGER :: ipvt(n), maxfev, mode
+          REAL(kind=C_DOUBLE),POINTER :: qtf(:), fjac(:,:), diag(:)
+          REAL(kind=C_DOUBLE),POINTER ::  wa1 (:), wa2(:), wa3(:), wa4(:)
+          INTEGER(kind=C_INT)  :: iwa (n), nprint, nfev
+          REAL(kind=C_DOUBLE) :: factor, epsdiff
+
+          INTEGER(kind=C_INT)  :: auxi
+          REAL(kind=C_DOUBLE) :: auxd
+          !
+          TYPE(C_FUNPTR) :: cptr
+
+
+!      INTEGER :: m, n, info
+!      REAL(DP)::  tol
+!      REAL(DP)::  x (n), fvec (m)
+!      EXTERNAL :: fcn
+!      ! internal variables
+!      INTEGER :: ipvt(n), maxfev, mode
+!      REAL(DP),ALLOCATABLE :: qtf(:), fjac(:,:), diag(:)
+!      REAL(DP),ALLOCATABLE ::  wa1 (:), wa2(:), wa3(:), wa4(:)
+!      INTEGER  :: iwa (n), nprint, nfev
+!      REAL(DP) :: factor, epsdiff
+      !
+      INTERFACE
+      SUBROUTINE lmdif_c( cptr, m, n, x, fvec, ftol, xtol, gtol, maxfev, epsfcn, diag, mode, &
+                         factor, nprint, info, nfev, fjac, ldfjaqc, ipvt, qtf, wa1, wa2, wa3, wa4)&
+                         BIND(C,name="lmdif_c")
+      USE iso_c_binding
+          TYPE(C_FUNPTR),VALUE :: cptr
+          INTEGER(kind=C_INT),INTENT(in) :: m, n, info, ldfjaqc
+          REAL(kind=C_DOUBLE)::  x(n), fvec(m)
+          REAL(kind=C_DOUBLE)::  ftol, xtol, gtol, epsfcn
+          ! internal variables
+          INTEGER :: ipvt(n)
+          INTEGER :: maxfev, mode
+          REAL(kind=C_DOUBLE) :: qtf(:), fjac(:,:), diag(:)
+          REAL(kind=C_DOUBLE) ::  wa1(:), wa2(:), wa3(:), wa4(:)
+          INTEGER(kind=C_INT)  :: iwa(n), nprint, nfev
+          REAL(kind=C_DOUBLE) :: factor, epsdiff
+     END SUBROUTINE lmdif_c
+     END INTERFACE
+     !
+
+
+      IF(n>m)THEN
+            PRINT*, "LMDIF expects n<=m"
+            PRINT*, "Hint: give it f_fit-f_real, it will compute chi^2 internally"
+            STOP 1
+      ENDIF
+      !
+      ALLOCATE(wa1 (n), wa2(n), wa3(n), wa4(m))
+      ALLOCATE(qtf(n), fjac(m,n), diag(n))
+      diag= 1.d0        ! all the variables have the same importance
+      mode = 1          ! set diag automatically
+      factor = 1.d0     ! initial step factor
+      epsdiff = 0d0     ! precision of fcn (used fo finite difference differentiation)
+      nprint = 0
+      maxfev = 100000   ! take as many iterations as needed
+ 
+      auxd = 0._dp
+      auxi = 0
+
+!      CALL F_C_PROCPOINTER(fcn, cptr)
+      cptr = C_FUNLOC(fcn)
+
+      CALL lmdif_c(cptr,m,n,x,fvec,tol,tol,auxd,maxfev,epsdiff, &
+                 diag,mode,factor,auxi,info,nfev,fjac,  &
+                 m,ipvt,qtf,wa1,wa2,wa3,wa4)
+
+   END SUBROUTINE lmdif_c0
+   
+
 
       REAL(DP) function dpmpar_p (i)
       INTEGER i

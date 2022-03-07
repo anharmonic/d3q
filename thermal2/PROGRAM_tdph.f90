@@ -6,7 +6,11 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 MODULE tdph_module
-  USE kinds, ONLY : DP
+  USE kinds,      ONLY : DP
+  USE input_fc,   ONLY : ph_system_info
+  USE decompose_d2, ONLY : dynmat_basis, sym_and_star_q
+  USE input_fc,           ONLY : forceconst2_grid
+  USE iso_c_binding
 #include "mpi_thermal.h"
   !
   INTEGER :: nfar=0
@@ -24,6 +28,23 @@ MODULE tdph_module
     REAL(DP) :: e0, thr, T, randomization
     !
   END TYPE tdph_input_type
+  !
+  ! Global variables used by CHI2_LMDIF
+  INTEGER :: nq_wedge, nq1, nq2, nq3, nqmax
+  TYPE(ph_system_info) :: Si
+  TYPE(dynmat_basis),ALLOCATABLE :: dmb(:)
+  TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
+  TYPE(tdph_input_type)  :: input
+  TYPE(forceconst2_grid) :: fcout
+  INTEGER                :: n_steps, nat_sc
+  REAL(DP),ALLOCATABLE   :: u(:,:,:), force_harm(:,:,:),  h_energy(:), force_md(:,:,:) 
+  INTEGER,ALLOCATABLE :: rank(:)
+  INTEGER :: ulog
+  INTEGER :: mdata
+
+  ! Not necessarily global, but put here for debugging:
+  INTEGER ::  mdata_tot, nph
+  REAL(kind=C_DOUBLE),ALLOCATABLE,TARGET :: ph_coefficients(:), diff_tot(:)
   !
   CONTAINS
   !
@@ -161,8 +182,8 @@ MODULE tdph_module
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in) :: Si
     !
-    ! Quantum-ESPRESSO symmetry subroutines use the global variables
-    ! we copy the system data from structure S
+    ! Quantum-ESPRESSO symmetry subroutines use global variables
+    ! we copy the system data from structure Si
     ntyp   = Si%ntyp
     nat    = Si%nat
     IF(allocated(tau)) DEALLOCATE(tau)
@@ -179,7 +200,88 @@ MODULE tdph_module
     ityp(1:nat)    = Si%ityp(1:nat)
   
   END SUBROUTINE
+  !
+!-----------------------------------------------------------------------
+  SUBROUTINE chi_lmdif_c(mdata_tot_, nph_, ph_coef, diff_tot_, iswitch) BIND(c, name="chi_lmdif_c")
+    !-----------------------------------------------------------------------
+    ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
+    ! forces for n_steps molecur dyanmics simulation 
+    !
+    !USE tdph_module,  ONLY : nfar
+    USE iso_c_binding
+    USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec, my_id
+    USE decompose_d2, ONLY : recompose_fc
+    USE timers,       ONLY : t_chi2, t_comm
+    USE harmonic_module, ONLY : harmonic_force_md
+    USE input_fc,        ONLY : write_fc2
+    IMPLICIT NONE
+    INTEGER(kind=C_INT),INTENT(in)    :: mdata_tot_, nph_
+    REAL(kind=C_DOUBLE),INTENT(in)    :: ph_coef(nph_)
+    REAL(kind=C_DOUBLE),INTENT(inout) :: diff_tot_(mdata_tot_)
+    INTEGER(kind=C_INT),INTENT(inout) :: iswitch
+  
+    REAL(kind=c_DOUBLE) :: diff(mdata)
+    INTEGER,SAVE :: iter = 0
+    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
+    REAL(DP) :: chi2
+  
+    print*, "dim glb", nph, mdata_tot
+    print*, "dim inp", nph_, mdata_tot_
+    !print*, associated(ph_coef), associated(diff_tot_)
+    print*, size(ph_coef), size(diff_tot_)
 
+    CALL t_chi2%start()
+  
+    CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
+                      nq1, nq2, nq3, nqmax, nfar, fcout)
+  
+    IF(nfar.ne.0) RETURN
+    !
+    ! READ atomic positions, forces, etc, and compute harmonic force and energy
+    CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
+      !
+      SELECT CASE(input%fit_type)
+      CASE('force', 'forces')
+        diff = RESHAPE( (force_harm(:,:,:) - force_md(:,:,:)), (/ mdata /) )
+      CASE('energy')
+        ! not implemented with MPI_GATHER
+        STOP 100
+        !DO i = 1, n_steps
+        !diff = diff + (h_energy(i)-toten_md(i))**2
+        !ENDDO
+      CASE('thforce')
+        ! not implemented with MPI_GATHER
+        STOP 100
+        !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
+      CASE DEFAULT
+        CALL errore("tdph", 'unknown chi2 method', 1)
+      END SELECT
+    
+    CALL t_comm%start() 
+    !CALL allgather_vec(mdata, diff, diff_tot_)
+    diff_tot_(1:mdata_tot) = 0._dp
+    CALL t_comm%stop()
+  
+    IF(iswitch==1)THEN
+      iter = iter+1
+      chi2 = SQRT(SUM(diff_tot_**2))
+      ioWRITE(*,'(i10,e12.2)') iter, chi2
+  
+      !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
+      !CALL mpi_bsum(chi2)
+      !chi2=SQRT(chi2)
+  
+      ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
+      ! Every input%nprint steps have a look
+      IF(MODULO(iter,input%nprint)==0) &
+        CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
+    ENDIF
+  
+    CALL t_chi2%stop()
+    !
+  END SUBROUTINE chi_lmdif_c
+    !
+  
 END MODULE
 
 !
@@ -215,10 +317,11 @@ PROGRAM tdph
   USE harmonic_module,    ONLY : harmonic_force_md
   ! minipack
   USE lmdif_module,       ONLY : lmdif0
-  USE lmdif_p_module,     ONLY : lmdif_p0
+  USE lmdif_p_module,     ONLY : lmdif_p0, lmdif_c0
   USE timers
   USE random_numbers, ONLY : randy
   USE decompose_d2, ONLY : recompose_fc
+  USE iso_c_binding
   !
   IMPLICIT NONE
   !
@@ -226,30 +329,26 @@ PROGRAM tdph
   CHARACTER(len=256) :: fildyn, filout
   INTEGER :: ierr, nargs
   !
-  INTEGER       :: nq1, nq2, nq3, nqmax, nq_wedge, nqq, nq_done
+  INTEGER       :: nqq, nq_done
 
   REAL(DP),ALLOCATABLE      :: x_q(:,:), w_q(:)
   ! for harmonic_module
-  REAL(DP),ALLOCATABLE      :: u(:,:,:), force_harm(:,:,:), force_md(:,:,:), tau_md(:,:,:), tau_sc(:,:), &
-                               force_diff(:), diff_tot(:), toten_md(:), h_energy(:)
+  REAL(DP),ALLOCATABLE      :: tau_md(:,:,:), tau_sc(:,:), &
+                               force_diff(:), toten_md(:)
   ! for lmdf1
-  INTEGER                   :: n_steps, n_steps_tot, j_steps, nat_sc, ulog
-  INTEGER :: mdata, mdata_tot !, mfcn
+  INTEGER                   :: n_steps_tot, j_steps
   !
   REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3), aux
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), ph_coefficients(:), &
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), &
                           ph_coefficients0(:), metric(:)
-  INTEGER :: i,j, icar,jcar, na,nb, iq, nph, iph, iswitch, first_step, n_skip
-  INTEGER,ALLOCATABLE :: rank(:)
-  TYPE(ph_system_info) :: Si
-  TYPE(forceconst2_grid) :: fc, fcout
-  TYPE(dynmat_basis),ALLOCATABLE :: dmb(:)
-  TYPE(sym_and_star_q),ALLOCATABLE :: symq(:)
-  TYPE(tdph_input_type) :: input
+  INTEGER :: i,j, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
+
+
+  TYPE(forceconst2_grid) :: fc
   !
   CALL start_mpi()
   CALL remove_stack_limit()
@@ -484,7 +583,7 @@ PROGRAM tdph
 
   ! FIXME: Compute and save to file the forces before minimization, should be removed
   iswitch = 0
-  CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
+  CALL chi_lmdif_c(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   OPEN(118,file="h_enr.dat0",status="unknown") 
   DO i = 1, n_steps
   !WRITE(117,*) "i_step = ",i
@@ -499,11 +598,14 @@ PROGRAM tdph
   OPEN(unit=ulog, file="tdph.log", form="formatted", status="unknown")
 
   CALL t_minim%start()
+  ioWRITE(*,*) "Starting minimization: ", TRIM(input%minimization)
   SELECT CASE (input%minimization)
   CASE("acrs")
     CALL ACRS0(nph,ph_coefficients, force_diff, chisq_acrs)
   CASE("lmdif")
     CALL lmdif_p0(chi_lmdif, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+  CASE("lmdifc")
+    CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("none")
     ! Do nothing
   CASE DEFAULT
@@ -576,18 +678,18 @@ PROGRAM tdph
 ! at least as large as the number of degrees of freedom containing the penalty
 ! (NOT SQUARED) for each dimension. 
 !-----------------------------------------------------------------------
- SUBROUTINE chi_lmdif(mdata_tot, nph, ph_coef, diff_tot, iswitch)
+ SUBROUTINE chi_lmdif(mdata_tot_, nph_, ph_coef, diff_tot_, iswitch)
   !-----------------------------------------------------------------------
   ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
   ! forces for n_steps molecur dyanmics simulation 
   !
-  USE tdph_module,  ONLY : nfar
+  USE tdph_module
   USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec, my_id
   USE decompose_d2, ONLY : recompose_fc
   IMPLICIT NONE
-  INTEGER,INTENT(in)    :: mdata_tot, nph
+  INTEGER,INTENT(in)    :: mdata_tot_, nph_
   REAL(DP),INTENT(in)   :: ph_coef(nph)
-  REAL(DP),INTENT(out)  :: diff_tot(mdata_tot)
+  REAL(DP),INTENT(out)  :: diff_tot_(mdata_tot_)
   REAL(DP)  :: diff(mdata)
   INTEGER,INTENT(inout) :: iswitch
 
@@ -599,7 +701,7 @@ PROGRAM tdph
 
   CALL t_chi2%start()
 
-  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef,&
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
                     nq1, nq2, nq3, nqmax, nfar, fcout)
 
   IF(nfar.ne.0) RETURN
@@ -625,12 +727,13 @@ PROGRAM tdph
     END SELECT
   
   CALL t_comm%start() 
-  CALL allgather_vec(mdata, diff, diff_tot)
-  CALL t_comm%stop() 
+  CALL allgather_vec(mdata, diff, diff_tot_)
+  !diff_tot_ = diff
+  CALL t_comm%stop()
 
   IF(iswitch==1)THEN
     iter = iter+1
-    chi2 = SQRT(SUM(diff_tot**2))
+    chi2 = SQRT(SUM(diff_tot_**2))
     ioWRITE(*,'(i10,e12.2)') iter, chi2
 
     !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
