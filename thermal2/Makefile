@@ -20,8 +20,8 @@ DFLAGS+= -D__HASVTRIG
 #-check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
 
-F90FLAGS += #-qopenmp 
-LDFLAGS  += #-qopenmp #-pg -g
+F90FLAGS += -qopenmp 
+LDFLAGS  += -qopenmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
@@ -38,7 +38,7 @@ PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
-EXTOBJS = ../src/libd3q.a /home/paulatto/Software/minpack-1.1/lapackified/libminpack.a \
+EXTOBJS = ../src/libd3q.a ./lapackified/libminpack.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib

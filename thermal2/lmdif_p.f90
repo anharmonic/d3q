@@ -142,22 +142,19 @@ MODULE lmdif_p_module
                          factor, nprint, info, nfev, fjac, ldfjaqc, ipvt, qtf, wa1, wa2, wa3, wa4)&
                          BIND(C,name="lmdif_c")
       USE iso_c_binding
-          TYPE(C_FUNPTR),VALUE :: cptr
-          INTEGER(kind=C_INT),INTENT(in) :: m, n, info, ldfjaqc
-          REAL(kind=C_DOUBLE)::  x(n), fvec(m)
+          TYPE(C_FUNPTR), VALUE :: cptr
+          INTEGER(kind=C_INT) :: m, n, info, ldfjaqc
           REAL(kind=C_DOUBLE)::  ftol, xtol, gtol, epsfcn
+          REAL(kind=C_DOUBLE)::  x(n), fvec(m)
           ! internal variables
-          INTEGER :: ipvt(n)
-          INTEGER :: maxfev, mode
-          REAL(kind=C_DOUBLE) :: qtf(:), fjac(:,:), diag(:)
-          REAL(kind=C_DOUBLE) ::  wa1(:), wa2(:), wa3(:), wa4(:)
+          INTEGER :: ipvt(n), maxfev, mode
+          REAL(kind=C_DOUBLE) :: qtf(n), fjac(m,n), diag(n)
+          REAL(kind=C_DOUBLE) ::  wa1(n), wa2(n), wa3(n), wa4(m)
           INTEGER(kind=C_INT)  :: iwa(n), nprint, nfev
           REAL(kind=C_DOUBLE) :: factor, epsdiff
      END SUBROUTINE lmdif_c
      END INTERFACE
      !
-
-
       IF(n>m)THEN
             PRINT*, "LMDIF expects n<=m"
             PRINT*, "Hint: give it f_fit-f_real, it will compute chi^2 internally"

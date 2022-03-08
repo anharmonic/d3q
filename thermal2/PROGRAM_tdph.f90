@@ -225,11 +225,6 @@ MODULE tdph_module
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     REAL(DP) :: chi2
   
-    print*, "dim glb", nph, mdata_tot
-    print*, "dim inp", nph_, mdata_tot_
-    !print*, associated(ph_coef), associated(diff_tot_)
-    print*, size(ph_coef), size(diff_tot_)
-
     CALL t_chi2%start()
   
     CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
@@ -258,18 +253,15 @@ MODULE tdph_module
       END SELECT
     
     CALL t_comm%start() 
-    !CALL allgather_vec(mdata, diff, diff_tot_)
-    diff_tot_(1:mdata_tot) = 0._dp
+    CALL allgather_vec(mdata, diff, diff_tot_)
     CALL t_comm%stop()
   
     IF(iswitch==1)THEN
       iter = iter+1
-      chi2 = SQRT(SUM(diff_tot_**2))
+      chi2 = SUM(diff**2)
+      CALL mpi_bsum(chi2)
+      chi2=SQRT(chi2)
       ioWRITE(*,'(i10,e12.2)') iter, chi2
-  
-      !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
-      !CALL mpi_bsum(chi2)
-      !chi2=SQRT(chi2)
   
       ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
       ! Every input%nprint steps have a look
@@ -728,17 +720,14 @@ PROGRAM tdph
   
   CALL t_comm%start() 
   CALL allgather_vec(mdata, diff, diff_tot_)
-  !diff_tot_ = diff
   CALL t_comm%stop()
 
   IF(iswitch==1)THEN
     iter = iter+1
-    chi2 = SQRT(SUM(diff_tot_**2))
+    chi2 = SUM(diff**2)
+    CALL mpi_bsum(chi2)
+    chi2=SQRT(chi2)
     ioWRITE(*,'(i10,e12.2)') iter, chi2
-
-    !chi2 = (SUM( (force_harm(1:3,1:nat_sc,1:n_steps) - force_md(1:3,1:nat_sc,1:n_steps))**2 ))
-    !CALL mpi_bsum(chi2)
-    !chi2=SQRT(chi2)
 
     ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
     ! Every input%nprint steps have a look
