@@ -15,6 +15,7 @@ END SUBROUTINE
 
 MODULE mpi_thermal
   USE kinds,  ONLY : DP
+  USE functions,        ONLY : default_if_not_present
   !USE timers, ONLY : t_mpicom
 #ifdef __MPI
   include "mpif.h"
@@ -284,11 +285,12 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
   !
-  SUBROUTINE mpi_bcast_integer(inte)
+  SUBROUTINE mpi_bcast_integer(inte,root)
     IMPLICIT NONE
     INTEGER,INTENT(inout) :: inte
+    INTEGER,OPTIONAL,INTENT(in) :: root
 #ifdef __MPI
-    CALL MPI_BCAST(inte, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+    CALL MPI_BCAST(inte, 1, MPI_INTEGER, default_if_not_present(0,root), MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
   !
@@ -381,12 +383,13 @@ MODULE mpi_thermal
 #endif
   END SUBROUTINE
   !
-  SUBROUTINE mpi_bcast_ztns(ll, mm, nn, tns)
+  SUBROUTINE mpi_bcast_ztns(ll, mm, nn, tns, root)
     IMPLICIT NONE
     INTEGER,INTENT(in)     :: ll, mm, nn
     COMPLEX(DP),INTENT(inout) :: tns(ll, mm,nn)
+    INTEGER,OPTIONAL,INTENT(in) :: root
 #ifdef __MPI
-    CALL MPI_BCAST(tns, ll*mm*nn, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+    CALL MPI_BCAST(tns, ll*mm*nn, MPI_DOUBLE_COMPLEX, default_if_not_present(0,root), MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
   !

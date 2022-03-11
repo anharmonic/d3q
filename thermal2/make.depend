@@ -268,6 +268,7 @@ mc_grids.o : ./ph_dos.o
 mc_grids.o : ./q_grids.o
 mc_grids.o : ./timers.o
 merge_degenerate.o : ./timers.o
+mpi_thermal.o : ./functions.o
 nanoclock.o : ./mpi_thermal.o
 neutrons.o : ./fc2_interp.o
 neutrons.o : ./functions.o

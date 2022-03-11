@@ -230,7 +230,7 @@ MODULE tdph_module
     CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
                       nq1, nq2, nq3, nqmax, nfar, fcout)
   
-    IF(nfar.ne.0) RETURN
+    IF(nfar.ne.0) STOP 999
     !
     ! READ atomic positions, forces, etc, and compute harmonic force and energy
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
@@ -302,7 +302,7 @@ PROGRAM tdph
   USE fc2_interpolate,    ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE asr2_module,        ONLY : impose_asr2
   USE quter_module,       ONLY : quter
-  USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs, mpi_broadcast
+  USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs, mpi_broadcast, my_id
   USE tdph_module
   ! harmonic
   USE read_md_module,     ONLY : read_md, read_pioud, fc_to_supercell
@@ -405,7 +405,8 @@ PROGRAM tdph
 
   CALL t_init%start()
 
-  Q_POINTS_LOOP : &
+  ! First loop, find symemtry of every q-point
+  Q_POINTS_LOOP_a : &
   DO iq = 1, nq_wedge
     ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
     ioWRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
@@ -443,28 +444,39 @@ PROGRAM tdph
     symq(iq)%invs = invs
     symq(iq)%rtau = rtau
     symq(iq)%irt= irt
+  ENDDO Q_POINTS_LOOP_a
 
-    !integer :: nrot, nsym, nsymq, irotmq
-    !integer :: nq, nq_tr, isq (48), imq
-    !real(DP) :: sxq (3, 48)
-    !
-    ! the next subroutine uses symmetry from global variables to find the basis of crystal-symmetric
-    ! matrices at this q point
-    CALL fftinterp_mat2(xq, Si, fc, d2)
-    d2 = multiply_mass_dyn(Si,d2)
-
-    IF(ionode)THEN
-      CALL find_d2_symm_base(xq, rank(iq), dmb(iq)%basis, &
+  ! Find symmetric basis for each point (MPI parallelisation)
+  Q_POINTS_LOOP_b1 : &
+  DO iq = 1, nq_wedge
+    ! Simple parallelization of basis search
+    IF(MOD(iq,num_procs)==my_id)THEN
+        ! the next subroutine uses symmetry from global variables to find the basis of crystal-symmetric
+        ! matrices at this q point
+        IF(input%basis=='mu')THEN
+          CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2)
+          d2 = multiply_mass_dyn(Si,d2)
+        ENDIF
+        CALL find_d2_symm_base(symq(iq)%xq, rank(iq), dmb(iq)%basis, &
          Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
          symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, &
          d2, input%basis)
     ENDIF
-    ! 
-    CALL t_comm%start()
-    call mpi_broadcast(rank(iq))
-    IF(.not.ionode) ALLOCATE(dmb(iq)%basis(Si%nat3, Si%nat3, rank(iq)))
-    CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis)
-    CALL t_comm%stop()
+  ENDDO Q_POINTS_LOOP_b1
+
+  ! Distribute basis via MPI
+  CALL t_comm%start()
+  Q_POINTS_LOOP_b2 : &
+  DO iq = 1, nq_wedge
+    CALL mpi_broadcast(rank(iq), root=MOD(iq,num_procs))
+    IF(MOD(iq,num_procs)/=my_id) ALLOCATE(dmb(iq)%basis(Si%nat3, Si%nat3, rank(iq)))
+    CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis, root=MOD(iq,num_procs))
+  ENDDO Q_POINTS_LOOP_b2
+  CALL t_comm%stop()
+  ! 
+  ! Find star of q points
+  Q_POINTS_LOOP_c : &
+  DO iq = 1, nq_wedge
       !
     ! Calculate the list of points making up the star of q and of -q
     CALL tr_star_q(symq(iq)%xq, Si%at, Si%bg, symq(iq)%nsym, symq(iq)%s, symq(iq)%invs, &
@@ -482,7 +494,7 @@ PROGRAM tdph
        ioWRITE(stdout,'(i4,3i3,l2)') i, NINT(syq(:,i)), (i>symq(iq)%nq_star)
     ENDDO
 
-  ENDDO Q_POINTS_LOOP
+  ENDDO Q_POINTS_LOOP_c
   !
   ! Number of degrees of freedom for the entire grid:
   nph = SUM(rank)
@@ -496,11 +508,9 @@ PROGRAM tdph
   iph = 0
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
-    xq = symq(iq)%xq
-    !IF(iq==1) xq=xq+1.d-6
     !
     ! Interpolate the system dynamical matrix at this q
-    CALL fftinterp_mat2(xq, Si, fc, d2)
+    CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2)
     ! Remove the mass factor, I cannot remove it before because the effective
     ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Si,d2)
@@ -696,7 +706,7 @@ PROGRAM tdph
   CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
                     nq1, nq2, nq3, nqmax, nfar, fcout)
 
-  IF(nfar.ne.0) RETURN
+  IF(nfar.ne.0) STOP 999
   !
   ! READ atomic positions, forces, etc, and compute harmonic force and energy
   CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)

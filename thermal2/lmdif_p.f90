@@ -109,51 +109,38 @@ MODULE lmdif_p_module
    SUBROUTINE lmdif_c0(fcn, m, n, x, fvec, tol, info)
        USE iso_c_binding
        IMPLICIT NONE
-          EXTERNAL :: fcn
-          INTEGER(kind=C_INT) :: m, n, info
-          REAL(kind=C_DOUBLE)::  tol
-          REAL(kind=C_DOUBLE)::  x (n), fvec (m)
-          ! internal variables
-          INTEGER :: ipvt(n), maxfev, mode
-          REAL(kind=C_DOUBLE),POINTER :: qtf(:), fjac(:,:), diag(:)
-          REAL(kind=C_DOUBLE),POINTER ::  wa1 (:), wa2(:), wa3(:), wa4(:)
-          INTEGER(kind=C_INT)  :: iwa (n), nprint, nfev
-          REAL(kind=C_DOUBLE) :: factor, epsdiff
+       EXTERNAL :: fcn
+       INTEGER(kind=C_INT) :: m, n, info
+       REAL(kind=C_DOUBLE)::  tol
+       REAL(kind=C_DOUBLE)::  x (n), fvec (m)
+       ! internal variables
+       INTEGER :: ipvt(n), maxfev, mode
+       REAL(kind=C_DOUBLE),ALLOCATABLE :: qtf(:), fjac(:,:), diag(:)
+       REAL(kind=C_DOUBLE),ALLOCATABLE ::  wa1 (:), wa2(:), wa3(:), wa4(:)
+       INTEGER(kind=C_INT)  :: iwa (n), nprint, nfev
+       REAL(kind=C_DOUBLE) :: factor, epsdiff
 
-          INTEGER(kind=C_INT)  :: auxi
-          REAL(kind=C_DOUBLE) :: auxd
-          !
-          TYPE(C_FUNPTR) :: cptr
-
-
-!      INTEGER :: m, n, info
-!      REAL(DP)::  tol
-!      REAL(DP)::  x (n), fvec (m)
-!      EXTERNAL :: fcn
-!      ! internal variables
-!      INTEGER :: ipvt(n), maxfev, mode
-!      REAL(DP),ALLOCATABLE :: qtf(:), fjac(:,:), diag(:)
-!      REAL(DP),ALLOCATABLE ::  wa1 (:), wa2(:), wa3(:), wa4(:)
-!      INTEGER  :: iwa (n), nprint, nfev
-!      REAL(DP) :: factor, epsdiff
-      !
-      INTERFACE
-      SUBROUTINE lmdif_c( cptr, m, n, x, fvec, ftol, xtol, gtol, maxfev, epsfcn, diag, mode, &
-                         factor, nprint, info, nfev, fjac, ldfjaqc, ipvt, qtf, wa1, wa2, wa3, wa4)&
-                         BIND(C,name="lmdif_c")
-      USE iso_c_binding
-          TYPE(C_FUNPTR), VALUE :: cptr
-          INTEGER(kind=C_INT) :: m, n, info, ldfjaqc
-          REAL(kind=C_DOUBLE)::  ftol, xtol, gtol, epsfcn
-          REAL(kind=C_DOUBLE)::  x(n), fvec(m)
-          ! internal variables
-          INTEGER :: ipvt(n), maxfev, mode
-          REAL(kind=C_DOUBLE) :: qtf(n), fjac(m,n), diag(n)
-          REAL(kind=C_DOUBLE) ::  wa1(n), wa2(n), wa3(n), wa4(m)
-          INTEGER(kind=C_INT)  :: iwa(n), nprint, nfev
-          REAL(kind=C_DOUBLE) :: factor, epsdiff
-     END SUBROUTINE lmdif_c
-     END INTERFACE
+       INTEGER(kind=C_INT)  :: auxi
+       REAL(kind=C_DOUBLE) :: auxd
+       !
+       TYPE(C_FUNPTR) :: cptr
+       !
+       INTERFACE
+         SUBROUTINE lmdif_c( cptr, m, n, x, fvec, ftol, xtol, gtol, maxfev, epsfcn, diag, mode, &
+                             factor, nprint, info, nfev, fjac, ldfjaqc, ipvt, qtf, wa1, wa2, wa3, wa4)&
+                    BIND(C,name="lmdif_c")
+            USE iso_c_binding
+            TYPE(C_FUNPTR), VALUE :: cptr
+            INTEGER(kind=C_INT) :: m, n, info, ldfjaqc
+            REAL(kind=C_DOUBLE) ::  ftol, xtol, gtol, epsfcn
+            REAL(kind=C_DOUBLE) ::  x(n), fvec(m)
+            INTEGER(kind=C_INT) :: ipvt(n), maxfev, mode
+            REAL(kind=C_DOUBLE) :: qtf(n), fjac(m,n), diag(n)
+            REAL(kind=C_DOUBLE) ::  wa1(n), wa2(n), wa3(n), wa4(m)
+            INTEGER(kind=C_INT) :: iwa(n), nprint, nfev
+            REAL(kind=C_DOUBLE) :: factor, epsdiff
+         END SUBROUTINE lmdif_c
+       END INTERFACE
      !
       IF(n>m)THEN
             PRINT*, "LMDIF expects n<=m"
@@ -173,12 +160,13 @@ MODULE lmdif_p_module
       auxd = 0._dp
       auxi = 0
 
-!      CALL F_C_PROCPOINTER(fcn, cptr)
+      ! convert fortran function pointer to C
       cptr = C_FUNLOC(fcn)
 
       CALL lmdif_c(cptr,m,n,x,fvec,tol,tol,auxd,maxfev,epsdiff, &
                  diag,mode,factor,auxi,info,nfev,fjac,  &
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
+
 
    END SUBROUTINE lmdif_c0
    
