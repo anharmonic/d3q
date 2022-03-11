@@ -405,11 +405,12 @@ PROGRAM tdph
 
   CALL t_init%start()
 
+  ioWRITE(stdout, '("=====================")')
   ! First loop, find symemtry of every q-point
   Q_POINTS_LOOP_a : &
   DO iq = 1, nq_wedge
-    ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
-    ioWRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
+    ! ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
+    ! ioWRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
     !
     ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~ 
     ! part 1: call smallg_q and the copy_sym, 
@@ -445,7 +446,9 @@ PROGRAM tdph
     symq(iq)%rtau = rtau
     symq(iq)%irt= irt
   ENDDO Q_POINTS_LOOP_a
+  ioWRITE(stdout, '(5x,a,999i5)') "Number of sym.ops. of each q-point:", symq(:)%nsymq
 
+  ioWRITE(stdout, '("=====================")')
   ! Find symmetric basis for each point (MPI parallelisation)
   Q_POINTS_LOOP_b1 : &
   DO iq = 1, nq_wedge
@@ -453,10 +456,10 @@ PROGRAM tdph
     IF(MOD(iq,num_procs)==my_id)THEN
         ! the next subroutine uses symmetry from global variables to find the basis of crystal-symmetric
         ! matrices at this q point
-        IF(input%basis=='mu')THEN
+        !IF(input%basis=='mu')THEN
           CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2)
           d2 = multiply_mass_dyn(Si,d2)
-        ENDIF
+        !ENDIF
         CALL find_d2_symm_base(symq(iq)%xq, rank(iq), dmb(iq)%basis, &
          Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
          symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, &
@@ -473,7 +476,9 @@ PROGRAM tdph
     CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis, root=MOD(iq,num_procs))
   ENDDO Q_POINTS_LOOP_b2
   CALL t_comm%stop()
+  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   ! 
+  ioWRITE(stdout, '("=====================")')
   ! Find star of q points
   Q_POINTS_LOOP_c : &
   DO iq = 1, nq_wedge
@@ -483,7 +488,7 @@ PROGRAM tdph
                    symq(iq)%nq_star, symq(iq)%nq_trstar, symq(iq)%sxq, &
                    symq(iq)%isq, symq(iq)%imq, .false. )
 
-    ioWRITE(stdout, '(5x,a,2i5)') "Found star of q and -q", symq(iq)%nq_star, symq(iq)%nq_trstar
+    !ioWRITE(stdout, '(5x,a,2i5)') "Found star of q and -q", symq(iq)%nq_star, symq(iq)%nq_trstar
     syq = symq(iq)%sxq
     call cryst_to_cart(symq(iq)%nq_trstar, syq, Si%at, -1)
     DO i = 1, symq(iq)%nq_trstar
@@ -491,15 +496,14 @@ PROGRAM tdph
        syq(2,i) = MODULO(syq(2,i), 1._dp)
        syq(3,i) = MODULO(syq(3,i), 1._dp)
        syq(:,i) = syq(:,i) * (/nq1, nq2, nq3/)
-       ioWRITE(stdout,'(i4,3i3,l2)') i, NINT(syq(:,i)), (i>symq(iq)%nq_star)
+       !ioWRITE(stdout,'(i4,3i3,l2)') i, NINT(syq(:,i)), (i>symq(iq)%nq_star)
     ENDDO
 
   ENDDO Q_POINTS_LOOP_c
+  ioWRITE(stdout, '(5x,a,999i5)') "Points in the star of each q-point:", symq(:)%nq_trstar
   !
   ! Number of degrees of freedom for the entire grid:
   nph = SUM(rank)
-  ioWRITE(stdout, '("=====================")')
-  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
@@ -516,7 +520,7 @@ PROGRAM tdph
     d2 = multiply_mass_dyn(Si,d2)
     !
     ! Decompose the dynamical matrix over the symmetric basis at this q-point
-    ioWRITE(stdout,'(2x,a)') "== DECOMPOSITION =="
+    ioWRITE(stdout,'(2x,a,3f12.4)') "Phonon parameters xq=",symq(iq)%xq
     DO i = 1,rank(iq)
       iph = iph +1
       ph_coefficients(iph) = dotprodmat(3*Si%nat,d2, dmb(iq)%basis(:,:,i))

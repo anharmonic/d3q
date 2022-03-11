@@ -136,7 +136,7 @@ MODULE read_md_module
       !IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
       IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step-n_skip*my_id, n_skip*num_procs) == 0)THEN
           i_step = i_step+1
-          WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
+          !WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
 ! READ AND WRITE ATOMIC POSITIONS, ATOMIC FORCES AND TOTAL-ENERGY TO SCREEN
           READ(uni_tau, *) tau_md(:,:, i_step)
           !WRITE(*,'(3E14.5)') tau_md(:,:, i_step)  
@@ -162,6 +162,8 @@ MODULE read_md_module
   !   IF(my_id=num_procs-1) WRITE(*,*) "Only found ", i_step, "steps on last CPU."
      n_steps = i_step
   ENDIF
+  IF(num_procs<17) WRITE(*,*) "Number of steps read on CPU",my_id," : ", n_steps
+  !
   n_steps_tot = n_steps
   CALL mpi_bsum(n_steps_tot)
   IF(n_steps_tot<n_steps0) WRITE(*,*) "WARNING: number of steps requested was larger: ", n_steps0
@@ -293,7 +295,7 @@ MODULE read_md_module
         ENDIF        
         i_step = i_step+1
         !print*, "Reading step", k_step, " as ", i_step
-        WRITE(*,*) "Reading initial coords step", k_step, " as ", i_step, " on cpu", my_id
+        !WRITE(*,*) "Reading initial coords step", k_step, " as ", i_step, " on cpu", my_id
         look_for_toten_md = .true.
         look_for_forces = .true.
         DO k=1, nat_tot
@@ -373,7 +375,8 @@ MODULE read_md_module
   CLOSE(uni_f)
 
   !i_step = n_steps
-  ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
+  !ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
+  IF(num_procs<17) WRITE(*,*) "Number of steps read on CPU",my_id," : ", n_steps
   n_steps_tot = n_steps
   CALL mpi_bsum(n_steps_tot)
   ioWRITE(*,*) "Number of steps read among all CPUs : ", n_steps_tot

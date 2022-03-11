@@ -77,7 +77,7 @@ subroutine generate_simple_base(ndim, mtx, nx)
    ENDDO
    IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
 
-   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
+   !ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
 
 end subroutine
 
@@ -113,7 +113,7 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
 
    IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
 
-   ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
+   !ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
 
 end subroutine
 
@@ -151,7 +151,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   logical :: lgamma
   complex(DP):: u(3*nat, 3*nat)
   
-  integer :: i, j, k, nx, jx, na, nb
+  integer :: i, j, k, nx, jx, na, nb, nb1, nb2, nb3, nb4
 
   complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
   complex(DP),allocatable :: mtx(:,:,:) !(3*nat, 3*nat, 9*nat**2)
@@ -161,14 +161,14 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   ALLOCATE(mtx(3*nat, 3*nat, 9*nat**2))
 
    ! build an initial trivial basis for the hermitean matrices space
-   WRITE(*,'(2x,2a)') "Initial basis guess:", TRIM(method)
+   !WRITE(*,'(2x,2a)') "Initial basis guess:", TRIM(method)
    IF (method=="mu") THEN
       IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
       call generate_mu_base(3*nat, mtx, u0, nx)
    ELSEIF (method=="simple") THEN
       call generate_simple_base(3*nat, mtx, nx)
    ELSEIF (method=="random") THEN
-      ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", 9*nat**2
+      !ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", 9*nat**2
       DO i = 1, 9*nat**2
         lgamma = SUM(ABS(xq)) < 1.d-8
         CALL random_matrix_new (irt, nsymq, minus_q, irotmq, nat, wdyn, lgamma)
@@ -178,6 +178,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ELSE
       CALL errore("generate d2 base", 'Unknown method (can only be: mu, simple, random)', 1)
    ENDIF
+   nb1 = nx ! save for printing
 
    ! symmetrize each matrix
    DO i = 1,nx
@@ -209,8 +210,9 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
       !print*, i, jx, normtx
      ENDIF
    ENDDO
-   ioWRITE(stdout,'(2x,a,i8)') "Number of non-zero symmetric matrices: ", jx
+   !ioWRITE(stdout,'(2x,a,i8)') "Number of non-zero symmetric matrices: ", jx
    nx = jx
+   nb2 = nx ! save for printing
 
    ! Graham-Schmidt
    jx = 0
@@ -231,21 +233,27 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
        !print*, jx, i, normtx
      ENDIF
    ENDDO
-   ioWRITE(stdout,'(2x,a,i8)') "Number of orthonormal matrices:", jx
+   !ioWRITE(stdout,'(2x,a,i8)') "Number of orthonormal matrices:", jx
    nx = jx
+   nb3 = nx ! save for printing
 
-  ! Purge zero projection matrices
-   IF(.not.present(u0)) STOP 999
-   jx = 0
-   DO i = 1, nx
-     IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
-       jx = jx+1
-       IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
-     ENDIF
-   ENDDO
-   ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
-   nx = jx
+  ! Purge zero matrices that have zero projection of provided dynamical matrix
+   IF(present(u0)) THEN
+      jx = 0
+      DO i = 1, nx
+      IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
+         jx = jx+1
+         IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
+      ENDIF
+      ENDDO
+      nx = jx
+   ENDIF
+   !ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
+   nb4 = nx ! save for printing
 
+  WRITE(stdout,'(2x,a,3f12.4,/,a,4i8)') "xq=",xq, &
+      "  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) : ",    &
+      nb1, nb2, nb3, nb4
   rank = nx
   ALLOCATE(basis(3*nat,3*nat,rank))
   basis(:,:,1:rank) = mtx(:,:,1:rank)
