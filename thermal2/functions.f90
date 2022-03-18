@@ -355,6 +355,7 @@ end subroutine quicksort_idx
     ENDIF
     
   END FUNCTION
+  !
   LOGICAL FUNCTION default_if_not_present_logical(deft, arg) &
           RESULT(default_if_not_present)
     LOGICAL,INTENT(in) :: deft

@@ -114,9 +114,6 @@ MODULE harmonic_module
   h_force(:,:) = 0._dp
   h_energy     = 0._dp
 !  jj=0 
-!  DO j = 1, fc2%n_R  ! loop over all atoms in the super cell
-!  DO jat = 1, S%nat
-!    jj=jj+1
 !$OMP PARALLELDO DEFAULT(SHARED) PRIVATE(j, jat, jj, alpha, nu, k, kat, kk, beta, mu, i) REDUCTION(+:h_energy)
 ! no need to reduce force because each thread acts on a different memory location REDUCTION(+:h_force)
    DO jj = 1, nat_tot
@@ -124,11 +121,6 @@ MODULE harmonic_module
    jat = jj_to_jat(jj)
     DO alpha = 1,3      
       nu = (jat-1)*3 + alpha
-      ! ((j,jat)->jj, alpha) -> nu
-!     kk=0
-!     DO k = 1, fc2%n_R   !loop over index of vector of the cell in the supercell
-!      DO kat = 1, S%nat ! ... over all atoms in the unit cell
-!      kk=kk+1
       DO kk = 1, nat_tot
       k   = jj_to_j(kk)
       kat = jj_to_jat(kk)
@@ -150,6 +142,5 @@ MODULE harmonic_module
 !$OMP END PARALLELDO
  ! 
  END SUBROUTINE 
-
-
+ !
 END MODULE
