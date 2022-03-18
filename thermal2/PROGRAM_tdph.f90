@@ -540,7 +540,7 @@ PROGRAM tdph
   first_step = input%nfirst ! start reading from this step
   n_skip = input%nskip !        ! number of steps to skip
 
-  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, nat_sc, tau_sc)
+  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zeu_sc)
   CALL t_init%stop()
 !###################  end of initialization ####################################################
 
@@ -562,13 +562,9 @@ PROGRAM tdph
 !###################  end of data input ####################################################
   ! Compute force from rigid block model (i.e. from long range effective charges interaction)
   ! and remove them from MD forces
-  omega_sc = Si%omega*nqmax
+
   IF(Si%lrigid)THEN
-    ALLOCATE(zeu_sc(3,3,nat_sc))
-    !
-    DO i = 1,nat_sc,Si%nat
-      zeu_sc(:,:,i:i+Si%nat-1) = Si%zeu
-    ENDDO
+
     !
     ALLOCATE(force_rgd(3,nat_sc,n_steps))
     ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 

@@ -41,7 +41,7 @@ MODULE read_md_module
   END SUBROUTINE
   !
   ! Generate supercell that correspond to force constants FC
-  SUBROUTINE fc_to_supercell(S, fc2, aa, bb, nat_tot, tau_sc)
+  SUBROUTINE fc_to_supercell(S, fc2, aa, bb, omega_sc, nat_tot, tau_sc, zeu_sc)
     USE input_fc,  ONLY : forceconst2_grid, ph_system_info
     USE kinds, ONLY : DP
     IMPLICIT NONE
@@ -49,7 +49,8 @@ MODULE read_md_module
     TYPE(forceconst2_grid) :: fc2 ! force constants describing the harmonic system  ALLOCATE(aa(3,3))
     REAL(DP),INTENT(out) :: aa(3,3), bb(3,3)
     INTEGER,INTENT(out)  :: nat_tot
-    REAL(DP),INTENT(out),ALLOCATABLE :: tau_sc(:,:)
+    REAL(DP),INTENT(out) :: omega_sc
+    REAL(DP),INTENT(out),ALLOCATABLE :: tau_sc(:,:), zeu_sc(:,:,:)
     INTEGER :: i,j,k, uni
     aa(:,1) = S%at(:,1)*fc2%nq(1)
     aa(:,2) = S%at(:,2)*fc2%nq(2)
@@ -59,8 +60,9 @@ MODULE read_md_module
     bb(:,3) = S%bg(:,3)/fc2%nq(3)
 
     nat_tot = S%nat * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)
-    ! generate equilibrium positions of the atoms in bohr units
-
+    omega_sc = S%omega * fc2%nq(1) * fc2%nq(2) * fc2%nq(3)
+    
+    ! generate equilibrium positions of the atoms IN BOHR UNITS
     OPEN(newunit=uni,file="sc.dat",action="WRITE",form="formatted")
     ALLOCATE(tau_sc(3,nat_tot))
     WRITE(uni,'("CELL_PARAMETERS bohr")') 
@@ -75,6 +77,15 @@ MODULE read_md_module
       ENDDO
     ENDDO
     CLOSE(uni)
+    !
+    IF(S%lrigid)THEN
+    ALLOCATE(zeu_sc(3,3,nat_tot))
+    !
+    DO i = 1,nat_tot,S%nat
+      zeu_sc(:,:,i:i+S%nat-1) = S%zeu
+    ENDDO
+    ENDIF
+
 
   END SUBROUTINE 
   !
