@@ -658,9 +658,10 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
  END SUBROUTINE smallg_q_fullmq
  
  SUBROUTINE recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef, nq1, nq2, nq3, nqmax, nfar, fcout)
-   USE kinds, ONLY : DP
-   USE input_fc, ONLY : read_fc2, forceconst2_grid, ph_system_info
-   USE quter_module,       ONLY : quter
+   USE kinds,        ONLY : DP
+   USE input_fc,     ONLY : read_fc2, forceconst2_grid, ph_system_info
+   USE quter_module, ONLY : quter
+   USE rigid,        ONLY : rgd_blk
    USE timers
 
    IMPLICIT NONE
@@ -719,6 +720,13 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    ENDDO Q_POINTS_LOOP3
 
    IF(iph.ne.nph) CALL errore("minimize", "wrong iph", 1)
+   !
+   IF(Si%lrigid)THEN
+      DO iq = 1, nqmax
+         CALL rgd_blk (2,2,2,Si%nat, star_wdyn(:,:,:,:,iq), xqmax(:,iq), &
+                       Si%tau,Si%epsil,Si%zeu,Si%bg,Si%omega,Si%celldm(1), .false.,-1.d0)
+      ENDDO
+   ENDIF
    !
    CALL quter(nq1, nq2, nq3, Si%nat,Si%tau,Si%at,Si%bg, star_wdyn, xqmax, fcout, nfar)
    !

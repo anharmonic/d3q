@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2012 Quantum ESPRESSO group
+! Copyright (C) 20020-2022 Lorenzo Paulatto & Ibrahim G Garba
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -311,8 +311,9 @@ PROGRAM tdph
   USE lmdif_module,       ONLY : lmdif0
   USE lmdif_p_module,     ONLY : lmdif_p0, lmdif_c0
   USE timers
-  USE random_numbers, ONLY : randy
-  USE decompose_d2, ONLY : recompose_fc
+  USE random_numbers,     ONLY : randy
+  USE decompose_d2,       ONLY : recompose_fc
+  USE rigid,              ONLY : rgd_blk
   USE iso_c_binding
   !
   IMPLICIT NONE
@@ -330,14 +331,16 @@ PROGRAM tdph
   ! for lmdf1
   INTEGER                   :: n_steps_tot, j_steps
   !
-  REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3), aux
+  REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3), aux, omega_sc, mat_ij(3,3)
+  REAL(DP), PARAMETER :: gamma(3) = (/0._dp,0._dp,0._dp/)
   LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
-                             star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
+                             star_wdyn(:,:,:,:, :), star_dyn(:,:,:), rbdyn(:,:,:,:)
   REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), &
-                          ph_coefficients0(:), metric(:)
-  INTEGER :: i,j, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
+                          ph_coefficients0(:), metric(:), &
+                          force_rgd(:,:,:), zeu_sc(:,:,:)
+  INTEGER :: i,j, istep, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
 
 
   TYPE(forceconst2_grid) :: fc
@@ -557,6 +560,34 @@ PROGRAM tdph
   CALL t_read%stop()
 
 !###################  end of data input ####################################################
+  ! Compute force from rigid block model (i.e. from long range effective charges interaction)
+  ! and remove them from MD forces
+  omega_sc = Si%omega*nqmax
+  IF(Si%lrigid)THEN
+    ALLOCATE(zeu_sc(3,3,nat_sc))
+    !
+    DO i = 1,nat_sc,Si%nat
+      zeu_sc(:,:,i:i+Si%nat-1) = Si%zeu
+    ENDDO
+    !
+    ALLOCATE(force_rgd(3,nat_sc,n_steps))
+    ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 
+    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc/Si%alat, Si%epsil, zeu_sc, bg_sc, omega_sc, Si%alat, .false., +1._dp)
+    !
+    DO istep = 1, n_steps
+        DO i = 1, nat_sc
+          force_rgd(:,i,istep) = 0._dp
+          DO j = 1, nat_sc
+            mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
+            force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
+          END DO
+          force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
+        END DO
+    END DO
+
+  END IF
+
+!###################  end of rigid block ####################################################
 
   mdata = 3*nat_sc*n_steps
   mdata_tot = 3*nat_sc*n_steps_tot
