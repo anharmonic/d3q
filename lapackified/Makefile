@@ -1,6 +1,8 @@
 include ../../make.inc
 CFLAGS= -O3 -Wall -Wextra -I. -g -traceback  -qopenmp -std=c11
 LDFLAGS= -g 
+
+all: libminpack.a
 default: libminpack.a
 
 .phony: clean test bench
