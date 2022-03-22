@@ -260,7 +260,7 @@ MODULE tdph_module
       iter = iter+1
       chi2 = SUM(diff**2)
       CALL mpi_bsum(chi2)
-      chi2=SQRT(chi2)
+      chi2=SQRT(chi2)/mdata_tot_
       ioWRITE(*,'(i10,e12.2)') iter, chi2
   
       ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
@@ -337,7 +337,7 @@ PROGRAM tdph
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:), rbdyn(:,:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), &
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), tau_sc_alat(:,:), &
                           ph_coefficients0(:), metric(:), &
                           force_rgd(:,:,:), zeu_sc(:,:,:)
   INTEGER :: i,j, istep, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
@@ -479,7 +479,6 @@ PROGRAM tdph
     CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis, root=MOD(iq,num_procs))
   ENDDO Q_POINTS_LOOP_b2
   CALL t_comm%stop()
-  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   ! 
   ioWRITE(stdout, '("=====================")')
   ! Find star of q points
@@ -507,6 +506,7 @@ PROGRAM tdph
   !
   ! Number of degrees of freedom for the entire grid:
   nph = SUM(rank)
+  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
@@ -561,27 +561,30 @@ PROGRAM tdph
 
 !###################  end of data input ####################################################
   ! Compute force from rigid block model (i.e. from long range effective charges interaction)
-  ! and remove them from MD forces
-
+  ! and remove them from MD forces to exclude long range effect from fit
   IF(Si%lrigid)THEN
-
     !
     ALLOCATE(force_rgd(3,nat_sc,n_steps))
     ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 
-    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc/Si%alat, Si%epsil, zeu_sc, bg_sc, omega_sc, Si%alat, .false., +1._dp)
+    ALLOCATE(tau_sc_alat(3,nat_sc))
+    tau_sc_alat = tau_sc/Si%alat
+    rbdyn = 0._dp
+    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zeu_sc, bg_sc, &
+                 omega_sc, Si%alat, .false., +1._dp)
     !
     DO istep = 1, n_steps
         DO i = 1, nat_sc
           force_rgd(:,i,istep) = 0._dp
           DO j = 1, nat_sc
+            ! Dynamical matrix at Gamma should be real, let's remove any noise
             mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
             force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
           END DO
           force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
         END DO
     END DO
-
-  END IF
+    DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
+  END IF ! lrigid
 
 !###################  end of rigid block ####################################################
 
@@ -767,7 +770,7 @@ PROGRAM tdph
     iter = iter+1
     chi2 = SUM(diff**2)
     CALL mpi_bsum(chi2)
-    chi2=SQRT(chi2)
+    chi2=SQRT(chi2)/mdata_tot_
     ioWRITE(*,'(i10,e12.2)') iter, chi2
 
     ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef

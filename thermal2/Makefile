@@ -20,8 +20,8 @@ DFLAGS+= -D__HASVTRIG
 #-check all -traceback -g
 #F90FLAGS += -check uninit -check bounds -traceback -g
 
-F90FLAGS += -qopenmp 
-LDFLAGS  += -qopenmp #-pg -g
+#F90FLAGS += -qopenmp 
+#LDFLAGS  += -qopenmp #-pg -g
 
 # For profiling
 #F90FLAGS += -p
