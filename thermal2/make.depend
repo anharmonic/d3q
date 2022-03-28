@@ -21,6 +21,7 @@ asr2.o : mpi_thermal.o
 casimir.o : mpi_thermal.o
 code_input.o : mpi_thermal.o
 decompose_d2.o : mpi_thermal.o
+decompose_zstar.o : mpi_thermal.o
 dynbubble.o : mpi_thermal.o
 eos.o : mpi_thermal.o
 f3_bwfft.o : mpi_thermal.o
@@ -211,6 +212,9 @@ decompose_d2.o : ./functions.o
 decompose_d2.o : ./input_fc.o
 decompose_d2.o : ./quter.o
 decompose_d2.o : ./timers.o
+decompose_zstar.o : ./input_fc.o
+decompose_zstar.o : ./quter.o
+decompose_zstar.o : ./timers.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
 dynbubble.o : ./functions.o
@@ -325,6 +329,7 @@ PROGRAM_tdph.o : mpi_thermal.h
 PROGRAM_tk.o : mpi_thermal.h
 code_input.o : mpi_thermal.h
 decompose_d2.o : mpi_thermal.h
+decompose_zstar.o : mpi_thermal.h
 dynbubble.o : mpi_thermal.h
 fc2_interp.o : mpi_thermal.h
 fc3_interp.o : mpi_thermal.h

@@ -56,6 +56,7 @@ asr2.o \
 casimir.o \
 code_input.o \
 decompose_d2.o \
+decompose_zstar.o \
 dynbubble.o \
 eos.o \
 f3_bwfft.o \

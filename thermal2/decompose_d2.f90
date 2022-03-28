@@ -153,7 +153,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   
   integer :: i, j, k, nx, jx, na, nb, nb1, nb2, nb3, nb4
 
-  complex(DP) :: wdyn (3, 3, nat, nat), phi (3 * nat, 3 * nat)
+  complex(DP) :: wdyn (3, 3, nat, nat) !, phi (3 * nat, 3 * nat)
   complex(DP),allocatable :: mtx(:,:,:) !(3*nat, 3*nat, 9*nat**2)
   real(DP)    :: normtx, sq_normtx_m1
   real(DP),parameter :: eps_base = 1.d-8
@@ -217,7 +217,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ! Graham-Schmidt
    jx = 0
    DO i = 1, nx
-     phi = mtx(:,:,i)
+     !phi = mtx(:,:,i)
      DO j = 1, jx !i-1 ! I only orthogonalize w.r.t the non-zero matrices that I have found
          normtx = dotprodmat(3*nat, mtx(:,:,j), mtx(:,:,j))
          mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,j))
