@@ -142,7 +142,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   real(DP),INTENT(in) :: rtau(3,48,nat)
   integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
   complex(dp),INTENT(in),optional :: u0(3*nat,3*nat)
-  CHARACTER(len=9),INTENT(in) :: method 
+  CHARACTER(len=*),INTENT(in) :: method 
 
 ! input: the q point
 

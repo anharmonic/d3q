@@ -39,6 +39,7 @@ MODULE tdph_module
   INTEGER                :: n_steps, nat_sc
   REAL(DP),ALLOCATABLE   :: u(:,:,:), force_harm(:,:,:),  h_energy(:), force_md(:,:,:) 
   INTEGER,ALLOCATABLE :: rank(:)
+  INTEGER :: zrank
   INTEGER :: ulog
   INTEGER :: mdata
 
@@ -315,6 +316,7 @@ PROGRAM tdph
   USE decompose_d2,       ONLY : recompose_fc
   USE rigid,              ONLY : rgd_blk
   USE iso_c_binding
+  USE decompose_zstar,    ONLY : find_zstar_symm_base
   !
   IMPLICIT NONE
   !
@@ -339,7 +341,7 @@ PROGRAM tdph
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:), rbdyn(:,:,:,:)
   REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), tau_sc_alat(:,:), &
                           ph_coefficients0(:), metric(:), &
-                          force_rgd(:,:,:), zeu_sc(:,:,:)
+                          force_rgd(:,:,:), zeu_sc(:,:,:), zbasis(:,:,:,:)
   INTEGER :: i,j, istep, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
 
 
@@ -563,6 +565,8 @@ PROGRAM tdph
   ! Compute force from rigid block model (i.e. from long range effective charges interaction)
   ! and remove them from MD forces to exclude long range effect from fit
   IF(Si%lrigid)THEN
+    CALL find_zstar_symm_base(zrank, zbasis, Si%nat, Si%at, Si%bg, symq(1)%nsym, symq(1)%irt, &
+                              symq(1)%s, Si%zeu, "simple" )
     !
     ALLOCATE(force_rgd(3,nat_sc,n_steps))
     ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 
