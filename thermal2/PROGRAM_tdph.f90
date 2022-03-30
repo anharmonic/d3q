@@ -238,6 +238,7 @@ MODULE tdph_module
     REAL(DP) :: chi2
     INTEGER :: istep,i,j
     REAL(DP),ALLOCATABLE :: ph_aux(:), zstar_aux(:)
+    LOGICAL,SAVE :: done_zstar=.false.
 
     CALL t_chi2%start()
 
@@ -246,9 +247,11 @@ MODULE tdph_module
       ph_aux    = pars_(1:nph)
       zstar_aux = ph_coefficients(nph+1:nph+zrank)
     ELSEIF (npars_ == zrank) THEN
+      done_zstar=.false.
       ph_aux    = ph_coefficients(1:nph)
       zstar_aux = pars_(1:zrank)
     ELSEIF (npars_ == nph+zrank) THEN
+      done_zstar=.false.
       ph_aux    = pars_(1:nph)
       zstar_aux = pars_(nph+1:nph+zrank)
     ELSE
@@ -260,10 +263,10 @@ MODULE tdph_module
     IF(Si%lrigid) &
       CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
 
-    !CALL impose_asr2("simple", Si%nat, fcout, zstar)
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
 
-    IF(Si%lrigid) THEN
+    IF(Si%lrigid.and..not.done_zstar) THEN
+      done_zstar = .true.
       CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
       rbdyn = 0._dp
       CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
@@ -273,13 +276,14 @@ MODULE tdph_module
           force_rgd(:,i,istep) = 0._dp
           DO j = 1, nat_sc
             ! Dynamical matrix at Gamma should be real, let's remove any noise
-            mat_ij = DBLE(rbdyn(:,:,i,j))	
+            mat_ij = DBLE(rbdyn(:,:,i,j))
             force_rgd(:,i,istep) =  force_rgd(:,i,istep) - MATMUL(mat_ij,u(:,j,istep))
           END DO
-          force_harm(:,i,istep) =  force_harm(:,i,istep) + force_rgd(:,i,istep)
         END DO
       END DO
     ENDIF
+    ! Always include rigid contribution, even if it was not computed this time
+    IF(Si%lrigid) force_harm =  force_harm + force_rgd
     !
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
