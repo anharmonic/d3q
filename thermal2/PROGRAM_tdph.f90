@@ -708,7 +708,6 @@ PROGRAM tdph
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
      IF(Si%lrigid)THEN
        ioWRITE(*,*) "Minimizing z^star "
-       ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank) * 1.1
        CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
      ENDIF
   CASE("ph")
@@ -716,7 +715,7 @@ PROGRAM tdph
   CASE("global")
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph+zrank, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("none")
-    ! Do nothing
+    ! Do one estimation of the forces to have something to print out
     iswitch = 1
     CALL chi_lmdif_c(mdata_tot, nph+zrank, ph_coefficients, diff_tot, iswitch)
   CASE DEFAULT
