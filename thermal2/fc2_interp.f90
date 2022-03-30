@@ -275,7 +275,8 @@ MODULE fc2_interpolate
     ENDIF
     !
     ! Add the long-range term rom effective charges
-    CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
+    !CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
+    CALL rgd_blk(2,2,2,S%nat,phi,xq, &
                   S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
     !
     DO ja = 1,S%nat

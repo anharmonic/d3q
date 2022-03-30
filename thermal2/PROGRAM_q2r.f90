@@ -254,7 +254,7 @@ PROGRAM q2r
               ! Remove non-analytic part before doing the Fourier transform
               !CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
               !              tau,epsil,zeu,bg,omega,-1.d0)
-              CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
+              CALL rgd_blk (2,2,2,nat,phiq(:,:,:,:,nq),q(:,nq), &
                     tau,epsil,zeu,bg,omega,celldm(1), .false.,-1.d0) ! 2D added celldm and flag
             END IF
 !            write(998,'(6f12.6)') phiq(:,:,:,:,nq) 
