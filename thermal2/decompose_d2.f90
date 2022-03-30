@@ -1,3 +1,12 @@
+!
+! Written by Lorenzo Paulatto (2013-2022) IMPMC @ UPMC / CNRS UMR7590
+!  and Ibrahim G. garba
+!  Dual licenced under the CeCILL licence v 2.1
+!  <http://www.cecill.info/licences/Licence_CeCILL_V2.1-fr.txt>
+!  and under the GPLv2 licence and following, see
+!  <http://www.gnu.org/copyleft/gpl.txt>
+!
+! <<^V^\\=========================================//-//-//========//O\\//
 MODULE decompose_d2 
    USE kinds, ONLY : dp
 #include "mpi_thermal.h"
@@ -237,7 +246,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    nx = jx
    nb3 = nx ! save for printing
 
-  ! Purge zero matrices that have zero projection of provided dynamical matrix
+  ! Purge matrices that have zero projection of provided dynamical matrix
    IF(present(u0)) THEN
       jx = 0
       DO i = 1, nx
