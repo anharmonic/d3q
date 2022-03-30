@@ -173,6 +173,7 @@ PROGRAM_tdph.o : ./PROGRAM_tdph.o
 PROGRAM_tdph.o : ./asr2.o
 PROGRAM_tdph.o : ./code_input.o
 PROGRAM_tdph.o : ./decompose_d2.o
+PROGRAM_tdph.o : ./decompose_zstar.o
 PROGRAM_tdph.o : ./fc2_interp.o
 PROGRAM_tdph.o : ./harmonic.o
 PROGRAM_tdph.o : ./input_fc.o
@@ -212,9 +213,6 @@ decompose_d2.o : ./functions.o
 decompose_d2.o : ./input_fc.o
 decompose_d2.o : ./quter.o
 decompose_d2.o : ./timers.o
-decompose_zstar.o : ./input_fc.o
-decompose_zstar.o : ./quter.o
-decompose_zstar.o : ./timers.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
 dynbubble.o : ./functions.o

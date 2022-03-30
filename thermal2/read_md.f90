@@ -71,7 +71,8 @@ MODULE read_md_module
     k = 0   ! initialize
     DO j = 1, fc2%n_R           !
       DO i = 1, S%nat           ! loop over cart. coord in file fc2
-      k = k + 1                 ! 
+      k = k + 1                 !
+      IF(k>nat_tot) CALL errore("make_sc","too many unit cells in supercell, are matrices centered?",1)
       tau_sc(:,k) = (S%tau(:,i)+fc2%xR(:,j))*S%alat     !     
       WRITE(uni,'(a3,3f14.8)') S%atm(S%ityp(i)), tau_sc(:,k)
       ENDDO
@@ -79,11 +80,11 @@ MODULE read_md_module
     CLOSE(uni)
     !
     IF(S%lrigid)THEN
-    ALLOCATE(zeu_sc(3,3,nat_tot))
-    !
-    DO i = 1,nat_tot,S%nat
-      zeu_sc(:,:,i:i+S%nat-1) = S%zeu
-    ENDDO
+      ALLOCATE(zeu_sc(3,3,nat_tot))
+      !
+      DO i = 1,nat_tot,S%nat
+        zeu_sc(:,:,i:i+S%nat-1) = S%zeu
+      ENDDO
     ENDIF
 
 

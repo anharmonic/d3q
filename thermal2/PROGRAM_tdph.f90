@@ -42,10 +42,16 @@ MODULE tdph_module
   INTEGER :: zrank
   INTEGER :: ulog
   INTEGER :: mdata
+  REAL(dp),ALLOCATABLE :: zstar(:,:,:), zstar_sc(:,:,:), zbasis(:,:,:,:), &
+                          force_rgd(:,:,:), tau_sc_alat(:,:)
+  COMPLEX(DP),ALLOCATABLE :: rbdyn(:,:,:,:)
+  REAL(DP) :: omega_sc, mat_ij(3,3), at_sc(3,3), bg_sc(3,3)
+  REAL(DP), PARAMETER :: gamma(3) = (/0._dp,0._dp,0._dp/)
+
 
   ! Not necessarily global, but put here for debugging:
   INTEGER ::  mdata_tot, nph
-  REAL(kind=C_DOUBLE),ALLOCATABLE,TARGET :: ph_coefficients(:), diff_tot(:)
+  REAL(kind=C_DOUBLE),ALLOCATABLE,TARGET :: ph_coefficients(:), ph_coefficients0(:), diff_tot(:)
   !
   CONTAINS
   !
@@ -203,21 +209,26 @@ MODULE tdph_module
   END SUBROUTINE
   !
 !-----------------------------------------------------------------------
-  SUBROUTINE chi_lmdif_c(mdata_tot_, nph_, ph_coef, diff_tot_, iswitch) BIND(c, name="chi_lmdif_c")
+  SUBROUTINE chi_lmdif_c(mdata_tot_, npars_, pars_, diff_tot_, iswitch) BIND(c, name="chi_lmdif_c")
     !-----------------------------------------------------------------------
     ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
     ! forces for n_steps molecur dyanmics simulation 
     !
     !USE tdph_module,  ONLY : nfar
     USE iso_c_binding
-    USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec, my_id
-    USE decompose_d2, ONLY : recompose_fc
-    USE timers,       ONLY : t_chi2, t_comm
+    USE mpi_thermal,     ONLY : mpi_bsum, allgather_vec, my_id
+    USE decompose_d2,    ONLY : recompose_fc
+    USE timers,          ONLY : t_chi2, t_comm
     USE harmonic_module, ONLY : harmonic_force_md
     USE input_fc,        ONLY : write_fc2
+    ! rigid block model:
+    USE decompose_zstar, ONLY : recompose_zstar, zstar_to_supercell
+    USE rigid,              ONLY : rgd_blk
+    USE asr2_module,        ONLY : impose_asr2
+
     IMPLICIT NONE
-    INTEGER(kind=C_INT),INTENT(in)    :: mdata_tot_, nph_
-    REAL(kind=C_DOUBLE),INTENT(in)    :: ph_coef(nph_)
+    INTEGER(kind=C_INT),INTENT(in)    :: mdata_tot_, npars_
+    REAL(kind=C_DOUBLE),INTENT(in)    :: pars_(npars_)
     REAL(kind=C_DOUBLE),INTENT(inout) :: diff_tot_(mdata_tot_)
     INTEGER(kind=C_INT),INTENT(inout) :: iswitch
   
@@ -225,33 +236,67 @@ MODULE tdph_module
     INTEGER,SAVE :: iter = 0
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     REAL(DP) :: chi2
+    INTEGER :: istep,i,j
+    REAL(DP),ALLOCATABLE :: ph_aux(:), zstar_aux(:)
   
     CALL t_chi2%start()
   
-    CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
+    ALLOCATE(ph_aux(nph),zstar_aux(zrank))
+    IF(npars_ == nph)THEN
+      ph_aux    = pars_(1:nph)
+      zstar_aux = ph_coefficients(nph+1:nph+zrank)
+    ELSEIF (npars_ == zrank) THEN
+      ph_aux    = ph_coefficients(1:nph)
+      zstar_aux = pars_(1:zrank)
+    ELSEIF (npars_ == nph+zrank) THEN
+      ph_aux    = pars_(1:nph)
+      zstar_aux = pars_(nph+1:nph+zrank)
+    ELSE
+      CALL errore('minim','what',1)
+    ENDIF
+
+    CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_aux,&
                       nq1, nq2, nq3, nqmax, nfar, fcout)
-  
-    IF(nfar.ne.0) STOP 999
-    !
-    ! READ atomic positions, forces, etc, and compute harmonic force and energy
+    IF(Si%lrigid) &
+      CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
+
+    !CALL impose_asr2("simple", Si%nat, fcout, zstar)
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
-      !
-      SELECT CASE(input%fit_type)
-      CASE('force', 'forces')
-        diff = RESHAPE( (force_harm(:,:,:) - force_md(:,:,:)), (/ mdata /) )
-      CASE('energy')
-        ! not implemented with MPI_GATHER
-        STOP 100
-        !DO i = 1, n_steps
-        !diff = diff + (h_energy(i)-toten_md(i))**2
-        !ENDDO
-      CASE('thforce')
-        ! not implemented with MPI_GATHER
-        STOP 100
-        !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
-      CASE DEFAULT
-        CALL errore("tdph", 'unknown chi2 method', 1)
-      END SELECT
+
+    IF(Si%lrigid) THEN
+      CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
+      rbdyn = 0._dp
+      CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
+                   omega_sc, Si%alat, .false., +1._dp)
+      DO istep = 1, n_steps
+        DO i = 1, nat_sc
+          force_rgd(:,i,istep) = 0._dp
+          DO j = 1, nat_sc
+            ! Dynamical matrix at Gamma should be real, let's remove any noise
+            mat_ij = DBLE(rbdyn(:,:,i,j))	
+            force_rgd(:,i,istep) =  force_rgd(:,i,istep) - MATMUL(mat_ij,u(:,j,istep))
+          END DO
+          force_harm(:,i,istep) =  force_harm(:,i,istep) + force_rgd(:,i,istep)
+        END DO
+      END DO
+    ENDIF
+    !
+    SELECT CASE(input%fit_type)
+    CASE('force', 'forces')
+      diff = RESHAPE( (force_harm(:,:,:)  - force_md(:,:,:)), (/ mdata /) )
+    CASE('energy')
+      ! not implemented with MPI_GATHER
+      STOP 100
+      !DO i = 1, n_steps
+      !diff = diff + (h_energy(i)-toten_md(i))**2
+      !ENDDO
+    CASE('thforce')
+      ! not implemented with MPI_GATHER
+      STOP 100
+      !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
+    CASE DEFAULT
+      CALL errore("tdph", 'unknown chi2 method', 1)
+    END SELECT
     
     CALL t_comm%start() 
     CALL allgather_vec(mdata, diff, diff_tot_)
@@ -262,9 +307,9 @@ MODULE tdph_module
       chi2 = SUM(diff**2)
       CALL mpi_bsum(chi2)
       chi2=SQRT(chi2)/mdata_tot_
-      ioWRITE(*,'(i10,e12.2)') iter, chi2
+      ioWRITE(*,'(i10,e15.7)') iter, chi2
   
-      ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
+      ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, pars_
       ! Every input%nprint steps have a look
       IF(MODULO(iter,input%nprint)==0) &
         CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
@@ -316,7 +361,7 @@ PROGRAM tdph
   USE decompose_d2,       ONLY : recompose_fc
   USE rigid,              ONLY : rgd_blk
   USE iso_c_binding
-  USE decompose_zstar,    ONLY : find_zstar_symm_base
+  USE decompose_zstar,    ONLY : find_zstar_symm_base, dotprodzstar, recompose_zstar
   !
   IMPLICIT NONE
   !
@@ -333,15 +378,13 @@ PROGRAM tdph
   ! for lmdf1
   INTEGER                   :: n_steps_tot, j_steps
   !
-  REAL(DP) :: xq(3), syq(3,48), at_sc(3,3), bg_sc(3,3), force_ratio(3), aux, omega_sc, mat_ij(3,3)
-  REAL(DP), PARAMETER :: gamma(3) = (/0._dp,0._dp,0._dp/)
-  LOGICAL :: sym(48), lrigid_save, skip_equivalence, time_reversal
+  REAL(DP) :: xq(3), syq(3,48), force_ratio(3), aux
+  LOGICAL :: sym(48), skip_equivalence, time_reversal !lrigid_save
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
-                             star_wdyn(:,:,:,:, :), star_dyn(:,:,:), rbdyn(:,:,:,:)
-  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), tau_sc_alat(:,:), &
-                          ph_coefficients0(:), metric(:), &
-                          force_rgd(:,:,:), zeu_sc(:,:,:), zbasis(:,:,:,:)
+                             star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
+  REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), &
+                          metric(:)
   INTEGER :: i,j, istep, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
 
 
@@ -354,7 +397,7 @@ PROGRAM tdph
   CALL READ_INPUT_TDPH(input)
 
   CALL read_fc2(input%file_mat2, Si, fc)
-  lrigid_save = Si%lrigid
+  !lrigid_save = Si%lrigid
   !Si%lrigid = .false.
   CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
   CALL aux_system(Si)
@@ -462,7 +505,7 @@ PROGRAM tdph
         ! the next subroutine uses symmetry from global variables to find the basis of crystal-symmetric
         ! matrices at this q point
         !IF(input%basis=='mu')THEN
-          CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2)
+          CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2, gamma)
           d2 = multiply_mass_dyn(Si,d2)
         !ENDIF
         CALL find_d2_symm_base(symq(iq)%xq, rank(iq), dmb(iq)%basis, &
@@ -471,7 +514,7 @@ PROGRAM tdph
          d2, input%basis)
     ENDIF
   ENDDO Q_POINTS_LOOP_b1
-
+  !
   ! Distribute basis via MPI
   CALL t_comm%start()
   Q_POINTS_LOOP_b2 : &
@@ -506,14 +549,24 @@ PROGRAM tdph
   ENDDO Q_POINTS_LOOP_c
   ioWRITE(stdout, '(5x,a,999i5)') "Points in the star of each q-point:", symq(:)%nq_trstar
   !
+  ! Find symmetric basis for effetcive charges
+  IF(Si%lrigid) THEN
+    ! I use the symmetry of Gamma as it is the same as the one of the crystal
+    IF(ANY(symq(1)%xq/=0._dp)) CALL errore("star","gamma should be the first point",1)
+    CALL find_zstar_symm_base(zrank, zbasis, Si%nat, Si%at, Si%bg, symq(1)%nsym, symq(1)%irt, &
+                              symq(1)%s, Si%zeu, "simple" )
+  ELSE
+    zrank = 0                  
+  ENDIF
+  !
   ! Number of degrees of freedom for the entire grid:
-  nph = SUM(rank)
+  nph = SUM(rank)!+zrank
   ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
   
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
   ! type would be more handy
-  ALLOCATE(ph_coefficients(nph), ph_coefficients0(nph))
+  ALLOCATE(ph_coefficients(nph+zrank), ph_coefficients0(nph+zrank))
   iph = 0
   Q_POINTS_LOOP2 : &
   DO iq = 1, nq_wedge
@@ -534,6 +587,16 @@ PROGRAM tdph
     !
   ENDDO Q_POINTS_LOOP2
   !
+  ! Decompose effective charges
+  IF(Si%lrigid) THEN
+    ioWRITE(stdout,'(2x,a)') "Effective charges parameters"
+    DO i = 1,zrank
+      iph = iph +1
+      ph_coefficients(iph) = dotprodzstar(Si%nat,Si%zeu, zbasis(:,:,:,i))
+      ioWRITE(stdout,"(i3,1f12.6)") i, ph_coefficients(iph)
+    ENDDO
+  ENDIF
+  !
   ph_coefficients0 = ph_coefficients
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
@@ -542,7 +605,7 @@ PROGRAM tdph
   first_step = input%nfirst ! start reading from this step
   n_skip = input%nskip !        ! number of steps to skip
 
-  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zeu_sc)
+  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zstar_sc)
   CALL t_init%stop()
 !###################  end of initialization ####################################################
 
@@ -565,15 +628,14 @@ PROGRAM tdph
   ! Compute force from rigid block model (i.e. from long range effective charges interaction)
   ! and remove them from MD forces to exclude long range effect from fit
   IF(Si%lrigid)THEN
-    CALL find_zstar_symm_base(zrank, zbasis, Si%nat, Si%at, Si%bg, symq(1)%nsym, symq(1)%irt, &
-                              symq(1)%s, Si%zeu, "simple" )
     !
     ALLOCATE(force_rgd(3,nat_sc,n_steps))
     ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 
     ALLOCATE(tau_sc_alat(3,nat_sc))
+    ALLOCATE(zstar(3,3,Si%nat)) ! will be used during minimization
     tau_sc_alat = tau_sc/Si%alat
     rbdyn = 0._dp
-    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zeu_sc, bg_sc, &
+    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
                  omega_sc, Si%alat, .false., +1._dp)
     !
     DO istep = 1, n_steps
@@ -584,10 +646,10 @@ PROGRAM tdph
             mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
             force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
           END DO
-          force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
+          !force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
         END DO
     END DO
-    DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
+    !DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
   END IF ! lrigid
 
 !###################  end of rigid block ####################################################
@@ -622,14 +684,14 @@ PROGRAM tdph
   ENDIF
 
   ! FIXME: Compute and save to file the forces before minimization, should be removed
-  iswitch = 0
-  CALL chi_lmdif_c(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
-  OPEN(118,file="h_enr.dat0",status="unknown") 
-  DO i = 1, n_steps
-  !WRITE(117,*) "i_step = ",i
-        WRITE(118,'(E16.8)') h_energy(i) !
-  END DO
-  CLOSE(118)
+  ! iswitch = 0
+  ! CALL chi_lmdif_c(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
+  ! OPEN(118,file="h_enr.dat0",status="unknown") 
+  ! DO i = 1, n_steps
+  ! !WRITE(117,*) "i_step = ",i
+  !       WRITE(118,'(E16.8)') h_energy(i) !
+  ! END DO
+  ! CLOSE(118)
   !  -- end of FIXME
 
 
@@ -640,14 +702,20 @@ PROGRAM tdph
   CALL t_minim%start()
   ioWRITE(*,*) "Starting minimization: ", TRIM(input%minimization)
   SELECT CASE (input%minimization)
-  CASE("acrs")
-    CALL ACRS0(nph,ph_coefficients, force_diff, chisq_acrs)
   CASE("lmdif")
-    CALL lmdif_p0(chi_lmdif, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+    CALL lmdif_p0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("lmdifc")
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+    ! IF(Si%lrigid)THEN
+    !   ioWRITE(*,*) "Minimizing z^star "
+    !   !CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+    !   ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank)*0.5
+    !   CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
+    ! ENDIF
   CASE("none")
     ! Do nothing
+    iswitch = 1
+    CALL chi_lmdif_c(mdata_tot, nph+zrank, ph_coefficients, diff_tot, iswitch)
   CASE DEFAULT
     CALL errore("tdph","unknown minimization engine requested",1)
   END SELECT
@@ -657,9 +725,11 @@ PROGRAM tdph
 ! Write to file the final matrices in "periodic" form, the final fitted forces, etc
 
   !CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
-  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients,&
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
                     nq1, nq2, nq3, nqmax, 0, fcout)
-  Si%lrigid = lrigid_save
+  IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
+  !Si%lrigid = lrigid_save
+  !CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
   CALL write_fc2("matOUT.periodic", Si, fcout)
 
   ! Force ratio
@@ -669,7 +739,7 @@ PROGRAM tdph
    WRITE(116,*) "i_step = ",i
    DO j = 1, nat_sc
      WHERE(force_md(:,j,i)/=0._dp) 
-       force_ratio = force_harm(:,j,i)/force_md(:,j,i)
+       force_ratio = (force_harm(:,j,i))/force_md(:,j,i)
      ELSEWHERE
        force_ratio = 0._dp
      END WHERE
@@ -691,8 +761,10 @@ PROGRAM tdph
   CLOSE(117)
   !
   ! Write to file the matrices in "centered" form for later Fourier interpolation
-  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients,&
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
                     nq1, nq2, nq3, nqmax, 2, fcout)
+  IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
+  CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
@@ -713,142 +785,6 @@ PROGRAM tdph
  ! ---- the program is over ---- !
  !
  CONTAINS
-
-! Penalty function in the form required by LMDIF : return an array of size
-! at least as large as the number of degrees of freedom containing the penalty
-! (NOT SQUARED) for each dimension. 
-!-----------------------------------------------------------------------
- SUBROUTINE chi_lmdif(mdata_tot_, nph_, ph_coef, diff_tot_, iswitch)
-  !-----------------------------------------------------------------------
-  ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
-  ! forces for n_steps molecur dyanmics simulation 
-  !
-  USE tdph_module
-  USE mpi_thermal,  ONLY : mpi_bsum, allgather_vec, my_id
-  USE decompose_d2, ONLY : recompose_fc
-  IMPLICIT NONE
-  INTEGER,INTENT(in)    :: mdata_tot_, nph_
-  REAL(DP),INTENT(in)   :: ph_coef(nph)
-  REAL(DP),INTENT(out)  :: diff_tot_(mdata_tot_)
-  REAL(DP)  :: diff(mdata)
-  INTEGER,INTENT(inout) :: iswitch
-
-  INTEGER :: nq_done, iph, iq, i, j, k
-  INTEGER,SAVE :: iter = 0
-  CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-  REAL(DP) :: chi2, e0
-  REAL(DP),SAVE :: last_save = 0._dp
-
-  CALL t_chi2%start()
-
-  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph_, ph_coef,&
-                    nq1, nq2, nq3, nqmax, nfar, fcout)
-
-  IF(nfar.ne.0) STOP 999
-  !
-  ! READ atomic positions, forces, etc, and compute harmonic force and energy
-  CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)
-    !
-    SELECT CASE(input%fit_type)
-    CASE('force', 'forces')
-      diff = RESHAPE( (force_harm(:,:,:) - force_md(:,:,:)), (/ mdata /) )
-    CASE('energy')
-      ! not implemented with MPI_GATHER
-      STOP 100
-      !DO i = 1, n_steps
-      !diff = diff + (h_energy(i)-toten_md(i))**2
-      !ENDDO
-    CASE('thforce')
-      ! not implemented with MPI_GATHER
-      STOP 100
-      !diff = diff + RESHAPE( (ABS(force_harm(:,:,i) - force_md(:,:,i))**2 *EXP(-toten_md(i)) ), (/ mfc /) )
-    CASE DEFAULT
-      CALL errore("tdph", 'unknown chi2 method', 1)
-    END SELECT
-  
-  CALL t_comm%start() 
-  CALL allgather_vec(mdata, diff, diff_tot_)
-  CALL t_comm%stop()
-
-  IF(iswitch==1)THEN
-    iter = iter+1
-    chi2 = SUM(diff**2)
-    CALL mpi_bsum(chi2)
-    chi2=SQRT(chi2)/mdata_tot_
-    ioWRITE(*,'(i10,e12.2)') iter, chi2
-
-    ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, ph_coef
-    ! Every input%nprint steps have a look
-    IF(MODULO(iter,input%nprint)==0) &
-      CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
-  ENDIF
-
-  CALL t_chi2%stop()
-  !
-  END SUBROUTINE chi_lmdif
-  !
-
-  ! Penalty function as required by ACRS: return a single positive real number to minimize.
-  !-----------------------------------------------------------------------
-  SUBROUTINE chisq_acrs(ph_coef, nph, fdiff2)
-    !-----------------------------------------------------------------------
-    ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
-    ! forces for n_steps molecur dyanmics simulation 
-    !
-    USE tdph_module,  ONLY : nfar
-    USE mpi_thermal,  ONLY : mpi_bsum
-    USE decompose_d2, ONLY : recompose_fc
-    IMPLICIT NONE
-    INTEGER,INTENT(in)    :: nph
-    REAL(DP),INTENT(in)   :: ph_coef(nph)
-    REAL(DP),INTENT(out)  :: fdiff2
-  
-    INTEGER :: nq_done, iph, iq, i, j, k
-    INTEGER,SAVE :: iter = 0
-    CHARACTER (LEN=6),  EXTERNAL :: int_to_char
-    REAL(DP) :: chi2
-
-    CALL t_minim%start()
-  
-    CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coef,&
-                      nq1, nq2, nq3, nqmax, nfar, fcout)
-          !
-    IF(nfar.ne.0) RETURN
-    !
-    CALL harmonic_force_md(n_steps, nat_sc, Si,fcout,u,force_harm,h_energy)
-    !
-    fdiff2 = 0._dp
-  
-    DO i = 1, n_steps
-      SELECT CASE(input%fit_type)
-      CASE('force', 'forces')
-        fdiff2 = fdiff2 + SUM((force_harm(:,:,i) - force_md(:,:,i))**2 )
-      CASE('energy')
-        fdiff2 = fdiff2 + (h_energy(i)-toten_md(i))**2
-      CASE('thforce')
-        fdiff2 = fdiff2 + SUM( (force_harm(:,:,i) - force_md(:,:,i))**2 )*EXP(-toten_md(i))
-      CASE DEFAULT
-        CALL errore("tdph", 'unknown chi2 method', 1)
-      END SELECT
-    ENDDO
-    
-    CALL  t_comm%start()
-    CALL mpi_bsum(fdiff2) 
-    CALL  t_comm%stop()
-
-    iter = iter+1
-    chi2 = SQRT(fdiff2)/n_steps_tot
-    ioWRITE(*,'(i10,e12.2)') iter, chi2
-    ioWRITE(ulog, "(i10,' ',f14.6,'  ',9999f12.6)") iter, chi2, ph_coef
-    ! Every 1000 steps have a look
-    IF(input%nprint>0 .and. MODULO(iter,input%nprint)==0)&
-       CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
-    !ENDIF
-  
-    CALL t_minim%stop()
-    !
-    END SUBROUTINE chisq_acrs
-  
   !----------------------------------------------------------------------------
  END PROGRAM tdph
 !------------------------------------------------------------------------------

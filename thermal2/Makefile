@@ -18,7 +18,7 @@ DFLAGS+= -D__HASVTRIG
 
 #F90FLAGS += -heap-arrays 10
 #-check all -traceback -g
-#F90FLAGS += -check uninit -check bounds -traceback -g
+#F90FLAGS += -check all -traceback -g
 
 #F90FLAGS += -qopenmp 
 #LDFLAGS  += -qopenmp #-pg -g
