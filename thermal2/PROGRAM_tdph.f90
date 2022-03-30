@@ -22,7 +22,7 @@ MODULE tdph_module
     CHARACTER(len=256) :: ftau, fforce, ftoten
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
-    CHARACTER(len=8) :: minimization = "acrs"
+    CHARACTER(len=8) :: minimization = "ph+zstar"
     CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst, nskip, nmax, nprint
     REAL(DP) :: e0, thr, T, randomization
@@ -37,7 +37,7 @@ MODULE tdph_module
   TYPE(tdph_input_type)  :: input
   TYPE(forceconst2_grid) :: fcout
   INTEGER                :: n_steps, nat_sc
-  REAL(DP),ALLOCATABLE   :: u(:,:,:), force_harm(:,:,:),  h_energy(:), force_md(:,:,:) 
+  REAL(DP),ALLOCATABLE   :: u(:,:,:), force_harm(:,:,:),  h_energy(:), force_md(:,:,:)
   INTEGER,ALLOCATABLE :: rank(:)
   INTEGER :: zrank
   INTEGER :: ulog
@@ -74,7 +74,7 @@ MODULE tdph_module
     CHARACTER(len=256) :: ftoten = 'pioud.dat'
     CHARACTER(len=256) :: file_mat2 = 'mat2R.periodic'
     CHARACTER(len=8) :: fit_type = "force"
-    CHARACTER(len=8) :: minimization = "acrs"
+    CHARACTER(len=8) :: minimization = "ph+zstar"
     CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst=1000, nskip=100, nmax=-1, nprint=1000, nread=-1
 
@@ -118,7 +118,7 @@ MODULE tdph_module
       REWIND(aux_unit)
       READ(aux_unit, tdphinput, iostat=err2)
       IF(err2==0)CLOSE(aux_unit, status="DELETE")
-      
+
       IF(err1/=0 .and. err2/=0 .and. ionode)  WRITE(stdout,'(2x,3a)') "Warning: no input file or parameters!"
 
       ioWRITE(stdout, tdphinput)
@@ -155,7 +155,7 @@ MODULE tdph_module
     input%basis         = basis
     input%randomization = randomization
     !
-    CONTAINS 
+    CONTAINS
     SUBROUTINE bcast_namelist_variables()
         USE mpi_thermal, ONLY : mpi_broadcast
         IMPLICIT NONE
@@ -205,14 +205,14 @@ MODULE tdph_module
     amass(1:ntyp)  = Si%amass(1:ntyp)
     tau(:,1:nat)   = Si%tau(:,1:nat)
     ityp(1:nat)    = Si%ityp(1:nat)
-  
+
   END SUBROUTINE
   !
 !-----------------------------------------------------------------------
   SUBROUTINE chi_lmdif_c(mdata_tot_, npars_, pars_, diff_tot_, iswitch) BIND(c, name="chi_lmdif_c")
     !-----------------------------------------------------------------------
     ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
-    ! forces for n_steps molecur dyanmics simulation 
+    ! forces for n_steps molecur dyanmics simulation
     !
     !USE tdph_module,  ONLY : nfar
     USE iso_c_binding
@@ -231,16 +231,16 @@ MODULE tdph_module
     REAL(kind=C_DOUBLE),INTENT(in)    :: pars_(npars_)
     REAL(kind=C_DOUBLE),INTENT(inout) :: diff_tot_(mdata_tot_)
     INTEGER(kind=C_INT),INTENT(inout) :: iswitch
-  
+
     REAL(kind=c_DOUBLE) :: diff(mdata)
     INTEGER,SAVE :: iter = 0
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     REAL(DP) :: chi2
     INTEGER :: istep,i,j
     REAL(DP),ALLOCATABLE :: ph_aux(:), zstar_aux(:)
-  
+
     CALL t_chi2%start()
-  
+
     ALLOCATE(ph_aux(nph),zstar_aux(zrank))
     IF(npars_ == nph)THEN
       ph_aux    = pars_(1:nph)
@@ -297,29 +297,29 @@ MODULE tdph_module
     CASE DEFAULT
       CALL errore("tdph", 'unknown chi2 method', 1)
     END SELECT
-    
-    CALL t_comm%start() 
+
+    CALL t_comm%start()
     CALL allgather_vec(mdata, diff, diff_tot_)
     CALL t_comm%stop()
-  
+
     IF(iswitch==1)THEN
       iter = iter+1
       chi2 = SUM(diff**2)
       CALL mpi_bsum(chi2)
       chi2=SQRT(chi2)/mdata_tot_
       ioWRITE(*,'(i10,e15.7)') iter, chi2
-  
+
       ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, pars_
       ! Every input%nprint steps have a look
       IF(MODULO(iter,input%nprint)==0) &
         CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
     ENDIF
-  
+
     CALL t_chi2%stop()
     !
   END SUBROUTINE chi_lmdif_c
     !
-  
+
 END MODULE
 
 !
@@ -409,16 +409,16 @@ PROGRAM tdph
   ! Symmetry setup uses global variable, which is not ideal, but
   ! not a huge problem since we only need to do this part once
   ! at the beginning.
-  ! ~~~~~~~~ setup bravais lattice symmetry ~~~~~~~~ 
+  ! ~~~~~~~~ setup bravais lattice symmetry ~~~~~~~~
   CALL set_sym_bl ( )
   ioWRITE(stdout, '(5x,a,i3)') "Symmetries of bravais lattice: ", nrot
   !
-  ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~ 
+  ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~
   IF(.not.allocated(m_loc))  THEN
     ALLOCATE(m_loc(3,Si%nat))
     m_loc = 0._dp
   ENDIF
-  
+
   CALL find_sym ( Si%nat, Si%tau, Si%ityp, .false., m_loc )
   ioWRITE(stdout, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
   !
@@ -434,7 +434,7 @@ PROGRAM tdph
                     0,0,0, nq1,nq2,nq3, nq_wedge, x_q, w_q )
   !
   ioWRITE(stdout, *) "Generated ", nq_wedge, "points"
-  
+
   ALLOCATE(rtau( 3, 48, Si%nat), d2(3*Si%nat,3*Si%nat))
 
   ! Variable to hold the dyn matrix and q-points of the entire grid
@@ -460,18 +460,18 @@ PROGRAM tdph
     ! ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
     ! ioWRITE(stdout, '(i6, 3f12.4)') iq, x_q(:,iq)
     !
-    ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~ 
-    ! part 1: call smallg_q and the copy_sym, 
+    ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~
+    ! part 1: call smallg_q and the copy_sym,
     xq = x_q(:,iq)
     minus_q = .true.
-  
+
     sym = .false.
     sym(1:nsym) = .true.
     CALL smallg_q_fullmq(xq, 0, Si%at, Si%bg, nsym, s, sym, minus_q)
     nsymq = copy_sym(nsym, sym)
     ! recompute the inverses as the order of sym.ops. has changed
-    CALL inverse_s ( ) 
-  
+    CALL inverse_s ( )
+
     ! part 2: this computes gi, gimq
     call set_giq (xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
 !    WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
@@ -524,7 +524,7 @@ PROGRAM tdph
     CALL mpi_broadcast(Si%nat3, Si%nat3, rank(iq), dmb(iq)%basis, root=MOD(iq,num_procs))
   ENDDO Q_POINTS_LOOP_b2
   CALL t_comm%stop()
-  ! 
+  !
   ioWRITE(stdout, '("=====================")')
   ! Find star of q points
   Q_POINTS_LOOP_c : &
@@ -556,13 +556,13 @@ PROGRAM tdph
     CALL find_zstar_symm_base(zrank, zbasis, Si%nat, Si%at, Si%bg, symq(1)%nsym, symq(1)%irt, &
                               symq(1)%s, Si%zeu, "simple" )
   ELSE
-    zrank = 0                  
+    zrank = 0
   ENDIF
   !
   ! Number of degrees of freedom for the entire grid:
   nph = SUM(rank)!+zrank
-  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph  
-  
+  ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph
+
   ! Allocate a vector to hold the decomposed phonons over the entire grid
   ! I need single vector in order to do minimization, otherwise a derived
   ! type would be more handy
@@ -630,26 +630,26 @@ PROGRAM tdph
   IF(Si%lrigid)THEN
     !
     ALLOCATE(force_rgd(3,nat_sc,n_steps))
-    ALLOCATE(rbdyn(3,3,nat_sc,nat_sc)) 
+    ALLOCATE(rbdyn(3,3,nat_sc,nat_sc))
     ALLOCATE(tau_sc_alat(3,nat_sc))
     ALLOCATE(zstar(3,3,Si%nat)) ! will be used during minimization
     tau_sc_alat = tau_sc/Si%alat
-    rbdyn = 0._dp
-    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
-                 omega_sc, Si%alat, .false., +1._dp)
+!    rbdyn = 0._dp
+!    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
+!                 omega_sc, Si%alat, .false., +1._dp)
     !
-    DO istep = 1, n_steps
-        DO i = 1, nat_sc
-          force_rgd(:,i,istep) = 0._dp
-          DO j = 1, nat_sc
-            ! Dynamical matrix at Gamma should be real, let's remove any noise
-            mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
-            force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
-          END DO
-          !force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
-        END DO
-    END DO
-    !DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
+!    DO istep = 1, n_steps
+!        DO i = 1, nat_sc
+!          force_rgd(:,i,istep) = 0._dp
+!          DO j = 1, nat_sc
+!            ! Dynamical matrix at Gamma should be real, let's remove any noise
+!            mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
+!            force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
+!          END DO
+!          !force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
+!        END DO
+!    END DO
+!    !DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
   END IF ! lrigid
 
 !###################  end of rigid block ####################################################
@@ -660,7 +660,7 @@ PROGRAM tdph
   ALLOCATE(diff_tot(mdata_tot))
   ALLOCATE(force_harm(3,nat_sc,n_steps))
   nfar = 0
-  
+
   IF(input%randomization/=0._dp)THEN
     IF(ionode)THEN
       !
@@ -686,7 +686,7 @@ PROGRAM tdph
   ! FIXME: Compute and save to file the forces before minimization, should be removed
   ! iswitch = 0
   ! CALL chi_lmdif_c(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
-  ! OPEN(118,file="h_enr.dat0",status="unknown") 
+  ! OPEN(118,file="h_enr.dat0",status="unknown")
   ! DO i = 1, n_steps
   ! !WRITE(117,*) "i_step = ",i
   !       WRITE(118,'(E16.8)') h_energy(i) !
@@ -696,22 +696,25 @@ PROGRAM tdph
 
 
   !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
-  ulog=1119
-  OPEN(unit=ulog, file="tdph.log", form="formatted", status="unknown")
+  !ulog=1119
+  OPEN(newunit=ulog, file="tdph.log", form="formatted", status="unknown")
 
   CALL t_minim%start()
   ioWRITE(*,*) "Starting minimization: ", TRIM(input%minimization)
   SELECT CASE (input%minimization)
   CASE("lmdif")
     CALL lmdif_p0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
-  CASE("lmdifc")
-    CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
-    ! IF(Si%lrigid)THEN
-    !   ioWRITE(*,*) "Minimizing z^star "
-    !   !CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
-    !   ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank)*0.5
-    !   CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
-    ! ENDIF
+  CASE("ph+zstar")
+    CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
+     IF(Si%lrigid)THEN
+       ioWRITE(*,*) "Minimizing z^star "
+       ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank) * 1.1
+       CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
+     ENDIF
+  CASE("ph")
+    CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
+  CASE("global")
+    CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph+zrank, ph_coefficients, diff_tot, input%thr, iswitch)
   CASE("none")
     ! Do nothing
     iswitch = 1
@@ -733,26 +736,26 @@ PROGRAM tdph
   CALL write_fc2("matOUT.periodic", Si, fcout)
 
   ! Force ratio
-  OPEN(116,file="force_ratio.dat",status="unknown") 
+  OPEN(116,file="force_ratio.dat",status="unknown")
   !
   DO i = 1, n_steps
    WRITE(116,*) "i_step = ",i
    DO j = 1, nat_sc
-     WHERE(force_md(:,j,i)/=0._dp) 
+     WHERE(force_md(:,j,i)/=0._dp)
        force_ratio = (force_harm(:,j,i))/force_md(:,j,i)
      ELSEWHERE
        force_ratio = 0._dp
      END WHERE
- 
+
      ioWRITE(116,'(1f14.6,5x,3(3f14.6,5x))') DSQRT(norm2(force_ratio)),&
                              force_ratio, force_harm(:,j,i), force_md(:,j,i)
      END DO
   END DO
   CLOSE(116)
-  ! 
+  !
   ! Harmonic energy
-  ! 
-  OPEN(117,file="h_enr.dat",status="unknown") 
+  !
+  OPEN(117,file="h_enr.dat",status="unknown")
   DO i = 1, n_steps
   !WRITE(117,*) "i_step = ",i
     ioWRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), toten_md(i), &
