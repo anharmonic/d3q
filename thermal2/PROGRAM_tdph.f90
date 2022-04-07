@@ -218,7 +218,7 @@ MODULE tdph_module
     USE iso_c_binding
     USE mpi_thermal,     ONLY : mpi_bsum, allgather_vec, my_id
     USE decompose_d2,    ONLY : recompose_fc
-    USE timers,          ONLY : t_chi2, t_comm
+    USE timers,          ONLY : t_chi2, t_comm, t_zstar
     USE harmonic_module, ONLY : harmonic_force_md
     USE input_fc,        ONLY : write_fc2
     ! rigid block model:
@@ -260,17 +260,18 @@ MODULE tdph_module
 
     CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_aux,&
                       nq1, nq2, nq3, nqmax, nfar, fcout)
-    IF(Si%lrigid) &
-      CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
 
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
 
     IF(Si%lrigid.and..not.done_zstar) THEN
+      CALL t_zstar%start()
+      CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
       done_zstar = .true.
       CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
       rbdyn = 0._dp
       CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
                    omega_sc, Si%alat, .false., +1._dp)
+!$OMP PARALLELDO DEFAULT(shared) PRIVATE(istep,i,j,mat_ij)
       DO istep = 1, n_steps
         DO i = 1, nat_sc
           force_rgd(:,i,istep) = 0._dp
@@ -281,6 +282,8 @@ MODULE tdph_module
           END DO
         END DO
       END DO
+!$OMP END PARALLELDO
+      CALL t_zstar%stop()
     ENDIF
     ! Always include rigid contribution, even if it was not computed this time
     IF(Si%lrigid) force_harm =  force_harm + force_rgd
@@ -758,13 +761,12 @@ PROGRAM tdph
   !
   ! Harmonic energy
   !
-  OPEN(117,file="h_enr.dat",status="unknown")
-  DO i = 1, n_steps
-  !WRITE(117,*) "i_step = ",i
-    ioWRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), toten_md(i), &
-                                         EXP(-toten_md(i)/(K_BOLTZMANN_RY*300.0_DP))
-  END DO
-  CLOSE(117)
+!  OPEN(117,file="h_enr.dat",status="unknown")
+!  DO i = 1, n_steps
+!  !WRITE(117,*) "i_step = ",i
+!    ioWRITE(117,'(i5,3(E13.6, 3x))') i, h_energy(i), toten_md(i), &
+!                                         EXP(-toten_md(i)/(K_BOLTZMANN_RY*300.0_DP))
+!  END DO
   !
   ! Write to file the matrices in "centered" form for later Fourier interpolation
   CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
@@ -784,6 +786,7 @@ PROGRAM tdph
   ioWRITE(stdout,'("   * inside chi2 ")')
   CALL t_comm%print()
   CALL t_force%print()
+  CALL t_zstar%print()
   CALL t_recom%print()
 
   CALL stop_mpi()
