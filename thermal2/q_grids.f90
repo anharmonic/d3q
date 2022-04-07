@@ -575,7 +575,7 @@ MODULE q_grids
     ENDDO
     grid%w = grid%w / SUM(grid%w)
     !
-    CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
+    !CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
     grid%basis = 'cartesian'
     !
     grid%xq0 = 0._dp
