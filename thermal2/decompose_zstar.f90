@@ -324,8 +324,8 @@ function dotprodzstar(n,a,b) result(r)
   real(dp),intent(in) :: a(3,3,n), b(3,3,n)
   real(dp) :: r
   integer :: i,j,k
-  !r = SUM(a*b)
   r = 0._dp
+!$OMP PARALLELDO DEFAULT(shared) PRIVATE(i,j,k) REDUCTION(+:r)
   do i = 1,n
     do j = 1,3
       r = r+a(j,j,i)*b(j,j,i)
@@ -334,6 +334,7 @@ function dotprodzstar(n,a,b) result(r)
       enddo
     enddo
   enddo
+!$OMP END PARALLELDO
   !
 end function
 
@@ -357,9 +358,11 @@ subroutine recompose_zstar(nat, rank, zbasis, zstar_coef, zstar)
    integer :: i
 
    zstar = 0._dp
+!$OMP PARALLELDO DEFAULT(shared) PRIVATE(i) REDUCTION(+:zstar)
    DO i = 1, rank
       zstar = zstar + zstar_coef(i)*zbasis(:,:,:,i)
    ENDDO
+!$OMP END PARALLELDO
 
 end subroutine
 
