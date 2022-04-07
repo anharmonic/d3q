@@ -60,9 +60,10 @@ MODULE timers
                      t_comm  = nanotimer("mpi comm"), &
                      t_read  = nanotimer("reading data"), &
                      t_init  = nanotimer("initialization"), &
-                     t_force = nanotimer("forces"), &
+                     t_force = nanotimer("harm. forces"), &
                      t_recom = nanotimer("phonons recon"), &
-                     t_chi2  = nanotimer("chi2")
+                     t_chi2  = nanotimer("chi2"), &
+                     t_zstar = nanotimer("zstar recon.")
 
 
   CONTAINS
