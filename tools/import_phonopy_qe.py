@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+import sys
+if sys.version_info.major <3:
+  print("Python 3 is required")
+  exit()
 
-print """
+print( """
 
 This is a very rough script that imports the FORCE_CONSTANT
 file produced by phonopy (by A. Togo). It assumes that the
@@ -34,7 +38,7 @@ BECAUSE IT IS NOT OPTIMIZED FOR FOURIER INTERPOLATION
 YOU WILL HAVE TO CONVERT IT TO THERMAL2 USING THE SCRIPT
 fc2mat2R.sh FROM THE TOOLS DIRECTORY!
 
-"""
+""")
 
 MASS_DALTON_TO_RY = 0.5*1822.88839
 
@@ -51,7 +55,7 @@ ANGSTROM_AU       = 1./BOHR_RADIUS_ANGS
 # produced from QE calculation
 F_FACTOR = 1. #/RYTOEV/ANGSTROM_AU**2
 
-print "Force constant unit conversion factor:", F_FACTOR
+print( "Force constant unit conversion factor:", F_FACTOR)
 
 def atoms2species(listat):
   nat = len(listat)
@@ -69,14 +73,13 @@ def atoms2species(listat):
   return listsp, invsp, idxat
 
 def supercell2cell(nat, atuc, natsc, atsc, cell, rcell, nq1,nq2,nq3):
-  from numpy import dot, transpose, zeros, int
+  from numpy import dot, zeros
   listrbig = zeros(shape=(natsc,3),dtype=int)
   idxsc = [0]*natsc
-  trcell = transpose(rcell)
   for i in range(natsc):
     for j in range(nat):
       rbig = atsc[i,:] - atuc[j,:]
-      rbigx =  dot(trcell, rbig)
+      rbigx =  dot(rcell, rbig)
       rbigi = [round(rbigx[0]), round(rbigx[1]), round(rbigx[2])]
       delta = norm(rbigx-rbigi)
       if delta < 1.e-6:
@@ -88,10 +91,8 @@ def supercell2cell(nat, atuc, natsc, atsc, cell, rcell, nq1,nq2,nq3):
   return idxsc, listrbig
 
 from sys import stderr
-import ase.io.espresso
-fin = open("pw.in")
-aseuc = ase.io.espresso.read_espresso_in(fin)
-fin.close()
+import ase.io
+aseuc = ase.io.read("pw_uc.in")
 
 nat  = len(aseuc)
 csym = aseuc.get_chemical_symbols()
@@ -105,7 +106,7 @@ nsp = len(invsp)
 cell = aseuc.get_cell()
 from  numpy.linalg import norm
 alat = norm(cell[0,:])
-rcell = aseuc.get_reciprocal_cell()
+rcell = rcell = aseuc.cell.reciprocal()
 
 fout = open("fc", 'w')
 
@@ -124,16 +125,14 @@ for i in range(nat):
 # no effective charges:
 fout.write("F\n")
 
-fin = open("pw.in")
-asesc =ase.io.espresso.read_espresso_in(fin)
-fin.close()
+asesc= ase.io.read("pw_sc.in")
 
 scell = asesc.get_cell()
 nq1 =  int(round(norm(scell[0,:])/norm(cell[0,:])))
 nq2 =  int(round(norm(scell[1,:])/norm(cell[1,:])))
 nq3 =  int(round(norm(scell[2,:])/norm(cell[2,:])))
 ncells = nq1*nq2*nq3
-print "Supercell size: ", nq1, nq2, nq3
+print( "Supercell size: ", nq1, nq2, nq3)
 
 fout.write("{:6} {:6} {:6} \n".format(nq1, nq2, nq3))
 
@@ -200,6 +199,6 @@ for alpha in range(3):
               fout.write( "{:4}{:4}{:4}{:20.10e}\n".format(iq1+1, iq2+1, iq3+1, fc[alpha][beta][i][j][iq1][iq2][iq3]*F_FACTOR) )
 
 fout.close()
-print "Force constants written to file 'fc'"
+print( "Force constants written to file 'fc'")
 
 
