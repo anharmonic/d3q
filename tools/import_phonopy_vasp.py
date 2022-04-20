@@ -5,7 +5,6 @@ if sys.version_info.major <3:
   exit()
 
 print( """
-
 This is a very rough script that imports the FORCE_CONSTANT
 file produced by phonopy (by A. Togo). It assumes that the
 file has been produced by a VASP calculation, (i.e. units eV/A^2)
