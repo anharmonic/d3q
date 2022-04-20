@@ -148,12 +148,14 @@ MODULE lmdif_p_module
             STOP 1
       ENDIF
       !
+      !WRITE(*,'(2x,"Problem size:",2i8)') n,m
+      !
       ALLOCATE(wa1 (n), wa2(n), wa3(n), wa4(m))
       ALLOCATE(qtf(n), fjac(m,n), diag(n))
       diag= 1.d0        ! all the variables have the same importance
       mode = 1          ! set diag automatically
       factor = 1.d0     ! initial step factor
-      epsdiff = 0d0     ! precision of fcn (used fo finite difference differentiation)
+      epsdiff = 0.d0     ! precision of fcn (used for finite difference differentiation)
       nprint = 0
       maxfev = 100000   ! take as many iterations as needed
  
@@ -162,11 +164,26 @@ MODULE lmdif_p_module
 
       ! convert fortran function pointer to C
       cptr = C_FUNLOC(fcn)
+      !
+      ! reset everything:
+      wa1 = 0._dp
+      wa2 = 0._dp
+      wa3 = 0._dp
+      wa4 = 0._dp
+      qtf = 0._dp
+      fjac = 0._dp
+      diag = 0._dp
+      fvec = 0._dp
+      info = 0
+      iwa = 0
+      ipvt = 0
+      nfev = 0
 
       CALL lmdif_c(cptr,m,n,x,fvec,tol,tol,auxd,maxfev,epsdiff, &
                  diag,mode,factor,auxi,info,nfev,fjac,  &
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
 
+      IF(info==0.or.info>4) WRITE(*,'(2x,"Warning ! Did not minimize:",2i8)') info
 
    END SUBROUTINE lmdif_c0
    

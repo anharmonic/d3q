@@ -478,6 +478,7 @@ MODULE code_input
         IF(qpoints_ok) THEN
           !CALL errore("READ_INPUT", "Won't reads q-points twice", 1)
           ioWRITE(*,*) "WARNING! Ignoring QPOINTS (duplicated, or not required)"
+          word=''
           CYCLE READ_CARDS
         ENDIF
         qpoints_ok = .true.

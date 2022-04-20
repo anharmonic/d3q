@@ -210,13 +210,13 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ! Some matrices can be zero at this point, we throw them away
    jx = 0
    DO i = 1,nx
+   CALL enforce_hermitean(3*nat, mtx(:,:,i))
      normtx = dotprodmat(3*nat, mtx(:,:, i),mtx(:,:, i))
      IF(normtx > eps_base)THEN
-      jx = jx+1
-      sq_normtx_m1 = 1._dp / DSQRT(normtx)
-      mtx(:,:,jx) = mtx(:,:, i) * sq_normtx_m1
-      CALL enforce_hermitean(3*nat, mtx(:,:,jx))
-      !print*, i, jx, normtx
+       jx = jx+1
+       sq_normtx_m1 = 1._dp / DSQRT(normtx)
+       mtx(:,:,jx) = mtx(:,:, i) * sq_normtx_m1
+       !print*, i, jx, normtx
      ENDIF
    ENDDO
    !ioWRITE(stdout,'(2x,a,i8)') "Number of non-zero symmetric matrices: ", jx
@@ -228,7 +228,9 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    DO i = 1, nx
      !phi = mtx(:,:,i)
      DO j = 1, jx !i-1 ! I only orthogonalize w.r.t the non-zero matrices that I have found
-         normtx = dotprodmat(3*nat, mtx(:,:,j), mtx(:,:,j))
+         !normtx = dotprodmat(3*nat, mtx(:,:,j), mtx(:,:,j))
+         !CALL enforce_hermitean(3*nat, mtx(:,:,i))
+         !CALL enforce_hermitean(3*nat, mtx(:,:,j))
          mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,j))
 !        mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, phi, mtx(:,:,j))
      ENDDO
