@@ -81,13 +81,13 @@ subroutine generate_simple_base(ndim, mtx, nx)
    ENDDO
    ENDDO
    !third, matrices with a single non-zero off-diagonal imaginary term
-   ! DO i = 1,ndim
-   ! DO j = i+1, ndim
-   !   nx=nx+1
-   !   mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-   !   mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-   ! ENDDO
-   ! ENDDO
+   DO i = 1,ndim
+   DO j = i+1, ndim
+     nx=nx+1
+     mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+     mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+   ENDDO
+   ENDDO
    IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
 
    !ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
@@ -120,7 +120,7 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
       nx=nx+1
       DO k = 1,ndim
          v1(k,1) = CONJG(ev(k,i))
-         v2(1,k) =       ev(k,j)
+         v2(1,k) =       ev(j,k)
       ENDDO
       aux = matmul(v1,v2)
       mtx(:,:, nx) = aux+CONJG(TRANSPOSE(aux))
@@ -199,7 +199,6 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
 
    ! symmetrize each matrix
    DO i = 1,nx
-     !CALL enforce_hermitean(3*nat, mtx(:,:,i))
      CALL scompact_dyn(nat, mtx(:,:,i), wdyn)
      do na = 1, nat
         do nb = 1, nat
@@ -213,7 +212,6 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
         enddo
      enddo
      CALL compact_dyn(nat, mtx(:,:,i), wdyn)
-     !WRITE(*,'(6(2f7.3,3x),5x)') mtx(:,:,i)
    ENDDO
 
    ! Some matrices can be zero at this point, we throw them away
@@ -235,12 +233,13 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    DO i = 1, nx
      !phi = mtx(:,:,i)
      ORTHOGONALIZE : &
-     DO j = 1, jx ! I only orthogonalize w.r.t the non-zero matrices that I have found
+     DO j = 1, jx ! I only orthogonalize w.r.t the non-zero matrices that I have just found
          mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,j))
-         !normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
-         !IF(normtx < eps_base) EXIT ORTHOGONALIZE
+         normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
+         IF(normtx < eps_base) EXIT ORTHOGONALIZE
      ENDDO ORTHOGONALIZE
-     normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
+     !
+     IF(jx<1) normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
      IF(normtx > eps_base)THEN
        jx = jx+1
        sq_normtx_m1 = 1._dp / DSQRT(normtx)
@@ -258,7 +257,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   ! Purge matrices that have zero projection of provided dynamical matrix
    jx = 0
    DO i = 1, nx
-   IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
+   IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > eps_base ) THEN
       jx = jx+1
       IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
    ENDIF
@@ -274,51 +273,8 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   ALLOCATE(basis(3*nat,3*nat,rank))
   basis(:,:,1:rank) = mtx(:,:,1:rank)
 
-#ifdef __DEBUG
-  phi = 0._dp
-   ioWRITE(*,*) "++++++++++"
-   DO i = 1, nx
-     IF(ANY(ABS(mtx(:,:,i))>1.d-8))THEN
-       phi  = phi+mtx(:,:,i)
-       CALL scompact_dyn(nat, mtx(:,:,i), wdyn)
-       ioWRITE(*,*) "+", i
-       DO j = 1,nat
-       DO k = 1,nat
-            ioWRITE(*,*) j,k
-            ioWRITE(*,'(3(2f7.3,3x),5x)') wdyn(:,:,j,k)
-       ENDDO
-       ENDDO
-       call cdiagh (3 * nat, phi, 3 * nat, eigen, u)
-       DO k = 1,3*nat
-         IF(abs(eigen(k))>1.d-8) THEN
-            ioWRITE(*,'("a", f10.6, 3x, 6(2f7.3,3x))') eigen(k), u(:,k)
-         ENDIF
-       ENDDO
-     ENDIF
-   ENDDO
-
-   ioWRITE(*,*) "+", "Decomposition done"
-#endif
-
   DEALLOCATE(mtx)
-
-!   WRITE(*,*) "total:" 
-!   phi = phi / DSQRT(DBLE(nx))
-!   CALL scompact_dyn(nat, phi, wdyn)
-!   DO j = 1,nat
-!   DO k = 1,nat
-!        WRITE(*,*) j,k
-!        WRITE(*,'(3(2f7.3,3x),5x)') wdyn(:,:,j,k)
-!   ENDDO
-!   ENDDO
-!   call cdiagh (3 * nat, phi, 3 * nat, eigen, u)
-!   DO k = 1,3*nat
-!     !IF(abs(eigen(k))>1.d-8) THEN
-!        WRITE(*,'("a", f10.6, 3x, 6(2f7.3,3x))') eigen(k), u(:,k)
-!     !ENDIF
-!   ENDDO
-
-   return
+  return
 end subroutine find_d2_symm_base
 
 subroutine enforce_hermitean(n,a)

@@ -386,7 +386,7 @@ PROGRAM tdph
   INTEGER                   :: n_steps_tot, j_steps
   !
   REAL(DP) :: syq(3,48), force_ratio(3), aux
-  LOGICAL :: sym(48), skip_equivalence, time_reversal !lrigid_save
+  LOGICAL :: sym(48), skip_equivalence, time_reversal, lrigid_save
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
@@ -404,9 +404,9 @@ PROGRAM tdph
   CALL READ_INPUT_TDPH(input)
 
   CALL read_fc2(input%file_mat2, Si, fc)
+  CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
   !lrigid_save = Si%lrigid
   !Si%lrigid = .false.
-  CALL impose_asr2("simple", Si%nat, fc, Si%zeu)
   CALL aux_system(Si)
   CALL div_mass_fc2(Si, fc)
   !
@@ -578,7 +578,7 @@ PROGRAM tdph
   DO iq = 1, nq_wedge
     !
     ! Interpolate the system dynamical matrix at this q
-    CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2)
+    CALL fftinterp_mat2(symq(iq)%xq, Si, fc, d2, gamma)
     ! Remove the mass factor, I cannot remove it before because the effective
     ! charges/long range interaction code assumes it is there
     d2 = multiply_mass_dyn(Si,d2)
@@ -607,9 +607,9 @@ PROGRAM tdph
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
-  n_steps = input%nmax ! total molecular dynamics steps TO READ
+  n_steps    = input%nmax   ! total molecular dynamics steps TO READ
   first_step = input%nfirst ! start reading from this step
-  n_skip = input%nskip !        ! number of steps to skip
+  n_skip     = input%nskip  ! number of steps to skip
 
   CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zstar_sc)
   CALL t_init%stop()
@@ -640,22 +640,6 @@ PROGRAM tdph
     ALLOCATE(tau_sc_alat(3,nat_sc))
     ALLOCATE(zstar(3,3,Si%nat)) ! will be used during minimization
     tau_sc_alat = tau_sc/Si%alat
-!    rbdyn = 0._dp
-!    CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
-!                 omega_sc, Si%alat, .false., +1._dp)
-    !
-!    DO istep = 1, n_steps
-!        DO i = 1, nat_sc
-!          force_rgd(:,i,istep) = 0._dp
-!          DO j = 1, nat_sc
-!            ! Dynamical matrix at Gamma should be real, let's remove any noise
-!            mat_ij(1:3,1:3) = DBLE(rbdyn(:,:,i,j))	
-!            force_rgd(:,i,istep) =  force_rgd(:,i,istep)- MATMUL(mat_ij,u(:,j,istep))
-!          END DO
-!          !force_md(:,i,istep) =  force_md(:,i,istep) - force_rgd(:,i,istep)
-!        END DO
-!    END DO
-!    !DEALLOCATE(force_rgd, rbdyn, tau_sc_alat)
   END IF ! lrigid
 
 !###################  end of rigid block ####################################################
@@ -716,14 +700,14 @@ PROGRAM tdph
   !
 !###################  end of minimization ####################################################
 ! Write to file the final matrices in "periodic" form, the final fitted forces, etc
-
-  !CALL chi_lmdif(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
   CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
                     nq1, nq2, nq3, nqmax, 0, fcout)
-  IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
   !Si%lrigid = lrigid_save
+  IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
   !CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
+  !Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.periodic", Si, fcout)
+  !Si%lrigid = .false.
 
   ! Force ratio
   OPEN(116,file="force_ratio.dat",status="unknown")
@@ -756,7 +740,8 @@ PROGRAM tdph
   CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
                     nq1, nq2, nq3, nqmax, 2, fcout)
   IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
-  CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
+  !CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
+  !Si%lrigid = lrigid_save
   CALL write_fc2("matOUT.centered", Si, fcout)
 
   CLOSE(ulog)
