@@ -14,7 +14,8 @@ MODULE decompose_d2
    TYPE sym_and_star_q
       real(DP) :: xq (3)
       ! xq: q vector
-      integer :: s (3, 3, 48), invs(48)
+      !integer,allocatable :: s (3, 3, 48), invs(48), isq(48)
+      integer,allocatable :: s (:,:,:), invs(:), isq(:)
       ! invs: list of inverse operation indices
       integer :: nrot, nsym, nsymq, irotmq
       ! nrot  symmetry operations of the lattice
@@ -23,13 +24,14 @@ MODULE decompose_d2
       ! index of the rotation that send q -> -q
       logical :: minus_q
       !
-      integer :: nq_star, nq_trstar, isq (48), imq
+      integer :: nq_star, nq_trstar, imq
       ! nq  : degeneracy of the star of q
       ! nq_tr  : degeneracy of the star of q and -q
       ! isq : index of q in the star for a given sym
       ! imq : index of -q in the star (0 if not present)
    
-      real(DP) :: sxq (3, 48)
+      !real(DP) :: sxq(3, 48)
+      real(DP),allocatable :: sxq(:,:)
       ! list of vectors in the star
       !
       real(DP),allocatable :: rtau(:,:,:) !3,48,nat
@@ -51,6 +53,8 @@ SUBROUTINE allocate_sym_and_star_q(nat, symq)
    TYPE(sym_and_star_q),INTENT(inout) :: symq
    ALLOCATE(symq%rtau(3,48,nat))
    ALLOCATE(symq%irt(48,nat))
+   ALLOCATE(symq%sxq(3,48))
+   ALLOCATE(symq%s(3, 3, 48), symq%invs(48), symq%isq(48))
 END SUBROUTINE
 
 
@@ -77,13 +81,13 @@ subroutine generate_simple_base(ndim, mtx, nx)
    ENDDO
    ENDDO
    !third, matrices with a single non-zero off-diagonal imaginary term
-   DO i = 1,ndim
-   DO j = i+1, ndim
-     nx=nx+1
-     mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-     mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
-   ENDDO
-   ENDDO
+   ! DO i = 1,ndim
+   ! DO j = i+1, ndim
+   !   nx=nx+1
+   !   mtx(i,j,nx) =  CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+   !   mtx(j,i,nx) = -CMPLX(0._dp, dsqrt(0.5_dp), kind=dp)
+   ! ENDDO
+   ! ENDDO
    IF(nx>ndim**2) CALL errore("gen_sbase", "too many matrices?", 1)
 
    !ioWRITE(stdout,'(2x,a,i8)') "Initial basis size:", nx
@@ -98,9 +102,9 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
    integer,intent(out)     :: nx
    complex(DP),intent(out) :: mtx(ndim, ndim, ndim**2)
    !
-   integer :: i,j
+   integer :: i,j,k
    real(dp)  :: e(ndim)
-   complex(dp)  :: u(ndim,ndim), ev(ndim,ndim), v1(ndim,1), v2(1,ndim)
+   complex(dp)  :: u(ndim,ndim), ev(ndim,ndim), v1(ndim,1), v2(1,ndim), aux(ndim,ndim)
 
    ! diagonalize u0
    u=u0
@@ -109,13 +113,17 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
    nx = 0  
    !first matrices with a single 1 along the diagonal
    mtx = 0._dp
+   !print*, e
    DO i = 1, ndim
-   DO j = 1, ndim
-     IF(ABS(e(i))>1.d-6 .and. ABS(e(j))>1.d-6 )THEN
+   DO j = i, ndim
+     IF(ABS(e(i))>1.d-12 .and. ABS(e(j))>1.d-12 )THEN
       nx=nx+1
-      v1(:,1) = ev(:,i)
-      v2(1,:) = CONJG(ev(j,:))
-      mtx(:,:, nx) = matmul(v1,v2)
+      DO k = 1,ndim
+         v1(k,1) = CONJG(ev(k,i))
+         v2(1,k) =       ev(k,j)
+      ENDDO
+      aux = matmul(v1,v2)
+      mtx(:,:, nx) = aux+CONJG(TRANSPOSE(aux))
      ENDIF
    ENDDO
    ENDDO
@@ -150,7 +158,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   integer,INTENT(in)  :: irotmq
   real(DP),INTENT(in) :: rtau(3,48,nat)
   integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
-  complex(dp),INTENT(in),optional :: u0(3*nat,3*nat)
+  complex(dp),INTENT(in) :: u0(3*nat,3*nat)
   CHARACTER(len=*),INTENT(in) :: method 
 
 ! input: the q point
@@ -165,14 +173,14 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   complex(DP) :: wdyn (3, 3, nat, nat) !, phi (3 * nat, 3 * nat)
   complex(DP),allocatable :: mtx(:,:,:) !(3*nat, 3*nat, 9*nat**2)
   real(DP)    :: normtx, sq_normtx_m1
-  real(DP),parameter :: eps_base = 1.d-8
+  real(DP),parameter :: eps_base = 1.d-6
 
   ALLOCATE(mtx(3*nat, 3*nat, 9*nat**2))
 
    ! build an initial trivial basis for the hermitean matrices space
    !WRITE(*,'(2x,2a)') "Initial basis guess:", TRIM(method)
    IF (method=="mu") THEN
-      IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
+      !IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
       call generate_mu_base(3*nat, mtx, u0, nx)
    ELSEIF (method=="simple") THEN
       call generate_simple_base(3*nat, mtx, nx)
@@ -191,6 +199,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
 
    ! symmetrize each matrix
    DO i = 1,nx
+     !CALL enforce_hermitean(3*nat, mtx(:,:,i))
      CALL scompact_dyn(nat, mtx(:,:,i), wdyn)
      do na = 1, nat
         do nb = 1, nat
@@ -210,13 +219,11 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ! Some matrices can be zero at this point, we throw them away
    jx = 0
    DO i = 1,nx
-   CALL enforce_hermitean(3*nat, mtx(:,:,i))
-     normtx = dotprodmat(3*nat, mtx(:,:, i),mtx(:,:, i))
-     IF(normtx > eps_base)THEN
-       jx = jx+1
-       sq_normtx_m1 = 1._dp / DSQRT(normtx)
-       mtx(:,:,jx) = mtx(:,:, i) * sq_normtx_m1
-       !print*, i, jx, normtx
+      normtx = dotprodmat(3*nat, mtx(:,:, i),mtx(:,:, i))
+      IF(normtx > eps_base)THEN
+        jx = jx+1
+        sq_normtx_m1 = 1._dp / DSQRT(normtx)
+        mtx(:,:,jx) = mtx(:,:, i) * sq_normtx_m1
      ENDIF
    ENDDO
    !ioWRITE(stdout,'(2x,a,i8)') "Number of non-zero symmetric matrices: ", jx
@@ -227,13 +234,12 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    jx = 0
    DO i = 1, nx
      !phi = mtx(:,:,i)
-     DO j = 1, jx !i-1 ! I only orthogonalize w.r.t the non-zero matrices that I have found
-         !normtx = dotprodmat(3*nat, mtx(:,:,j), mtx(:,:,j))
-         !CALL enforce_hermitean(3*nat, mtx(:,:,i))
-         !CALL enforce_hermitean(3*nat, mtx(:,:,j))
+     ORTHOGONALIZE : &
+     DO j = 1, jx ! I only orthogonalize w.r.t the non-zero matrices that I have found
          mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,j))
-!        mtx(:,:,i) = mtx(:,:,i) - mtx(:,:,j) * dotprodmat(3*nat, phi, mtx(:,:,j))
-     ENDDO
+         !normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
+         !IF(normtx < eps_base) EXIT ORTHOGONALIZE
+     ENDDO ORTHOGONALIZE
      normtx = dotprodmat(3*nat, mtx(:,:,i), mtx(:,:,i))
      IF(normtx > eps_base)THEN
        jx = jx+1
@@ -241,25 +247,24 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
        mtx(:,:,jx) = mtx(:,:,i) * sq_normtx_m1
        CALL enforce_hermitean(3*nat, mtx(:,:,jx))
        IF(jx<i) mtx(:,:,i) = 0._dp
-       !print*, jx, i, normtx
      ENDIF
    ENDDO
+   !
+
    !ioWRITE(stdout,'(2x,a,i8)') "Number of orthonormal matrices:", jx
    nx = jx
    nb3 = nx ! save for printing
 
   ! Purge matrices that have zero projection of provided dynamical matrix
-   IF(present(u0)) THEN
-      jx = 0
-      DO i = 1, nx
-      IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
-         jx = jx+1
-         IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
-      ENDIF
-      ENDDO
-      nx = jx
+   jx = 0
+   DO i = 1, nx
+   IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > 1.d-6 ) THEN
+      jx = jx+1
+      IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
    ENDIF
-   !ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
+   ENDDO
+   nx = jx
+   ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
    nb4 = nx ! save for printing
 
   WRITE(stdout,'(2x,a,3f12.4,/,a,4i8)') "xq=",xq, &
@@ -322,17 +327,40 @@ subroutine enforce_hermitean(n,a)
   integer,intent(in) :: n
   complex(dp),intent(inout) :: a(n,n)
   integer :: i,j
+  complex(dp) :: aux
   do i = 1, n
     a(i,i) = DBLE(a(i,i))
   enddo
   do i = 1, n
-  do j = i+1, n
-    a(i,j) = 0.5_dp * (a(i,j)+ CONJG(a(j,i)))
-    a(j,i) =  a(i,j)
+  do j = 1,i-1
+   aux = 0.5_dp * (a(i,j)+ CONJG(a(j,i)))
+    a(i,j) = aux
+    a(j,i) =  CONJG(aux)
   enddo
   enddo
 end subroutine
 
+
+function check_hermitean(n,a) result(r)
+   use kinds, only : dp
+   implicit none
+   integer,intent(in) :: n
+   complex(dp),intent(inout) :: a(n,n)
+   integer :: i,j
+   real(dp) :: r
+   complex(dp) :: z
+   r = 0._dp
+
+   do i = 1, n
+     r = r + ABS(DIMAG(a(i,i)))
+   enddo
+   do i = 1, n
+   do j = i+1, n
+     z = a(i,j)-CONJG(a(j,i))
+     r = r + ABS(DBLE(z)) + ABS(DIMAG(z))
+   enddo
+   enddo
+end function
 
 function dotprodmat(n,a,b) result(r)
   use kinds, only : dp

@@ -13,7 +13,7 @@ MODULE tdph_module
   USE iso_c_binding
 #include "mpi_thermal.h"
   !
-  INTEGER :: nfar=0
+  !INTEGER :: nfar=0
 
   TYPE tdph_input_type
     !
@@ -259,7 +259,7 @@ MODULE tdph_module
     ENDIF
 
     CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_aux,&
-                      nq1, nq2, nq3, nqmax, nfar, fcout)
+                      nq1, nq2, nq3, nqmax, 0, fcout)
 
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
 
@@ -385,7 +385,7 @@ PROGRAM tdph
   ! for lmdf1
   INTEGER                   :: n_steps_tot, j_steps
   !
-  REAL(DP) :: xq(3), syq(3,48), force_ratio(3), aux
+  REAL(DP) :: syq(3,48), force_ratio(3), aux
   LOGICAL :: sym(48), skip_equivalence, time_reversal !lrigid_save
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
@@ -461,7 +461,7 @@ PROGRAM tdph
   CALL t_init%start()
 
   ioWRITE(stdout, '("=====================")')
-  ! First loop, find symemtry of every q-point
+  ! First loop, find symmetry of every q-point
   Q_POINTS_LOOP_a : &
   DO iq = 1, nq_wedge
     ! ioWRITE(stdout, *) "____[[[[[[[", iq, "]]]]]]]]____"
@@ -469,18 +469,18 @@ PROGRAM tdph
     !
     ! ~~~~~~~~ setup small group of q symmetry ~~~~~~~~
     ! part 1: call smallg_q and the copy_sym,
-    xq = x_q(:,iq)
+    symq(iq)%xq = x_q(:,iq)
     minus_q = .true.
 
     sym = .false.
     sym(1:nsym) = .true.
-    CALL smallg_q_fullmq(xq, 0, Si%at, Si%bg, nsym, s, sym, minus_q)
+    CALL smallg_q_fullmq(symq(iq)%xq, 0, Si%at, Si%bg, nsym, s, sym, minus_q)
     nsymq = copy_sym(nsym, sym)
     ! recompute the inverses as the order of sym.ops. has changed
     CALL inverse_s ( )
 
     ! part 2: this computes gi, gimq
-    call set_giq (xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
+    call set_giq (symq(iq)%xq,s,nsymq,nsym,irotmq,minus_q,gi,gimq)
 !    WRITE(stdout, '(5x,a,i3)') "Symmetries of small group of q:", nsymq
 !    IF(minus_q) WRITE(stdout, '(10x,a)') "in addition sym. q -> -q+G"
     !
@@ -490,7 +490,6 @@ PROGRAM tdph
     ! Now, I copy all the symmetry definitions to a derived type
     ! which I'm going to use EXCLUSIVELY from here on
     CALL allocate_sym_and_star_q(Si%nat, symq(iq))
-    symq(iq)%xq = xq
     symq(iq)%nrot = nrot
     symq(iq)%nsym  = nsym
     symq(iq)%nsymq = nsymq
@@ -666,7 +665,6 @@ PROGRAM tdph
   ALLOCATE(force_diff(3*nat_sc))
   ALLOCATE(diff_tot(mdata_tot))
   ALLOCATE(force_harm(3,nat_sc,n_steps))
-  nfar = 0
 
   IF(input%randomization/=0._dp)THEN
     IF(ionode)THEN
@@ -690,27 +688,13 @@ PROGRAM tdph
     CALL mpi_broadcast(nph, ph_coefficients)
   ENDIF
 
-  ! FIXME: Compute and save to file the forces before minimization, should be removed
-  ! iswitch = 0
-  ! CALL chi_lmdif_c(mdata_tot, nph, ph_coefficients, diff_tot, iswitch)
-  ! OPEN(118,file="h_enr.dat0",status="unknown")
-  ! DO i = 1, n_steps
-  ! !WRITE(117,*) "i_step = ",i
-  !       WRITE(118,'(E16.8)') h_energy(i) !
-  ! END DO
-  ! CLOSE(118)
-  !  -- end of FIXME
-
-
-  !ph_coefficients(3) =   ph_coefficients(3) *0.0_dp
-  !ulog=1119
   OPEN(newunit=ulog, file="tdph.log", form="formatted", status="unknown")
 
   CALL t_minim%start()
   ioWRITE(*,*) "Starting minimization: ", TRIM(input%minimization)
   SELECT CASE (input%minimization)
   CASE("lmdif")
-    CALL lmdif_p0(chi_lmdif_c, mdata_tot, nph, ph_coefficients, diff_tot, input%thr, iswitch)
+    CALL lmdif_p0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
   CASE("ph+zstar")
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
      IF(Si%lrigid)THEN
