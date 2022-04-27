@@ -63,7 +63,8 @@ MODULE timers
                      t_force = nanotimer("harm. forces"), &
                      t_recom = nanotimer("phonons recon"), &
                      t_chi2  = nanotimer("chi2"), &
-                     t_zstar = nanotimer("zstar recon.")
+                     t_zstar = nanotimer("zstar recon."), &
+                     t_rigid = nanotimer("rigid block")
 
 
   CONTAINS

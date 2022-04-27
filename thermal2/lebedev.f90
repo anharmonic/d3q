@@ -3,7 +3,7 @@ MODULE lebedev
 
       PRIVATE
       PUBLIC :: order_table, available_table, precision_table
-      PUBLIC :: ld_by_order
+      PUBLIC :: ld_by_order, list_to_order
       PUBLIC :: xyz_to_tp
 
       INTERFACE ld_by_order
@@ -13,6 +13,21 @@ MODULE lebedev
 
 
       CONTAINS
+
+function list_to_order( idx)
+  implicit none
+  integer :: idx, list_to_order
+  integer,parameter :: list(32) =  &
+(/ 6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202,&
+ 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810/)
+ 
+ if(idx>32) then
+   print*, "Index too high"
+   stop
+ endif
+ list_to_order = list(idx)
+
+end function
 
 function available_table ( rule )
 
@@ -6869,22 +6884,22 @@ end
 END MODULE
 
 
-PROGRAM ld_test
-  USE lebedev
-  IMPLICIT NONE
-  INTEGER :: I,N
-  REAL(8), ALLOCATABLE :: r(:,:), w(:), x(:), y(:), z(:)
-  !
-  I = 6
-  ALLOCATE(r(3,I), w(I), x(I), y(I), z(I))
-  !
-  call ld_by_order ( I, x,y,z, w )
-!  call ld0006( x,y,z, w )
-
-  !
-  print*, I
-  DO n = 1,I
-   write(*,'(f12.6,3x,3f12.6)') w(n),x(n) , y(n), z(n)
-  enddo
-END PROGRAM
+!PROGRAM ld_test
+!  USE lebedev
+!  IMPLICIT NONE
+!  INTEGER :: I,N
+!  REAL(8), ALLOCATABLE :: r(:,:), w(:), x(:), y(:), z(:)
+!  !
+!  I = 6
+!  ALLOCATE(r(3,I), w(I), x(I), y(I), z(I))
+!  !
+!  call ld_by_order ( I, x,y,z, w )
+!!  call ld0006( x,y,z, w )
+!
+!  !
+!  print*, I
+!  DO n = 1,I
+!   write(*,'(f12.6,3x,3f12.6)') w(n),x(n) , y(n), z(n)
+!  enddo
+!END PROGRAM
 

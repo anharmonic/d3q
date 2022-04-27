@@ -218,7 +218,7 @@ MODULE tdph_module
     USE iso_c_binding
     USE mpi_thermal,     ONLY : mpi_bsum, allgather_vec, my_id
     USE decompose_d2,    ONLY : recompose_fc
-    USE timers,          ONLY : t_chi2, t_comm, t_zstar
+    USE timers,          ONLY : t_chi2, t_comm, t_zstar, t_rigid
     USE harmonic_module, ONLY : harmonic_force_md
     USE input_fc,        ONLY : write_fc2
     ! rigid block model:
@@ -237,12 +237,14 @@ MODULE tdph_module
     CHARACTER (LEN=6),  EXTERNAL :: int_to_char
     REAL(DP) :: chi2
     INTEGER :: istep,i,j
-    REAL(DP),ALLOCATABLE :: ph_aux(:), zstar_aux(:)
+    !REAL(DP),ALLOCATABLE :: ph_aux(:), zstar_aux(:)
+    REAL(DP),ALLOCATABLE,SAVE :: ph_aux(:), zstar_aux(:), zstar_old(:)
     LOGICAL,SAVE :: done_zstar=.false.
 
     CALL t_chi2%start()
 
-    ALLOCATE(ph_aux(nph),zstar_aux(zrank))
+    IF(.not.allocated(ph_aux)) &
+          ALLOCATE(ph_aux(nph),zstar_aux(zrank),zstar_old(zrank))
     IF(npars_ == nph)THEN
       ph_aux    = pars_(1:nph)
       zstar_aux = ph_coefficients(nph+1:nph+zrank)
@@ -263,14 +265,21 @@ MODULE tdph_module
 
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
 
-    IF(Si%lrigid.and..not.done_zstar) THEN
+    IF(Si%lrigid)THEN ! I put this IF first because the others are always false when this one is
+    IF(.not.done_zstar.and.ANY(zstar_old /= zstar_aux)) THEN
+      !
+      print*, "recom. zstar", zstar_aux
+      zstar_old = zstar_aux
+      !
       CALL t_zstar%start()
-      CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
       done_zstar = .true.
+      CALL recompose_zstar(Si%nat, zrank, zbasis, zstar_aux, zstar)
       CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
       rbdyn = 0._dp
+      CALL t_rigid%start()
       CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
                    omega_sc, Si%alat, .false., +1._dp)
+      CALL t_rigid%stop()
 !$OMP PARALLELDO DEFAULT(shared) PRIVATE(istep,i,j,mat_ij)
       DO istep = 1, n_steps
         DO i = 1, nat_sc
@@ -285,8 +294,10 @@ MODULE tdph_module
 !$OMP END PARALLELDO
       CALL t_zstar%stop()
     ENDIF
+    !
     ! Always include rigid contribution, even if it was not computed this time
-    IF(Si%lrigid) force_harm =  force_harm + force_rgd
+    force_harm =  force_harm + force_rgd
+    ENDIF ! Si%lrigid
     !
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
@@ -386,7 +397,7 @@ PROGRAM tdph
   INTEGER                   :: n_steps_tot, j_steps
   !
   REAL(DP) :: syq(3,48), force_ratio(3), aux
-  LOGICAL :: sym(48), skip_equivalence, time_reversal, lrigid_save
+  LOGICAL :: sym(48), skip_equivalence, time_reversal !, lrigid_save
   !
   COMPLEX(DP),ALLOCATABLE :: phi(:,:,:,:), d2(:,:), w2(:,:), &
                              star_wdyn(:,:,:,:, :), star_dyn(:,:,:)
@@ -658,12 +669,12 @@ PROGRAM tdph
       IF(input%randomization>0._dp)THEN
         WRITE(*,"(2x,a,f12.6)") "Adding random noise to initial phonons up to ", aux
         DO i = 1, nph
-          ph_coefficients(i) = ph_coefficients(i) + aux*(randy()-.5_dp)
+          ph_coefficients(i) = ph_coefficients(i) + 2*aux*(randy()-.5_dp)
         ENDDO
       ELSE IF(input%randomization<0._dp)THEN
         WRITE(*,"(2x,a,f12.6)") "Randomizing initial phonons up to ", aux
         DO i = 1, nph
-          ph_coefficients(i) = aux*(randy()-.5_dp)
+          ph_coefficients(i) = aux*2*(randy()-.5_dp)
         ENDDO
       ENDIF
       !
@@ -683,6 +694,7 @@ PROGRAM tdph
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
      IF(Si%lrigid)THEN
        ioWRITE(*,*) "Minimizing z^star "
+       ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank)*0.9
        CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
      ENDIF
   CASE("ph")
@@ -755,8 +767,12 @@ PROGRAM tdph
   ioWRITE(stdout,'("   * inside chi2 ")')
   CALL t_comm%print()
   CALL t_force%print()
-  CALL t_zstar%print()
   CALL t_recom%print()
+  IF(Si%lrigid) THEN
+    CALL t_zstar%print()
+    ioWRITE(stdout,'("   * inside zstar ")')
+    CALL t_rigid%print()
+  ENDIF
 
   CALL stop_mpi()
 

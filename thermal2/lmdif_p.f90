@@ -155,7 +155,7 @@ MODULE lmdif_p_module
       diag= 1.d0        ! all the variables have the same importance
       mode = 1          ! set diag automatically
       factor = 1.d0     ! initial step factor
-      epsdiff = 0.d0     ! precision of fcn (used for finite difference differentiation)
+      epsdiff = 1.d-8     ! precision of fcn (used for finite difference differentiation)
       nprint = 0
       maxfev = 100000   ! take as many iterations as needed
  

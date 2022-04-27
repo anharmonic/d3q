@@ -263,8 +263,8 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ENDIF
    ENDDO
    nx = jx
-   ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
    nb4 = nx ! save for printing
+   !ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
 
   WRITE(stdout,'(2x,a,3f12.4,/,a,4i8)') "xq=",xq, &
       "  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) : ",    &
@@ -289,7 +289,7 @@ subroutine enforce_hermitean(n,a)
   enddo
   do i = 1, n
   do j = 1,i-1
-   aux = 0.5_dp * (a(i,j)+ CONJG(a(j,i)))
+    aux = 0.5_dp * (a(i,j)+ CONJG(a(j,i)))
     a(i,j) = aux
     a(j,i) =  CONJG(aux)
   enddo
