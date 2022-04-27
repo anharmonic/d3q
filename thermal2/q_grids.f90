@@ -186,6 +186,9 @@ MODULE q_grids
     ELSE IF(grid_type=="spherical" )THEN
       CALL setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, xq0(1), xq0(2), xq0(3))
       IF(do_scatter) CALL grid%scatter()
+    ELSE IF(grid_type=="lebedev" )THEN
+      CALL setup_lebedev_grid(grid_type, n1, n2, grid, xq0(1))
+      IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random" .or. grid_type=="randws")THEN
       ! Do not add a random shift in the direction where 
       ! only on point is requested.
@@ -547,7 +550,8 @@ MODULE q_grids
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
     !
-    ioWRITE(*,'(2x,"Spherical grid, max |q|: ",f12.6", 2pi/alat")') max_q
+    ioWRITE(*,'(2x,"Spherical grid, max |q|: ",'//&
+        'f12.6", 2pi/alat q/theta/phi points:",3i6)') max_q, n1, n2, n3
 
     ! I treat Gamma separately, to only have it once
     idx = 1
@@ -583,6 +587,69 @@ MODULE q_grids
     grid%nqtot = grid%nq
     !
   END SUBROUTINE setup_spherical_grid
+  !
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE setup_lebedev_grid(grid_type, order_, nshells, grid, max_q)
+!    USE constants,  ONLY : pi, tpi
+    USE lebedev , ONLY : ld_by_order, list_to_order
+    IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: grid_type
+    INTEGER,INTENT(in) :: order_, nshells
+    TYPE(q_grid),INTENT(inout) :: grid
+    REAL(DP),INTENT(in) :: max_q
+    !
+    INTEGER :: i,j,k, idx, order
+    REAL(DP) :: mq, tht, phi
+    
+    IF(order==0)THEN
+      CALL errore("lebedev", "wrong order, must be >0 (list) or <0 (lebedev order)",1)
+    ELSE IF (order < 0) THEN
+      order = -order
+    ELSE
+      order = list_to_order(order_)
+    ENDIF
+
+    grid%type = 'lebedev'
+    grid%n(1) = order 
+    grid%n(2) = nshells
+    grid%n(3) = 1
+    grid%nq = order*nshells
+    !
+    IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
+    ALLOCATE(grid%xq(3,grid%nq))
+    ALLOCATE(grid%w(grid%nq))
+    !
+    ioWRITE(*,'(2x,"Lebedev grid, max |q|: ",'//&
+        'f12.6", Order/shells:",3i6)') max_q, order, nshells
+
+    ! I treat Gamma separately, to only have it once
+!    idx = 1
+!    grid%xq(:,idx) = 0._dp
+!    grid%w(1) = 0._dp
+    !
+    call ld_by_order(order, grid%xq, grid%w)
+    IF(nshells>1)THEN
+      grid%w(1:order) = grid%w(1:order)/nshells
+      idx = 0
+      DO i = order+1, grid%nq, order
+         grid%xq(1,i:i+order-1) = grid%xq(1, 1:order)
+         grid%xq(2,i:i+order-1) = grid%xq(2, 1:order)
+         grid%xq(3,i:i+order-1) = grid%xq(3, 1:order)
+         grid%w(i:i+order-1) = grid%w(1:order)*(i-1)/order
+      ENDDO
+      grid%w = grid%w / SUM(grid%w)
+    ENDIF
+    grid%xq = grid%xq * (max_q/nshells)
+    !
+    !CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
+    grid%basis = 'cartesian'
+    !
+    grid%xq0 = 0._dp
+    !
+    grid%nqtot = grid%nq
+    !
+  END SUBROUTINE setup_lebedev_grid
+
 
 
   !

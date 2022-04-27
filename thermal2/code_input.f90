@@ -501,7 +501,8 @@ MODULE code_input
         IF(TRIM(qpts%basis) == "grid" .or. TRIM(qpts%basis) == "bz" &
            .or. TRIM(qpts%basis)=="ws" .or.  TRIM(qpts%basis)=="randws" &
            .or. TRIM(qpts%basis)=="bxsf" .or. TRIM(qpts%basis)=="xsf" &
-           .or. TRIM(qpts%basis)=="random" .or. TRIM(qpts%basis)=="spherical" ) THEN
+           .or. TRIM(qpts%basis)=="random" &
+           .or. TRIM(qpts%basis)=="spherical" .or.  TRIM(qpts%basis)=="lebedev" ) THEN
           !
           grid_type = qpts%basis
           qpts%basis = "cartesian"
@@ -513,7 +514,7 @@ MODULE code_input
           CALL mpi_broadcast(nq2)
           CALL mpi_broadcast(nq3)
           CALL mpi_broadcast(3,xk0)
-          IF(TRIM(grid_type)=="spherical")THEN
+          IF(TRIM(grid_type)=="spherical" .or. TRIM(grid_type)=="lebedev")THEN
             ! First parameter (xk0(1)) is length of radial grid in units of 2pi/alat
             xq0(1) = xk0(1)
          !   xq0(2:3) = 0._dp

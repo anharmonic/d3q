@@ -32,6 +32,7 @@ functions.o : mpi_thermal.o
 harmonic.o : mpi_thermal.o
 input_fc.o : mpi_thermal.o
 isotopes.o : mpi_thermal.o
+lebedev.o : mpi_thermal.o
 linewidth.o : mpi_thermal.o
 lmdif_p.o : mpi_thermal.o
 mc_grids.o : mpi_thermal.o
@@ -250,6 +251,7 @@ isotopes.o : ./mpi_thermal.o
 isotopes.o : ./nanoclock.o
 isotopes.o : ./nist_isotopes_db.o
 isotopes.o : ./q_grids.o
+lebedev.o : ./lebedev.o
 linewidth.o : ./fc2_interp.o
 linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
@@ -291,6 +293,7 @@ posix_signal.o : ./timers.o
 q_grids.o : ./fc2_interp.o
 q_grids.o : ./functions.o
 q_grids.o : ./input_fc.o
+q_grids.o : ./lebedev.o
 q_grids.o : ./mpi_thermal.o
 q_grids.o : ./ph_velocity.o
 quter.o : ./functions.o

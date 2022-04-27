@@ -132,6 +132,8 @@ MODULE sqom_program
     
     ELSE IF (calculation=="ixs") THEN
       IF(TRIM(postfix) == INVALID) postfix="ixs"
+    ELSE IF (calculation=="ir") THEN
+      IF(TRIM(postfix) == INVALID) postfix="ir"
     ELSE
       CALL errore("read_input", 'unknown calculation', 1)
     ENDIF
@@ -294,7 +296,95 @@ MODULE sqom_program
     spf = sq
     !
   END SUBROUTINE ixs_function_convolution
-  
+ 
+  SUBROUTINE ir_average(S, fc2, nat3, ne, nq, xq, w, ee, spf)
+    USE fc2_interpolate,   ONLY : freq_phq_safe, fftinterp_mat2, mat2_diag
+    USE input_fc,          ONLY : multiply_mass_dyn
+    !USE constants,      ONLY : RY_TO_CMM1
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(forceconst2_grid) :: fc2
+    INTEGER,INTENT(inout)  :: nq
+    INTEGER,INTENT(in) ::  ne, nat3
+    REAL(DP),INTENT(inout) :: xq(3,nq)
+    REAL(DP),INTENT(inout) :: w(nq) !integration weight
+    REAL(DP),INTENT(inout) :: spf(ne,nat3,nq)
+    REAL(DP),INTENT(in) :: ee(ne)
+    
+    INTEGER,PARAMETER :: u = 2001
+    REAL(DP),PARAMETER :: gamma(3) = (/0.d0, 0.d0,0.d0/)
+    INTEGER :: iq, j
+    REAL(DP) :: spfir(ne,nat3), freq(nat3), infrared(nat3)
+    COMPLEX(DP) :: zz(nat3,nat3) 
+    spfir = 0._dp
+    WRITE(*,'(6a12)') "xq_x","xq_y","xq_z","ir_xs1","ir_xs2","..."
+    DO iq = 1,nq
+      !CALL freq_phq_safe(gamma, S, fc2, freq, zz, xq(:,iq))
+      CALL fftinterp_mat2(gamma, S, fc2, zz, xq(:,iq))
+      CALL mat2_diag(S%nat3, zz, freq)
+      !zz = multiply_mass_dyn(S,zz)
+      CALL ir_crossc(S%nat, zz, S%zeu, infrared)
+      WRITE(*,'(3f12.6,3x, 999f12.6)') xq(:,iq), infrared
+      DO j = 1, nat3
+        spfir(:,j) = spfir(:,j) + spf(:,j,iq)*w(iq)*infrared(j)
+      ENDDO
+    ENDDO
+    !
+    nq = 1
+    spf(:,:,1) = spfir(:,:)
+    xq(:,1) = 0._dp
+    w(1) = 1._dp
+
+  END SUBROUTINE 
+
+subroutine ir_crossc(nat, z, zstar, infrared)
+  !-----------------------------------------------------------------------
+  !
+  !   write IR and Raman cross sections
+  !   on input: z = eigendisplacements (normalized as <z|M|z>)
+  !             zstar = effective charges (units of e)
+  !             dchi_dtau = derivatives of chi wrt atomic displacement
+  !                         (units: A^2)
+ USE kinds, ONLY: DP
+ USE constants, ONLY : fpi, BOHR_RADIUS_ANGS, RY_TO_THZ, RY_TO_CMM1, amu_ry
+ implicit none
+ ! input
+ integer, intent(in) :: nat
+ real(DP), intent(in) :: zstar(3,3,nat)
+ complex(DP) z(3*nat,3*nat)
+ ! local
+ integer na, nu, ipol, jpol
+ real(DP), intent(out) :: infrared(3*nat)
+ real(DP):: polar(3), freq, irfac
+ !
+! irfac = 4.80324d0**2/2.d0*amu_ry
+  irfac = 1.d0
+ !
+ do nu = 1,3*nat
+    do ipol=1,3
+       polar(ipol)=0.0d0
+    end do
+    do na=1,nat
+       do ipol=1,3
+          do jpol=1,3
+             polar(ipol) = polar(ipol) +  &
+                  zstar(ipol,jpol,na)*z((na-1)*3+jpol,nu)
+          end do
+       end do
+    end do
+    !
+    infrared(nu) = 2.d0*(polar(1)**2+polar(2)**2+polar(3)**2)*irfac
+    !
+ end do
+ !
+ !
+ return
+ !
+end subroutine ir_crossc
+!
+
+
+ 
   !
   SUBROUTINE scan_spf(filename, nq, ne, nat3)
     IMPLICIT NONE
@@ -529,6 +619,9 @@ PROGRAM sqom
         !CALL ixs_function_convolution(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
         CALL ixs_function_convolution_fft(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
       ENDDO
+    ELSE IF(sqi%calculation == "ir")THEN
+        CALL ir_average(S, fc2, S%nat*3, ne, nq, xq, w, ee, spf)
+      !
       !
     ELSE
       CALL errore("sqom", "not a valid type of calculation: "//TRIM(sqi%calculation),1)
