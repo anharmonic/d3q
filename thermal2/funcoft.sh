@@ -10,8 +10,9 @@ among all the files give in input and print on stdout a list
 of linewidths/shifts as function of T and sigma.
 Syntax:
 
- $0 point mode file [file2 [file3...]] 
+ $0 nat point mode file [file2 [file3...]] 
 
+ nat:    number of atoms in the unit cell
  point:	 index of the point to collect among the files
  mode:	 number of the phonon mode 1...3*nat
  file1..n: list of files produced by lw.x
@@ -25,6 +26,10 @@ EOF
 exit $2
 
 }
+
+nat=$1
+nat3=$[$nat*3]
+shift
 
 line=$1
 shift
@@ -45,15 +50,15 @@ for i in $files; do
   test -f "$i" || error_and_quit "File not found: '$i'" 256
 done
 
-nwords=$(grep "^ *1 " $1|wc -w)
-if grep -q lineshift $1; then
-  nat3=$[($nwords-5)/3]
-else
-  nat3=$[($nwords-5)/2]
-fi  
-nat=$[$nat3/3]
+#nwords=$(grep "^ *1 " $1|wc -w)
+#if grep -q lineshift $1; then
+#  nat3=$[($nwords-5)/3]
+#else
+#  nat3=$[($nwords-5)/2]
+#fi  
+#nat=$[$nat3/3]
 
-echo "$nwords, $nat3, $nat" >&2
+#echo "$n, $nat3, $nat" >&2
 #echo "idx: 1"
 #echo "path: 2"
 #echo "q_x..q_z: 3,4,5"
