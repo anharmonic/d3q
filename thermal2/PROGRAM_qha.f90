@@ -33,13 +33,8 @@ MODULE qha_program
     REAL(DP) :: T0, dT 
     REAL(DP) :: press=0._dp ! pressur in Ry/a0^3
     INTEGER :: nT
-    CHARACTER(len=8)  :: asr2
-    INTEGER :: ieos 
-    ! ieos:
-!  1: birch 1st order
-!  2: birch 3rd order
-!  3: keane       
-!  4: murnaghan
+    CHARACTER(len=8) :: asr2
+    CHARACTER(len=9) :: eos
     !
   END TYPE qha_input_type
   !
@@ -133,19 +128,8 @@ MODULE qha_program
     input%nT                  = nT
     input%nk                  = nk 
     input%grid_type           = grid_type
+    input%eos                 = eos
     !
-    IF(matches(eos,"birch1")) THEN
-      input%ieos = 1
-    ELSE IF(matches(eos,"birch3")) THEN
-      input%ieos = 2
-    ELSE IF(matches(eos,"keane")) THEN
-      input%ieos = 3
-    ELSE IF(matches(eos,"murn")) THEN
-      input%ieos = 4
-    ELSE
-      CALL errore("qha input", "bad input eos", 1)
-    ENDIF
-      !
     input%press = 0._dp
     IF(press_kbar/=0._dp .or. press_GPa/=0._dp)THEN
       IF(press_kbar/=0._dp .and. press_GPa/=0._dp) &
@@ -251,11 +235,10 @@ MODULE qha_program
       OPEN(unit=90000+it, file=filename)
       WRITE(90000+iT,'(a,1f20.10)') "# temperature", T(iT) 
       WRITE(90000+iT,'(a,1f20.10)') "# pressure (kbar)", input%press*ry_kbar
+
       g = input%nrg_v(:) + e_zp(:) - (e_ts(:,iT)) + e_pv(:)
-      CALL fit(input%n_volumes, T(iT), vol, g, g_fit, g0(iT), v0(iT), k0(iT), dk0(iT), d2k0(iT))
-!      iv_min = MINLOC(g,1)
-!      WRITE(90000+iT,*) "# minimum:", iv_min,  S(iv_min)%omega, g(iv_min)
-!      WRITE(90000+iT,*) "#", MINVAL(input%nrg_v), MINVAL(e_zp), MINVAL(e_ts(:,iT))
+      CALL fit(input%eos,input%n_volumes, T(iT), vol, g, g_fit, g0(iT), v0(iT), k0(iT), dk0(iT), d2k0(iT))
+
       WRITE(90000+iT,'(a,a21,7a26)') "#", "v0(iT)", "g0(iT)", &
                        "k0(iT)", "dk0(iT)", "d2k0(iT)"
       WRITE(90000+iT,'(a,5f20.10)') "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
@@ -290,32 +273,54 @@ MODULE qha_program
     WRITE(90000,'("#",a21,7a26)') "Temperature", "volume0", "vol.therm.exp",&
                   "energy0", "bulk mod.", "dbulk", "d2bulk"
     DO iT = 1, input%nT
-      WRITE(90000,*) T(iT), v0(iT), aV_T(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
+      WRITE(90000,'(7f26.12)') T(iT), v0(iT), aV_T(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
     ENDDO
     CLOSE(90000)
     
   END SUBROUTINE GIBBS
 
-  SUBROUTINE fit(nv,T,vol, nrg, nrg_fit, nrg0, vol0, k0, dk0, d2k0)
+  SUBROUTINE fit(ceos, nv,T,vol, nrg, nrg_fit, nrg0, vol0, k0, dk0, d2k0)
     USE eos,       ONLY : find_minimum2
     USE constants, ONLY : ry_kbar
     IMPLICIT NONE
+    CHARACTER(len=*),INTENT(in) :: ceos
     INTEGER,INTENT(in)  :: nv
     REAL(DP),INTENT(in) :: T
     REAL(DP),INTENT(in) :: nrg(nv), vol(nv)
     REAL(DP),INTENT(out):: nrg_fit(nv)
     REAL(DP),INTENT(out) :: nrg0,vol0,k0,dk0,d2k0                        
     REAL(DP) :: chisq, par(4)
+    INTEGER :: ieos, npar
+    LOGICAL,EXTERNAL :: matches
     ! 1,3 2,4 3,4 4,3
-    CALL find_minimum2(4,3,par,nv,vol,&
+
+    IF(matches(ceos,"birch1")) THEN
+      ieos = 1
+      npar = 3
+    ELSE IF(matches(ceos,"birch3")) THEN
+      ieos = 1
+      npar = 4
+    ELSE IF(matches(ceos,"keane")) THEN
+      ieos = 3
+      npar = 4
+    ELSE IF(matches(ceos,"murn")) THEN
+      ieos = 4
+      npar = 3
+    ELSE
+      CALL errore("qha input", "bad input eos", 1)
+    ENDIF
+
+    CALL find_minimum2(ieos,npar,par,nv,vol,&
                       nrg,nrg_fit,nrg0,chisq)
 
     vol0 = par(1)
     k0   = par(2)/ry_kbar ! converts k0 to Ry atomic units...
     dk0  = par(3)
-    d2k0 = par(4)*ry_kbar ! and d2k0/dp2 to (Ry a.u.)^(-1)
-      
-    !WRITE(8888,*) T, nrg0, chisq, vol0, k0, dk0, d2k0
+    IF(npar>=4) THEN
+     d2k0 = par(4)*ry_kbar ! and d2k0/dp2 to (Ry a.u.)^(-1)
+    ELSE
+      d2k0 = 0._dp
+    ENDIF
         
   END SUBROUTINE
  
