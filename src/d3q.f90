@@ -103,11 +103,12 @@ program d3q
   !
   !CALL init_clocks(.TRUE.)
   !
-  CALL start_clock('D3TOTEN')
   !
   CALL mp_startup(start_images = .false.)
   !
   CALL environment_start ( code )
+  !
+  CALL start_clock('D3TOTEN')
   !
 #ifndef __XLF
   WRITE(stdout, '(4(5x,a,/) )') &
