@@ -314,9 +314,18 @@ MODULE sqom_program
     INTEGER,PARAMETER :: u = 2001
     REAL(DP),PARAMETER :: gamma(3) = (/0.d0, 0.d0,0.d0/)
     INTEGER :: iq, j
-    REAL(DP) :: spfir(ne,nat3), freq(nat3), infrared(nat3)
+    REAL(DP) :: spfir(ne,nat3), freq(nat3), infrared(nat3), aux
     COMPLEX(DP) :: zz(nat3,nat3) 
     spfir = 0._dp
+    !
+    aux = SUM(w)
+    IF(ABS(aux)<1.d-6) THEN
+       w = 1._dp
+    ELSE IF(ABS(1-aux)<1.d-6)THEN
+       WRITE(*,*) "Notice: renormalizing weights"
+       w = w/SUM(W)
+    ENDIF
+    !
     WRITE(*,'(6a12)') "xq_x","xq_y","xq_z","ir_xs1","ir_xs2","..."
     DO iq = 1,nq
       !CALL freq_phq_safe(gamma, S, fc2, freq, zz, xq(:,iq))
