@@ -25,5 +25,3 @@ bench: libminpack.a
 
 clean:
 	rm -f *.o libminpack.a
-	cd tests ; $(MAKE) clean
-	cd benchmarks ; $(MAKE) clean

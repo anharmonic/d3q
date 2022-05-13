@@ -1,7 +1,7 @@
 # Makefile for D3Q
 # Adapted from TDDFPT main Makefile
 
-SUBDIRS = src lapackified thermal2  
+SUBDIRS = src lapackified distributed thermal2  
 OPTDIRS = tools
 
 default: all

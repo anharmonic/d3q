@@ -36,7 +36,7 @@
  *     burton s. garbow, kenneth e. hillstrom, jorge j. more
  */
 
-double enorm_(const int *n, double const *x)
+double enorm_c(const int *n, double const *x)
 {
 	int incx = 1;
 	return dnrm2_(n, x, &incx);
