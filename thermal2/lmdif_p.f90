@@ -69,6 +69,7 @@ MODULE lmdif_p_module
    PUBLIC :: lmdif_p1 ! easy to use interface, scroll down for documentation
    PUBLIC :: lmdif_p0 ! easier to use interface
    PUBLIC :: lmdif_c0
+   PUBLIC :: plmdif_c0
 
    CONTAINS
 
@@ -104,6 +105,7 @@ MODULE lmdif_p_module
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
 
    END SUBROUTINE
+
 
 
    SUBROUTINE lmdif_c0(fcn, m, n, x, fvec, tol, info)
@@ -186,6 +188,61 @@ MODULE lmdif_p_module
       IF(info==0.or.info>4) WRITE(*,'(2x,"Warning ! Did not minimize:",2i8)') info
 
    END SUBROUTINE lmdif_c0
+   
+
+
+   SUBROUTINE plmdif_c0(fcn, farg, m, n, x, fvec, tol, info)
+       USE iso_c_binding
+       IMPLICIT NONE
+       EXTERNAL :: fcn
+       CLASS(*) :: farg
+       INTEGER(kind=C_INT) :: m, n, info
+       REAL(kind=C_DOUBLE)::  tol
+       REAL(kind=C_DOUBLE)::  x (n), fvec (m)
+       ! internal variables
+       INTEGER(kind=C_int) :: maxfev
+       INTEGER(kind=C_INT)  :: nfev
+       !
+       TYPE(C_FUNPTR) :: cfcn
+       TYPE(C_PTR)    :: cfarg
+       !
+       INTEGER :: ctx, nprow, npcol, nprocs, me
+       !
+       INTERFACE
+         FUNCTION plmdif_c(cfcn, cfarg, m, n, x, fvec, ftol, xtol, gtol, maxfev, nfev, ctx) &
+           BIND(C,name="plmdif")
+!plmdif(pminpack_func_mn fcn, void *farg, int m, int n, double *x, double *fvec, 
+!        double ftol, double xtol, double gtol, int maxfev, int *nfev, int ctx)
+            USE iso_c_binding
+            INTEGER(kind=C_INT) :: plmdif_c
+            !
+            TYPE(C_FUNPTR), VALUE :: cfcn
+            TYPE(C_PTR),VALUE ::  cfarg
+            INTEGER(kind=C_INT),VALUE :: m, n
+            REAL(kind=C_DOUBLE) ::  x(n), fvec(m)
+            REAL(kind=C_DOUBLE),VALUE ::  ftol, xtol, gtol
+            INTEGER(kind=C_INT),VALUE :: maxfev
+            INTEGER(kind=C_INT)       :: nfev
+            INTEGER(kind=C_INT),VALUE :: ctx
+         END FUNCTION plmdif_c
+       END INTERFACE
+       !
+       maxfev = 100000   ! take as many iterations as needed
+       ! convert fortran function pointer to C
+       cfcn  = C_FUNLOC(fcn)
+       cfarg = C_LOC(farg)
+       !
+       CALL BLACS_PINFO(me, nprocs)
+       CALL BLACS_GET(0, 0, ctx)
+       nprow = 2
+       npcol = 2
+       !print*, "blacs>", me, nprocs, ctx, m, n
+       CALL BLACS_GRIDINIT (ctx, 'R', nprow, npcol)
+       !
+       info = &
+        plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
+
+   END SUBROUTINE plmdif_c0
    
 
 
