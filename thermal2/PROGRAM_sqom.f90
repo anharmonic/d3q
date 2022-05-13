@@ -320,7 +320,7 @@ MODULE sqom_program
     !
     aux = SUM(w)
     IF(ABS(aux)<1.d-6) THEN
-       w = 1._dp
+       w = 1._dp/DBLE(nq)
     ELSE IF(ABS(1-aux)<1.d-6)THEN
        WRITE(*,*) "Notice: renormalizing weights"
        w = w/SUM(W)
