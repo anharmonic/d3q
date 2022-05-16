@@ -25,7 +25,7 @@ PROGRAM qq2rr
   TYPE(ph_system_info) :: S
   COMPLEX(DP),ALLOCATABLE :: D3(:,:,:), P3(:,:,:)
   !
-  INTEGER :: far, ios
+  INTEGER :: far, ios, icriterium
   CHARACTER(len=512) :: argv, filename, dummy
   CHARACTER(len=:),ALLOCATABLE :: cmdline
   LOGICAL :: write_diff, skip_test
@@ -34,9 +34,10 @@ PROGRAM qq2rr
   far      = cmdline_param_int("f", 2)
   write_diff = cmdline_param_logical("w")
   skip_test = cmdline_param_logical("s")
+  icriterium = cmdline_param_int("c")
   !
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR] [-w] [-s]"
+      WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR] [-w] [-s] [-c ICRIT]"
       WRITE(*,*) ""
       WRITE(*,*) "Selects a grid of (NQX x NQY x NQZ) points from the anh* files"
       WRITE(*,*) "Apply the inverse Fourier transform, and saves it to FILEOUT (default: mat3R)."
@@ -50,6 +51,8 @@ PROGRAM qq2rr
       WRITE(*,*) ""
       WRITE(*,*) "-s : skip the test"
       WRITE(*,*) ""
+      WRITE(*,*) "-c ICRIT : specify the localization criteria (1=perimeter, 2=squared perimeter, "
+      WRITE(*,*) "           3=radius of incribing circle, 4=distance from baricenter, 5=dfb squared)"
       STOP 1
   ENDIF
   
@@ -73,7 +76,7 @@ PROGRAM qq2rr
   WRITE(*,*) "Total memory used : ", kb/1000, "Mb"
   !
   WRITE(*,*) "Doing Backward FFT..."
-  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3, far)
+  CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fc3, far, icriterium)
   fc3%nq = nq
   WRITE(*,*) "Backward FFT done"
   CALL memstat(kb)
