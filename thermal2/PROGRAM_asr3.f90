@@ -37,7 +37,7 @@ MODULE asr3_module
   
   INTEGER,SAVE :: iter = 1
   REAL(DP),PARAMETER :: eps  = 1.e-12_dp, eps2 = 1.e-24_dp
-  REAL(DP),PARAMETER :: eps0 = 1.e-20_dp
+  REAL(DP),PARAMETER :: eps0 = 1.e-12_dp
   
   CONTAINS
   ! \/o\________\\\_________________________________________/^>
@@ -435,8 +435,11 @@ MODULE asr3_module
       iR3mR2 = idx%idRmR(iR3,iR2)
       !
       IF(iR2mR3<0 .or. iR3mR2<0.or.mR3<0 .or. mR2<0) THEN
-        IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) &
-           CALL errore('impose_asr3', "A matrix element that should be zero isn't. If using non-center mat3R use option '-m' ", 1)
+        IF( ANY(ABS(fx(iR2,iR3)%F) > eps0) ) THEN
+           print*, ">>", MAXVAL(ABS(fx(iR2,iR3)%F)), iR2, iR3, mR2, mR3, iR2mR3, iR3mR2
+           CALL errore('impose_asr3', "A matrix element that should be zero isn't. Increase the image distance search in qq2rr"&
+                                    //" with '-f' option, or if using non-center mat3R use asr3 with option '-m' ", 1)
+        ENDIF
         fx(iR2,iR3)%F = 0._dp
         CYCLE R3_LOOP
       ENDIF
