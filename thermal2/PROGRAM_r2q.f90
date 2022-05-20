@@ -679,13 +679,14 @@ PROGRAM r2q
   USE r2q_program
   USE input_fc,         ONLY : read_fc2, aux_system, div_mass_fc2, &
                               forceconst2_grid, ph_system_info, &
-                              multiply_mass_dyn, write_dyn
+                              multiply_mass_dyn, write_dyn, average_mass_mode
   USE asr2_module,      ONLY : impose_asr2
-  USE constants,        ONLY : RY_TO_CMM1
-  USE fc2_interpolate,  ONLY : freq_phq, freq_phq_path, fftinterp_mat2
+  USE constants,        ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
+  USE fc2_interpolate,  ONLY : freq_phq, freq_phq_path, fftinterp_mat2 
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
   USE ph_velocity,      ONLY : velocity
+  USE gruneisen_module, ONLY : gruneisen
   USE more_constants,   ONLY : print_citations_linewidth
   USE overlap,          ONLY : order_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
@@ -693,16 +694,16 @@ PROGRAM r2q
   USE neutrons,         ONLY : neutron_cross_section
   IMPLICIT NONE
   !
-  TYPE(forceconst2_grid) :: fc2
-  TYPE(ph_system_info)   :: S
+  TYPE(forceconst2_grid) :: fc2, fc2p, fc2m
+  TYPE(ph_system_info)   :: S, Sp, Sm
   TYPE(q_grid)           :: qpath
   TYPE(code_input_type)  :: input
   !
   CHARACTER(len=512) :: filename
   !
   !REAL(DP) :: xq(3)
-  REAL(DP),ALLOCATABLE :: freq(:), vel(:,:), proj(:,:)
-  REAL(DP) :: aux
+  REAL(DP),ALLOCATABLE :: freq(:), vel(:,:), proj(:,:), grun(:), klem(:), mass(:)
+  REAL(DP) :: aux, w_debye 
   COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
   INTEGER :: i, output_unit=10000, nu, ia
   TYPE(order_type) :: order
@@ -739,10 +740,34 @@ PROGRAM r2q
     filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//".out"
     OPEN(unit=output_unit, file=filename)
 
+    IF(input%print_klemens)THEN
+      filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_klem.out"
+      OPEN(unit=output_unit+5, file=filename)
+      ALLOCATE(klem(S%nat3), mass(S%nat3))
+      input%print_velocity = .true.
+      input%print_gruneisen = .true.
+    ENDIF
+
     IF(input%print_velocity) THEN
       filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_vel.out"
       OPEN(unit=output_unit+1, file=filename)
       ALLOCATE(vel(3,S%nat3))
+    ENDIF
+
+    IF(input%print_gruneisen) THEN
+      filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_grun.out"
+      OPEN(unit=output_unit+3, file=filename)
+      ALLOCATE(grun(S%nat3))
+      
+      CALL read_fc2(input%file_mat2_plus, Sp,  fc2p)
+      CALL aux_system(Sp)
+      CALL impose_asr2(input%asr2, Sp%nat, fc2p, Sp%zeu)
+      CALL div_mass_fc2(Sp, fc2p)
+
+      CALL read_fc2(input%file_mat2_minus, Sm,  fc2m)
+      CALL aux_system(Sm)
+      CALL impose_asr2(input%asr2, Sm%nat, fc2m, Sm%zeu)
+      CALL div_mass_fc2(Sm, fc2m)
     ENDIF
 
     IF(input%print_neutron_cs) THEN
@@ -774,10 +799,7 @@ PROGRAM r2q
         CALL fftinterp_mat2(qpath%xq(:,i), S, fc2, D)
         D = multiply_mass_dyn(S, D)
         filename = TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_dyn"//TRIM(int_to_char(i))
-        CALL write_dyn(filename, qpath%xq(:,i), U, S)
-!         DO nu = 1,S%nat3
-!           WRITE(stdout, '(99(2f10.4,2x))') U(:,nu)
-!         ENDDO
+        CALL write_dyn(filename, qpath%xq(:,i), D, S)
       ENDIF
 
       IF(input%print_velocity) THEN
@@ -786,6 +808,28 @@ PROGRAM r2q
           i, qpath%w(i), qpath%xq(:,i), vel(:,order%idx(:))
         ioFLUSH(output_unit+1)
       ENDIF
+ 
+      IF(input%print_gruneisen) THEN
+        grun = gruneisen(S,Sp,Sm, fc2,fc2p,fc2m, qpath%xq(:,i))
+        IF(.not.input%print_velocity) vel = velocity(S, fc2, qpath%xq(:,i))
+        ioWRITE(output_unit+3, '(i6,f12.6,3x,3f12.6,9993e16.8)') &
+          i, qpath%w(i), qpath%xq(:,i), grun(order%idx(:))
+        ioFLUSH(output_unit+3)
+      ENDIF
+      IF(input%print_gruneisen) THEN
+
+        mass = average_mass_mode(S,U)
+        !write(*,'(99f12.1)') mass
+        w_debye = input%sigma(1)/RY_TO_CMM1
+        DO nu = 1,S%nat3
+          klem(nu) =  grun(order%idx(nu))**2 * (input%T(1)*K_BOLTZMANN_RY) &
+                      / ((NORM2(vel(:,nu)+1.d-4) * mass(nu))) * (freq(order%idx(nu))/w_debye)**2
+        ENDDO
+        ioWRITE(output_unit+5, '(i6,f12.6,3x,3f12.6,9993e16.8)') &
+          i, qpath%w(i), qpath%xq(:,i), klem(order%idx(:))*RY_TO_CMM1
+        ioFLUSH(output_unit+5)
+      ENDIF
+
       
       IF(input%print_neutron_cs)THEN
         ioWRITE(output_unit+2, '(i6,f12.6,3x,3f12.6,999e16.8)') &
@@ -795,12 +839,8 @@ PROGRAM r2q
     ENDDO
     !
     CLOSE(output_unit)
-    DEALLOCATE(freq, U)
-    IF(input%print_dynmat) DEALLOCATE(D)
-    IF(input%print_velocity) THEN
-      CLOSE(output_unit+1)
-      DEALLOCATE(vel)
-    ENDIF
+    IF(input%print_velocity) CLOSE(output_unit+1)
+    IF(input%print_gruneisen) CLOSE(output_unit+3)
     !
   ENDIF
   CALL stop_mpi()

@@ -24,7 +24,7 @@ MODULE linewidth_program
     USE linewidth,          ONLY : linewidth_q, selfnrg_q, spectre_q
     USE constants,          ONLY : RY_TO_CMM1
     USE q_grids,            ONLY : q_grid, setup_grid
-    USE mc_grids,           ONLY : setup_poptimized_grid, print_optimized_stats
+    USE mc_grids,           ONLY : setup_poptimized_grid
     USE more_constants,     ONLY : write_conf
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -195,29 +195,7 @@ MODULE linewidth_program
     ENDDO
     ENDIF
     !
-#ifdef timer_CALL
-      ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
-      CALL print_timers_header()
-      CALL t_lwisot%print()
-      CALL t_lwcasi%print()
-      CALL t_lwphph%print()
-      CALL t_iodata%print()
-      ioWRITE(*,'(a)') "*** * Contributions to ph-ph linewidth time:"
-      CALL t_freq%print()
-      CALL t_bose%print()
-      CALL t_sum%print() 
-      CALL t_fc3int%print() 
-      CALL t_fc3m2%print() 
-      CALL t_fc3rot%print() 
-      CALL t_mpicom%print() 
-      CALL t_merged%print()
-      IF(input%optimize_grid)THEN
-      ioWRITE(*,'(a)') "*** * q-points grid optimization time:"
-      CALL t_optimize%print()
-      CALL print_optimized_stats()
-      ENDIF
-#endif
-    !
+   !
   END SUBROUTINE LW_QBZ_LINE
   !
   ! Sort w and ls so that w+real(ls) is in increasing order
@@ -511,28 +489,6 @@ MODULE linewidth_program
     !
     DEALLOCATE(fstate, ener)
     !
-    !CALL print_all_timers()
-#ifdef timer_CALL
-      ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
-      CALL print_timers_header()
-      CALL t_spf%print()
-      CALL t_qresolved_io%print()
-      CALL t_qsummed_io%print()
-      CALL t_readdt%print()
-      CALL t_iodata%print()
-      ioWRITE(*,'(a)') "*** * Contributions to spectral function time:"
-      CALL t_qresolved%print()
-      CALL t_qsummed%print()
-      CALL t_freq%print() 
-      CALL t_bose%print() 
-      CALL t_sum%print() 
-      CALL t_fc3int%print() 
-      CALL t_fc3m2%print() 
-      CALL t_fc3rot%print() 
-      CALL t_mpicom%print() 
-      CALL t_merged%print()
-#endif
-    !
   END SUBROUTINE FINAL_STATE_LINE
   !   
   END MODULE linewidth_program
@@ -549,6 +505,7 @@ PROGRAM linewidth
   USE code_input,       ONLY : READ_INPUT, code_input_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
   USE more_constants,   ONLY : print_citations_linewidth
+  USE mc_grids,         ONLY : print_optimized_stats
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid) :: fc2
@@ -596,6 +553,28 @@ PROGRAM linewidth
     CALL errore("lw", "what else to do?", 1)
   ENDIF
   !
+      ioWRITE(stdout,'("   * WALL : ",f12.4," s")') get_wall()
+      CALL print_timers_header()
+      CALL t_lwisot%print()
+      CALL t_lwcasi%print()
+      CALL t_lwphph%print()
+      CALL t_iodata%print()
+      ioWRITE(*,'(a)') "*** * Contributions to ph-ph linewidth time:"
+      CALL t_freq%print()
+      CALL t_bose%print()
+      CALL t_sum%print()
+      CALL t_fc3int%print()
+      CALL t_fc3m2%print()
+      CALL t_fc3rot%print()
+      CALL t_mpicom%print()
+      CALL t_merged%print()
+      CALL t_rigid%print()
+      IF(lwinput%optimize_grid)THEN
+      ioWRITE(*,'(a)') "*** * q-points grid optimization time:"
+      CALL t_optimize%print()
+      CALL print_optimized_stats()
+      ENDIF
+
   IF(ionode) CALL print_citations_linewidth()
   CALL stop_mpi()
  

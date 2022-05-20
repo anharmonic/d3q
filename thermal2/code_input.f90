@@ -35,6 +35,8 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
     CHARACTER(len=256) :: file_mat2_final
+    CHARACTER(len=256) :: file_mat2_plus
+    CHARACTER(len=256) :: file_mat2_minus
     CHARACTER(len=8)   :: asr2
     !
     INTEGER            :: skip_q
@@ -73,6 +75,8 @@ MODULE code_input
     ! for dynbubble and r2q:
     LOGICAL :: print_dynmat
     LOGICAL :: print_velocity
+    LOGICAL :: print_gruneisen
+    LOGICAL :: print_klemens
     LOGICAL :: print_neutron_cs
     !
     LOGICAL :: store_lw ! for tk-sma, save the linewidth to file
@@ -113,6 +117,8 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat3  = INVALID ! no default
     CHARACTER(len=256) :: file_mat2  = INVALID ! no default
     CHARACTER(len=256) :: file_mat2_final  = INVALID ! default = file_mat2
+    CHARACTER(len=256) :: file_mat2_plus  = INVALID ! default = file_mat2//'_p'
+    CHARACTER(len=256) :: file_mat2_minus  = INVALID ! default = file_mat2//'_m'
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
     !
     CHARACTER(len=256) :: outdir = './'              ! where to write output files
@@ -129,7 +135,9 @@ MODULE code_input
     CHARACTER(len=12)  :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     CHARACTER(len=12)  :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
-    LOGICAL            :: print_velocity   = .true.    ! print the phonon group velocity for each q (only r2q code)
+    LOGICAL            :: print_velocity   = .false.   ! print the phonon group velocity for each q (only r2q code)
+    LOGICAL            :: print_gruneisen   = .false.    ! print the phonon gruneisen (requires mat2_plus and mat2_minus)
+    LOGICAL            :: print_klemens     = .false.    ! print the phonon gruneisen (requires mat2_plus and mat2_minus)
     LOGICAL            :: print_neutron_cs = .false.    ! print the phonon cross-section for inelastic neutron scattering (only r2q code)
     LOGICAL            :: store_lw = .false.         ! for tk-sma calculation, store the lw for the grid point to file
     !
@@ -238,7 +246,8 @@ MODULE code_input
       isotopic_disorder, &
       casimir_scattering,  &
       sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
-      print_dynmat, print_velocity, print_neutron_cs
+      print_dynmat, print_velocity, print_neutron_cs, print_gruneisen, print_klemens, &
+      file_mat2_plus, file_mat2_minus
       !
       
     timer_CALL t_iodata%start()
@@ -294,10 +303,10 @@ MODULE code_input
           IF(calculation=="freq" .and. PASS==1)THEN
             ! Do not read, nconf and configs in the R2Q-freq case
             IF(ANY(nk<=0)) nk=1
-            IF(nconf<=0)THEN
-              nconf=1
-              configs_ok = .true.
-            ENDIF
+            !IF(nconf<=0)THEN
+             ! nconf=1
+             ! configs_ok = .true.
+            !ENDIF
           ELSEIF(calculation=="rms" .or. calculation=="dos" &
                  .and. PASS==1)THEN
             ! Do not read, QPOINTS in the R2Q-rms and jdos case
@@ -324,6 +333,8 @@ MODULE code_input
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
     IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
+    IF(TRIM(file_mat2_plus) == INVALID ) file_mat2_final = file_mat2//'_p'
+    IF(TRIM(file_mat2_minus) == INVALID ) file_mat2_final = file_mat2//'_m'
     IF(TRIM(file_mat3) == INVALID .and. present(fc3)) &
         CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    
@@ -333,6 +344,8 @@ MODULE code_input
     
     input%file_mat2 = file_mat2
     input%file_mat2_final = file_mat2_final
+    input%file_mat2_plus  = file_mat2_plus
+    input%file_mat2_minus = file_mat2_minus
     input%file_mat3 = file_mat3
     input%outdir    = TRIMCHECK(outdir)
     input%asr2      = asr2
@@ -345,6 +358,8 @@ MODULE code_input
     input%sort_freq    = sort_freq
     input%print_dynmat     = print_dynmat
     input%print_velocity   = print_velocity
+    input%print_gruneisen   = print_gruneisen
+    input%print_klemens     = print_klemens
     input%print_neutron_cs = print_neutron_cs
     input%store_lw         = store_lw 
     !
@@ -844,10 +859,10 @@ MODULE code_input
     CALL div_mass_fc2(S, fc2)
     IF(present(fc3)) CALL fc3%div_mass(S)
     !
-    IF(.not.qpoints_ok) CALL errore("READ_INPUT", "QPOINTS card not found &
-                                    &(it may have been eaten by the preceeding card)", 1)
-    IF(.not.configs_ok) CALL errore("READ_INPUT", "CONFIGS card not found &
-                                    &(it may have been eaten by the preceeding card)", 1)
+    !IF(.not.qpoints_ok) CALL errore("READ_INPUT", "QPOINTS card not found &
+    !                                &(it may have been eaten by the preceeding card)", 1)
+    !IF(.not.configs_ok) CALL errore("READ_INPUT", "CONFIGS card not found &
+    !                                &(it may have been eaten by the preceeding card)", 1)
     !
     IF(input_unit/=5 .and. input_unit/=0) CLOSE(input_unit)
     !
@@ -873,6 +888,8 @@ MODULE code_input
       CALL mpi_broadcast(exp_t_factor)
       CALL mpi_broadcast(file_mat2)
       CALL mpi_broadcast(file_mat2_final)
+      CALL mpi_broadcast(file_mat2_plus)
+      CALL mpi_broadcast(file_mat2_minus)
       CALL mpi_broadcast(file_mat3)
       CALL mpi_broadcast(grid_type)
       CALL mpi_broadcast(grid_type_in)
@@ -891,6 +908,8 @@ MODULE code_input
       CALL mpi_broadcast(prefix)
       CALL mpi_broadcast(print_dynmat)
       CALL mpi_broadcast(print_velocity)
+      CALL mpi_broadcast(print_gruneisen)
+      CALL mpi_broadcast(print_klemens)
       CALL mpi_broadcast(print_neutron_cs)
       CALL mpi_broadcast(3,q_initial)
       CALL mpi_broadcast(q_resolved)

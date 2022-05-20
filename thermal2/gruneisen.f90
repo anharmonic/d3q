@@ -19,34 +19,34 @@ MODULE gruneisen_module
 !    MODULE PROCEDURE gruneisen
 !  END INTERFACE  
   !
-  PUBLIC :: velocity
-  !_simple, gruneisen, velocity_ft
+  PUBLIC :: gruneisen
          
   CONTAINS
  !
   ! \/o\________\\\_________________________________________/^>
-  FUNCTION gruneisen(S0,Sp,Sm, ,fc0,fcp,fcm, xq)
-    USE fc2_interpolate, ONLY : fftinterp_mat2, mat2_diag
+  FUNCTION gruneisen(S0,Sp,Sm ,fc0,fcp,fcm, xq)
+    USE fc2_interpolate,  ONLY : fftinterp_mat2, mat2_diag
     USE merge_degenerate, ONLY : merge_degenerate_velocity
+    USE functions,        ONLY : rotate_d2, is_gamma
     IMPLICIT NONE
     TYPE(forceconst2_grid),INTENT(in) :: fc0,fcp,fcm
     TYPE(ph_system_info),INTENT(in)   :: S0, Sp, Sm
     REAL(DP),INTENT(in) :: xq(3)
     ! FUNCTION RESULT:
-    REAL(DP) :: gruneisen(S%nat3)
+    REAL(DP) :: gruneisen(S0%nat3)
     !
     COMPLEX(DP) :: D2(S0%nat3,S0%nat3), U(S0%nat3,S0%nat3), W(S0%nat3,S0%nat3)
-    REAL(DP)    :: w2p(S0%nat3), w2m(S0%nat3), w2(S0%nat3)
+    REAL(DP)    :: w2p(S0%nat3), w2m(S0%nat3), w2(S0%nat3), grun(S0%nat3)
     !
     INTEGER :: nu
     REAL(DP) :: domega
     !
     domega = (Sp%omega-Sm%omega)
-    IF(  ABS(ABS(Sp%omega+Sm%omega)/2-S0%omega)>1.d-6 ) &
-      CALL errore("gruneisen","+ and - calculations do not average to the unperturbed one",1)
+!    IF(  ABS(ABS(Sp%omega+Sm%omega)/2-S0%omega)>1.d-6 ) &
+!      CALL errore("gruneisen","+ and - calculations do not average to the unperturbed one",1)
     !
     CALL fftinterp_mat2(xq, S0, fc0, U)
-    CALL mat2_diag(S%nat3, U, w2)
+    CALL mat2_diag(S0%nat3, U, w2)
     WHERE(w2>=0._dp)
       w2 = DSQRT(w2)
     ELSEWHERE
@@ -54,18 +54,18 @@ MODULE gruneisen_module
     END WHERE
     !
     !
-    CALL fftinterp_mat2(xqp, Sp, fcp, D2)
-    W = rotate_d2(S%nat3, D2, U)
-    FORALL(nu = 1:S%nat3) w2p(nu) = REAL(W(nu,nu),kind=DP)
+    CALL fftinterp_mat2(xq, Sp, fcp, D2)
+    W = rotate_d2(S0%nat3, D2, U)
+    FORALL(nu = 1:S0%nat3) w2p(nu) = REAL(W(nu,nu),kind=DP)
     WHERE(w2p>=0._dp)
       w2p = DSQRT(w2p)
     ELSEWHERE
       w2p = -DSQRT(-w2p)
     END WHERE
 
-    CALL fftinterp_mat2(xqm, Sm, fcm, D2)
-    W = rotate_d2(S%nat3, D2, U)
-    FORALL(nu = 1:S%nat3) w2m(nu) = REAL(W(nu,nu),kind=DP)
+    CALL fftinterp_mat2(xq, Sm, fcm, D2)
+    W = rotate_d2(S0%nat3, D2, U)
+    FORALL(nu = 1:S0%nat3) w2m(nu) = REAL(W(nu,nu),kind=DP)
     WHERE(w2m>=0._dp)
       w2m = DSQRT(w2m)
     ELSEWHERE
@@ -79,6 +79,7 @@ MODULE gruneisen_module
       grun = 0._dp
     END WHERE
     !
+    IF(is_gamma(xq, S0%at)) grun(1:3) = 0._dp 
     gruneisen = grun
     !
   END FUNCTION gruneisen

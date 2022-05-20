@@ -7,26 +7,11 @@
 !
 MODULE interpolate2_module
   USE kinds, ONLY : DP
+  USE functions,        ONLY : rotate_d2, backrotate_d2
 #include "mpi_thermal.h"
   IMPLICIT NONE
 
   CONTAINS
-  PURE FUNCTION rotate_d2(nat3, D, U)
-    IMPLICIT NONE
-    INTEGER,INTENT(in) :: nat3
-    COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
-    COMPLEX(DP) :: rotate_d2(nat3,nat3)
-    rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
-  END FUNCTION
-  PURE FUNCTION backrotate_d2(nat3, D, U)
-    IMPLICIT NONE
-    INTEGER,INTENT(in) :: nat3
-    COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
-    COMPLEX(DP) :: backrotate_d2(nat3,nat3)
-    backrotate_d2 = matmul(U, matmul(D,transpose(conjg(U))))
-  END FUNCTION
-
-
   !
 END MODULE
 

@@ -231,6 +231,7 @@ MODULE fc2_interpolate
   SUBROUTINE add_rgd_blk(xq, S, fc, D, xq_hat)
     USE random_numbers,   ONLY : randy
     USE rigid,            ONLY : nonanal
+    USE timers,           ONLY : t_rigid
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc
@@ -244,6 +245,7 @@ MODULE fc2_interpolate
     INTEGER :: itau(S%nat)
     REAL(DP) :: qhat(3), qnorm
     !
+    CALL t_rigid%start()
     !
     phi = 0._dp
     ! Non-analitical is only for q=0 and depends on the direction.
@@ -292,6 +294,7 @@ MODULE fc2_interpolate
       ENDDO
     ENDDO
     ENDDO
+    CALL t_rigid%stop()
     
     RETURN
   END SUBROUTINE

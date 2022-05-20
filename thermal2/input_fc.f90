@@ -239,6 +239,7 @@ MODULE input_fc
     ENDDO
     !
   END FUNCTION multiply_mass_dyn
+  !
   FUNCTION div_mass_dyn (S,dyn) RESULT(dyn_mass)
     USE kinds, only : DP
     !USE input_fc,         ONLY : ph_system_info
@@ -256,6 +257,27 @@ MODULE input_fc
     ENDDO
     !
   END FUNCTION div_mass_dyn
+  !
+  FUNCTION average_mass_mode(S,zz) RESULT(avg_mass)
+    USE kinds, only : DP
+    !USE input_fc,         ONLY : ph_system_info
+    IMPLICIT NONE
+    TYPE(ph_system_info)   :: S
+    COMPLEX(DP),INTENT(in) :: zz(S%nat3, S%nat3)
+    COMPLEX(DP) :: avg_mass(S%nat3)
+    !
+    INTEGER :: i, j, iat
+    !
+    avg_mass = 0._dp
+    DO j = 1, S%nat3
+    DO i = 1, S%nat3
+      iat = (i-1)/3 +1
+      avg_mass(j) = avg_mass(j) + zz(i,j)*CONJG(zz(i,j))*S%amass(S%ityp(iat))
+    ENDDO
+    ENDDO
+    !
+  END FUNCTION average_mass_mode
+
   ! write dynamical matrix on file in the ph.x format
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE write_dyn (filename, xq, d2, S)

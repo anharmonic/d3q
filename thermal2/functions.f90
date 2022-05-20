@@ -442,6 +442,31 @@ end subroutine quicksort_idx
     !
   END SUBROUTINE cdiag_serial
 
+  PURE FUNCTION rotate_d2(nat3, D, U)
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nat3
+    COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
+    COMPLEX(DP) :: rotate_d2(nat3,nat3)
+    rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
+  END FUNCTION
+  PURE FUNCTION backrotate_d2(nat3, D, U)
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: nat3
+    COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
+    COMPLEX(DP) :: backrotate_d2(nat3,nat3)
+    backrotate_d2 = matmul(U, matmul(D,transpose(conjg(U))))
+  END FUNCTION
+
+  LOGICAL FUNCTION is_gamma(xq, at)
+    IMPLICIT NONE
+    REAL(DP) :: xq(3), cq(3), at(3,3)
+    REAL(DP),PARAMETER :: epsq = 1.d-8
+    cq = xq
+    CALL cryst_to_cart(1,cq,at,-1)
+    is_gamma = ALL( ABS(cq-NINT(cq))<epsq)
+  END FUNCTION
+
+
 END MODULE functions
 ! <<^V^\\=========================================//-//-//========//O\\//
 

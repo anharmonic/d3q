@@ -158,6 +158,9 @@ MODULE q_grids
     LOGICAL  :: do_scatter
     do_scatter = .false.
     IF(present(scatter)) do_scatter = scatter
+
+    grid%xq0 = 0._dp
+    grid%shifted = .false.
     IF(present(xq0)) THEN
       IF(SUM(ABS(xq0))>0._dp) THEN
         grid%xq0 = xq0
@@ -175,19 +178,19 @@ MODULE q_grids
     IF(grid_type=="simple" .or. grid_type=="grid")THEN
       IF(.not.do_scatter)THEN
         ! If the grid is not mpi-scattered I use the simple subroutine
-        CALL setup_simple_grid(bg, n1,n2,n3, grid, xq0)
+        CALL setup_simple_grid(bg, n1,n2,n3, grid, grid%xq0)
       ELSE
         ! otherwise, I use this subroutine instead, which directly scatters over MPI:
-        CALL setup_scattered_grid(bg, n1,n2,n3, grid, xq0)
+        CALL setup_scattered_grid(bg, n1,n2,n3, grid, grid%xq0)
       ENDIF
     ELSE IF(grid_type=="bxsf" .or. grid_type=="xsf")THEN
-      CALL setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
+      CALL setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, grid%xq0)
       IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="spherical" )THEN
-      CALL setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, xq0(1), xq0(2), xq0(3))
+      CALL setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, grid%xq0(1), grid%xq0(2), grid%xq0(3))
       IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="lebedev" )THEN
-      CALL setup_lebedev_grid(grid_type, n1, n2, grid, xq0(1))
+      CALL setup_lebedev_grid(grid_type, n1, n2, grid, grid%xq0(1))
       IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random" .or. grid_type=="randws")THEN
       ! Do not add a random shift in the direction where 

@@ -178,7 +178,7 @@ PROGRAM import_shengbte
     ! Now we take the grid of triplets and do a backward FFT with recentering,
     ! this produces a new set of FCs (fcb) which are fit for Fourier interpolation.
     !
-    CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far)
+    CALL bwfft_d3_interp(nq, nq_trip, S%nat, S%tau, S%at, S%bg, d3grid, fcb, far, 1)
     fcb%nq = fc%nq
     CALL fcb%write(fileout_good, S)
   ENDIF

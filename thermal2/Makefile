@@ -64,6 +64,7 @@ fc2_interp.o \
 fc3_interp.o \
 final_state.o \
 functions.o \
+gruneisen.0 \
 harmonic.o \
 input_fc.o \
 isotopes.o \

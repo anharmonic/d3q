@@ -10,6 +10,7 @@ PROGRAM_make_wedge.o : mpi_thermal.o
 PROGRAM_q2r.o : mpi_thermal.o
 PROGRAM_qha.o : mpi_thermal.o
 PROGRAM_qq2rr.o : mpi_thermal.o
+PROGRAM_qq2rr_s.o : mpi_thermal.o
 PROGRAM_r2q.o : mpi_thermal.o
 PROGRAM_recenter.o : mpi_thermal.o
 PROGRAM_rmzeu.o : mpi_thermal.o
@@ -29,6 +30,7 @@ fc2_interp.o : mpi_thermal.o
 fc3_interp.o : mpi_thermal.o
 final_state.o : mpi_thermal.o
 functions.o : mpi_thermal.o
+gruneisen.o : mpi_thermal.o
 harmonic.o : mpi_thermal.o
 input_fc.o : mpi_thermal.o
 isotopes.o : mpi_thermal.o
@@ -126,6 +128,9 @@ PROGRAM_qha.o : ./timers.o
 PROGRAM_qq2rr.o : ./f3_bwfft.o
 PROGRAM_qq2rr.o : ./fc3_interp.o
 PROGRAM_qq2rr.o : ./input_fc.o
+PROGRAM_qq2rr_s.o : ./f3_bwfft.o
+PROGRAM_qq2rr_s.o : ./fc3_interp.o
+PROGRAM_qq2rr_s.o : ./input_fc.o
 PROGRAM_r2q.o : ./PROGRAM_r2q.o
 PROGRAM_r2q.o : ./asr2.o
 PROGRAM_r2q.o : ./casimir.o
@@ -240,6 +245,9 @@ final_state.o : ./more_constants.o
 final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
+gruneisen.o : ./fc2_interp.o
+gruneisen.o : ./input_fc.o
+gruneisen.o : ./merge_degenerate.o
 harmonic.o : ./input_fc.o
 harmonic.o : ./timers.o
 input_fc.o : ./mpi_thermal.o
@@ -251,7 +259,6 @@ isotopes.o : ./mpi_thermal.o
 isotopes.o : ./nanoclock.o
 isotopes.o : ./nist_isotopes_db.o
 isotopes.o : ./q_grids.o
-lebedev.o : ./lebedev.o
 linewidth.o : ./fc2_interp.o
 linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
