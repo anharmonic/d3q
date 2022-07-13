@@ -52,7 +52,7 @@ MODULE gc_d3
     !
     IMPLICIT NONE
     !
-    INTEGER :: ir, is, nspin0
+    INTEGER :: ir, is, nspin0, ierr
     REAL(DP) :: grho2 (2), fac, grhox(1,3,1), rhox(1,1), &
         sx(1), sc(1), v1x(1), v2x(1), v1c(1), v2c(1), &
         vrrx(1), vsrx(1), vssx(1), vrrc(1), vsrc(1), vssc(1), &
@@ -132,7 +132,7 @@ MODULE gc_d3
       rhox = rho_tot_r(ir,1)
       IF (nspin0 == 1) THEN
           IF (ABS(rho_tot_r(ir, 1) ) > epsr .AND. grho2 (1) > epsg) THEN
-            CALL gcxc( 1, rho_tot_r(ir,1), grho2, sx, sc, v1x, v2x, v1c, v2c)
+            CALL gcxc( 1, rho_tot_r(ir,1), grho2, sx, sc, v1x, v2x, v1c, v2c, ierr)
             CALL dgcxc_unpol (1, rho_tot_r(ir,1), grho2, &
                               vrrx, vsrx, vssx, vrrc, vsrc, vssc)
             dvxc_rr (ir, 1, 1) = e2 * (vrrx(1) + vrrc(1))

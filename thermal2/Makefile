@@ -51,7 +51,6 @@ print-%  : ; @echo $* = $($*)
 
 THERMALK2_OBJS = \
 mpi_thermal.o \
-ACRS.o \
 asr2.o \
 casimir.o \
 code_input.o \
@@ -94,7 +93,7 @@ MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 tdph rmzeu
+EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 rmzeu
 #make_wedge decompose_d2
 #gruneisen
 #interpolate2

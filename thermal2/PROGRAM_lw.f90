@@ -467,7 +467,7 @@ MODULE linewidth_program
                              input%nu_initial, e_inital_ry, &
                              input%ne, ener, input%sigma_e/RY_TO_CMM1, &
                              input%q_resolved, input%q_summed, input%sigmaq, &
-                             input%outdir, input%prefix)
+                             input%outdir, input%prefix, input%mode)
       !
       DO it = 1,input%nconf
         DO ie = 1,input%ne

@@ -43,6 +43,7 @@ MODULE sqom_program
     REAL(DP) :: qq(3)
     REAL(DP) :: res_frac
     REAL(DP) :: res0_cmm1 ! resolution at zero energy (cm-1)
+    REAL(DP) :: ltz_fraction ! fraction of lorentzian for IR convolution
   END TYPE sqom_input_type
   !
   CONTAINS
@@ -80,6 +81,7 @@ MODULE sqom_program
     REAL(DP)  :: res_frac = 0.0_dp ! fraction of the energy
     REAL(DP)  :: res0_cmm1 = 0._dp ! base resolution in cmm1
     REAL(DP)  :: T = 300._dp ! temperature for elastic peak
+    REAL(DP) :: ltz_fraction  = 0.3_dp ! fraction of lorentzian for IR convolution
     INTEGER :: i, input_unit
     CHARACTER(len=256)  :: input_file
     CHARACTER(len=6), EXTERNAL :: int_to_char
@@ -90,7 +92,7 @@ MODULE sqom_program
       file_mat2, asr2, &
       n_files, &
       convolution, &
-      res_frac, res0_cmm1, &
+      res_frac, res0_cmm1, ltz_fraction, &
       qq, &
       elastic_peak_norm, elastic_peak_width, T
       
@@ -149,8 +151,9 @@ MODULE sqom_program
     input%elastic_peak_width  = elastic_peak_width
     input%T                   = T
     input%convolution         = convolution
-    input%res_frac    = res_frac
-    input%res0_cmm1   = res0_cmm1
+    input%res_frac            = res_frac
+    input%res0_cmm1           = res0_cmm1
+    input%ltz_fraction        = ltz_fraction
     !
     CALL READ_DATA(input, s, fc2)
     CALL cryst_to_cart(1,qq,S%bg, +1)
@@ -188,7 +191,7 @@ MODULE sqom_program
   !
   !
   ! Compute convoluting function
-  SUBROUTINE ixs_function_convolution_fft(S, res_cmm1, ne, ee, spf)
+  SUBROUTINE psvoigt_function_convolution_fft(S, res_cmm1, ne, ee, spf)
     USE fft_scalar,     ONLY : cft_1z
     USE functions,      ONLY : f_ngauss, f_psvoigt
     USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
@@ -238,12 +241,12 @@ MODULE sqom_program
     ! Put back and eventually add the weight
     spf = sq
     !
-  END SUBROUTINE ixs_function_convolution_fft
+  END SUBROUTINE psvoigt_function_convolution_fft
   
   ! Compute convoluting function
-  SUBROUTINE ixs_function_convolution(S, res_cmm1, ne, ee, spf)
+  SUBROUTINE psvoigt_function_convolution(S, res_cmm1, ne, ee, spf, ltz_fraction)
     USE fft_scalar,     ONLY : cft_1z
-    USE functions,      ONLY : f_psvoigt
+    USE functions,      ONLY : f_psvoigt, default_if_not_present
     USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
     USE fc2_interpolate,ONLY : freq_phq_safe
     IMPLICIT NONE
@@ -252,6 +255,7 @@ MODULE sqom_program
     INTEGER,INTENT(in)  :: ne
     REAL(DP),INTENT(in) :: ee(ne)
     REAL(DP),INTENT(inout) :: spf(ne,S%nat3)
+    REAL(DP),INTENT(in),OPTIONAL :: ltz_fraction ! fraction of Lorentzian
     !
     INTEGER  :: nu, ie, je, je_range_dw, je_range_up
     REAL(DP) :: F, dee, fwhm
@@ -267,11 +271,16 @@ MODULE sqom_program
     IF(first)THEN
       first = .false.
       fwhm = res_cmm1/RY_TO_CMM1
-      je_range = 30*fwhm/dee
+      IF(ltz_fraction.eq.0._dp) THEN
+        je_range = 100*fwhm/dee
+      ELSE
+        je_range = ne
+      ENDIF
+      print*, ">>>>", fwhm, je_range, dee
       ALLOCATE(psvoigt(-je_range:je_range))
       !
       DO je = -je_range, je_range
-        psvoigt(je) = dee*f_psvoigt(dee*je,fwhm,0.3_dp)
+        psvoigt(je) = dee*f_psvoigt(dee*je,fwhm,default_if_not_present(.3_dp, ltz_fraction))
       ENDDO
       !
     ENDIF
@@ -295,9 +304,67 @@ MODULE sqom_program
     ! Put back and eventually add the weight
     spf = sq
     !
-  END SUBROUTINE ixs_function_convolution
+  END SUBROUTINE psvoigt_function_convolution
+
+  ! Compute convoluting function
+  SUBROUTINE gaussian_function_convolution(resolution, ne, ee, nat3, spf)
+    USE fft_scalar,     ONLY : cft_1z
+    USE functions,      ONLY : f_gauss
+    USE constants,      ONLY : tpi, RY_TO_CMM1, pi, K_BOLTZMANN_RY, RYTOEV
+    USE fc2_interpolate,ONLY : freq_phq_safe
+    IMPLICIT NONE
+    REAL(DP),INTENT(in) :: resolution
+    INTEGER,INTENT(in)  :: ne, nat3
+    REAL(DP),INTENT(in) :: ee(ne)
+    REAL(DP),INTENT(inout) :: spf(ne,nat3)
+    !
+    INTEGER  :: nu, ie, je, je_range_dw, je_range_up
+    REAL(DP) :: F, dee
+    !
+    COMPLEX(DP), SAVE, ALLOCATABLE :: gaussian(:)
+    INTEGER, SAVE :: je_range = -1
+    LOGICAL, SAVE :: first = .true.
+    !
+    REAL(DP) :: Sq(ne,nat3), sigma
+    REAL(DP), PARAMETER :: fwhm_to_sigma = 0.5_dp/DSQRT(2*DLOG(2._dp))
+
+    dee = (ee(ne)-ee(1))/(ne-1)
+    !
+    IF(first)THEN
+      first = .false.
+      sigma = resolution*fwhm_to_sigma/RY_TO_CMM1
+      je_range = 5*sigma/dee
+      ALLOCATE(gaussian(-je_range:je_range))
+      !
+      DO je = -je_range, je_range
+        gaussian(je) = dee*f_gauss(dee*je,sigma)
+      ENDDO
+      !
+    ENDIF
+    !
+    Sq = 0._dp
+    !
+    ! Doing the convolution with a gaussian in the least efficient way possible
+    DO nu = 1,nat3
+      DO ie=1,ne
+        je_range_dw = MIN(je_range, ie-1)
+        je_range_up = MIN(je_range, ne-ie)
+        DO je=-je_range_dw, je_range_up
+          !
+          ! I use spf*e which seems to be the correctly normalizable form
+          Sq(ie,nu)=Sq(ie,nu)+spf(ie+je,nu)*gaussian(je)
+          !
+        ENDDO
+      ENDDO
+    ENDDO
+    !
+    ! Put back and eventually add the weight
+    spf = sq
+    !
+  END SUBROUTINE gaussian_function_convolution
  
-  SUBROUTINE ir_average(S, fc2, nat3, ne, nq, xq, w, ee, spf)
+  SUBROUTINE ir_average(S, fc2, nat3, ne, nq, xq, hq, w, ee, spf, &
+                        convolution, resolution, ltz_fraction)
     USE fc2_interpolate,   ONLY : freq_phq_safe, fftinterp_mat2, mat2_diag
     USE input_fc,          ONLY : multiply_mass_dyn
     !USE constants,      ONLY : RY_TO_CMM1
@@ -307,16 +374,23 @@ MODULE sqom_program
     INTEGER,INTENT(inout)  :: nq
     INTEGER,INTENT(in) ::  ne, nat3
     REAL(DP),INTENT(inout) :: xq(3,nq)
+    REAL(DP),INTENT(in) :: hq(3) !versor to use when xq = 0
     REAL(DP),INTENT(inout) :: w(nq) !integration weight
     REAL(DP),INTENT(inout) :: spf(ne,nat3,nq)
     REAL(DP),INTENT(in) :: ee(ne)
-    
+! If convolution is true, do a convolution with a gaussian of width resolution
+    LOGICAL,INTENT(in) :: convolution
+    REAL(DP),INTENT(in) :: resolution ! in cmm1
+    REAL(DP),INTENT(in) :: ltz_fraction ! fraction of lorentzian in pseudo voigt
+
+
     INTEGER,PARAMETER :: u = 2001
     REAL(DP),PARAMETER :: gamma(3) = (/0.d0, 0.d0,0.d0/)
     INTEGER :: iq, j
-    REAL(DP) :: spfir(ne,nat3), freq(nat3), infrared(nat3), aux
+    REAL(DP) :: spfir(ne,nat3), freq(nat3), infrared(nat3), aux, sigma
     COMPLEX(DP) :: zz(nat3,nat3) 
     spfir = 0._dp
+
     !
     aux = SUM(w)
     IF(ABS(aux)<1.d-6) THEN
@@ -329,7 +403,11 @@ MODULE sqom_program
     WRITE(*,'(6a12)') "xq_x","xq_y","xq_z","ir_xs1","ir_xs2","..."
     DO iq = 1,nq
       !CALL freq_phq_safe(gamma, S, fc2, freq, zz, xq(:,iq))
-      CALL fftinterp_mat2(gamma, S, fc2, zz, xq(:,iq))
+      IF(SUM(ABS(xq(:,iq)))>0._dp) THEN
+        CALL fftinterp_mat2(gamma, S, fc2, zz, xq(:,iq))
+      ELSE
+        CALL fftinterp_mat2(gamma, S, fc2, zz, hq)
+      ENDIF
       CALL mat2_diag(S%nat3, zz, freq)
       !zz = multiply_mass_dyn(S,zz)
       CALL ir_crossc(S%nat, zz, S%zeu, infrared)
@@ -338,6 +416,12 @@ MODULE sqom_program
         spfir(:,j) = spfir(:,j) + spf(:,j,iq)*w(iq)*infrared(j)
       ENDDO
     ENDDO
+    !
+    ! Convolute with experimental linewidth
+    IF(convolution) THEN
+      !CALL gaussian_function_convolution(sigma, ne, ee, S%nat3, spfir)
+      CALL psvoigt_function_convolution(S, resolution, ne, ee, spfir, ltz_fraction)
+    ENDIF
     !
     nq = 1
     spf(:,:,1) = spfir(:,:)
@@ -625,11 +709,12 @@ PROGRAM sqom
     ELSE IF(sqi%calculation == "ixs")THEN
       DO iq = 1, nq
       !(w, xq, S, res_cmm1, ne, ee, spf)
-        !CALL ixs_function_convolution(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
-        CALL ixs_function_convolution_fft(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
+        !CALL psvoigt_function_convolution(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
+        CALL psvoigt_function_convolution_fft(S,sqi%res0_cmm1, ne, ee, spf(:,:,iq))
       ENDDO
     ELSE IF(sqi%calculation == "ir")THEN
-        CALL ir_average(S, fc2, S%nat*3, ne, nq, xq, w, ee, spf)
+        CALL ir_average(S, fc2, S%nat*3, ne, nq, xq, sqi%qq, w, ee, spf, &
+                        sqi%convolution, sqi%res0_cmm1, sqi%ltz_fraction)
       !
       !
     ELSE

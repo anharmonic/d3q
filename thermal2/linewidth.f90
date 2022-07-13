@@ -306,7 +306,7 @@ MODULE linewidth
 
 
   ! <<^V^\\=========================================//-//-//========//O\\//
-  ! Self energy for all the phonon abnds at q in a range of frequencies
+  ! Self energy for all the phonon bands at q in a range of frequencies
   FUNCTION selfnrg_omega_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, ne, ener, freq1, U1) &
   RESULT(selfnrg_wq)
     USE q_grids,          ONLY : q_grid

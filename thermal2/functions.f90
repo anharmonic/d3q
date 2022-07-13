@@ -19,6 +19,7 @@ MODULE functions
   INTERFACE default_if_not_present
     MODULE PROCEDURE default_if_not_present_int
     MODULE PROCEDURE default_if_not_present_logical
+    MODULE PROCEDURE default_if_not_present_real
   END INTERFACE
 
 
@@ -365,8 +366,19 @@ end subroutine quicksort_idx
     ELSE
       default_if_not_present = deft
     ENDIF
-    
   END FUNCTION
+  !
+  REAL(DP) FUNCTION default_if_not_present_real(deft, arg) &
+          RESULT(default_if_not_present)
+    REAL(DP),INTENT(in) :: deft
+    REAL(DP),OPTIONAL,INTENT(in) :: arg
+    IF(present(arg)) THEN
+      default_if_not_present = arg
+    ELSE
+      default_if_not_present = deft
+    ENDIF
+  END FUNCTION
+
   
   REAL(DP) FUNCTION sigma_mgo(w, T)
     !USE constants, ONLY : RY_TO_CMM1 ==> 109737.31570111268

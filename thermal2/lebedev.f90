@@ -1,13 +1,43 @@
 MODULE lebedev
   IMPLICIT NONE
 
+  integer ( kind = 4 ), parameter :: rule_max = 65
+  integer ( kind = 4 ), save :: available_table_(rule_max) = (/ &
+       1,    1,    1,    1,    1,    1,    1,    1,    1,    1, &
+       1,    1,    1,    1,    1,    0,    1,    0,    0,    1, &
+       0,    0,    1,    0,    0,    1,    0,    0,    1,    0, &
+       0,    1,    0,    0,    1,    0,    0,    1,    0,    0, &
+       1,    0,    0,    1,    0,    0,    1,    0,    0,    1, &
+       0,    0,    1,    0,    0,    1,    0,    0,    1,    0, &
+       0,    1,    0,    0,    1 /)
+  integer ( kind = 4 ), save :: precision_table_(rule_max) = (/ &
+      3,   5,   7,   9,  11,  13,  15,  17,  19,  21, &
+     23,  25,  27,  29,  31,  33,  35,  37,  39,  41, &
+     43,  45,  47,  49,  51,  53,  55,  57,  59,  61, &
+     63,  65,  67,  69,  71,  73,  75,  77,  79,  81, &
+     83,  85,  87,  89,  91,  93,  95,  97,  99, 101, &
+    103, 105, 107, 109, 111, 113, 115, 117, 119, 121, &
+    123, 125, 127, 129, 131 /)
+  integer ( kind = 4 ), save :: order_table_(rule_max) = (/ &
+       6,   14,   26,   38,   50,   74,   86,  110,  146,  170, &
+     194,  230,  266,  302,  350,  386,  434,  482,  530,  590, &
+     650,  698,  770,  830,  890,  974, 1046, 1118, 1202, 1274, &
+    1358, 1454, 1538, 1622, 1730, 1814, 1910, 2030, 2126, 2222, &
+    2354, 2450, 2558, 2702, 2810, 2930, 3074, 3182, 3314, 3470, &
+    3590, 3722, 3890, 4010, 4154, 4334, 4466, 4610, 4802, 4934, &
+    5090, 5294, 5438, 5606, 5810 /)
+
+
+
+
       PRIVATE
-      PUBLIC :: order_table, available_table, precision_table
+      PUBLIC :: order_table, available_table, precision_table, next_available_table
       PUBLIC :: ld_by_order, list_to_order
       PUBLIC :: xyz_to_tp
 
       INTERFACE ld_by_order
          MODULE PROCEDURE ld_by_order_r
+         MODULE PROCEDURE ld_by_order_tp
          MODULE PROCEDURE ld_by_order_xyz
       END INTERFACE
 
@@ -62,29 +92,59 @@ function available_table ( rule )
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: rule_max = 65
 
   integer ( kind = 4 ) available_table
   integer ( kind = 4 ) rule
-  integer ( kind = 4 ), save :: table(rule_max) = (/ &
-       1,    1,    1,    1,    1,    1,    1,    1,    1,    1, &
-       1,    1,    1,    1,    1,    0,    1,    0,    0,    1, &
-       0,    0,    1,    0,    0,    1,    0,    0,    1,    0, &
-       0,    1,    0,    0,    1,    0,    0,    1,    0,    0, &
-       1,    0,    0,    1,    0,    0,    1,    0,    0,    1, &
-       0,    0,    1,    0,    0,    1,    0,    0,    1,    0, &
-       0,    1,    0,    0,    1 /)
 
   if ( rule < 1 ) then
     available_table = - 1
   else if ( rule_max < rule ) then
     available_table = - 1
   else
-    available_table = table(rule)
+    available_table = available_table_(rule)
   end if
 
   return
 end
+
+integer function next_available_table( min_rule )
+  implicit none
+  integer :: i, min_rule
+
+  if(i>rule_max) then
+    next_available_table = -1
+    return 
+  endif
+
+  do i = min_rule, rule_max
+    if (available_table_(i) == 1) then
+       next_available_table = i
+       return
+    endif
+  enddo
+
+  next_available_table = -1
+
+end function
+
+integer function min_precision_table( min_precision )
+  implicit none
+  integer :: i, p, min_precision
+
+  do i = 1, rule_max
+    p = precision_table(i)
+    if (p>=min_precision) then
+       min_precision_table = next_available_table(i)
+       return
+    endif
+  enddo
+
+  min_precision_table = -1
+
+end function
+
+
+
 subroutine gen_oh ( code, num, a, b, v, x, y, z, w )
 
 !*****************************************************************************80
@@ -702,6 +762,27 @@ subroutine ld_by_order_r ( order, r, w )
     r(1,i) = x(i)
     r(2,i) = y(i)
     r(3,i) = z(i)
+  enddo
+
+end subroutine
+
+subroutine ld_by_order_tp ( order, t, p, w )
+  implicit none
+
+  integer ( kind = 4 ) order
+  real ( kind = 8 ) t(order)
+  real ( kind = 8 ) p(order)
+  real ( kind = 8 ) w(order)
+
+  real ( kind = 8 ) x(order)
+  real ( kind = 8 ) y(order)
+  real ( kind = 8 ) z(order)
+  integer :: i
+
+  call ld_by_order ( order, x, y, z, w )
+
+  do i = 1, order
+     call xyz_to_tp ( x(i), y(i), z(i), t(i), p(i) )
   enddo
 
 end subroutine
@@ -6736,15 +6817,6 @@ function order_table ( rule )
 
   integer ( kind = 4 ) order_table
   integer ( kind = 4 ) rule
-  integer ( kind = 4 ), save :: table(rule_max) = (/ &
-       6,   14,   26,   38,   50,   74,   86,  110,  146,  170, &
-     194,  230,  266,  302,  350,  386,  434,  482,  530,  590, &
-     650,  698,  770,  830,  890,  974, 1046, 1118, 1202, 1274, &
-    1358, 1454, 1538, 1622, 1730, 1814, 1910, 2030, 2126, 2222, &
-    2354, 2450, 2558, 2702, 2810, 2930, 3074, 3182, 3314, 3470, &
-    3590, 3722, 3890, 4010, 4154, 4334, 4466, 4610, 4802, 4934, &
-    5090, 5294, 5438, 5606, 5810 /)
-
   if ( rule < 1 ) then
     write ( *, '(a)' ) ' '
     write ( *, '(a)' ) 'ORDER_TABLE - Fatal error!'
@@ -6757,7 +6829,7 @@ function order_table ( rule )
     stop
   end if
 
-  order_table = table(rule)
+  order_table = order_table_(rule)
 
   return
 end
@@ -6791,19 +6863,8 @@ function precision_table ( rule )
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: rule_max = 65
-
   integer ( kind = 4 ) precision_table
   integer ( kind = 4 ) rule
-  integer ( kind = 4 ), save :: table(rule_max) = (/ &
-      3,   5,   7,   9,  11,  13,  15,  17,  19,  21, &
-     23,  25,  27,  29,  31,  33,  35,  37,  39,  41, &
-     43,  45,  47,  49,  51,  53,  55,  57,  59,  61, &
-     63,  65,  67,  69,  71,  73,  75,  77,  79,  81, &
-     83,  85,  87,  89,  91,  93,  95,  97,  99, 101, &
-    103, 105, 107, 109, 111, 113, 115, 117, 119, 121, &
-    123, 125, 127, 129, 131 /)
-
   if ( rule < 1 ) then
     write ( *, '(a)' ) ' '
     write ( *, '(a)' ) 'PRECISION_TABLE - Fatal error!'
@@ -6816,7 +6877,7 @@ function precision_table ( rule )
     stop
   end if
 
-  precision_table = table(rule)
+  precision_table = precision_table_(rule)
 
   return
 end

@@ -395,7 +395,11 @@ PROGRAM tdph
   USE harmonic_module,    ONLY : harmonic_force_md
   ! minipack
   USE lmdif_module,       ONLY : lmdif0
+#if defined  (__SCALAPACK)
   USE lmdif_p_module,     ONLY : lmdif_p0, lmdif_c0, plmdif_c0
+#else
+  USE lmdif_p_module,     ONLY : lmdif_p0, lmdif_c0
+#endif
   USE timers
   USE random_numbers,     ONLY : randy
   USE decompose_d2,       ONLY : recompose_fc
@@ -426,8 +430,9 @@ PROGRAM tdph
   REAL(DP),ALLOCATABLE :: decomposition(:), xqmax(:,:), &
                           metric(:)
   INTEGER :: i,j, istep, icar,jcar, na,nb, iq, iph, iswitch, first_step, n_skip
-  CLASS(*),POINTER :: ptrdummy => null()
-
+#if defined  (__SCALAPACK)
+  INTEGER,POINTER :: ptrdummy => null()
+#endif
 
   TYPE(forceconst2_grid) :: fc
   !
@@ -720,8 +725,10 @@ PROGRAM tdph
        ph_coefficients(nph+1:nph+zrank) = ph_coefficients(nph+1:nph+zrank)*0.9
        CALL lmdif_c0(chi_lmdif_c, mdata_tot, zrank, ph_coefficients(nph+1:nph+zrank), diff_tot, input%thr, iswitch)
      ENDIF
+#if defined  (__SCALAPACK)
   CASE("para")
       CALL plmdif_c0(chi_lmdif_c_para, ptrdummy, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
+#endif
   CASE("ph")
     CALL lmdif_c0(chi_lmdif_c, mdata_tot, nph, ph_coefficients(1:nph), diff_tot, input%thr, iswitch)
   CASE("global")

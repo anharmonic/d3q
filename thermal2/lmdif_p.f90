@@ -69,7 +69,9 @@ MODULE lmdif_p_module
    PUBLIC :: lmdif_p1 ! easy to use interface, scroll down for documentation
    PUBLIC :: lmdif_p0 ! easier to use interface
    PUBLIC :: lmdif_c0
+#if defined  (__SCALAPACK)
    PUBLIC :: plmdif_c0
+#endif
 
    CONTAINS
 
@@ -190,12 +192,12 @@ MODULE lmdif_p_module
    END SUBROUTINE lmdif_c0
    
 
-
+#if defined  (__SCALAPACK)
    SUBROUTINE plmdif_c0(fcn, farg, m, n, x, fvec, tol, info)
        USE iso_c_binding
        IMPLICIT NONE
        EXTERNAL :: fcn
-       CLASS(*) :: farg
+       INTEGER, POINTER :: farg
        INTEGER(kind=C_INT) :: m, n, info
        REAL(kind=C_DOUBLE)::  tol
        REAL(kind=C_DOUBLE)::  x (n), fvec (m)
@@ -243,7 +245,7 @@ MODULE lmdif_p_module
         plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
 
    END SUBROUTINE plmdif_c0
-   
+#endif
 
 
       REAL(DP) function dpmpar_p (i)

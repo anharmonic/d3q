@@ -11,13 +11,14 @@ MODULE final_state
   USE fc3_interpolate, ONLY : forceconst3, ip_cart2pat
   USE mpi_thermal,     ONLY : mpi_bsum, ionode, mpi_wbarrier
 #include "mpi_thermal.h"
-  INTEGER,PARAMETER :: TOT=1, C=2, X=3, LW=2, LS=3, NTERMS=3
+  INTEGER,PARAMETER :: TOT=1, C=2, X=3, LW=2, LS=3, NTERMS=3, P=2, M=3
   !
   CONTAINS
   ! <<^V^\\=========================================//-//-//========//O\\//
   FUNCTION final_state_q(xq0, qpath, nconf, T, sigma, S, grid, fc2, fc3,&
-                         nui, ei, ne, ener, sigma_e, qresolved, qsummed, sigmaq, outdir, prefix)
-    USE fc2_interpolate,      ONLY : bose_phq, freq_phq_safe, set_nu0
+                         nui, ei, ne, ener, sigma_e, qresolved, qsummed, sigmaq, &
+                         outdir, prefix, mode)
+    USE fc2_interpolate,      ONLY : bose_phq, freq_phq_safe, freq_phq_positive, set_nu0
     USE linewidth,            ONLY : sum_selfnrg_modes
     USE q_grids,              ONLY : q_grid
     USE functions,            ONLY : refold_bz, refold_bz_mod, f_gauss, quicksort
@@ -40,7 +41,7 @@ MODULE final_state
     REAL(DP),INTENT(in) :: sigma_e  ! gaussian width to smooth plots in energy
     REAL(DP),INTENT(in) :: sigmaq ! gaussian width used to select the q points
     LOGICAL,INTENT(in)  :: qresolved, qsummed
-    CHARACTER(len=256),INTENT(in) :: outdir, prefix
+    CHARACTER(len=*),INTENT(in) :: outdir, prefix, mode
     !
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
@@ -107,7 +108,7 @@ MODULE final_state
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
     xq(:,1) = xq0
     nu0(1) = set_nu0(xq(:,1), S%at)
-    CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
+    CALL freq_phq_positive(xq(:,1), S, fc2, freq(:,1), U(:,:,1))
     !
     ! Next check moved to sum_final_state_e
 !     IF(ei<0._dp)THEN
@@ -152,10 +153,18 @@ MODULE final_state
 !/nope/!$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
-        sumaux = grid%w(iq) * &
-            sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, &
-                               nui, ei, ne, ener, sigma_e, nu0 )
-        !
+        IF(mode == 'imag') THEN
+          sumaux = grid%w(iq) * &
+              sum_final_state_e( S, sigma(it), T(it),freq, bose, V3sq, &
+                                 nui, ei, ne, ener, sigma_e, nu0 )
+        ELSE IF (mode == 'full') THEN
+          sumaux = grid%w(iq) * &
+            sum_final_selfnrg_e( S, sigma(it), T(it),freq, bose, V3sq, &
+                                 nui, ei, ne, ener, sigma_e, nu0 )
+        ELSE
+          CALL errore('final_state', 'mode can only be imag or full', 1)
+        ENDIF
+      !
         fstate_q(:,:,:,it) = fstate_q(:,:,:,it) + sumaux(:,:,:)
           timer_CALL t_sum%stop()
         !
@@ -607,7 +616,7 @@ MODULE final_state
     !
     !
     ALLOCATE(fsdf(ne,S%nat3,3))
-    fsdf = (0._dp, 0._dp)
+    fsdf = 0._dp
     !
     freqm1 = 0._dp
     DO i = 1,S%nat3
@@ -615,10 +624,10 @@ MODULE final_state
       IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
       IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
     ENDDO    !
-!$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,dom_X,dom_C,pref_X,pref_C,&
-!$OMP         ctm_X,ctm_C,freqtot,freqtotm1,FREQTOTM1_23,wfinal3) &
-!$OMP REDUCTION(+: fsdf) COLLAPSE(1)
+!--!$OMP PARALLEL DO DEFAULT(SHARED) &
+!--!$OMP PRIVATE(ie,i,j,k,bose_X,bose_C,omega_X,omega_C,dom_X,dom_C,pref_X,pref_C,&
+!--!$OMP         ctm_X,ctm_C,freqtot,freqtotm1,freqtotm1_23,wfinal3) &
+!--!$OMP REDUCTION(+: fsdf) 
     DO k = 1,S%nat3
       FORALL(ie=1:ne) wfinal3(ie) = f_gauss((ener(ie)-freq(k,3)), sigma_e)
       DO j = 1,S%nat3
@@ -662,7 +671,7 @@ MODULE final_state
         !
       ENDDO
     ENDDO
-!$OMP END PARALLEL DO
+!--!$OMP END PARALLEL DO
     
     fsdf(:,:,TOT) = fsdf(:,:,C)+fsdf(:,:,X)
     !
@@ -674,5 +683,118 @@ MODULE final_state
   END FUNCTION sum_final_state_e
   
   
-  
+  !
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION sum_final_selfnrg_e(S, sigma, T, freq, bose, V3sq, nu_initial, e_initial, &
+    ne, ener, sigma_e, nu0)
+    USE functions,        ONLY : f_gauss, df_bose
+    USE merge_degenerate, ONLY : merge_degen
+    USE constants,        ONLY : pi, RY_TO_CMM1
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(in)   :: S
+    REAL(DP),INTENT(in) :: sigma, T   ! smearing (regularization) (Ry)
+    REAL(DP),INTENT(in) :: freq(S%nat3,3)  ! phonon energies (Ry)
+    REAL(DP),INTENT(in) :: bose(S%nat3,3)  ! bose/einstein distribution of freq
+    REAL(DP),INTENT(in) :: V3sq(S%nat3,S%nat3,S%nat3) ! |D^3|**2 on the basis of phonons patterns
+    !
+    REAL(DP),INTENT(in) :: e_initial ! the initial energy
+    !
+    INTEGER,INTENT(in)  :: ne           ! number of energies on which to decompose the final state
+    REAL(DP),INTENT(in) :: ener(ne)     ! the energies
+    REAL(DP),INTENT(in) :: sigma_e      ! smearing for the energy axis
+    INTEGER,INTENT(in)  :: nu0(3)
+    INTEGER,INTENT(in),OPTIONAL  :: nu_initial
+    !
+    ! _X -> scattering, _C -> cohalescence
+    REAL(DP) :: bose_P, bose_M      ! final/initial state populations 
+    REAL(DP) :: freqtot, freqtotm1, freqtotm1_23
+    REAL(DP) :: omega_P,  omega_M   ! \delta\omega
+    REAL(DP) :: omega_P2,  omega_M2   ! \delta\omega
+    COMPLEX(DP) :: ctm_P, ctm_M, reg   !
+    REAL(DP) :: pref_P, pref_M
+    REAL(DP) :: wfinal3(ne)
+    REAL(DP) :: freqm1(S%nat3,3), freq_initial
+    !
+    INTEGER,TARGET :: i,j,k
+    INTEGER :: ie, start_i, end_i
+    INTEGER,POINTER :: i_final
+    !
+    ! Note: using the function result in an OMP reduction causes crash with ifort 14
+    REAL(DP) :: sum_final_selfnrg_e(ne,S%nat3,3)
+    REAL(DP),ALLOCATABLE :: fsdf(:,:,:) ! final state decay function
+    !
+    IF(nu_initial>0 .and. nu_initial<=S%nat3) THEN
+      start_i = nu_initial
+      end_i   = nu_initial
+      i_final => j
+      IF(e_initial<0._dp) THEN
+        freq_initial = freq(nu_initial,1)
+        !        print*, freq_initial*RY_TO_CMM1
+      ELSE
+        freq_initial = e_initial
+      ENDIF
+    ELSE
+      start_i = 1
+      end_i   = S%nat3
+      i_final => i
+      freq_initial = e_initial
+      IF(freq_initial<0._dp) CALL errore("sum_final_selfnrg_e","nu_initial was unset" &
+              //" or invalid and e_initial was not specified", 1)
+    ENDIF
+    !
+    !
+    ALLOCATE(fsdf(ne,S%nat3,3))
+    fsdf = 0._dp
+    !
+    freqm1 = 0._dp
+    DO i = 1,S%nat3
+      IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+      IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+      IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+    ENDDO    !
+
+    DO k = 1,S%nat3
+      FORALL(ie=1:ne) wfinal3(ie) = f_gauss((ener(ie)-freq(k,3)), sigma_e)
+      DO j = 1,S%nat3
+        !
+        !wfinal = wfinal3 
+        !
+        freqtotm1_23= freqm1(j,2) * freqm1(k,3)
+        !
+        bose_P   = 1 + bose(j,2) + bose(k,3)
+        bose_M   = bose(k,3) - bose(j,2)
+        omega_P  = freq(j,2)+freq(k,3)
+        omega_M  = freq(j,2)-freq(k,3)        
+        omega_P2 = omega_P**2
+        omega_M2 = omega_M**2
+        !
+        DO i = start_i, end_i
+          !
+          freqtotm1 = freqm1(i,1)*freqtotm1_23
+          !
+          reg = CMPLX(freq_initial, sigma, kind=DP)**2
+          ctm_P = 2 * bose_P *omega_P/(omega_P2-reg )
+          ctm_M = 2 * bose_M *omega_M/(omega_M2-reg )
+          !
+          pref_P = -ABS(ctm_P*freqtotm1 * V3sq(i,j,k))
+          pref_M = -ABS(ctm_M*freqtotm1 * V3sq(i,j,k))
+          !
+          fsdf(:,i_final,P) = fsdf(:,i_final,P) +pref_P* wfinal3(:)
+          fsdf(:,i_final,M) = fsdf(:,i_final,M) +pref_M* wfinal3(:)
+          !
+        ENDDO        
+      ENDDO
+    ENDDO
+    !--!$OMP END PARALLEL DO
+
+    fsdf(:,:,TOT) = fsdf(:,:,P)+fsdf(:,:,M)
+    !
+    !    CALL merge_degen(ne, S%nat3, 3, fsdf, freq(:,1))
+    !
+    sum_final_selfnrg_e = fsdf
+    DEALLOCATE(fsdf)
+    !
+END FUNCTION sum_final_selfnrg_e
+!
+
 END MODULE final_state 

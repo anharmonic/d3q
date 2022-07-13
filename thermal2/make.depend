@@ -1,4 +1,3 @@
-ACRS.o : mpi_thermal.o
 PROGRAM_asr3.o : mpi_thermal.o
 PROGRAM_db.o : mpi_thermal.o
 PROGRAM_decompose_d2.o : mpi_thermal.o
@@ -88,6 +87,7 @@ PROGRAM_import_shengbte.o : ./ph_system.o
 PROGRAM_interpolate2.o : ./PROGRAM_interpolate2.o
 PROGRAM_interpolate2.o : ./asr2.o
 PROGRAM_interpolate2.o : ./fc2_interp.o
+PROGRAM_interpolate2.o : ./functions.o
 PROGRAM_interpolate2.o : ./input_fc.o
 PROGRAM_interpolate2.o : ./ph_system.o
 PROGRAM_interpolate2.o : ./quter.o
@@ -137,6 +137,7 @@ PROGRAM_r2q.o : ./casimir.o
 PROGRAM_r2q.o : ./code_input.o
 PROGRAM_r2q.o : ./fc2_interp.o
 PROGRAM_r2q.o : ./functions.o
+PROGRAM_r2q.o : ./gruneisen.o
 PROGRAM_r2q.o : ./input_fc.o
 PROGRAM_r2q.o : ./isotopes.o
 PROGRAM_r2q.o : ./linewidth.o
@@ -156,6 +157,7 @@ PROGRAM_recenter.o : ./ph_system.o
 PROGRAM_rmzeu.o : ./PROGRAM_interpolate2.o
 PROGRAM_rmzeu.o : ./asr2.o
 PROGRAM_rmzeu.o : ./fc2_interp.o
+PROGRAM_rmzeu.o : ./functions.o
 PROGRAM_rmzeu.o : ./input_fc.o
 PROGRAM_rmzeu.o : ./ph_system.o
 PROGRAM_rmzeu.o : ./quter.o
@@ -233,6 +235,7 @@ f3_bwfft.o : ./input_fc.o
 fc2_interp.o : ./functions.o
 fc2_interp.o : ./input_fc.o
 fc2_interp.o : ./nanoclock.o
+fc2_interp.o : ./timers.o
 fc3_interp.o : ./input_fc.o
 fc3_interp.o : ./mpi_thermal.o
 final_state.o : ./fc2_interp.o
@@ -246,6 +249,7 @@ final_state.o : ./mpi_thermal.o
 final_state.o : ./q_grids.o
 final_state.o : ./timers.o
 gruneisen.o : ./fc2_interp.o
+gruneisen.o : ./functions.o
 gruneisen.o : ./input_fc.o
 gruneisen.o : ./merge_degenerate.o
 harmonic.o : ./input_fc.o

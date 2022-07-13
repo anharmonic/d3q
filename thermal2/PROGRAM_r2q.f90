@@ -455,9 +455,9 @@ MODULE r2q_program
     !REAL(DP) :: xq_random(3)
     !
     REAL(DP) :: nrg(input%ne), xq_j(3)
-    REAL(DP) :: sigma_ry, weight, e0_ry, de_ry
-    REAL(DP) :: dos(input%ne), dom(input%ne)
-    INTEGER :: jq, k,j,i, fmin, fmax
+    REAL(DP) :: sigma_ry, weight, e0_ry, de_ry, proj
+    REAL(DP) :: dos(input%ne), dom(input%ne), pdos(input%ne, S%ntyp), aux(input%ne)
+    INTEGER :: jq, k,j,i, fmin, fmax, it, ia
     !
     !
     FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
@@ -469,6 +469,7 @@ MODULE r2q_program
     de_ry = input%de/RY_TO_CMM1
     
     dos = 0._dp
+    pdos = 0._dp
 
     !xq_random  = (/ randy(), randy(), randy() /)
     CALL setup_grid(input%grid_type, S%bg, input%nk(1),input%nk(2),input%nk(3), &
@@ -486,17 +487,31 @@ MODULE r2q_program
 !         dos = dos + weight * f_gauss(dom, sigma_ry) 
         fmin = MAX(1,        NINT((freqj(j)-e0_ry-5*sigma_ry)/de_ry))
         fmax = MIN(input%ne, NINT((freqj(j)-e0_ry+5*sigma_ry)/de_ry))
+        !
         dom(fmin:fmax) =freqj(j)-nrg(fmin:fmax)
-        dos(fmin:fmax) = dos(fmin:fmax) + weight * f_gauss(dom(fmin:fmax), sigma_ry) 
+        aux(fmin:fmax) = weight * f_gauss(dom(fmin:fmax), sigma_ry) 
+        dos(fmin:fmax) = dos(fmin:fmax) + aux(fmin:fmax)
+        !
+        ! Projection on atom types (optimized)
+        DO it = 1,S%ntyp
+          proj = 0._dp
+          DO ia = 1, S%nat
+            IF(S%ityp(ia) == it) THEN
+              proj = proj+SUM(U((ia-1)*3+1:(ia-1)*3+3, j)*CONJG(U((ia-1)*3+1:(ia-1)*3+3, j)))
+            ENDIF
+          ENDDO
+          pdos(fmin:fmax,it) = pdos(fmin:fmax,it) + proj*aux(fmin:fmax)
+        ENDDO
         !
       ENDDO
       !
     ENDDO
     CALL mpi_bsum(input%ne,dos)
+    CALL mpi_bsum(input%ne,S%ntyp,pdos)
     !
     OPEN(unit=10000, file=TRIM(input%prefix)//".out", status="UNKNOWN")
     DO i = 1,input%ne
-      WRITE(10000,'(4ES27.15E3)') RY_TO_CMM1*nrg(i),dos(i)
+      WRITE(10000,'(999ES27.15E3)') RY_TO_CMM1*nrg(i),dos(i), pdos(i,:)
     ENDDO
     CLOSE(10000)
     !
@@ -816,10 +831,11 @@ PROGRAM r2q
           i, qpath%w(i), qpath%xq(:,i), grun(order%idx(:))
         ioFLUSH(output_unit+3)
       ENDIF
-      IF(input%print_gruneisen) THEN
+      IF(input%print_klemens) THEN
 
         mass = average_mass_mode(S,U)
         !write(*,'(99f12.1)') mass
+        IF(input%nconf < 1) CALL errore("r2q", "need a CONFIG with T_debye T to do klemens approximation", 1)
         w_debye = input%sigma(1)/RY_TO_CMM1
         DO nu = 1,S%nat3
           klem(nu) =  grun(order%idx(nu))**2 * (input%T(1)*K_BOLTZMANN_RY) &
