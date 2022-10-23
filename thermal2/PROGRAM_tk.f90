@@ -47,8 +47,8 @@ MODULE thermalk_program
   ! we multiply by 2 in order to get the full width.
   SUBROUTINE TK_SMA(input, out_grid, S, fc2, fc3)
     USE linewidth,          ONLY : linewidth_q
-    USE constants,          ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
-    USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf
+    USE constants,          ONLY : RY_TO_CMM1, K_BOLTZMANN_RY, tpi
+    USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf, ryvel_si
     USE q_grids,            ONLY : q_grid, setup_grid
     USE fc3_interpolate,    ONLY : forceconst3
     USE isotopes_linewidth, ONLY : isotopic_linewidth_q
@@ -56,7 +56,7 @@ MODULE thermalk_program
     USE input_fc,           ONLY : ph_system_info
     USE code_input,         ONLY : code_input_type
     USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
-    USE ph_velocity,        ONLY : velocity
+    USE ph_velocity,        ONLY : velocity, velocity_operator
     !USE overlap,            ONLY : order_type
     USE timers
     IMPLICIT NONE
@@ -79,13 +79,26 @@ MODULE thermalk_program
     !
     REAL(DP) :: tk(3,3,input%nconf)
     REAL(DP) :: vel(3,S%nat3)
-    REAL(DP) :: pref
-    INTEGER  :: iq, it, a, b, nu
     !
+    COMPLEX(DP) :: tk_P(3,3,input%nconf)
+    COMPLEX(DP) :: tk_C(3,3,input%nconf)
+    COMPLEX(DP) :: vel_operator(3,S%nat3,S%nat3)
+    COMPLEX(DP) :: prefactor
+    REAL(DP) :: Lorentzian, boseplus, boseplus_p, debug_max_imag_k_P, debug_max_imag_k_C
+    !
+    !for debug
+    REAL(DP) :: vel_diag(3,S%nat3)
+    !
+    REAL(DP) :: pref
+    INTEGER  :: iq, it, a, b, nu, id_dir,im, im2, nup
+    character(len=29) :: filename
+    LOGICAL :: condition_print
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
     LOGICAL :: gamma
     !TYPE(order_type) :: order
     !
+    character*1 tab
+    tab = char(9)
     sigma_ry = input%sigma/RY_TO_CMM1
     !
     ! the inner grid (in_grid) is scatterd over MPI
@@ -130,6 +143,11 @@ MODULE thermalk_program
                                 "vel."//TRIM(input%prefix)//".out")
         ioWRITE(5000, *) "# ph group velocity x1, y1, z1, x2, y2, z2, ..."
         ioFLUSH(5000)
+        OPEN(unit=5001, file=TRIM(input%outdir)//"/"//&
+                                "vel_diag."//TRIM(input%prefix)//".out")
+        ioWRITE(5001, *) "# ph group velocity x1, y1, z1, x2, y2, z2, ..."
+        ioFLUSH(5001)
+
         OPEN(unit=6000, file=TRIM(input%outdir)//"/"//&
                                 "freq."//TRIM(input%prefix)//".out")
         ioWRITE(6000, *) "# phonon frequencies"
@@ -141,8 +159,20 @@ MODULE thermalk_program
     ENDIF
     !
     tk = 0._dp
+    tk_P = 0._dp
+    tk_C = 0._dp
     !
-      timer_CALL t_tksma%start()
+    IF(input%print_all.and.ionode) THEN
+      open(unit=7022,file='phonon_velocity_operator.dat',status='replace')
+      WRITE(7022,'(A)') '#i_q, im1, im2, f_1 (cm^-1), f_2(cm^-1), |V^x|^2, |V^y|^2, |V^z|^2, units (m/s)^2'
+      DO it = 1, input%nconf
+        write(filename, '(A22,i3.3,A4)') 'phonon_properties_raw_',it,'.dat'
+        open(unit=7023+it, file=filename, status='replace')
+        write(7023+it,'(A)') "#  q, mod1, mod2, omega1(Ry),  omega2(Ry),gamma1(Ry),  gamma2(Ry)"
+      END DO
+    ENDIF    
+
+    timer_CALL t_tksma%start()
     QPOINT_LOOP : &
     DO iq = 1,out_grid%nq
       !ioWRITE(stdout,'(i6,3f15.8)') iq, out_grid%xq(:,iq)
@@ -156,6 +186,9 @@ MODULE thermalk_program
           timer_CALL t_lwphph%stop()
       ELSE
         lw_phph = 0._dp
+        IF (input%debug_linewidth) THEN
+          lw_phph = 15._dp/RY_TO_CMM1
+        ENDIF
       ENDIF
       !
       ! Compute contribution of isotopic disorder
@@ -170,8 +203,13 @@ MODULE thermalk_program
       ENDIF
       !
       !
-        timer_CALL t_velcty%start()
-      ! Velocity
+      timer_CALL t_velcty%start()
+      ! Velocity operator
+      !ioWRITE(stdout,"(3x,a)") "velocity_operator start"      
+      vel_operator = velocity_operator( S, fc2, out_grid%xq(:,iq))
+      !
+      !ioWRITE(stdout,"(3x,a)") "velocity_operator end"      
+      ! old subroutine, for debug
       vel = velocity(S, fc2, out_grid%xq(:,iq))
         timer_CALL t_velcty%stop()
       !
@@ -198,6 +236,7 @@ MODULE thermalk_program
           ioWRITE(3000,'(99e20.10)') lw_casimir(:)*RY_TO_CMM1
         ENDIF
         ioWRITE(5000,'(3(99e20.10,3x))') vel(:,:)
+        ioWRITE(5001,'(3(99e20.10,3x))') vel_diag(:,:)
         ioWRITE(6000,'(99e20.10)') freq(:)*RY_TO_CMM1
         ioWRITE(7000,'(4e20.10)') out_grid%xq(:,iq), out_grid%w(iq)
         timer_CALL t_lwinout%stop()
@@ -209,6 +248,45 @@ MODULE thermalk_program
       ! thanks to Francesco Macheda for reporting this
       DO it = 1,input%nconf
         lw(:,it) = 2*(lw_phph(:,it) + lw_isotopic(:,it) + lw_casimir)
+        IF(input%print_all.and.ionode) THEN
+          ! print velocity operator
+          do im=1,S%nat3
+             do im2=1,S%nat3 
+                condition_print=.false.      
+                if (input%workaround_print_v) then     
+                  if (iq==1) then
+                    if (im>3 .and. im2>3) then
+                      condition_print=.true.
+                    end if
+                  else
+                      condition_print=.true.
+                  end if
+                else
+                  condition_print=((lw(im,it)>0.0d0).and.(lw(im2,it)>0.0d0))
+                end if            
+               if ( condition_print .and. (im<=im2)) then
+                if (it==1) then
+                  WRITE(7022 ,'(I6,I4,I4,2ES11.4, 3ES14.7)')       &
+                   iq,im,im2,                                  & 
+                   freq(im)*RY_TO_CMM1,                   &
+                   freq(im2)*RY_TO_CMM1,                  &
+                  ((real(vel_operator(1,im,im2)))**2+     &
+                  (aimag(vel_operator(1,im,im2))**2 ) )   &
+                                         *((tpi*ryvel_si)**2 ), &
+                  ((real(vel_operator(2,im,im2)))**2+     &
+                  (aimag(vel_operator(2,im,im2))**2 ) )   &
+                                         *((tpi*ryvel_si)**2 ), &
+                  ((real(vel_operator(3,im,im2)))**2+     &
+                  (aimag(vel_operator(3,im,im2))**2 ) )   &
+                                         *((tpi*ryvel_si)**2 )
+               endif
+               ! print phonon phonon_properties_raw
+               write(7023+it,'(I6,I4,I4,A1,ES17.10,A1,ES17.10,A1,ES17.10,A1,ES17.10)') &
+                  iq, im,im2,tab,freq(im),tab,freq(im2),tab,lw(im,it),tab,lw(im2,it)
+              end if
+           end do
+         end do
+        END IF
       ENDDO
       !
       CONF_LOOP : &
@@ -245,14 +323,33 @@ MODULE thermalk_program
                CYCLE MODE_LOOP
           ENDIF
           !
-          pref = freq(nu)**2 *bose(nu,it)*(1+bose(nu,it))&
-                             /(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY )&
-                             *out_grid%w(iq) /lw(nu,it)
-          DO a = 1,3
-          DO b = 1,3
-            tk(a,b,it) = tk(a,b,it) + pref*vel(a,nu)*vel(b,nu)
-          ENDDO
-          ENDDO
+          ! end of the safety checks loop 1 
+          ! coherence term
+          boseplus=bose(nu,it)*(1.0+bose(nu,it))
+          DO nup = 1, S%nat3
+            boseplus_p=bose(nup,it)*(1.0+bose(nup,it))
+            !
+            prefactor=0.25d0*(freq(nu)+freq(nup))*                                     &
+                          (boseplus*freq(nu)+boseplus_p*freq(nup))*                    &
+                          out_grid%w(iq)/(input%T(it)**2 *S%Omega*K_BOLTZMANN_RY )
+            !
+            Lorentzian=  (0.5d0*(lw(nu,it)+lw(nup,it)))/            &
+                         (  (freq(nu)-freq(nup))**2 + (0.5d0*(lw(nu,it)+lw(nup,it)))**2 )
+            !
+            IF ((lw(nu,it)>0.0d0) .and. (lw(nup,it)>0.0d0)) THEN
+              DO a = 1,3
+                DO b = 1,3
+                  IF ( nu == nup) THEN
+                    tk_P(a,b,it) = tk_P(a,b,it) + prefactor*Lorentzian*    &
+                        (vel_operator(a,nu,nup)*vel_operator(b,nup,nu))
+                  ELSE
+                    tk_C(a,b,it) = tk_C(a,b,it) + prefactor*Lorentzian*    &
+                        (vel_operator(a,nu,nup)*vel_operator(b,nup,nu))
+                  ENDIF
+                ENDDO
+              ENDDO
+            ENDIF
+          ENDDO ! end second mode loop
         ENDDO MODE_LOOP
         !
       ENDDO CONF_LOOP
@@ -268,34 +365,84 @@ MODULE thermalk_program
       ENDDO
       IF(input%casimir_scattering) CLOSE(3000)
       CLOSE(5000) !velocity
+      CLOSE(5001) !diagonal elements velocity operator
       CLOSE(6000) ! freq
       CLOSE(7000) ! q-points
     ENDIF
+    IF(ionode.and.input%print_all)THEN
+      CLOSE(7022)
+      DO it = 1, input%nconf
+        close(7023+it)
+      END DO
+    ENDIF
     !
-    IF(input%intrinsic_scattering) THEN
+    IF(input%intrinsic_scattering .or. input%debug_linewidth ) THEN
       ! Write to disk
-      IF(ionode) OPEN(unit=10000, file=TRIM(input%outdir)//"/"//&
-                                       TRIM(input%prefix)//"."//"out")
-      ioWRITE(10000,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
-                          "    K_x            K_y            K_z             ",&
-                          "    K_xy           K_xz           K_yz            ",&
-                          "    K_yx           K_zx           K_zy       "
+      !      
+      IF(ionode) OPEN(unit=10001, file=TRIM(input%outdir)//"/"//&
+                                       TRIM(input%prefix)//"_P_sma."//"out")
+      IF(ionode) OPEN(unit=10002, file=TRIM(input%outdir)//"/"//&
+                                       TRIM(input%prefix)//"_C."//"out")  
+      IF(ionode) OPEN(unit=10003, file=TRIM(input%outdir)//"/"//&
+                                       TRIM(input%prefix)//"_TOT."//"out")                                             
+
+      ioWRITE(10001,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
+                          "    K_P^x            K_P^y            K_P^z             ",&
+                          "    K_P^xy           K_P^xz           K_P^yz            ",&
+                          "    K_P^yx           K_P^zx           K_P^zy       "
+
+      ioWRITE(10002,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
+                          "    K_C^x            K_C^y            K_C^z             ",&
+                          "    K_C^xy           K_C^xz           K_C^yz            ",&
+                          "    K_C^yx           K_C^zx           K_C^zy       "
+
+      ioWRITE(10003,'(4a)') "#conf  sigma[cmm1]   T[K]  ",&
+                          "    K_TOT^x            K_TOT^y            K_TOT^z             ",&
+                          "    K_TOT^xy           K_TOT^xz           K_TOT^yz            ",&
+                          "    K_TOT^yx           K_TOT^zx           K_TOT^zy       "
       tk = tk*RY_TO_WATTMM1KM1
+
+      tk_P = tk_P*RY_TO_WATTMM1KM1
+      tk_C = tk_C*RY_TO_WATTMM1KM1
+
+      debug_max_imag_k_P=maxval(abs(aimag(tk_P)))
+      debug_max_imag_k_C=maxval(abs(aimag(tk_C)))
+
       DO it = 1,input%nconf
-        ioWRITE(10000,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
-        tk(1,1,it),tk(2,2,it),tk(3,3,it), &
-        tk(1,2,it),tk(1,3,it),tk(2,3,it), &
-        tk(2,1,it),tk(3,1,it),tk(3,2,it)
+        !
+        ioWRITE(10001,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
+        REAL(tk_P(1,1,it)),REAL(tk_P(2,2,it)),REAL(tk_P(3,3,it)), &
+        REAL(tk_P(1,2,it)),REAL(tk_P(1,3,it)),REAL(tk_P(2,3,it)), &
+        REAL(tk_P(2,1,it)),REAL(tk_P(3,1,it)),REAL(tk_P(3,2,it))
+        !
+        ioWRITE(10002,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
+        REAL(tk_C(1,1,it)),REAL(tk_C(2,2,it)),REAL(tk_C(3,3,it)), &
+        REAL(tk_C(1,2,it)),REAL(tk_C(1,3,it)),REAL(tk_C(2,3,it)), &
+        REAL(tk_C(2,1,it)),REAL(tk_C(3,1,it)),REAL(tk_C(3,2,it))
+        !
+        ioWRITE(10003,"(i3,2f12.6,3(3e15.6,5x))") it, input%sigma(it), input%T(it), &
+        REAL(tk_P(1,1,it)+tk_C(1,1,it)),REAL(tk_P(2,2,it)+tk_C(2,2,it)),REAL(tk_P(3,3,it)+tk_C(3,3,it)), &
+        REAL(tk_P(1,2,it)+tk_C(1,2,it)),REAL(tk_P(1,3,it)+tk_C(1,3,it)),REAL(tk_P(2,3,it)+tk_C(2,3,it)), &
+        REAL(tk_P(2,1,it)+tk_C(2,1,it)),REAL(tk_P(3,1,it)+tk_C(3,1,it)),REAL(tk_P(3,2,it)+tk_C(3,2,it))
       ENDDO
-      IF(ionode) CLOSE(10000)
+      IF(ionode) CLOSE(10001)
+      IF(ionode) CLOSE(10002)
+      IF(ionode) CLOSE(10003)
+
       !
       ! Write to screen
       ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity, stored to file:"
       ioWRITE(stdout,'(5x,a)') TRIM(input%outdir)//"/"//TRIM(input%prefix)//"."//"out"
-      ioWRITE(stdout,"(3x,a)") "Diagonal components (conf, sigma, T, K_x, K_y, K_z):"
+      !
+      ioWRITE(stdout,"(3x,a)") "Thermal conductivity  (conf, sigma, T, K_x, K_y, K_z):"
       DO it = 1,input%nconf
-        ioWRITE(stdout,"(i3,2f12.6,3e16.8)")  it, input%sigma(it), input%T(it),&
-                                        tk(1,1,it), tk(2,2,it), tk(3,3,it)
+        ioWRITE(stdout,"(a7,i3,2f12.6,3e16.8)") 'K_P   =', it, input%sigma(it), input%T(it),&
+                                        REAL(tk_P(1,1,it)), REAL(tk_P(2,2,it)), REAL(tk_P(3,3,it))
+        ioWRITE(stdout,"(a7,i3,2f12.6,3e16.8)") 'K_C   =', it, input%sigma(it), input%T(it),&
+                                        REAL(tk_C(1,1,it)), REAL(tk_C(2,2,it)), REAL(tk_C(3,3,it))
+        ioWRITE(stdout,"(a7,i3,2f12.6,3e16.8)") 'K_TOT =', it, input%sigma(it), input%T(it),&
+                           REAL(tk_P(1,1,it)+tk_C(1,1,it)), REAL(tk_P(2,2,it)+tk_C(2,2,it)),&
+                           REAL(tk_P(3,3,it)+tk_C(3,3,it))                                                                
       ENDDO
     ELSE
       ioWRITE(stdout,"(3x,a,/,3x,a)") "************", "SMA thermal conductivity not computed (intrinsic_scattering is false)"
@@ -609,6 +756,7 @@ PROGRAM thermalk
     !
   ELSEIF(TRIM(tkinput%calculation) == "cgp" .or. TRIM(tkinput%calculation) == "exact") THEN
     !
+    CALL TK_SMA(tkinput, out_grid, S, fc2, fc3)    
     CALL TK_CG_prec(tkinput, out_grid, S, fc2, fc3)
     !
   ELSE
