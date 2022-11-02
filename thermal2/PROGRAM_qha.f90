@@ -19,7 +19,7 @@ MODULE qha_program
 
   TYPE qha_input_type
     !
-    CHARACTER(len=16) :: calculation ! gibbs, grun
+    CHARACTER(len=16) :: calculation ! only qha possible
     CHARACTER(len=256) :: outdir
     CHARACTER(len=256) :: prefix
     REAL(DP),POINTER :: nrg_v(:)
@@ -60,7 +60,7 @@ MODULE qha_program
     INTEGER :: ios
     !
     ! Input variable, and defaul values:
-    CHARACTER(len=16)   :: calculation = "gibbs"
+    CHARACTER(len=16)   :: calculation = "qha"
     CHARACTER(len=256)  :: outdir = "./" 
     CHARACTER(len=256)  :: prefix = INVALID    ! add to the name of the first file to create out file
     CHARACTER(len=256),ALLOCATABLE :: mat2R_v(:)
@@ -159,8 +159,8 @@ MODULE qha_program
     !
   END SUBROUTINE READ_INPUT_QHA
 
-  ! gibbs free energy
-  SUBROUTINE GIBBS(input, S, fc2)
+  ! Helmoltz free energy
+  SUBROUTINE Helmoltz(input, S, fc2)
     USE q_grids,        ONLY : q_grid, setup_grid
     USE constants,      ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
     USE more_constants, ONLY : write_conf
@@ -242,7 +242,7 @@ MODULE qha_program
       WRITE(90000+iT,'(a,a21,7a26)') "#", "v0(iT)", "g0(iT)", &
                        "k0(iT)", "dk0(iT)", "d2k0(iT)"
       WRITE(90000+iT,'(a,5f20.10)') "#", v0(iT), g0(iT), k0(iT), dk0(iT), d2k0(iT)
-      WRITE(90000+iT,'(a,a21,8a26)') "#", "volume", "gibbs_free_nrg", "electrons", &
+      WRITE(90000+iT,'(a,a21,8a26)') "#", "volume", "Helmoltz_free_nrg", "electrons", &
                        "zero-point", "ph_free_nrg", "pV", "g-g0", "g_fit"
       DO iv = 1, input%n_volumes
         WRITE(90000+iT,'(99f20.10)') vol(iv), g(iv), &
@@ -277,7 +277,7 @@ MODULE qha_program
     ENDDO
     CLOSE(90000)
     
-  END SUBROUTINE GIBBS
+  END SUBROUTINE Helmoltz
 
   SUBROUTINE fit(ceos, nv,T,vol, nrg, nrg_fit, nrg0, vol0, k0, dk0, d2k0)
     USE eos,       ONLY : find_minimum2
@@ -357,10 +357,10 @@ PROGRAM qha
   !  
   CALL READ_INPUT_QHA(input, S, fc2)
   !
-  IF( input%calculation=="gibbs") THEN
-    print*, "gibbs!"
-    CALL GIBBS(input,S,fc2)
-  ENDIF
+!  IF( input%calculation=="qha" .or. input%calculation=="helmoltz" .or. input%calculation=="gibbs" ) THEN
+    print*, "Computing Helmoltz free energy at requested temperatures."
+    CALL Helmoltz(input,S,fc2)
+!  ENDIF
  CALL stop_mpi()
   
 END PROGRAM qha
