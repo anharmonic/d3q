@@ -5,8 +5,8 @@ temperatures=system("ls qha/k20_T*.dat|sort -nk1.6|sed -e s/.*_T// -e s/.dat//")
 nt=words(list)
 
 set xlabel "Volume (a_0^3)"
-set ylabel "Gibbs free energy (Ry)"
-set title "Silicon G(T) at different volumes"
+set ylabel "Helmoltz free energy (Ry)"
+set title "Silicon F(T) at different volumes"
 set ytics format "%.3f"
 set key center top
 
