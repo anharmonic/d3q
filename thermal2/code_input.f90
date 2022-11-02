@@ -52,8 +52,16 @@ MODULE code_input
     REAL(DP) :: q_initial(3)
     LOGICAL  :: q_resolved, q_summed
     REAL(DP) :: sigmaq
+
+    !threshold to detect degeneracies between phonons, in cm-1
+    REAL(DP) :: threshold_f_degeneracy_cmm1
+
     ! intrinsic ph-ph scattering, this is true by default:
     LOGICAL  :: intrinsic_scattering
+
+    ! use an aritificial linewidth of 30 cm^-1 for all modes, for debug purposes
+    LOGICAL  :: debug_linewidth
+
     ! for isotope contribution to lw
     LOGICAL  :: isotopic_disorder
     ! for border scattering, grain size effects
@@ -80,6 +88,8 @@ MODULE code_input
     LOGICAL :: print_neutron_cs
     !
     LOGICAL :: store_lw ! for tk-sma, save the linewidth to file
+    LOGICAL :: print_all
+    LOGICAL :: workaround_print_v
     !
     LOGICAL :: optimize_grid
     REAL(DP) :: optimize_grid_thr
@@ -140,6 +150,8 @@ MODULE code_input
     LOGICAL            :: print_klemens     = .false.    ! print the phonon gruneisen (requires mat2_plus and mat2_minus)
     LOGICAL            :: print_neutron_cs = .false.    ! print the phonon cross-section for inelastic neutron scattering (only r2q code)
     LOGICAL            :: store_lw = .false.         ! for tk-sma calculation, store the lw for the grid point to file
+    LOGICAL            :: print_all = .true.      ! for tk-sma calculation, store the lw and velocity operator
+    LOGICAL            :: workaround_print_v=.false.
     !
     ! The following variables are used for spectre and final state calculations
     INTEGER  :: ne = -1                 ! number of energies on which to sample the spectral decomposition
@@ -154,11 +166,16 @@ MODULE code_input
                                         ! in different files
     LOGICAL  :: q_summed = .false.      ! save the final state of q as well
     REAL(DP) :: sigmaq = 0.1_dp         ! reciprocal space smearing for final q decomposition
+    REAL(DP) :: threshold_f_degeneracy_cmm1 = 0.2_dp ! threshold to detect degeneracies between phonon modes, in cm^-1
     !
     ! Compute intrinsic ph-ph scattering, setting this to false is only useful
     ! to re-compute different casimir or isotopic parameters and then recompute
     ! SMA using tools/recompute_sma.m
     LOGICAL  :: intrinsic_scattering = .true.
+
+    ! use a constant artificial linewidth of 30 cm^-1 for debug, default is false
+    LOGICAL  :: debug_linewidth = .false.
+
     ! Use isotopic disorder (only for tk calculations)
     LOGICAL  :: isotopic_disorder = .false.
     REAL(DP),ALLOCATABLE :: isotopes_mass(:), isotopes_conc(:), auxm(:), auxs(:)
@@ -225,7 +242,9 @@ MODULE code_input
       nconf, nk, nk_in, grid_type, grid_type_in, xk0, xk0_in, &
       optimize_grid, optimize_grid_thr, &
       intrinsic_scattering, &
-      isotopic_disorder, store_lw, &
+      debug_linewidth, &
+      threshold_f_degeneracy_cmm1, &
+      isotopic_disorder, store_lw, print_all, workaround_print_v, &
       casimir_scattering, mfp_cutoff, sample_dir, &
       sample_length_au, sample_length_mu, sample_length_mm, &
       volume_factor, &
@@ -362,8 +381,12 @@ MODULE code_input
     input%print_klemens     = print_klemens
     input%print_neutron_cs = print_neutron_cs
     input%store_lw         = store_lw 
+    input%print_all        = print_all
+    input%workaround_print_v   = workaround_print_v
+    input%threshold_f_degeneracy_cmm1 = threshold_f_degeneracy_cmm1 
     !
     input%intrinsic_scattering = intrinsic_scattering
+    input%debug_linewidth      = debug_linewidth 
     input%isotopic_disorder    = isotopic_disorder
     input%casimir_scattering   = casimir_scattering
     input%mfp_cutoff           = mfp_cutoff
@@ -401,7 +424,13 @@ MODULE code_input
     !
     ! read data before reading the q-point, because we need the unit
     ! cell to go to/from crystal coords etc
-    CALL READ_DATA(input, s, fc2, fc3)
+    IF (input%debug_linewidth) THEN
+      CALL READ_DATA(input, s, fc2)
+    ELSE
+      CALL READ_DATA(input, s, fc2, fc3)
+    ENDIF
+
+
     !
     IF(volume_factor/=1._dp)THEN
       s%Omega = s%Omega*volume_factor
@@ -857,7 +886,7 @@ MODULE code_input
     ENDIF
     ! Finally, divide the FCs by the sqrt of these masses
     CALL div_mass_fc2(S, fc2)
-    IF(present(fc3)) CALL fc3%div_mass(S)
+    IF(present(fc3) .and. (.not. input%debug_linewidth)) CALL fc3%div_mass(S)
     !
     !IF(.not.qpoints_ok) CALL errore("READ_INPUT", "QPOINTS card not found &
     !                                &(it may have been eaten by the preceeding card)", 1)
@@ -893,7 +922,9 @@ MODULE code_input
       CALL mpi_broadcast(file_mat3)
       CALL mpi_broadcast(grid_type)
       CALL mpi_broadcast(grid_type_in)
+      CALL mpi_broadcast(threshold_f_degeneracy_cmm1)      
       CALL mpi_broadcast(intrinsic_scattering)
+      CALL mpi_broadcast(debug_linewidth)
       CALL mpi_broadcast(isotopic_disorder)
       CALL mpi_broadcast(max_seconds)
       CALL mpi_broadcast(max_time)
@@ -923,6 +954,8 @@ MODULE code_input
       CALL mpi_broadcast(sort_freq)
       CALL mpi_broadcast(skip_q)
       CALL mpi_broadcast(store_lw)
+      CALL mpi_broadcast(print_all)
+      CALL mpi_broadcast(workaround_print_v)
       CALL mpi_broadcast(thr_tk)
       CALL mpi_broadcast(volume_factor)
       CALL mpi_broadcast(3,xk0)
@@ -955,7 +988,7 @@ MODULE code_input
       timer_CALL t_readdt%start()
     CALL read_fc2(input%file_mat2, S,  fc2)
     !print*, S
-    IF(present(fc3)) THEN
+    IF(present(fc3) .and. (.not. input%debug_linewidth)) THEN
       fc3 => read_fc3(input%file_mat3, S3)
       !
       IF(.not.same_system(S, S3)) THEN

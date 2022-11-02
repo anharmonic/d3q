@@ -17,11 +17,18 @@ MODULE more_constants
   REAL(DP),PARAMETER :: MASS_DALTON_TO_RY = 0.5_dp*1822.88839_dp
   REAL (DP), PARAMETER :: RY_TO_WATT = RY_TO_JOULE / RY_TO_SECOND
   REAL(DP),PARAMETER :: RY_TO_WATTMM1KM1 = RY_TO_WATT / RY_TO_METER
-  
+  ! added
+  REAL(DP), PARAMETER :: BOHR_RADIUS_SI   = 0.52917720859E-10_DP ! m
+  REAL(DP), PARAMETER :: HARTREE_SI       = 4.35974394E-18_DP   ! J
+  REAL(DP), PARAMETER :: RYDBERG_SI       = HARTREE_SI/2.0_DP   ! J
+  REAL(DP), PARAMETER :: H_PLANCK_SI      = 6.62606896E-34_DP   ! J s, this is the Planck constant h, not \hbar
+  REAL(DP), PARAMETER :: ryau_sec = H_PLANCK_SI/RYDBERG_SI
+  REAL(DP), PARAMETER :: ryvel_si = BOHR_RADIUS_SI/ryau_sec 
+
   !
   REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
   REAL(DP),PARAMETER :: eps_freq = 0._dp !1.e-8_dp
-
+  COMPLEX(DP), PARAMETER :: complex_i = cmplx(0.0,1.0)
   CONTAINS
   !
 !   CHARACTER(len=256) &
@@ -95,14 +102,18 @@ MODULE more_constants
         "For thermal transport calculations please cite:",&
         " 2. Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri",&
         "    Phys. Rev. B 88, 045430 (2013)", &
-        " 3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,", &
-        "    Nature communications 6 (2015)", &
-        " 4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,", &
-        "    Nano letters 14 (11), 6109-6114 (2014)"
+        " 3. A. Cepellotti, G. Fugallo, L. Paulatto, M. Lazzeri, F. Mauri, N. Marzari,",&
+        "    Nature communications 6 (2015)",&
+        " 4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,",&
+        "    Nano letters 14 (11), 6109-6114 (2014)",&  
+        " 5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,",&
+        "    Nature Physics 15 (8), 809-813 (2019)",&    
+        " 6. M. Simoncelli, N. Marzari, F. Mauri,",&
+        "    Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)"
     ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For spectral function calculations also cite:",&
-        " 5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,",&
+        " 7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,",&
         "    Phys. Rev. B 91, 054304 (2015)"
     ioWRITE(stdout,*)
 
