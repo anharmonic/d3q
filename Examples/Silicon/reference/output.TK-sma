@@ -1,5 +1,5 @@
   Using      1 MPI processes
-
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -12,44 +12,60 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 
   Reading input file 'input.TK-sma'
   merging with command line arguments
-&TKINPUT
- CALCULATION="sma             ",
- OUTDIR="./TK-sma/                                                                                                                                                                                                                                                       ",
- PREFIX="///                                                                                                                                                                                                                                                             ",
- FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
- FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
- ASR2="simple  ",
- THR_TK=  1.0000000000000000E-002,
- NITER_MAX=1000       ,
- NCONF=1          ,
- NK= 3*5          ,
- NK_IN= 3*5          ,
- GRID_TYPE="simple",
- GRID_TYPE_IN="///   ",
- XK0= 3*0.0000000000000000       ,
- XK0_IN= 3*-1.0000000000000000E+030 ,
- OPTIMIZE_GRID=F,
- OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
- INTRINSIC_SCATTERING=T,
- ISOTOPIC_DISORDER=F,
- STORE_LW=F,
- CASIMIR_SCATTERING=F,
- MFP_CUTOFF=F,
- SAMPLE_DIR= 3*0.0000000000000000       ,
- SAMPLE_LENGTH_AU= -1.0000000000000000     ,
- SAMPLE_LENGTH_MU= -1.0000000000000000     ,
- SAMPLE_LENGTH_MM= -1.0000000000000000     ,
- VOLUME_FACTOR=  1.0000000000000000     ,
- MAX_SECONDS=-1         ,
- MAX_TIME= -1.0000000000000000     ,
- RESTART=F,
+ &TKINPUT
+ CALCULATION     = sma             ,
+ OUTDIR  = ./TK-sma/                                                                                                                 
+                                                                                                                                     
+   ,
+ PREFIX  = ///                                                                                                                       
+                                                                                                                                     
+   ,
+ FILE_MAT2       = mat2R                                                                                                             
+                                                                                                                                     
+           ,
+ FILE_MAT3       = mat3R.asr.sparse                                                                                                  
+                                                                                                                                     
+           ,
+ ASR2    = simple  ,
+ THR_TK  =  1.000000000000000E-002,
+ NITER_MAX       =        1000,
+ NCONF   =           1,
+ NK      = 3*5,
+ NK_IN   = 3*5,
+ GRID_TYPE       = simple      ,
+ GRID_TYPE_IN    = ///         ,
+ XK0     = 3*0.000000000000000E+000  ,
+ XK0_IN  = 3*-1.000000000000000E+030 ,
+ OPTIMIZE_GRID   = F,
+ OPTIMIZE_GRID_THR       =  1.000000000000000E-002,
+ INTRINSIC_SCATTERING    = T,
+ DEBUG_LINEWIDTH = F,
+ THRESHOLD_F_DEGENERACY_CMM1     =  0.200000000000000     ,
+ ISOTOPIC_DISORDER       = F,
+ STORE_LW        = F,
+ PRINT_ALL       = T,
+ WORKAROUND_PRINT_V      = F,
+ CASIMIR_SCATTERING      = F,
+ MFP_CUTOFF      = F,
+ SAMPLE_DIR      = 3*0.000000000000000E+000  ,
+ SAMPLE_LENGTH_AU        =  -1.00000000000000     ,
+ SAMPLE_LENGTH_MU        =  -1.00000000000000     ,
+ SAMPLE_LENGTH_MM        =  -1.00000000000000     ,
+ VOLUME_FACTOR   =   1.00000000000000     ,
+ MAX_SECONDS     =          -1,
+ MAX_TIME        =  -1.00000000000000     ,
+ RESTART = F
  /
  ** Reading FC2 file: mat2R
      alat (bohr)   10.200000
@@ -82,46 +98,48 @@
     300.0
   Smearings:   
    10.000
-
+ 
  --> Setting up outer grid
-  Setup a simple grid of      125 q-points
+  Setup a simple       grid of      125 q-points
  --> Setting up inner grid
-  Setup a simple grid of      125 q-points
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         0.6s 
-         0.8% | STEP TIME:         0.1s | STEP END:          6.7s | WALL:         0.6s 
-         9.7% | STEP TIME:         0.7s | STEP END:          7.4s | WALL:         1.3s 
-        20.2% | STEP TIME:         1.5s | STEP END:          7.3s | WALL:         2.0s 
-        29.8% | STEP TIME:         2.2s | STEP END:          7.3s | WALL:         2.7s 
-        40.3% | STEP TIME:         2.9s | STEP END:          7.2s | WALL:         3.5s 
-        50.0% | STEP TIME:         3.6s | STEP END:          7.2s | WALL:         4.2s 
-        60.5% | STEP TIME:         4.3s | STEP END:          7.2s | WALL:         4.9s 
-        70.2% | STEP TIME:         5.1s | STEP END:          7.2s | WALL:         5.6s 
-        80.6% | STEP TIME:         5.8s | STEP END:          7.2s | WALL:         6.4s 
-        90.3% | STEP TIME:         6.5s | STEP END:          7.2s | WALL:         7.1s 
-       100.0% | STEP TIME:         7.2s | STEP END:          7.2s | WALL:         7.8s 
+  Setup a simple       grid of      125 q-points
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         1.6s 
+         0.8% | STEP TIME:         0.0s | STEP END:          4.0s | WALL:         1.6s 
+         9.7% | STEP TIME:         0.4s | STEP END:          3.8s | WALL:         1.9s 
+        20.2% | STEP TIME:         0.8s | STEP END:          3.8s | WALL:         2.3s 
+        29.8% | STEP TIME:         1.2s | STEP END:          4.0s | WALL:         2.8s 
+        40.3% | STEP TIME:         1.6s | STEP END:          3.9s | WALL:         3.2s 
+        50.0% | STEP TIME:         2.0s | STEP END:          3.9s | WALL:         3.5s 
+        60.5% | STEP TIME:         2.4s | STEP END:          3.9s | WALL:         3.9s 
+        70.2% | STEP TIME:         2.7s | STEP END:          3.9s | WALL:         4.3s 
+        80.6% | STEP TIME:         3.1s | STEP END:          3.9s | WALL:         4.7s 
+        90.3% | STEP TIME:         3.5s | STEP END:          3.9s | WALL:         5.1s 
+       100.0% | STEP TIME:         3.9s | STEP END:          3.9s | WALL:         5.5s 
    ************
    SMA thermal conductivity, stored to file:
      ./TK-sma//sma_full.5x5x5.out
-   Diagonal components (conf, sigma, T, K_x, K_y, K_z):
-  1   10.000000  300.000000  0.97109317E+02  0.97109317E+02  0.97109317E+02
-   * WALL :       7.8522 s
+   Thermal conductivity  (conf, sigma, T, K_x, K_y, K_z):
+K_P   =  1   10.000000  300.000000  0.97731096E+02  0.97731097E+02  0.97731096E+02
+K_C   =  1   10.000000  300.000000  0.26512372E+00  0.26512372E+00  0.26512372E+00
+K_TOT =  1   10.000000  300.000000  0.97996220E+02  0.97996220E+02  0.97996220E+02
+   * WALL :       5.4892 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *     7277.051338 *     7277.051338 *        7277.051 *     7277.051338 *   92.675 *           1. *
+   *             sma thermalk *     3921.687737 *     3921.687737 *        3921.688 *     3921.687737 *   71.443 *           1. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        0.270982 *        0.002168 *           0.271 *        0.002168 *    0.003 *         125. *
-   *                 lw ph-ph *     7237.140370 *       57.897123 *        7237.140 *       57.897123 *   92.166 *         125. *
-   *        ph group velocity *       32.627161 *        0.261017 *          32.627 *        0.261017 *    0.416 *         125. *
-   *        mpi communication *        0.551335 *        0.004411 *           0.551 *        0.004411 *    0.007 *         125. *
-   *             read fc data *       45.122638 *       45.122638 *          45.123 *       45.122638 *    0.575 *           1. *
+   *          sum of tk terms *       33.024659 *        0.264197 *          33.025 *        0.264197 *    0.602 *         125. *
+   *                 lw ph-ph *     3818.383263 *       30.547066 *        3818.383 *       30.547066 *   69.561 *         125. *
+   *        ph group velocity *       65.157238 *        0.521258 *          65.157 *        0.521258 *    1.187 *         125. *
+   *        mpi communication *        0.888176 *        0.007105 *           0.888 *        0.007105 *    0.016 *         125. *
+   *             read fc data *       37.248522 *       37.248522 *          37.249 *       37.248522 *    0.679 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     1472.021095 *        0.093462 *        1472.021 *        0.093462 *   18.746 *       15750. *
-   *             bose distrib *       25.402799 *        0.001626 *          25.403 *        0.001626 *    0.324 *       15625. *
-   *                sum modes *      273.193502 *        0.017484 *         273.194 *        0.017484 *    3.479 *       15625. *
-   *          fc3 interpolate *     3081.572296 *        0.197221 *        3081.572 *        0.197221 *   39.244 *       15625. *
-   *           fc3 modulus sq *       17.327803 *        0.001109 *          17.328 *        0.001109 *    0.221 *       15625. *
-   *               fc3 rotate *     2278.076775 *        0.145797 *        2278.077 *        0.145797 *   29.011 *       15625. *
-   *         merge degenerate *       14.881729 *        0.000945 *          14.882 *        0.000945 *    0.190 *       15750. *
-
+   *         ph interp & diag *     1117.087546 *        0.070926 *        1117.088 *        0.070926 *   20.350 *       15750. *
+   *             bose distrib *       24.554185 *        0.001571 *          24.554 *        0.001571 *    0.447 *       15625. *
+   *                sum modes *      213.157451 *        0.013642 *         213.157 *        0.013642 *    3.883 *       15625. *
+   *          fc3 interpolate *      912.707341 *        0.058413 *         912.707 *        0.058413 *   16.627 *       15625. *
+   *           fc3 modulus sq *       23.780932 *        0.001522 *          23.781 *        0.001522 *    0.433 *       15625. *
+   *               fc3 rotate *     1428.439815 *        0.091420 *        1428.440 *        0.091420 *   26.022 *       15625. *
+   *         merge degenerate *       16.225939 *        0.001038 *          16.226 *        0.001038 *    0.296 *       15625. *
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -134,8 +152,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 

@@ -1,5 +1,5 @@
   Using      1 MPI processes
-
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -12,44 +12,60 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 
   Reading input file 'input.TK-cgp'
   merging with command line arguments
-&TKINPUT
- CALCULATION="cgp             ",
- OUTDIR="./TK-cgp/                                                                                                                                                                                                                                                       ",
- PREFIX="///                                                                                                                                                                                                                                                             ",
- FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
- FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
- ASR2="simple  ",
- THR_TK=  1.0000000000000000E-002,
- NITER_MAX=1000       ,
- NCONF=1          ,
- NK= 3*5          ,
- NK_IN= 3*-1         ,
- GRID_TYPE="simple",
- GRID_TYPE_IN="///   ",
- XK0= 3*0.0000000000000000       ,
- XK0_IN= 3*-1.0000000000000000E+030 ,
- OPTIMIZE_GRID=F,
- OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
- INTRINSIC_SCATTERING=T,
- ISOTOPIC_DISORDER=F,
- STORE_LW=F,
- CASIMIR_SCATTERING=F,
- MFP_CUTOFF=F,
- SAMPLE_DIR= 3*0.0000000000000000       ,
- SAMPLE_LENGTH_AU= -1.0000000000000000     ,
- SAMPLE_LENGTH_MU= -1.0000000000000000     ,
- SAMPLE_LENGTH_MM= -1.0000000000000000     ,
- VOLUME_FACTOR=  1.0000000000000000     ,
- MAX_SECONDS=-1         ,
- MAX_TIME= -1.0000000000000000     ,
- RESTART=F,
+ &TKINPUT
+ CALCULATION     = cgp             ,
+ OUTDIR  = ./TK-cgp/                                                                                                                 
+                                                                                                                                     
+   ,
+ PREFIX  = ///                                                                                                                       
+                                                                                                                                     
+   ,
+ FILE_MAT2       = mat2R                                                                                                             
+                                                                                                                                     
+           ,
+ FILE_MAT3       = mat3R.asr.sparse                                                                                                  
+                                                                                                                                     
+           ,
+ ASR2    = simple  ,
+ THR_TK  =  1.000000000000000E-002,
+ NITER_MAX       =        1000,
+ NCONF   =           1,
+ NK      = 3*5,
+ NK_IN   = 3*-1,
+ GRID_TYPE       = simple      ,
+ GRID_TYPE_IN    = ///         ,
+ XK0     = 3*0.000000000000000E+000  ,
+ XK0_IN  = 3*-1.000000000000000E+030 ,
+ OPTIMIZE_GRID   = F,
+ OPTIMIZE_GRID_THR       =  1.000000000000000E-002,
+ INTRINSIC_SCATTERING    = T,
+ DEBUG_LINEWIDTH = F,
+ THRESHOLD_F_DEGENERACY_CMM1     =  0.200000000000000     ,
+ ISOTOPIC_DISORDER       = F,
+ STORE_LW        = F,
+ PRINT_ALL       = T,
+ WORKAROUND_PRINT_V      = F,
+ CASIMIR_SCATTERING      = F,
+ MFP_CUTOFF      = F,
+ SAMPLE_DIR      = 3*0.000000000000000E+000  ,
+ SAMPLE_LENGTH_AU        =  -1.00000000000000     ,
+ SAMPLE_LENGTH_MU        =  -1.00000000000000     ,
+ SAMPLE_LENGTH_MM        =  -1.00000000000000     ,
+ VOLUME_FACTOR   =   1.00000000000000     ,
+ MAX_SECONDS     =          -1,
+ MAX_TIME        =  -1.00000000000000     ,
+ RESTART = F
  /
  ** Reading FC2 file: mat2R
      alat (bohr)   10.200000
@@ -82,196 +98,292 @@
     300.0
   Smearings:   
    10.000
-
+ 
  --> Setting up outer grid
-  Setup a simple grid of      125 q-points
+  Setup a simple       grid of      125 q-points
+ --> Setting up inner grid
+  Setup a simple       grid of      125 q-points
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         1.5s 
+         0.8% | STEP TIME:         0.0s | STEP END:          5.0s | WALL:         1.5s 
+         9.7% | STEP TIME:         0.4s | STEP END:          4.1s | WALL:         1.9s 
+        20.2% | STEP TIME:         0.8s | STEP END:          3.9s | WALL:         2.3s 
+        29.8% | STEP TIME:         1.2s | STEP END:          3.9s | WALL:         2.6s 
+        40.3% | STEP TIME:         1.6s | STEP END:          3.9s | WALL:         3.0s 
+        50.0% | STEP TIME:         1.9s | STEP END:          3.9s | WALL:         3.4s 
+        60.5% | STEP TIME:         2.3s | STEP END:          3.9s | WALL:         3.8s 
+        70.2% | STEP TIME:         2.7s | STEP END:          3.8s | WALL:         4.2s 
+        80.6% | STEP TIME:         3.1s | STEP END:          3.8s | WALL:         4.6s 
+        90.3% | STEP TIME:         3.5s | STEP END:          3.8s | WALL:         4.9s 
+       100.0% | STEP TIME:         3.8s | STEP END:          3.8s | WALL:         5.3s 
+   ************
+   SMA thermal conductivity, stored to file:
+     ./TK-cgp//cgp_full.5x5x5.out
+   Thermal conductivity  (conf, sigma, T, K_x, K_y, K_z):
+K_P   =  1   10.000000  300.000000  0.97731096E+02  0.97731097E+02  0.97731096E+02
+K_C   =  1   10.000000  300.000000  0.26512372E+00  0.26512372E+00  0.26512372E+00
+K_TOT =  1   10.000000  300.000000  0.97996220E+02  0.97996220E+02  0.97996220E+02
+   * WALL :       5.3188 s
+   *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
+   *             sma thermalk *     3858.216398 *     3858.216398 *        3858.216 *     3858.216398 *   72.539 *           1. *
+*** * Contributions to SMA conductivity:
+   *          sum of tk terms *       53.214099 *        0.425713 *          53.214 *        0.425713 *    1.000 *         125. *
+   *                 lw ph-ph *     3737.637448 *       29.901100 *        3737.637 *       29.901100 *   70.272 *         125. *
+   *        ph group velocity *       62.320216 *        0.498562 *          62.320 *        0.498562 *    1.172 *         125. *
+   *        mpi communication *        0.637160 *        0.005097 *           0.637 *        0.005097 *    0.012 *         125. *
+   *             read fc data *       34.720966 *       34.720966 *          34.721 *       34.720966 *    0.653 *           1. *
+*** * Contributions to ph-ph linewidth time:
+   *         ph interp & diag *     1083.762575 *        0.068810 *        1083.763 *        0.068810 *   20.376 *       15750. *
+   *             bose distrib *       24.402317 *        0.001562 *          24.402 *        0.001562 *    0.459 *       15625. *
+   *                sum modes *      210.406883 *        0.013466 *         210.407 *        0.013466 *    3.956 *       15625. *
+   *          fc3 interpolate *      899.807859 *        0.057588 *         899.808 *        0.057588 *   16.917 *       15625. *
+   *           fc3 modulus sq *       23.763972 *        0.001521 *          23.764 *        0.001521 *    0.447 *       15625. *
+   *               fc3 rotate *     1399.530792 *        0.089570 *        1399.531 *        0.089570 *   26.312 *       15625. *
+   *         merge degenerate *       16.175421 *        0.001035 *          16.175 *        0.001035 *    0.304 *       15625. *
  --> Setting up inner grid from outer grid
   Setup a simple grid of      125 q-points
   Restart disabled from input: restarting from scratch.
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         1.2s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.4s | WALL:         1.3s 
-        20.2% | STEP TIME:         2.6s | STEP END:         13.0s | WALL:         3.8s 
-        40.3% | STEP TIME:         5.3s | STEP END:         13.1s | WALL:         6.5s 
-        60.5% | STEP TIME:         7.9s | STEP END:         13.0s | WALL:         9.1s 
-        80.6% | STEP TIME:        10.4s | STEP END:         12.9s | WALL:        11.6s 
-       100.0% | STEP TIME:        12.8s | STEP END:         12.8s | WALL:        14.1s 
+   \>\^\~----------------------------------------^v^v--------------------=/~/o>
+    Computing A_out
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         5.4s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:         5.4s 
+        20.2% | STEP TIME:         1.4s | STEP END:          7.0s | WALL:         6.8s 
+        40.3% | STEP TIME:         2.7s | STEP END:          6.7s | WALL:         8.1s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.6s | WALL:         9.4s 
+        80.6% | STEP TIME:         5.3s | STEP END:          6.6s | WALL:        10.7s 
+       100.0% | STEP TIME:         6.7s | STEP END:          6.7s | WALL:        12.0s 
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    0
   SMA TK
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.96901470E+02   0.96901470E+02   0.96901470E+02
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        14.2s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.3s | WALL:        14.3s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.6s | WALL:        16.7s 
-        40.3% | STEP TIME:         5.1s | STEP END:         12.8s | WALL:        19.3s 
-        60.5% | STEP TIME:         7.7s | STEP END:         12.8s | WALL:        21.9s 
-        80.6% | STEP TIME:        10.3s | STEP END:         12.7s | WALL:        24.4s 
-       100.0% | STEP TIME:        12.8s | STEP END:         12.8s | WALL:        27.0s 
-  initial TK from 1/2(fg-fb)
+     1   10.0000  300.0000   0.97516372E+02   0.97516372E+02   0.97516372E+02
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        12.1s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        12.1s 
+        20.2% | STEP TIME:         1.4s | STEP END:          7.2s | WALL:        13.5s 
+        40.3% | STEP TIME:         2.8s | STEP END:          7.0s | WALL:        14.9s 
+        60.5% | STEP TIME:         4.2s | STEP END:          7.0s | WALL:        16.3s 
+        80.6% | STEP TIME:         5.6s | STEP END:          6.9s | WALL:        17.7s 
+       100.0% | STEP TIME:         6.9s | STEP END:          6.9s | WALL:        18.9s 
+  Initial TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.93641956E+02   0.93641956E+02   0.93641956E+02
+     1   10.0000  300.0000   0.94300492E+02   0.94219808E+02   0.94202106E+02
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    1
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        27.1s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.2s | WALL:        27.2s 
-        20.2% | STEP TIME:         2.6s | STEP END:         13.1s | WALL:        29.7s 
-        40.3% | STEP TIME:         5.3s | STEP END:         13.2s | WALL:        32.4s 
-        60.5% | STEP TIME:         8.0s | STEP END:         13.2s | WALL:        35.1s 
-        80.6% | STEP TIME:        10.5s | STEP END:         13.0s | WALL:        37.6s 
-       100.0% | STEP TIME:        12.9s | STEP END:         12.9s | WALL:        40.0s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        19.0s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        19.1s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.9s | WALL:        20.4s 
+        40.3% | STEP TIME:         2.7s | STEP END:          6.7s | WALL:        21.7s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.6s | WALL:        23.0s 
+        80.6% | STEP TIME:         5.3s | STEP END:          6.6s | WALL:        24.3s 
+       100.0% | STEP TIME:         6.6s | STEP END:          6.6s | WALL:        25.6s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10138455E+03   0.10138455E+03   0.10138455E+03
+     1   10.0000  300.0000   0.10204681E+03   0.10196629E+03   0.10194586E+03
   Delta TK (relative)
-     1   10.0000  300.0000        0.0763686        0.0763686        0.0763686
+     1   10.0000  300.0000        0.0759095        0.0759710        0.0759595
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    2
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        40.1s 
-         0.8% | STEP TIME:         0.1s | STEP END:         11.8s | WALL:        40.2s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.3s | WALL:        42.6s 
-        40.3% | STEP TIME:         4.9s | STEP END:         12.2s | WALL:        45.1s 
-        60.5% | STEP TIME:         7.4s | STEP END:         12.2s | WALL:        47.5s 
-        80.6% | STEP TIME:         9.9s | STEP END:         12.3s | WALL:        50.1s 
-       100.0% | STEP TIME:        12.4s | STEP END:         12.4s | WALL:        52.6s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        25.6s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        25.7s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        27.0s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        28.3s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.4s | WALL:        29.5s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        30.8s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        32.0s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10273649E+03   0.10273649E+03   0.10273649E+03
+     1   10.0000  300.0000   0.10339034E+03   0.10331761E+03   0.10329998E+03
   Delta TK (relative)
-     1   10.0000  300.0000        0.0131592        0.0131592        0.0131592
+     1   10.0000  300.0000        0.0129947        0.0130793        0.0131086
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    3
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        52.7s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.0s | WALL:        52.8s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.3s | WALL:        55.2s 
-        40.3% | STEP TIME:         5.0s | STEP END:         12.3s | WALL:        57.6s 
-        60.5% | STEP TIME:         7.4s | STEP END:         12.3s | WALL:        60.1s 
-        80.6% | STEP TIME:         9.9s | STEP END:         12.3s | WALL:        62.6s 
-       100.0% | STEP TIME:        12.5s | STEP END:         12.5s | WALL:        65.1s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        32.1s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        32.1s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        33.4s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.6s | WALL:        34.7s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.5s | WALL:        36.0s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        37.3s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        38.5s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278154E+03   0.10278154E+03   0.10278154E+03
+     1   10.0000  300.0000   0.10343874E+03   0.10336548E+03   0.10334754E+03
   Delta TK (relative)
-     1   10.0000  300.0000        0.0004383        0.0004383        0.0004383
+     1   10.0000  300.0000        0.0004679        0.0004632        0.0004602
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    4
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        65.2s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.0s | WALL:        65.3s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.2s | WALL:        67.7s 
-        40.3% | STEP TIME:         5.1s | STEP END:         12.5s | WALL:        70.3s 
-        60.5% | STEP TIME:         7.6s | STEP END:         12.6s | WALL:        72.9s 
-        80.6% | STEP TIME:        10.1s | STEP END:         12.6s | WALL:        75.4s 
-       100.0% | STEP TIME:        12.5s | STEP END:         12.5s | WALL:        77.7s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        38.5s 
+         0.8% | STEP TIME:         0.1s | STEP END:          8.5s | WALL:        38.6s 
+        20.2% | STEP TIME:         1.5s | STEP END:          7.3s | WALL:        40.0s 
+        40.3% | STEP TIME:         2.7s | STEP END:          6.8s | WALL:        41.3s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.6s | WALL:        42.6s 
+        80.6% | STEP TIME:         5.3s | STEP END:          6.6s | WALL:        43.8s 
+       100.0% | STEP TIME:         6.5s | STEP END:          6.5s | WALL:        45.1s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278641E+03   0.10278641E+03   0.10278641E+03
+     1   10.0000  300.0000   0.10344415E+03   0.10337063E+03   0.10335267E+03
   Delta TK (relative)
-     1   10.0000  300.0000        0.0000474        0.0000474        0.0000474
+     1   10.0000  300.0000        0.0000523        0.0000498        0.0000496
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    5
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        77.8s 
-         0.8% | STEP TIME:         0.1s | STEP END:         14.5s | WALL:        78.0s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.6s | WALL:        80.4s 
-        40.3% | STEP TIME:         5.0s | STEP END:         12.5s | WALL:        82.9s 
-        60.5% | STEP TIME:         7.7s | STEP END:         12.7s | WALL:        85.5s 
-        80.6% | STEP TIME:        10.2s | STEP END:         12.7s | WALL:        88.1s 
-       100.0% | STEP TIME:        12.7s | STEP END:         12.7s | WALL:        90.6s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        45.1s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.4s | WALL:        45.2s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.7s | WALL:        46.5s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        47.7s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.4s | WALL:        49.0s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        50.3s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        51.5s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278674E+03   0.10278674E+03   0.10278674E+03
+     1   10.0000  300.0000   0.10344436E+03   0.10337076E+03   0.10335279E+03
   Delta TK (relative)
-     1   10.0000  300.0000        0.0000033        0.0000033        0.0000033
+     1   10.0000  300.0000        0.0000020        0.0000013        0.0000011
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    6
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        90.7s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.6s | WALL:        90.8s 
-        20.2% | STEP TIME:         2.7s | STEP END:         13.2s | WALL:        93.3s 
-        40.3% | STEP TIME:         5.2s | STEP END:         13.0s | WALL:        95.9s 
-        60.5% | STEP TIME:         7.8s | STEP END:         12.8s | WALL:        98.4s 
-        80.6% | STEP TIME:        10.4s | STEP END:         12.8s | WALL:       101.0s 
-       100.0% | STEP TIME:        12.9s | STEP END:         12.9s | WALL:       103.5s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        51.5s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        51.6s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.7s | WALL:        52.9s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        54.1s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.7s | WALL:        55.6s 
+        80.6% | STEP TIME:         5.3s | STEP END:          6.6s | WALL:        56.8s 
+       100.0% | STEP TIME:         6.6s | STEP END:          6.6s | WALL:        58.1s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278677E+03   0.10278677E+03   0.10278677E+03
+     1   10.0000  300.0000   0.10344434E+03   0.10337076E+03   0.10335279E+03
   Delta TK (relative)
-     1   10.0000  300.0000          0.3E-06          0.3E-06          0.3E-06
+     1   10.0000  300.0000         -0.2E-06         -0.5E-07         -0.3E-07
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    7
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:       103.6s 
-         0.8% | STEP TIME:         0.1s | STEP END:         13.3s | WALL:       103.7s 
-        20.2% | STEP TIME:         2.6s | STEP END:         12.7s | WALL:       106.2s 
-        40.3% | STEP TIME:         5.2s | STEP END:         12.8s | WALL:       108.8s 
-        60.5% | STEP TIME:         7.6s | STEP END:         12.6s | WALL:       111.3s 
-        80.6% | STEP TIME:        10.3s | STEP END:         12.8s | WALL:       113.9s 
-       100.0% | STEP TIME:        12.7s | STEP END:         12.7s | WALL:       116.3s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        58.1s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        58.2s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        59.5s 
+        40.3% | STEP TIME:         2.7s | STEP END:          6.6s | WALL:        60.8s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.5s | WALL:        62.1s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.5s | WALL:        63.4s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        64.6s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278678E+03   0.10278678E+03   0.10278678E+03
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335281E+03
   Delta TK (relative)
-     1   10.0000  300.0000          0.3E-07          0.3E-07          0.3E-07
+     1   10.0000  300.0000          0.1E-06          0.2E-06          0.3E-06
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    8
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:       116.4s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.2s | WALL:       116.5s 
-        20.2% | STEP TIME:         2.6s | STEP END:         12.8s | WALL:       119.0s 
-        40.3% | STEP TIME:         5.1s | STEP END:         12.7s | WALL:       121.5s 
-        60.5% | STEP TIME:         7.6s | STEP END:         12.6s | WALL:       124.0s 
-        80.6% | STEP TIME:        10.1s | STEP END:         12.5s | WALL:       126.5s 
-       100.0% | STEP TIME:        12.5s | STEP END:         12.5s | WALL:       128.9s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        64.6s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        64.7s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        66.0s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        67.3s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.4s | WALL:        68.5s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        69.8s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        71.0s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278678E+03   0.10278678E+03   0.10278678E+03
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
   Delta TK (relative)
-     1   10.0000  300.0000          0.2E-08          0.2E-08          0.2E-08
+     1   10.0000  300.0000          0.2E-07          0.3E-07          0.4E-07
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     iter    9
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:       129.0s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.7s | WALL:       129.1s 
-        20.2% | STEP TIME:         2.6s | STEP END:         13.0s | WALL:       131.7s 
-        40.3% | STEP TIME:         5.2s | STEP END:         13.0s | WALL:       134.3s 
-        60.5% | STEP TIME:         7.8s | STEP END:         12.8s | WALL:       136.8s 
-        80.6% | STEP TIME:        10.3s | STEP END:         12.8s | WALL:       139.3s 
-       100.0% | STEP TIME:        12.8s | STEP END:         12.8s | WALL:       141.8s 
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        71.0s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        71.1s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.7s | WALL:        72.4s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        73.7s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.4s | WALL:        74.9s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        76.2s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        77.4s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278678E+03   0.10278678E+03   0.10278678E+03
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
+  Delta TK (relative)
+     1   10.0000  300.0000         -0.9E-08         -0.4E-08         -0.3E-08
+   \>\^\~----------------------------------------^v^v--------------------=/~/o>
+    iter   10
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        77.5s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        77.5s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        78.8s 
+        40.3% | STEP TIME:         2.7s | STEP END:          6.7s | WALL:        80.2s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.6s | WALL:        81.5s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.5s | WALL:        82.7s 
+       100.0% | STEP TIME:         6.5s | STEP END:          6.5s | WALL:        83.9s 
+  TK from 1/2(fg-fb)
+        sigma[cmm1]   T[K]      K_x              K_y              K_z              
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
+  Delta TK (relative)
+     1   10.0000  300.0000         -0.3E-08         -0.5E-08         -0.5E-08
+   \>\^\~----------------------------------------^v^v--------------------=/~/o>
+    iter   11
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        84.0s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        84.0s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.7s | WALL:        85.3s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        86.6s 
+        60.5% | STEP TIME:         4.0s | STEP END:          6.6s | WALL:        88.0s 
+        80.6% | STEP TIME:         5.3s | STEP END:          6.5s | WALL:        89.3s 
+       100.0% | STEP TIME:         6.5s | STEP END:          6.5s | WALL:        90.5s 
+  TK from 1/2(fg-fb)
+        sigma[cmm1]   T[K]      K_x              K_y              K_z              
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
+  Delta TK (relative)
+     1   10.0000  300.0000          0.3E-09          0.7E-09          0.7E-09
+   \>\^\~----------------------------------------^v^v--------------------=/~/o>
+    iter   12
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        90.5s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        90.6s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        91.9s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.5s | WALL:        93.2s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.4s | WALL:        94.4s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:        95.7s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:        96.9s 
+  TK from 1/2(fg-fb)
+        sigma[cmm1]   T[K]      K_x              K_y              K_z              
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
   Delta TK (relative)
      1   10.0000  300.0000          0.1E-09          0.1E-09          0.1E-09
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
-    iter   10
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:       141.9s 
-         0.8% | STEP TIME:         0.1s | STEP END:         12.1s | WALL:       142.0s 
-        20.2% | STEP TIME:         2.5s | STEP END:         12.2s | WALL:       144.4s 
-        40.3% | STEP TIME:         5.0s | STEP END:         12.3s | WALL:       146.9s 
-        60.5% | STEP TIME:         7.5s | STEP END:         12.4s | WALL:       149.4s 
-        80.6% | STEP TIME:        10.0s | STEP END:         12.4s | WALL:       151.9s 
-       100.0% | STEP TIME:        12.4s | STEP END:         12.4s | WALL:       154.3s 
+    iter   13
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:        97.0s 
+         0.8% | STEP TIME:         0.1s | STEP END:          6.5s | WALL:        97.0s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:        98.3s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.6s | WALL:        99.6s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.5s | WALL:       100.9s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:       102.2s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:       103.4s 
   TK from 1/2(fg-fb)
         sigma[cmm1]   T[K]      K_x              K_y              K_z              
-     1   10.0000  300.0000   0.10278678E+03   0.10278678E+03   0.10278678E+03
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
   Delta TK (relative)
-     1   10.0000  300.0000          0.7E-11          0.7E-11          0.7E-11
+     1   10.0000  300.0000          0.5E-10          0.4E-10          0.7E-11
+   \>\^\~----------------------------------------^v^v--------------------=/~/o>
+    iter   14
+         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:       103.4s 
+         0.8% | STEP TIME:         0.1s | STEP END:          8.1s | WALL:       103.5s 
+        20.2% | STEP TIME:         1.4s | STEP END:          6.8s | WALL:       104.8s 
+        40.3% | STEP TIME:         2.6s | STEP END:          6.6s | WALL:       106.1s 
+        60.5% | STEP TIME:         3.9s | STEP END:          6.5s | WALL:       107.3s 
+        80.6% | STEP TIME:         5.2s | STEP END:          6.4s | WALL:       108.6s 
+       100.0% | STEP TIME:         6.4s | STEP END:          6.4s | WALL:       109.8s 
+  TK from 1/2(fg-fb)
+        sigma[cmm1]   T[K]      K_x              K_y              K_z              
+     1   10.0000  300.0000   0.10344436E+03   0.10337079E+03   0.10335282E+03
+  Delta TK (relative)
+     1   10.0000  300.0000         -0.2E-11         -0.8E-11         -0.1E-10
    \>\^\~----------------------------------------^v^v--------------------=/~/o>
     Convergence achieved
-   * WALL :     154.4154 s
+   * WALL :     109.8876 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *      precond./initialize *       36.741548 *        9.185387 *          36.742 *        9.185387 *    0.024 *           4. *
-   *            prepare A_out *    12946.431442 *    12946.431442 *       12946.431 *    12946.431442 *    8.384 *           1. *
-   *   prepare and apply A_in *   140240.078245 *    12749.098022 *      140240.078 *    12749.098022 *   90.820 *          11. *
-   *          compute CG step *        2.096583 *        0.209658 *           2.097 *        0.209658 *    0.001 *          10. *
-   *         restart data i/o *        0.030031 *        0.002730 *           0.030 *        0.002730 *    0.000 *          11. *
+   *      precond./initialize *       35.628902 *        8.907225 *          35.629 *        8.907225 *    0.032 *           4. *
+   *            prepare A_out *     6713.562947 *     6713.562947 *        6713.563 *     6713.562947 *    6.109 *           1. *
+   *   prepare and apply A_in *    97814.422494 *     6520.961500 *       97814.422 *     6520.961500 *   89.013 *          15. *
+   *          compute CG step *        4.654012 *        0.332429 *           4.654 *        0.332429 *    0.004 *          14. *
+   *         restart data i/o *        0.063139 *        0.003946 *           0.063 *        0.003946 *    0.000 *          16. *
 *** * High level components:
-   *            1/sqrt(A_out) *        1.719308 *        0.001240 *           1.719 *        0.001240 *    0.001 *        1386. *
-   *                 lw ph-ph *    12945.516445 *      103.564132 *       12945.516 *      103.564132 *    8.384 *         125. *
+   *            1/sqrt(A_out) *        2.204481 *        0.001166 *           2.204 *        0.001166 *    0.002 *        1890. *
+   *                 lw ph-ph *    10450.210955 *       41.800844 *       10450.211 *       41.800844 *    9.510 *         250. *
 *** * Low level subroutines: 
-   *         ph interp & diag *    25579.630303 *        0.135342 *       25579.630 *        0.135342 *   16.565 *      189000. *
-   *             bose distrib *      352.061796 *        0.001878 *         352.062 *        0.001878 *    0.228 *      187500. *
-   *                sum modes *     4101.840155 *        0.021876 *        4101.840 *        0.021876 *    2.656 *      187500. *
-   *          fc3 interpolate *    67445.601571 *        0.180577 *       67445.602 *        0.180577 *   43.678 *      373500. *
-   *           fc3 modulus sq *      405.052729 *        0.001084 *         405.053 *        0.001084 *    0.262 *      373500. *
-   *               fc3 rotate *    53332.318810 *        0.142791 *       53332.319 *        0.142791 *   34.538 *      373500. *
-   *        mpi communication *        6.530773 *        0.004354 *           6.531 *        0.004354 *    0.004 *        1500. *
-   *         merge degenerate *        2.105594 *        0.001296 *           2.106 *        0.001296 *    0.001 *        1625. *
-
+   *         ph interp & diag *    26023.791969 *        0.097194 *       26023.792 *        0.097194 *   23.682 *      267750. *
+   *             bose distrib *      441.665705 *        0.001663 *         441.666 *        0.001663 *    0.402 *      265625. *
+   *                sum modes *     4183.663724 *        0.015750 *        4183.664 *        0.015750 *    3.807 *      265625. *
+   *          fc3 interpolate *    28857.029449 *        0.056183 *       28857.029 *        0.056183 *   26.260 *      513625. *
+   *           fc3 modulus sq *      772.099578 *        0.001503 *         772.100 *        0.001503 *    0.703 *      513625. *
+   *               fc3 rotate *    45085.178637 *        0.087778 *       45085.179 *        0.087778 *   41.028 *      513625. *
+   *        mpi communication *        9.914945 *        0.004666 *           9.915 *        0.004666 *    0.009 *        2125. *
+   *         merge degenerate *       18.624695 *        0.001057 *          18.625 *        0.001057 *    0.017 *       17625. *
+ 
       
      For 2n+1 calculations of force constants please cite:
       1. Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri
@@ -284,8 +396,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
-
+ 
