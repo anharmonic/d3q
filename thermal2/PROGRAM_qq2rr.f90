@@ -34,7 +34,7 @@ PROGRAM qq2rr
   far      = cmdline_param_int("f", 2)
   write_diff = cmdline_param_logical("w")
   skip_test = cmdline_param_logical("s")
-  icriterium = cmdline_param_int("c")
+  icriterium = cmdline_param_int("c", 2)
   !
   IF (cmdline_param_logical('h')) THEN
       WRITE(*,*) "Syntax: ls anh*| d3_qq2rr.x NQX NQY NQZ [-o FILEOUT] [-f NFAR] [-w] [-s] [-c ICRIT]"
