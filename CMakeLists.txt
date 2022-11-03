@@ -84,43 +84,68 @@ qe_install_targets(
 
 
 set (src_thermal2
-     thermal2/ACRS.f90
-     thermal2/asr2.f90
-     thermal2/casimir.f90
-     thermal2/code_input.f90
-     thermal2/decompose_d2.f90
-     thermal2/dynbubble.f90
-     thermal2/eos.f90
-     thermal2/f3_bwfft.f90
-     thermal2/fc2_interp.f90
-     thermal2/fc3_interp.f90
-     thermal2/final_state.f90
-     thermal2/functions.f90
-     thermal2/harmonic.f90
-     thermal2/input_fc.f90
-     thermal2/isotopes.f90
-     thermal2/linewidth.f90
-     thermal2/lmdif_p.f90
-     thermal2/mc_grids.f90
-     thermal2/merge_degenerate.f90
-     thermal2/more_constants.f90
-     thermal2/mpi_thermal.f90
-     thermal2/nanoclock.f90
-     thermal2/nanosec.c
-     thermal2/neutrons.f90
-     thermal2/nist_isotopes_db.f90
-     thermal2/overlap.f90
-     thermal2/ph_dos.f90
-     thermal2/ph_system.f90
-     thermal2/ph_velocity.f90
-     thermal2/posix_signal.f90
-     thermal2/q_grids.f90
-     thermal2/quter.f90
-     thermal2/read_md.f90
-     thermal2/timers.f90
-     thermal2/variational_tk.f90)
+thermal2/asr2.f90
+thermal2/casimir.f90
+thermal2/code_input.f90
+thermal2/decompose_d2.f90
+thermal2/decompose_zstar.f90
+thermal2/dynbubble.f90
+thermal2/eos.f90
+thermal2/f3_bwfft.f90
+thermal2/fc2_interp.f90
+thermal2/fc3_interp.f90
+thermal2/final_state.f90
+thermal2/functions.f90
+thermal2/gruneisen.f90
+thermal2/harmonic.f90
+thermal2/input_fc.f90
+thermal2/isotopes.f90
+thermal2/lebedev.f90
+thermal2/linewidth.f90
+thermal2/lmdif_p.f90
+thermal2/mc_grids.f90
+thermal2/merge_degenerate.f90
+thermal2/more_constants.f90
+thermal2/mpi_thermal.f90
+thermal2/nanoclock.f90
+thermal2/neutrons.f90
+thermal2/nist_isotopes_db.f90
+thermal2/overlap.f90
+thermal2/ph_dos.f90
+thermal2/ph_system.f90
+thermal2/ph_velocity.f90
+thermal2/posix_signal.f90
+thermal2/q_grids.f90
+thermal2/quter.f90
+thermal2/read_md.f90
+thermal2/timers.f90
+thermal2/variational_tk.f90
+thermal2/nanosec.c)
 
-qe_add_library(qe_thermal2 ${src_thermal2})
+set (src_lmdif_lapack
+lapackified/chkder.c
+lapackified/dogleg.c
+lapackified/enorm.c
+lapackified/fdjac1.c
+lapackified/fdjac2.c
+lapackified/hybrbase.c
+lapackified/hybrd1.c
+lapackified/hybrd.c
+lapackified/hybrj1.c
+lapackified/hybrj.c
+lapackified/lmbase.c
+lapackified/lmder1.c
+lapackified/lmder.c
+lapackified/lmdif1.c
+lapackified/lmdif.c
+lapackified/lmpar.c
+lapackified/qrsolv.c
+lapackified/r1mpyq.c
+lapackified/r1updt.c)
+
+#qe_add_library(qe_lmdif_lapack ${src_lmdif_lapack})
+
+qe_add_library(qe_thermal2 ${src_lmdif_lapack} ${src_thermal2})
 target_link_libraries(
     qe_thermal2
     PRIVATE qe_modules
@@ -155,9 +180,10 @@ set(qe_thermal2_exe
         import_shengbte
         recenter
         interpolate2
-        tdph
 	db
         rmzeu)
+#        tdph
+# I do not understand how to get tdph to link correctly with lapackified
 
 add_custom_target(qe_d3_thermal2
     COMMENT
