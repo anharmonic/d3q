@@ -1,3 +1,7 @@
+v 1.2.0
+* Wigner conductivity implementation from of Michele Simoncelli, Nicola Marzari and Francesco Mauri
+* experimental reciprocal-sapce TDEP implementation (d3_tdph.x)
+
 v 1.1.10
 * Compatibility with QE 7.0
 * Sort of working TDPH code (experimental!)
