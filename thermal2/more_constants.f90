@@ -109,7 +109,7 @@ MODULE more_constants
         " 5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,",&
         "    Nature Physics 15 (8), 809-813 (2019)",&    
         " 6. M. Simoncelli, N. Marzari, F. Mauri,",&
-        "    Wigner formulation of thermal transport in solids, Phys. Rev. X  (2022)"
+        "    Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)"
     ioWRITE(stdout,'(5x,a)') &
         " ",&
         "For spectral function calculations also cite:",&
