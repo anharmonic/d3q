@@ -25,9 +25,9 @@ rgb(r,g,b) = 65536 * int(256*r) + 256 * int(256*g) + int(256*b)
 #  then nat3 columns with the projection on the secodn atomic type
 p [][0:800] for [i=1:nat3] 'LW/freq.out' \
       u 2:(column(i+5)):(rgb(\
-        column(ntyp*(i-1)+nat3+6),\
+        column(nat3+5+i),\
         0,\
-        column(ntyp*(i-1)+nat3+7))) \
+        column(2*nat3+5+i))) \
       w l lw 2 lc rgb variable not, \
       NaN lc rgb "#ff0000" lw 2 t 'Mg', \
       NaN lc rgb "#7f007f" lw 2 t ' ', \
