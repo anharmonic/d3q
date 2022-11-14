@@ -3,6 +3,7 @@ reset
 
 set title "Phonon dispersion projected on atomic species"
 set autoscale fix
+set key top center
 
 nat=2  # number of atoms
 ntyp=2 # number of atomic species

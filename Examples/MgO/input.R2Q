@@ -5,6 +5,7 @@
   outdir    = './LW'
   asr2 = 'simple'
   print_velocity=.false.
+  sort_freq='overlap'
 /
 QPOINTS
 5
