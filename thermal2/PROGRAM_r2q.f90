@@ -720,7 +720,7 @@ PROGRAM r2q
   REAL(DP),ALLOCATABLE :: freq(:), vel(:,:), proj(:,:), grun(:), klem(:), mass(:)
   REAL(DP) :: aux, w_debye 
   COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
-  INTEGER :: i, output_unit=10000, nu, ia
+  INTEGER :: i, output_unit=10000, nu, ia, ityp
   TYPE(order_type) :: order
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
@@ -806,8 +806,12 @@ PROGRAM r2q
       ENDDO
       ENDDO
 
-      ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e16.6)') &
-        i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1, proj(:,order%idx(:))
+      ioWRITE(output_unit, '(i6,f12.6,3x,3f12.6,999e20.12)',advance='no') &
+        i, qpath%w(i), qpath%xq(:,i), freq(order%idx(:))*RY_TO_CMM1
+        DO ityp = 1, S%ntyp
+          ioWRITE(output_unit, '(999e20.12)',advance='no') proj(ityp,order%idx(:))
+        ENDDO
+        ioWRITE(output_unit,*)
       ioFLUSH(output_unit)
       
       IF(input%print_dynmat) THEN
