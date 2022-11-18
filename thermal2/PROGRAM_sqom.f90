@@ -74,12 +74,12 @@ MODULE sqom_program
     !LOGICAL             :: elastic_peak = .false.
     REAL(DP)            :: elastic_peak_norm = 0._dp
     REAL(DP)            :: elastic_peak_width= 0._dp
-    LOGICAL             :: convolution = .true.
+    LOGICAL             :: convolution = .false.
     !
     INTEGER             :: ne = -1, nq = -1, n_files = 1
     !
-    REAL(DP)  :: res_frac = 0.0_dp ! fraction of the energy
-    REAL(DP)  :: res0_cmm1 = 0._dp ! base resolution in cmm1
+    REAL(DP)  :: res_frac = 0.05_dp ! fraction of the energy
+    REAL(DP)  :: res0_cmm1 = 1._dp ! base resolution in cmm1
     REAL(DP)  :: T = 300._dp ! temperature for elastic peak
     REAL(DP) :: ltz_fraction  = 0.3_dp ! fraction of lorentzian for IR convolution
     INTEGER :: i, input_unit
@@ -367,7 +367,7 @@ MODULE sqom_program
                         convolution, resolution, ltz_fraction)
     USE fc2_interpolate,   ONLY : freq_phq_safe, fftinterp_mat2, mat2_diag
     USE input_fc,          ONLY : multiply_mass_dyn
-    !USE constants,      ONLY : RY_TO_CMM1
+    USE constants,      ONLY : RY_TO_CMM1
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid) :: fc2
@@ -409,10 +409,13 @@ MODULE sqom_program
         CALL fftinterp_mat2(gamma, S, fc2, zz, hq)
       ENDIF
       CALL mat2_diag(S%nat3, zz, freq)
+      freq = SQRT(ABS(freq))
       !zz = multiply_mass_dyn(S,zz)
       CALL ir_crossc(S%nat, zz, S%zeu, infrared)
-      WRITE(*,'(3f12.6,3x, 999f12.6)') xq(:,iq), infrared
+      WRITE(*,'(3f12.6,3x, 999f12.6)') xq(:,iq)
       DO j = 1, nat3
+        WRITE(*,'(i6,2f12.6)') j,freq(j)*RY_TO_CMM1, infrared(j)
+
         spfir(:,j) = spfir(:,j) + spf(:,j,iq)*w(iq)*infrared(j)
       ENDDO
     ENDDO
