@@ -120,7 +120,7 @@ subroutine generate_mu_base(ndim, mtx, u0, nx)
       nx=nx+1
       DO k = 1,ndim
          v1(k,1) = CONJG(ev(k,i))
-         v2(1,k) =       ev(j,k)
+         v2(1,k) =       ev(k,j)
       ENDDO
       aux = matmul(v1,v2)
       mtx(:,:, nx) = aux+CONJG(TRANSPOSE(aux))
