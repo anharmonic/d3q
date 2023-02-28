@@ -27,6 +27,7 @@ MODULE q_grids
     CONTAINS
       procedure :: scatter => q_grid_scatter
       procedure :: destroy => q_grid_destroy
+      procedure :: copy    => q_grid_copy
   END TYPE q_grid
   !
   TYPE  q_basis
@@ -57,6 +58,22 @@ MODULE q_grids
     grid%nqtot = 0
     grid%iq0 = 0
     grid%xq0 = 0._dp
+  END SUBROUTINE
+
+  SUBROUTINE q_grid_copy(grid, copy)
+    IMPLICIT NONE
+    CLASS(q_grid),INTENT(inout) :: grid, copy
+    IF(allocated(copy%xq)) DEALLOCATE(copy%xq)
+    ALLOCATE(copy%xq(3,grid%nq))
+    IF(allocated(copy%w)) DEALLOCATE(copy%w)
+    ALLOCATE(copy%w(grid%nq))
+    copy%n  = grid%n
+    copy%scattered  = grid%scattered 
+    copy%shifted =   grid%shifted
+    copy%nq = grid%nq
+    copy%nqtot =  grid%nqtot
+    copy%iq0 =  grid%iq0
+    copy%xq0 =  grid%xq0
   END SUBROUTINE
 
   SUBROUTINE q_grid_scatter(grid, quiet)

@@ -24,6 +24,8 @@ rgb(r,g,b) = 65536 * int(256*r) + 256 * int(256*g) + int(256*b)
 # The file contains nat3 columns with the frequencies,
 #  then nat3 columns with the projection on the first atomic type
 #  then nat3 columns with the projection on the secodn atomic type
+# Mg percentage nat3+5+i  -> becomes red percentage
+# O percentage 2*nat3+5+i -> becomes blue percentage
 p [][0:800] for [i=1:nat3] 'LW/freq.out' \
       u 2:(column(i+5)):(rgb(\
         column(nat3+5+i),\

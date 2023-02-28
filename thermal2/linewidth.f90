@@ -7,7 +7,7 @@
 !
 ! References:
 ! [1] Calandra, Lazzeri, Mauri : Physica C 456 (2007) 38-44
-! [2] arXiv: 1312.7467v1
+! [2] Li. et.al. PhysRevLett.112.175501
 #define timer_CALL CALL
 
 MODULE linewidth

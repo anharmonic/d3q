@@ -59,6 +59,7 @@ MODULE mpi_thermal
      !
      MODULE PROCEDURE mpi_bcast_integer
      MODULE PROCEDURE mpi_bcast_integer_vec
+     MODULE PROCEDURE mpi_bcast_integer_mat
      !
      MODULE PROCEDURE mpi_bcast_character
   END INTERFACE
@@ -144,6 +145,7 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
+  !
   SUBROUTINE mpi_all(lgc)
     IMPLICIT NONE
     LOGICAL,INTENT(inout) :: lgc
@@ -173,7 +175,25 @@ MODULE mpi_thermal
                        MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
-
+  !
+  SUBROUTINE mpi_block_divide(n, start, end)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)  :: n
+    INTEGER,INTENT(out) :: start, end
+    INTEGER :: i, step, extra
+    !
+    step = n/num_procs
+    extra = MOD(n, num_procs)
+    !IF(my_id==0 ) WRITE(*,*) "blocks to divide:", n, num_procs, step, extra
+    !
+    end = 0
+    DO i = 0, my_id
+      start=end+1
+      end = start+step
+      IF(i>=extra) end=end-1
+    ENDDO
+    !WRITE(*,*) "block divide:", my_id, start, end, end-start
+  END SUBROUTINE
   !
   SUBROUTINE mpi_bsum_scl(scl)
     IMPLICIT NONE
@@ -300,6 +320,15 @@ MODULE mpi_thermal
     INTEGER,INTENT(inout) :: inte(nn)
 #ifdef __MPI
     CALL MPI_BCAST(inte, nn, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_integer_mat(mm, nn, mat)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)     :: mm, nn
+    INTEGER,INTENT(inout) :: mat(mm,nn)
+#ifdef __MPI
+    CALL MPI_BCAST(mat, mm*nn, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
   !
@@ -430,7 +459,7 @@ MODULE mpi_thermal
     ! do nothing
 #endif
   END SUBROUTINE
-
+  !
 !  ! Scatter in-place a vector
 !  SUBROUTINE gatheri_vec(nn, vec, ii)
 !    IMPLICIT NONE

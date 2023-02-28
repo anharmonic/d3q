@@ -38,7 +38,8 @@ PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
-EXTOBJS = ../src/libd3q.a ../lapackified/libminpack.a ../distributed/libminpack.a \
+#../distributed/libminpack.a 
+EXTOBJS = ../src/libd3q.a ../lapackified/libminpack.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib
@@ -93,7 +94,7 @@ MYNAME       = $(shell basename $(CURDIR))
 FATHERNAME   = $(shell cd ..; basename `pwd -P`)
 THELINKPLACE = $(FATHERNAME)/$(MYNAME)
 
-EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 rmzeu
+EXEC = db tk lw qha asr3 sqom sparse q2r r2q qq2rr import_shengbte recenter interpolate2 rmzeu tdph mtx
 #make_wedge decompose_d2
 #gruneisen
 #interpolate2
