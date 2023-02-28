@@ -168,7 +168,7 @@ MODULE matrix_program
     TYPE(q_list)              :: grid
     TYPE(event_list)          :: events
     !
-    REAL(DP) :: xq(3,3), freq(S%nat3,3), freqm1(S%nat3,3)
+    REAL(DP) :: xq(3,3), freq(S%nat3,3), faux !freqm1(S%nat3,3),
     COMPLEX(DP) :: U(S%nat3,S%nat3,3), aux, D3(S%nat3,S%nat3,S%nat3)
     !
     INTEGER :: iq1, iq2, iev, jq, nu0(3), i
@@ -181,11 +181,14 @@ MODULE matrix_program
     ! identical triplets
     IF(num_procs>1) events%v3sq = 0._dp
     CALL mpi_block_divide(events%nev, start_iev, end_iev)
+    iq1 = -1
+    iq2 = -1
     DO iev = start_iev, end_iev
       !
-      CALL print_percent_wall(10._dp, 300._dp, iev, events%nev, (iev==1))
+      CALL print_percent_wall(10._dp, 300._dp, iev, end_iev-start_iev+1, (iev==start_iev))
       !
-      IF ( iq1 /= events%idx1(iev) .and. &
+      ! Only recompute the D3 matrix if this point is different from the previous one
+      IF ( iq1 /= events%idx1(iev) .or. &
            iq2 /= events%idx2(iev) ) THEN
         !
         iq1 = events%idx1(iev)
@@ -200,25 +203,36 @@ MODULE matrix_program
           CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
         ENDDO
         !
-        freqm1 = 0._dp
-        DO i = 1,S%nat3
-          IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
-          IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
-          IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-        ENDDO
+        ! freqm1 = 0._dp
+        ! DO i = 1,S%nat3
+        !   IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
+        !   IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
+        !   IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
+        ! ENDDO
         !
         CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
         CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
         !V3sq = REAL( CONJG(D3)*D3 , kind=DP)
-        ENDIF
+      ENDIF
+      !
+      IF( events%bnd1(iev)>=nu0(1) .and. &
+          events%bnd2(iev)>=nu0(2) .and. &
+          events%bnd3(iev)>=nu0(3) ) THEN
 
-      aux = D3( events%bnd1(iev), &
-                events%bnd2(iev), &
-                events%bnd3(iev)  )
-      events%v3sq(iev) = REAL( CONJG(aux)*aux, kind=DP)
+        aux = D3( events%bnd1(iev), &
+                  events%bnd2(iev), &
+                  events%bnd3(iev)  )
+
+        faux = ( 8 * freq(events%bnd1(iev),1) &
+                   * freq(events%bnd2(iev),2) &
+                   * freq(events%bnd3(iev),3) )
+        !
+        events%v3sq(iev) = REAL( CONJG(aux)*aux, kind=DP) / faux
+        !
+      ENDIF
   ENDDO
   !
-  CALL mpi_broadcast(events%nev, events%v3sq)
+  CALL mpi_bsum(events%nev, events%v3sq)
   IF(ionode)THEN
     DO i = 1, events%nev
       WRITE(999,*) events%v3sq(iev) 

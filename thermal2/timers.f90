@@ -117,10 +117,10 @@ MODULE timers
   END SUBROUTINE
   !
   ! \/o\________\\\_________________________________________/^>
-  SUBROUTINE print_percent_wall(gran_pc, gran_sec, i, n, reset)
+  SUBROUTINE print_percent_wall(granularity_pc, granularity_sec, i, n, reset)
     USE mpi_thermal, ONLY : mpi_any, abort_mpi
     IMPLICIT NONE
-    REAL(DP),INTENT(in) :: gran_pc, gran_sec
+    REAL(DP),INTENT(in) :: granularity_pc, granularity_sec
     INTEGER,INTENT(in) :: i, n
     LOGICAL,INTENT(in) :: reset
     !
@@ -129,12 +129,12 @@ MODULE timers
     REAL(DP) :: wall, fact, pc, iter_time, iter_end_time
     LOGICAL ::print_now, time_is_out
     !
-    fact = 100._dp / gran_pc
+    fact = 100._dp / granularity_pc
     !ioWRITE(*,*) fact*DBLE(i)/n,INT(DBLE(fact*(i-.5_dp))/n), fact/n
     print_now = fact*DBLE(i)/n-INT(DBLE(fact*(i-.5_dp))/n)  <  1.49_dp*fact/n
 
     wall = get_wall()
-    print_now = print_now .or. (wall-last_print)>gran_sec
+    print_now = print_now .or. (wall-last_print)>granularity_sec
 !    print_now = print_now .and. (wall-last_print)>gran_sec/10._dp
 
     print_now = print_now .or. (i==n)
@@ -151,11 +151,11 @@ MODULE timers
       IF(print_now.and.ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",f12.1,"s &
                     &| WALL:",f12.1,"s ")') &
                     pc, iter_time,iter_end_time, wall
-    ELSE
-      iter_end_time = 0
-      IF(print_now .and. ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
-                    &| WALL:",f12.1,"s ")') &
-                    pc, iter_time, wall
+    ! ELSE
+      ! iter_end_time = 0
+      ! IF(print_now .and. ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
+      !               &| WALL:",f12.1,"s ")') &
+      !               pc, iter_time, wall
     ENDIF
     !
     time_is_out = check_time_limit(iter_end_time+iter_start)
