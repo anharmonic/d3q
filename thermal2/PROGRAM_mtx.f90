@@ -80,16 +80,9 @@ MODULE matrix_program
           CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
         ENDDO
         !
-        ! freqm1 = 0._dp
-        ! DO i = 1,S%nat3
-        !   IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
-        !   IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
-        !   IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-        ! ENDDO
-        !
+       !
         CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
         CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
-        !V3sq = REAL( CONJG(D3)*D3 , kind=DP)
       ENDIF
       !
       IF( events%bnd1(iev)>=nu0(1) .and. &
@@ -111,8 +104,10 @@ MODULE matrix_program
       ENDIF
   ENDDO
   !
+  ! Collect in the stupidest way possible
   IF(ionode .and. num_procs>1) WRITE(*,*) "Collecting..."
   CALL mpi_bsum(events%nev, events%v3sq)
+  !
   IF(ionode)THEN
     OPEN(newunit=unit, file=filename, status='new')
     WRITE(*,*) "Writing to disk..."
