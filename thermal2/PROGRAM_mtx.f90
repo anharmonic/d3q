@@ -153,7 +153,7 @@ MODULE matrix_program
   ! END SUBROUTINE MTX_ELEM
   !
 
-  SUBROUTINE MTX_ELEM(grid, events, S, fc2, fc3)
+  SUBROUTINE MTX_ELEM(grid, events, S, fc2, fc3, filename)
     USE q_grids,            ONLY : q_grid
     USE fc3_interpolate,    ONLY : forceconst3, ip_cart2pat
     USE input_fc,           ONLY : ph_system_info
@@ -165,13 +165,14 @@ MODULE matrix_program
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
+    CHARACTER(len=*),INTENT(in) :: filename
     TYPE(q_list)              :: grid
     TYPE(event_list)          :: events
     !
     REAL(DP) :: xq(3,3), freq(S%nat3,3), faux !freqm1(S%nat3,3),
     COMPLEX(DP) :: U(S%nat3,S%nat3,3), aux, D3(S%nat3,S%nat3,S%nat3)
     !
-    INTEGER :: iq1, iq2, iev, jq, nu0(3), i
+    INTEGER :: iq1, iq2, iev, jq, nu0(3), i, unit
     INTEGER :: start_iev, end_iev
     !
     ! The list of active triplets at q-points i,j,(-i-j)
@@ -194,7 +195,7 @@ MODULE matrix_program
         iq1 = events%idx1(iev)
         iq2 = events%idx2(iev)
         !
-        xq(:,1) = grid%xq(:,iq2)
+        xq(:,1) = grid%xq(:,iq1)
         xq(:,2) = grid%xq(:,iq2)
         xq(:,3) = -(xq(:,2)+xq(:,1))
         !
@@ -232,11 +233,15 @@ MODULE matrix_program
       ENDIF
   ENDDO
   !
+  IF(ionode .and. num_procs>1) WRITE(*,*) "Collecting..."
   CALL mpi_bsum(events%nev, events%v3sq)
   IF(ionode)THEN
-    DO i = 1, events%nev
-      WRITE(999,*) events%v3sq(iev) 
+    OPEN(newunit=unit, file=filename, status='new')
+    WRITE(*,*) "Writing to disk..."
+    DO iev = 1, events%nev
+      WRITE(unit,*) events%v3sq(iev) 
     ENDDO
+    CLOSE(unit)
   ENDIF
   !
   END SUBROUTINE MTX_ELEM  
@@ -341,7 +346,7 @@ MODULE matrix_program
         IF(ios/=0) EXIT
         i = i+1
       ENDDO
-      WRITE(*,*) "Found", i, "events from file ", filename
+      WRITE(*,*) "Found", i, "events from file ", TRIM(filename)
       nev = i
     ENDIF
 
@@ -398,6 +403,7 @@ PROGRAM matrix
   USE asr2_module,      ONLY : impose_asr2
   !
   USE posix_signal,       ONLY : set_TERMINATE_GRACEFULLY
+  USE cmdline_param_module
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid)     :: fc2
@@ -408,6 +414,19 @@ PROGRAM matrix
   !TYPE(q_grid)              :: qpts2
   TYPE(event_list)          :: events
   ! TYPE(event_list)          :: events_1, events_2, events_1u, events_2u
+  CHARACTER(len=1024) :: q_filename, i_filename, o_filename, filemat3, filemat2
+  CHARACTER(len=8) :: asr_type
+  INTEGER :: event_type 
+
+  q_filename = cmdline_param_char("q", "qpoints_GaAs_30x15x15")
+  i_filename = cmdline_param_char("i", "interface_30x15x15_GaAs_class1")
+  o_filename = cmdline_param_char("o", TRIM(i_filename)//"_mtx")
+  IF(o_filename == i_filename .or. o_filename == q_filename) CALL errore("mtx", "bad filename choice",1)
+  event_type = cmdline_param_int("e", 1)
+  asr_type = cmdline_param_char("a", "simple")
+  filemat2 = cmdline_param_char("2", "mat2R")
+  filemat3 = cmdline_param_char("3", "mat3R.asr.sparse")
+
 
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('TK')
@@ -419,14 +438,14 @@ PROGRAM matrix
 
   ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
   !CALL READ_INPUT("TK", mtxinput, grid, S, fc2, fc3)
-  CALL read_fc2("mat2R", S,  fc2)
+  CALL read_fc2(filemat2, S,  fc2)
   !
-  CALL read_qpoints("qpoints_GaAs_30x15x15", qpts, S)
+  CALL read_qpoints(q_filename, qpts, S)
   !
   !CALL qpts%copy(qpts2)
   !CALL qpts2%scatter()
 
-  CALL read_events_list("interface_30x15x15_GaAs_class1u",  qpts, S, events)
+  CALL read_events_list(i_filename,  qpts, S, events)
   ! CALL read_events_list("interface_30x15x15_GaAs_class1",  qpts, S, events_1)
   ! CALL read_events_list("interface_30x15x15_GaAs_class2",  qpts, S, events_2)
   ! CALL read_events_list("interface_30x15x15_GaAs_class1u", qpts, S, events_1u)
@@ -434,11 +453,11 @@ PROGRAM matrix
   !
   !
   CALL aux_system(S)
-  CALL impose_asr2('simple', S%nat, fc2, S%zeu)
+  CALL impose_asr2(asr_type, S%nat, fc2, S%zeu)
   CALL div_mass_fc2(S, fc2)
-  fc3 => read_fc3("mat3R.asr.sparse", S3)
+  fc3 => read_fc3(filemat3, S3)
   CALL fc3%div_mass(S)  !
-  CALL MTX_ELEM(qpts, events, S, fc2, fc3)
+  CALL MTX_ELEM(qpts, events, S, fc2, fc3, o_filename)
   !
   !CALL MTX_ELEM(mtxinput, grid, S, fc2, fc3)
   !
