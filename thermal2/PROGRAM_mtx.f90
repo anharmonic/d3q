@@ -14,144 +14,23 @@ MODULE matrix_program
   USE q_grids,      ONLY : q_grid
   USE timers
   !
-  ! This type contains a list of active scattering channels 
-  ! (i.e. that respect momentum and energy conservation)
-  ! associated with a list of q-points.
-  ! An active scattering channels is defined by two q-points
-  ! in the list (the third is q3 = -q1-q2) and a triplet of bands
-  ! nu1, nu2, nu3 that conserve energy at q1,q2,q3. 
-  ! This information is stocked in a decently efficient way.
-  !
-  ! TYPE :: bands_triplet
-  !   INTEGER,ALLOCATABLE :: idx1(:)
-  !   INTEGER,ALLOCATABLE :: idx2(:)
-  !   INTEGER,ALLOCATABLE :: idx3(:)
-  ! END TYPE
-  !
-  ! TYPE, EXTENDS(q_grid) :: scattering_channels
-  !   ! The number of active triplets at q-points q_i,q_j,-(q_i+q_j)
-  !   INTEGER,ALLOCATABLE :: n_triplets(:,:)
-  !   ! The list of active triplets at q-points i,j,(-i-j)
-  !   TYPE(bands_triplet),ALLOCATABLE :: bands(:,:)!%idx(nu1,nu2,nu3)
-  ! END TYPE
-
+  ! Extend the list of q-point, inclue also the index (i,j,k) in a grid
   TYPE, EXTENDS(q_grid) :: q_list
     INTEGER,ALLOCATABLE :: idx(:,:)
   END TYPE
 
+  ! 3-phonon scattering event
   TYPE :: event_list
     INTEGER :: nev
-    INTEGER,ALLOCATABLE :: idx1(:)
-    INTEGER,ALLOCATABLE :: idx2(:)
-    INTEGER,ALLOCATABLE :: bnd1(:)
+    INTEGER,ALLOCATABLE :: idx1(:) ! first phonon from a list
+    INTEGER,ALLOCATABLE :: idx2(:) ! second phonon
+    INTEGER,ALLOCATABLE :: bnd1(:) ! bands1
     INTEGER,ALLOCATABLE :: bnd2(:)
     INTEGER,ALLOCATABLE :: bnd3(:)
-    REAL(DP),ALLOCATABLE :: v3sq(:) 
+    REAL(DP),ALLOCATABLE :: v3sq(:) ! matrix element squared |V_3|^2
   END TYPE
 
   CONTAINS
-  !
-  ! SUBROUTINE MTX_ELEM(input, grid, S, fc2, fc3)
-  !   USE linewidth,          ONLY : linewidth_q
-  !   USE constants,          ONLY : RY_TO_CMM1, K_BOLTZMANN_RY, tpi
-  !   USE more_constants,     ONLY : RY_TO_WATTMM1KM1, write_conf, ryvel_si
-  !   USE q_grids,            ONLY : q_grid, setup_grid
-  !   USE fc3_interpolate,    ONLY : forceconst3
-  !   USE isotopes_linewidth, ONLY : isotopic_linewidth_q
-  !   USE casimir_linewidth,  ONLY : casimir_linewidth_vel, mfp_scatter_vel
-  !   USE input_fc,           ONLY : ph_system_info
-  !   USE code_input,         ONLY : code_input_type
-  !   USE fc2_interpolate,    ONLY : forceconst2_grid, freq_phq_safe, bose_phq
-  !   USE ph_velocity,        ONLY : velocity, velocity_operator
-  !   !USE overlap,            ONLY : order_type
-  !   USE timers
-  !   IMPLICIT NONE
-  !   !
-  !   TYPE(code_input_type),INTENT(in)  :: input
-  !   TYPE(forceconst2_grid),INTENT(in) :: fc2
-  !   CLASS(forceconst3),INTENT(in)     :: fc3
-  !   TYPE(ph_system_info),INTENT(in)   :: S
-  !   TYPE(q_grid),INTENT(in)      :: grid
-  !   !
-  !   REAL(DP) :: sigma_ry(input%nconf), xq(3,3), freq(S%nat3,3), freqm1(S%nat3,3)
-  !   COMPLEX(DP) :: U(S%nat3,S%nat3,3)
-  !   REAL(DP) :: max_ctm, avg_ctm, avg_ctm_q
-  !   !
-  !   INTEGER  :: iq1, iq2, iqq, nu1, nu2, nu3, i, j, k, PASS
-  !   !
-  !   INTEGER :: n_active_bands(grid%nq, grid%nq)
-  !   ! The list of active triplets at q-points i,j,(-i-j)
-  !   TYPE(bands_triplet) :: active_bands(grid%nq, grid%nq)!%idx(nu1,nu2,nu3)
-  !   !
-  !   max_ctm=0._dp
-  !   avg_ctm=0._dp
-  !   avg_ctm_q=0._dp
-  !   n_active_bands = 0
-
-  !   DO PASS = 1,3
-  !   QPOINT_LOOP : &
-  !   DO iq2 = 1,grid%nq
-  !     DO iq1 = 1,grid%nq
-  !       !
-  !       IF(PASS==2)THEN
-  !         threshold = 0.0001_dp * max_ctm
-  !       ENDIF
-
-  !       ! on third pass, we know how many bands we have at each triplet
-  !       IF(PASS==3) THEN
-  !         ALLOCATE(active_bands(iq1,iq2)%idx1(n_active_bands(iq1,iq2)))
-  !         ALLOCATE(active_bands(iq1,iq2)%idx2(n_active_bands(iq1,iq2)))
-  !         ALLOCATE(active_bands(iq1,iq2)%idx3(n_active_bands(iq1,iq2)
-  !       ENDIF
-  !       !
-  !       freqm1 = 0._dp
-  !       DO i = 1,nat3
-  !         IF(i>=nu0(1)) freqm1(i,1) = 0.5_dp/freq(i,1)
-  !         IF(i>=nu0(2)) freqm1(i,2) = 0.5_dp/freq(i,2)
-  !         IF(i>=nu0(3)) freqm1(i,3) = 0.5_dp/freq(i,3)
-  !       ENDDO
-  !       !
-  !       ! check if event is Normal or Umklapp
-  !       !refold_bz(xq(:,1), S%bg) +  refold_bz(xq(:,2), S%bg) + refold_bz(xq(:,3), S%bg)
-  !       !
-  !       DO k = 1,nat3
-  !         DO j = 1,nat3
-  !           DO i = 1,nat3
-  !             !
-  !             bose_a = bose(i,1) * bose(j,2) * (bose(k,3)+1)
-  !             !
-  !             dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
-  !             !
-  !             ctm_a = bose_a *  f_gauss(dom_a, sigma)
-  !             !
-              
-  !             IF(PASS==1)THEN
-  !               max_ctm = MAX(max_ctm, ctm_a)
-  !               avg_ctm_q = avg_ctm_q + ctm_a
-  !             ELSE IF(max_ctm>threshold)
-  !               IF (PASS==2) THEN
-  !                 n_active_bands(iq1,iq2) = n_active_bands(iq1,iq2)+1
-  !               ELSE
-  !                 norm_a = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-  !                 sum_a = norm_a * ctm_a * V3sq(i,j,k)
-  !                 !WRITE(*,'(3i6,1e24.15)') i,j,k, V3sq(i,j,k)
-  !               ENDIF
-  !             ENDIF
-  !             !
-  !           ENDDO
-  !         ENDDO
-  !       ENDDO
-  !       !
-  !       avg_ctm = avg_ctm + avg_ctm_q
-  !       !
-  !     ENDDO ! inner Q_POINT
-  !   ENDDO QPOINT_LOOP
-  ! ENDDO ! PASS
-
-  ! !
-  ! !
-  ! END SUBROUTINE MTX_ELEM
-  !
 
   SUBROUTINE MTX_ELEM(grid, events, S, fc2, fc3, filename)
     USE q_grids,            ONLY : q_grid
@@ -166,17 +45,14 @@ MODULE matrix_program
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
     CHARACTER(len=*),INTENT(in) :: filename
-    TYPE(q_list)              :: grid
-    TYPE(event_list)          :: events
+    TYPE(q_list)                :: grid
+    TYPE(event_list)            :: events
     !
     REAL(DP) :: xq(3,3), freq(S%nat3,3), faux !freqm1(S%nat3,3),
     COMPLEX(DP) :: U(S%nat3,S%nat3,3), aux, D3(S%nat3,S%nat3,S%nat3)
     !
     INTEGER :: iq1, iq2, iev, jq, nu0(3), i, unit
     INTEGER :: start_iev, end_iev
-    !
-    ! The list of active triplets at q-points i,j,(-i-j)
-    !TYPE(bands_triplet) :: active_bands(grid%nq, grid%nq)!%idx(nu1,nu2,nu3)
     !
     ! for parallelism, we divide in blocks, in order to recycle repeated 
     ! identical triplets
@@ -224,6 +100,8 @@ MODULE matrix_program
                   events%bnd2(iev), &
                   events%bnd3(iev)  )
 
+        ! the factor 1/sqrt(mass) is put directly in the force constants
+        ! here we put sqrt(1/2w), squared
         faux = ( 8 * freq(events%bnd1(iev),1) &
                    * freq(events%bnd2(iev),2) &
                    * freq(events%bnd3(iev),3) )
@@ -301,7 +179,9 @@ MODULE matrix_program
   END SUBROUTINE
   !
   ! {{{{{{{{{{{{}}}}}}}}}}}}}}
-  !
+  ! Find a q-point in a list, start looking from n0
+  ! Optimization: because q-points are in incremental order,
+  ! we start looking from the last found one, then wrap around
   FUNCTION qlist_get_idx(i, idx, n, n0)
     INTEGER, INTENT(in) :: n, i(3), idx(3,n)
     INTEGER, INTENT(inout) :: n0
@@ -313,6 +193,7 @@ MODULE matrix_program
         RETURN
       ENDIF
     ENDDO
+    ! wrap
     DO j = 1, n0-1
       IF(ALL(i == idx(:,j))) THEN
         qlist_get_idx = j
@@ -375,13 +256,11 @@ MODULE matrix_program
       ENDDO
     ENDIF
 
-    !write(*,*) "broadcast", nev, my_id
     CALL mpi_broadcast(nev, events%idx1)
     CALL mpi_broadcast(nev, events%idx2)
     CALL mpi_broadcast(nev, events%bnd1)
     CALL mpi_broadcast(nev, events%bnd2)
     CALL mpi_broadcast(nev, events%bnd3)
-    !write(*,*) "broadcast done", my_id
 
     CLOSE(u)
     !
@@ -392,28 +271,23 @@ MODULE matrix_program
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 PROGRAM matrix
   USE kinds,            ONLY : DP
-  USE matrix_program
   USE input_fc,           ONLY : same_system, read_fc2, aux_system, &
                                  forceconst2_grid, ph_system_info, div_mass_fc2
   USE fc3_interpolate,  ONLY : read_fc3, forceconst3
-  !USE code_input,       ONLY : READ_INPUT, code_input_type, 
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi
   USE nanoclock,        ONLY : init_nanoclock
   USE more_constants,   ONLY : print_citations_linewidth
   USE asr2_module,      ONLY : impose_asr2
   !
-  USE posix_signal,       ONLY : set_TERMINATE_GRACEFULLY
+  USE matrix_program
   USE cmdline_param_module
   IMPLICIT NONE
   !
   TYPE(forceconst2_grid)     :: fc2
   CLASS(forceconst3),POINTER :: fc3
   TYPE(ph_system_info)       :: S, S3
-  !TYPE(code_input_type)      :: mtxinput
-  TYPE(q_list)              :: qpts
-  !TYPE(q_grid)              :: qpts2
-  TYPE(event_list)          :: events
-  ! TYPE(event_list)          :: events_1, events_2, events_1u, events_2u
+  TYPE(q_list)               :: qpts
+  TYPE(event_list)           :: events
   CHARACTER(len=1024) :: q_filename, i_filename, o_filename, filemat3, filemat2
   CHARACTER(len=8) :: asr_type
   INTEGER :: event_type 
@@ -421,23 +295,18 @@ PROGRAM matrix
   q_filename = cmdline_param_char("q", "qpoints_GaAs_30x15x15")
   i_filename = cmdline_param_char("i", "interface_30x15x15_GaAs_class1")
   o_filename = cmdline_param_char("o", TRIM(i_filename)//"_mtx")
-  IF(o_filename == i_filename .or. o_filename == q_filename) CALL errore("mtx", "bad filename choice",1)
+  IF(o_filename == i_filename .or. o_filename == q_filename) CALL errore("mtx", "bad filename choice, I wont overwrite input!",1)
   event_type = cmdline_param_int("e", 1)
   asr_type = cmdline_param_char("a", "simple")
   filemat2 = cmdline_param_char("2", "mat2R")
   filemat3 = cmdline_param_char("3", "mat3R.asr.sparse")
 
-
-!   CALL mp_world_start(world_comm)
-!   CALL environment_start('TK')
   CALL init_nanoclock()
   CALL start_mpi()
   CALL remove_stack_limit()
   CALL print_citations_linewidth()
   CALL set_TERMINATE_GRACEFULLY() !print_timers_and_die)
-
-  ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA
-  !CALL READ_INPUT("TK", mtxinput, grid, S, fc2, fc3)
+  !
   CALL read_fc2(filemat2, S,  fc2)
   !
   CALL read_qpoints(q_filename, qpts, S)
@@ -446,20 +315,15 @@ PROGRAM matrix
   !CALL qpts2%scatter()
 
   CALL read_events_list(i_filename,  qpts, S, events)
-  ! CALL read_events_list("interface_30x15x15_GaAs_class1",  qpts, S, events_1)
-  ! CALL read_events_list("interface_30x15x15_GaAs_class2",  qpts, S, events_2)
-  ! CALL read_events_list("interface_30x15x15_GaAs_class1u", qpts, S, events_1u)
-  ! CALL read_events_list("interface_30x15x15_GaAs_class2u", qpts, S, events_2u)
-  !
   !
   CALL aux_system(S)
   CALL impose_asr2(asr_type, S%nat, fc2, S%zeu)
   CALL div_mass_fc2(S, fc2)
-  fc3 => read_fc3(filemat3, S3)
-  CALL fc3%div_mass(S)  !
-  CALL MTX_ELEM(qpts, events, S, fc2, fc3, o_filename)
   !
-  !CALL MTX_ELEM(mtxinput, grid, S, fc2, fc3)
+  fc3 => read_fc3(filemat3, S3)
+  CALL fc3%div_mass(S) 
+  !
+  CALL MTX_ELEM(qpts, events, S, fc2, fc3, o_filename)
   !
   IF(ionode) CALL print_citations_linewidth()
   CALL stop_mpi()
