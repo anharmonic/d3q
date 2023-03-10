@@ -168,6 +168,7 @@ qe_install_targets( qe_thermal2 )
 ##########################################################
 
 set(qe_thermal2_exe
+        tdph
 	lw
         tk
         qha
