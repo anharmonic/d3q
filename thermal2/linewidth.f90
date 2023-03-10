@@ -21,11 +21,12 @@ MODULE linewidth
   CONTAINS
 
 ! <<^V^\\=========================================//-//-//========//O\\//
-  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1)
+  FUNCTION linewidth_q(xq0, nconf, T, sigma, S, grid, fc2, fc3, freq1, U1, lw_UN)
     USE q_grids,          ONLY : q_grid
     USE input_fc,         ONLY : ph_system_info
     USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat
     USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
+    USE functions,        ONLY : refold_bz
     IMPLICIT NONE
     !
     REAL(DP),INTENT(in) :: xq0(3)
@@ -38,7 +39,8 @@ MODULE linewidth
     TYPE(q_grid),INTENT(in)      :: grid
     REAL(DP),INTENT(in) :: sigma(nconf) ! ry
     !
-    REAL(DP),OPTIONAL,INTENT(in) :: freq1(S%nat3)
+    REAL(DP),OPTIONAL,INTENT(out)   :: lw_UN(S%nat3,2,nconf) ! Normal/Umklapp contribution
+    REAL(DP),OPTIONAL,INTENT(in)    :: freq1(S%nat3)
     COMPLEX(DP),OPTIONAL,INTENT(in) :: U1(S%nat3,S%nat3)
     !
     ! FUNCTION RESULT:
@@ -47,9 +49,10 @@ MODULE linewidth
     !
     COMPLEX(DP),ALLOCATABLE :: U(:,:,:), D3(:,:,:)
     REAL(DP),ALLOCATABLE    :: V3sq(:,:,:)
-    INTEGER :: iq, jq, nu, it, nu0(3)
+    INTEGER :: iq, jq, nu, it, nu0(3), j_un
+    INTEGER,PARAMETER :: normal=1, umklapp=2
     !
-    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3)
+    REAL(DP) :: freq(S%nat3,3), bose(S%nat3,3), xq(3,3), xq_aux(3), aux(S%nat3)
     !
 
     ALLOCATE(U(S%nat3, S%nat3,3))
@@ -57,6 +60,7 @@ MODULE linewidth
     ALLOCATE(D3(S%nat3, S%nat3, S%nat3))
     !
     lw = 0._dp
+    IF(present(lw_UN)) lw_UN = 0._dp
     !
     ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q1
       timer_CALL t_freq%start()
@@ -77,6 +81,17 @@ MODULE linewidth
       ! Compute eigenvalues, eigenmodes and bose-einstein occupation at q2 and q3
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -(xq(:,2)+xq(:,1))
+      IF(present(lw_UN)) THEN
+        xq_aux = refold_bz(xq(:,1), S%bg) &
+                +refold_bz(xq(:,2), S%bg) &
+                +refold_bz(xq(:,3), S%bg)
+        IF(ALL(ABS(xq_aux)<1.d-6)) THEN
+          j_un = normal
+        ELSE
+          j_un = umklapp
+        ENDIF
+      ENDIF
+
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,3
         nu0(jq) = set_nu0(xq(:,jq), S%at)
@@ -105,18 +120,20 @@ MODULE linewidth
 !$OMP END PARALLEL DO
           timer_CALL t_bose%stop()
           timer_CALL t_sum%start()
-        lw(:,it) = lw(:,it) + grid%w(iq)&
-                *sum_linewidth_modes(S, sigma(it), freq, bose, V3sq, nu0)
-          timer_CALL t_sum%stop()
+        aux = -0.5_dp * grid%w(iq)*sum_linewidth_modes(S, sigma(it), freq, bose, V3sq, nu0)
+        lw(:,it) = lw(:,it) + aux
+        IF(present(lw_UN)) lw_UN(:,j_un,it) = lw_UN(:,j_un,it) + aux
+        timer_CALL t_sum%stop()
       ENDDO
       !
     ENDDO
     !
       timer_CALL t_mpicom%start()
     IF(grid%scattered) CALL mpi_bsum(S%nat3,nconf,lw)
+    IF(grid%scattered .and. present(lw_UN)) CALL mpi_bsum(S%nat3,2,nconf,lw_UN)
 
       timer_CALL t_mpicom%stop()
-    linewidth_q = -0.5_dp * lw
+    linewidth_q = lw
     !
     DEALLOCATE(U, V3sq, D3)
     !

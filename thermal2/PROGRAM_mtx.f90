@@ -300,7 +300,7 @@ PROGRAM matrix
   CALL start_mpi()
   CALL remove_stack_limit()
   CALL print_citations_linewidth()
-  CALL set_TERMINATE_GRACEFULLY() !print_timers_and_die)
+  !CALL set_TERMINATE_GRACEFULLY() !print_timers_and_die)
   !
   CALL read_fc2(filemat2, S,  fc2)
   !

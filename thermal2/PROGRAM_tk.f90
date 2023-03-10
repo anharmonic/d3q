@@ -73,6 +73,7 @@ MODULE thermalk_program
     REAL(DP) :: lw_isotopic(S%nat3,input%nconf)
     REAL(DP) :: lw_phph(S%nat3,input%nconf)
     REAL(DP) :: lw_casimir(S%nat3)
+    REAL(DP) :: lw_un(S%nat3,2,input%nconf)
     REAL(DP) :: freq(S%nat3)
     REAL(DP) :: bose(S%nat3,input%nconf)
     COMPLEX(DP) :: U(S%nat3,S%nat3)
@@ -90,7 +91,7 @@ MODULE thermalk_program
     REAL(DP) :: vel_diag(3,S%nat3)
     !
     REAL(DP) :: pref
-    INTEGER  :: iq, it, a, b, nu, id_dir,im, im2, nup
+    INTEGER  :: iq, it, a, b, nu, id_dir,im, im2, nup, iu
     character(len=29) :: filename
     LOGICAL :: condition_print
     REAL(DP),PARAMETER :: eps_vel = 1.e-12_dp
@@ -118,6 +119,27 @@ MODULE thermalk_program
           ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
                                                       "    sigma=", input%sigma(it)
           ioFLUSH(1000+it)
+          !
+          iu = 1000+input%nconf+it
+          OPEN(unit=iu, file=TRIM(input%outdir)//"/"//&
+                                  "lw_N."//TRIM(input%prefix)//&
+                                  "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+          ioWRITE(iu, *) "# linewidth NORMAL [cm^-1]"
+          ioWRITE(iu, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
+                                                      "    sigma=", input%sigma(it)
+          ioFLUSH(iu)
+          !
+          iu = 1000+2*input%nconf+it
+          OPEN(unit=iu, file=TRIM(input%outdir)//"/"//&
+                                  "lw_U."//TRIM(input%prefix)//&
+                                  "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
+                                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+          ioWRITE(iu, *) "# linewidth UMKLAPP [cm^-1]"
+          ioWRITE(iu, '(a,i6,a,f6.1,a,100f6.1)') "# ", it, "     T=",input%T(it),&
+                                                      "    sigma=", input%sigma(it)
+          ioFLUSH(iu)
+
         ENDIF
         !
         !
@@ -163,10 +185,10 @@ MODULE thermalk_program
     tk_C = 0._dp
     !
     IF(input%print_all.and.ionode) THEN
-      open(unit=7022,file='phonon_velocity_operator.dat',status='replace')
+      open(unit=7022,file=TRIM(input%outdir)//"/"//'phonon_velocity_operator.dat',status='replace')
       WRITE(7022,'(A)') '#i_q, im1, im2, f_1 (cm^-1), f_2(cm^-1), |V^x|^2, |V^y|^2, |V^z|^2, units (m/s)^2'
       DO it = 1, input%nconf
-        write(filename, '(A22,i3.3,A4)') 'phonon_properties_raw_',it,'.dat'
+        write(filename, '(A22,i3.3,A4)') TRIM(input%outdir)//"/"//'phonon_properties_raw_',it,'.dat'
         open(unit=7023+it, file=filename, status='replace')
         write(7023+it,'(A)') "#  q, mod1, mod2, omega1(Ry),  omega2(Ry),gamma1(Ry),  gamma2(Ry)"
       END DO
@@ -181,7 +203,7 @@ MODULE thermalk_program
       IF (input%intrinsic_scattering) THEN
           timer_CALL t_lwphph%start()
         lw_phph = linewidth_q(out_grid%xq(:,iq), input%nconf, input%T,&
-                         sigma_ry, S, in_grid, fc2, fc3)
+                         sigma_ry, S, in_grid, fc2, fc3, lw_un=lw_un)
         CALL check_negative_lw(lw_phph, S%nat3, input%nconf, "SMA:phph")
           timer_CALL t_lwphph%stop()
       ELSE
@@ -229,7 +251,11 @@ MODULE thermalk_program
       IF(input%store_lw)THEN
         timer_CALL t_lwinout%start()
         DO it = 1, input%nconf
-          IF(input%intrinsic_scattering.and.ionode) WRITE(1000+it,'(99e20.10)') lw_phph(:,it)*RY_TO_CMM1
+          IF(input%intrinsic_scattering.and.ionode) THEN 
+            WRITE(1000+it,'(99e20.10)') lw_phph(:,it)*RY_TO_CMM1
+            WRITE(1000+input%nconf+it,'(99e20.10)') lw_un(:,1,it)*RY_TO_CMM1
+            WRITE(1000+2*input%nconf+it,'(99e20.10)') lw_un(:,2,it)*RY_TO_CMM1
+          ENDIF
           IF(input%isotopic_disorder.and.ionode)    WRITE(2000+it,'(99e20.10)') lw_isotopic(:,it)*RY_TO_CMM1
         ENDDO
         IF(input%casimir_scattering) THEN

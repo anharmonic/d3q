@@ -229,20 +229,21 @@ MODULE lmdif_p_module
          END FUNCTION plmdif_c
        END INTERFACE
        !
+       STOP 7777
        maxfev = 100000   ! take as many iterations as needed
        ! convert fortran function pointer to C
        cfcn  = C_FUNLOC(fcn)
        cfarg = C_LOC(farg)
        !
-       CALL BLACS_PINFO(me, nprocs)
-       CALL BLACS_GET(0, 0, ctx)
+       !CALL BLACS_PINFO(me, nprocs)
+       !CALL BLACS_GET(0, 0, ctx)
        nprow = 2
        npcol = 2
        !print*, "blacs>", me, nprocs, ctx, m, n
-       CALL BLACS_GRIDINIT (ctx, 'R', nprow, npcol)
+       !CALL BLACS_GRIDINIT (ctx, 'R', nprow, npcol)
        !
-       info = &
-        plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
+       !info = &
+       ! plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
 
    END SUBROUTINE plmdif_c0
 #endif
