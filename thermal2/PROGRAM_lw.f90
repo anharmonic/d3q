@@ -34,7 +34,7 @@ MODULE linewidth_program
     USE overlap,            ONLY : order_type
     IMPLICIT NONE
     !
-    TYPE(code_input_type),INTENT(in)     :: input
+    TYPE(code_input_type),INTENT(in)  :: input
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     CLASS(forceconst3),INTENT(in)     :: fc3
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -42,8 +42,8 @@ MODULE linewidth_program
     !
     TYPE(order_type) :: order
     COMPLEX(DP) :: D(S%nat3, S%nat3)
-    REAL(DP) :: w2(S%nat3)
-    INTEGER :: iq, it
+    REAL(DP) :: w2(S%nat3), xq_ref(3)
+    INTEGER :: iq, it, i
     TYPE(q_grid) :: grid
     COMPLEX(DP):: ls(S%nat3,input%nconf), lsx(S%nat3)
     REAL(DP)   :: lw(S%nat3,input%nconf), lw_isot(S%nat3,input%nconf)
@@ -94,6 +94,13 @@ MODULE linewidth_program
     !
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
+    IF(input%sort_freq=="reference")THEN
+      DO i = 1,3
+        xq_ref(i) = SUM(qpath%xq(i,:))/qpath%nq
+        IF(SUM(ABS(xq_ref))<1.d-4) xq_ref = 0.25_dp
+      ENDDO
+    ENDIF
+    !
     DO iq = input%skip_q +1,qpath%nq
       !
       CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
@@ -108,8 +115,11 @@ MODULE linewidth_program
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
-      IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) &
+      IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) THEN
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
+      ELSEIF(input%sort_freq=="reference")THEN
+        CALL order%set_ref(S%nat3, w2, D, qpath%xq(:,iq), xq_ref, S, fc2)
+      ENDIF
       !
       ! Pre-compute isotopic linewidth
       IF(input%isotopic_disorder)THEN

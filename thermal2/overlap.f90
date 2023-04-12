@@ -7,6 +7,7 @@ MODULE overlap
     CONTAINS
       PROCEDURE :: set => set_idx
       PROCEDURE :: set_path => set_path_idx
+      PROCEDURE :: set_ref => set_idx_reference
       PROCEDURE :: reset => reset_idx
   END TYPE
   !
@@ -36,7 +37,7 @@ MODULE overlap
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
     !
     INTEGER,INTENT(in) :: iq,nq
-    REAL(DP) ::  lpath(nq), xq(3,nq)
+    REAL(DP),INTENT(in) ::  lpath(nq), xq(3,nq)
     LOGICAL :: turning
     INTEGER :: i
     !
@@ -71,7 +72,53 @@ MODULE overlap
     !
   END SUBROUTINE
   !
-  SUBROUTINE set_idx(self, nat3, w, e, keep_old_e)
+  ! Special version of set idx which checks the overlap not at the q-point in question,
+  ! but at a small q in the same direction q0 = epsilon * q/|q|. 
+  ! This *could* ensure that continuity is consistent at crossings. 
+  ! EXPERIMENT ! 
+  SUBROUTINE set_idx_reference(self, nat3, w, e, xq, xq_ref, S, fc2) !RESULT(order_out)
+    USE input_fc,           ONLY : forceconst2_grid, ph_system_info
+    USE fc2_interpolate,    ONLY : freq_phq, freq_phq_hat
+    USE q_grids,            ONLY : q_grid, setup_path, q_grid_destroy
+
+    !USE merge_degenerate, ONLY : merge_degen
+    IMPLICIT NONE
+    CLASS(order_type),INTENT(inout) :: self
+    !
+    INTEGER,INTENT(in) :: nat3
+    REAL(DP),INTENT(in) :: w(nat3)
+    COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
+    !
+    REAL(DP),INTENT(in) ::  xq(3), xq_ref(3)
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    TYPE(ph_system_info),INTENT(in)   :: S
+    !
+    REAL(DP) :: w0(S%nat3), xq0(3), normq
+    COMPLEX(DP) :: e0(S%nat3, S%nat3)
+    !
+    TYPE(q_grid) :: qline
+    !
+    REAL(DP),PARAMETER :: dq = 0.0003_dp
+    INTEGER :: i, iq0, nq0
+    !
+    nq0 = DSQRT(SUM((xq-xq_ref)**2))/dq
+    print*, nq0
+
+    CALL setup_path(xq_ref, 1, qline, S%at)
+    CALL setup_path(xq, nq0, qline, S%at)
+    !
+    DO iq0 = 1, qline%nq
+      CALL freq_phq(qline%xq(:,iq0), S, fc2, w0, e0)
+      CALL set_idx(self, nat3, w0, e0, reset=(iq0==1))
+    ENDDO
+    !
+    CALL q_grid_destroy(qline)
+    !
+  END SUBROUTINE set_idx_reference
+
+
+  !
+  SUBROUTINE set_idx(self, nat3, w, e, keep_old_e, reset)
     USE constants, ONLY : RY_TO_CMM1
     !USE merge_degenerate, ONLY : merge_degen
     IMPLICIT NONE
@@ -80,7 +127,7 @@ MODULE overlap
     INTEGER,INTENT(in) :: nat3
     REAL(DP),INTENT(in) :: w(nat3)
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
-    LOGICAL,OPTIONAL,INTENT(in) :: keep_old_e
+    LOGICAL,OPTIONAL,INTENT(in) :: keep_old_e, reset
     LOGICAL :: update_e
     !INTEGER :: order_out(nat3)
     !
@@ -109,6 +156,12 @@ MODULE overlap
       FORALL(i=1:nat3) self%idx(i) = i
       !order_out = order
       RETURN
+    ELSEIF(present(reset))THEN
+        IF(reset)THEN
+          self%e_prev = e
+          FORALL(i=1:nat3) self%idx(i) = i
+          RETURN
+        ENDIF
     ELSE
       IF(size(self%e_prev,1)/=nat3) CALL errore("overlap","inconsistent nat3",1)
     ENDIF

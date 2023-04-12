@@ -27,7 +27,7 @@ MODULE code_input
     CHARACTER(len=256) :: prefix     ! put this in front of file names
     !
     LOGICAL :: exp_t_factor ! add elastic peak (sort of not working)
-    CHARACTER(len=7) :: sort_freq ! only applies to "full" calculation: 
+    CHARACTER(len=9) :: sort_freq ! only applies to "full" calculation: 
                                  ! sort w+w_shift when saving to file. Instead of w,lw,ls 
                                  ! you have w,lw,ls+w with the last two blocks sorted differently 
                                  ! than the first one to avoid unesthetical jumps in band plots
@@ -141,7 +141,7 @@ MODULE code_input
     REAL(DP)           :: xk0_in(3) = (/ DHUGE, DHUGE, DHUGE/)          ! grid shift as fraction of half grid step
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
-    CHARACTER(len=7)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted)
+    CHARACTER(len=9)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted)
     CHARACTER(len=12)  :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     CHARACTER(len=12)  :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
