@@ -94,12 +94,7 @@ MODULE linewidth_program
     !
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
-    IF(input%sort_freq=="reference")THEN
-      DO i = 1,3
-        xq_ref(i) = SUM(qpath%xq(i,:))/qpath%nq
-        IF(SUM(ABS(xq_ref))<1.d-4) xq_ref = 0.25_dp
-      ENDDO
-    ENDIF
+    IF(input%sort_freq=="reference") CALL order%set_xq_ref(qpath%nq, qpath%xq, input%xq_ref)
     !
     DO iq = input%skip_q +1,qpath%nq
       !
@@ -118,7 +113,7 @@ MODULE linewidth_program
       IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) THEN
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       ELSEIF(input%sort_freq=="reference")THEN
-        CALL order%set_ref(S%nat3, w2, D, qpath%xq(:,iq), xq_ref, S, fc2)
+        CALL order%set_ref(S%nat3, w2, D, qpath%xq(:,iq), S, fc2)
       ENDIF
       !
       ! Pre-compute isotopic linewidth

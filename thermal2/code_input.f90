@@ -28,9 +28,10 @@ MODULE code_input
     !
     LOGICAL :: exp_t_factor ! add elastic peak (sort of not working)
     CHARACTER(len=9) :: sort_freq ! only applies to "full" calculation: 
-                                 ! sort w+w_shift when saving to file. Instead of w,lw,ls 
-                                 ! you have w,lw,ls+w with the last two blocks sorted differently 
-                                 ! than the first one to avoid unesthetical jumps in band plots
+                                  ! sort w+w_shift when saving to file. Instead of w,lw,ls 
+                                  ! you have w,lw,ls+w with the last two blocks sorted differently 
+                                  ! than the first one to avoid unesthetical jumps in band plots
+    REAL(DP) :: xq_ref(3) ! reference point for sorting phonons, when using "reference" algorithm
     !
     CHARACTER(len=256) :: file_mat3
     CHARACTER(len=256) :: file_mat2
@@ -141,7 +142,8 @@ MODULE code_input
     REAL(DP)           :: xk0_in(3) = (/ DHUGE, DHUGE, DHUGE/)          ! grid shift as fraction of half grid step
     INTEGER            :: nk_in(3) = (/-1, -1, -1/)  ! inner integration grid, only for tk_sma
     LOGICAL            :: exp_t_factor = .false.     ! add elastic peak of raman, only in spectre calculation
-    CHARACTER(len=9)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted)
+    CHARACTER(len=9)   :: sort_freq = "default"      ! how to sort frequencies (default, overlap, shifted, reference)
+    REAL(DP)           :: xq_ref(3) = 0._dp          ! reference point when sorting by reference
     CHARACTER(len=12)  :: grid_type="simple"         ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     CHARACTER(len=12)  :: grid_type_in=INVALID       ! "simple" uniform qpoints grid, or "bz" symmetric BZ grid
     LOGICAL            :: print_dynmat = .false.     ! print the dynamical matrix for each q (only r2q and dynbubble code)
@@ -229,7 +231,7 @@ MODULE code_input
       optimize_grid, optimize_grid_thr, &
       ne, de, e0, sigma_e, &
       nu_initial, e_initial, q_initial, q_resolved, q_summed, sigmaq,&
-      exp_t_factor, sort_freq, &
+      exp_t_factor, sort_freq, xq_ref, &
       isotopic_disorder, &
       casimir_scattering,  &
       sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
@@ -360,45 +362,47 @@ MODULE code_input
     !IF(nconf<0)   CALL errore('READ_INPUT', 'Missing nconf', 1)    
 
     CALL set_time_limit(max_seconds, max_time)
-    
-    input%file_mat2 = file_mat2
-    input%file_mat2_final = file_mat2_final
-    input%file_mat2_plus  = file_mat2_plus
-    input%file_mat2_minus = file_mat2_minus
-    input%file_mat3 = file_mat3
-    input%outdir    = TRIMCHECK(outdir)
-    input%asr2      = asr2
-    input%skip_q   = skip_q
-    input%nconf     = nconf
-    input%nk        = nk
-    input%grid_type = grid_type
-    input%grid_type_in = grid_type_in
-    input%exp_t_factor = exp_t_factor
-    input%sort_freq    = sort_freq
-    input%print_dynmat     = print_dynmat
-    input%print_velocity   = print_velocity
-    input%print_gruneisen   = print_gruneisen
-    input%print_klemens     = print_klemens
-    input%print_neutron_cs = print_neutron_cs
-    input%store_lw         = store_lw 
-    input%print_all        = print_all
-    input%workaround_print_v   = workaround_print_v
-    input%threshold_f_degeneracy_cmm1 = threshold_f_degeneracy_cmm1 
+   
+    input%file_mat2                    =  file_mat2
+    input%file_mat2_final              =  file_mat2_final
+    input%file_mat2_plus               =  file_mat2_plus
+    input%file_mat2_minus              =  file_mat2_minus
+    input%file_mat3                    =  file_mat3
+    input%outdir                       =  TRIMCHECK(outdir)
+    input%asr2                         =  asr2
+    input%skip_q                       =  skip_q
+    input%nconf                        =  nconf
+    input%nk                           =  nk
+    input%grid_type                    =  grid_type
+    input%grid_type_in                 =  grid_type_in
+    input%exp_t_factor                 =  exp_t_factor
+    input%sort_freq                    =  sort_freq
+    input%xq_ref                       =  xq_ref
+    input%print_dynmat                 =  print_dynmat
+    input%print_velocity               =  print_velocity
+    input%print_gruneisen              =  print_gruneisen
+    input%print_klemens                =  print_klemens
+    input%print_neutron_cs             =  print_neutron_cs
+    input%store_lw                     =  store_lw
+    input%print_all                    =  print_all
+    input%workaround_print_v           =  workaround_print_v
+    input%threshold_f_degeneracy_cmm1  =  threshold_f_degeneracy_cmm1
+    !                                     
+    input%intrinsic_scattering         =  intrinsic_scattering
+    input%debug_linewidth              =  debug_linewidth
+    input%isotopic_disorder            =  isotopic_disorder
+    input%casimir_scattering           =  casimir_scattering
+    input%mfp_cutoff                   =  mfp_cutoff
+    input%sample_dir                   =  sample_dir
     !
-    input%intrinsic_scattering = intrinsic_scattering
-    input%debug_linewidth      = debug_linewidth 
-    input%isotopic_disorder    = isotopic_disorder
-    input%casimir_scattering   = casimir_scattering
-    input%mfp_cutoff           = mfp_cutoff
-    input%sample_dir           = sample_dir
     IF(casimir_scattering .and. mfp_cutoff) &
       CALL errore("code_input","don't use both casimir_scattering and mfp_cutoff",1)
     !
-    input%thr_tk = thr_tk
-    input%niter_max = niter_max
-    input%restart = restart
+    input%thr_tk     = thr_tk
+    input%niter_max  = niter_max
+    input%restart    = restart
     !
-    input%optimize_grid = optimize_grid
+    input%optimize_grid     = optimize_grid
     input%optimize_grid_thr = optimize_grid_thr
     !
     IF(ANY(nk_in<0)) nk_in = nk
@@ -952,6 +956,7 @@ MODULE code_input
       CALL mpi_broadcast(sample_length_mu)
       CALL mpi_broadcast(sigmaq)
       CALL mpi_broadcast(sort_freq)
+      CALL mpi_broadcast(3,xq_ref)
       CALL mpi_broadcast(skip_q)
       CALL mpi_broadcast(store_lw)
       CALL mpi_broadcast(print_all)

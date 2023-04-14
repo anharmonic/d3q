@@ -1,13 +1,18 @@
+
 MODULE overlap
   !
   USE kinds, ONLY : DP
+#include "mpi_thermal.h"
+
   TYPE :: order_type
     COMPLEX(DP),ALLOCATABLE,PRIVATE :: e_prev(:,:)
     INTEGER,ALLOCATABLE     :: idx(:)
+    REAL(DP) :: xq_ref(3)
     CONTAINS
       PROCEDURE :: set => set_idx
       PROCEDURE :: set_path => set_path_idx
       PROCEDURE :: set_ref => set_idx_reference
+      PROCEDURE :: set_xq_ref => set_xq_ref
       PROCEDURE :: reset => reset_idx
   END TYPE
   !
@@ -76,7 +81,7 @@ MODULE overlap
   ! but at a small q in the same direction q0 = epsilon * q/|q|. 
   ! This *could* ensure that continuity is consistent at crossings. 
   ! EXPERIMENT ! 
-  SUBROUTINE set_idx_reference(self, nat3, w, e, xq, xq_ref, S, fc2) !RESULT(order_out)
+  SUBROUTINE set_idx_reference(self, nat3, w, e, xq, S, fc2) !RESULT(order_out)
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE fc2_interpolate,    ONLY : freq_phq, freq_phq_hat
     USE q_grids,            ONLY : q_grid, setup_path, q_grid_destroy
@@ -89,7 +94,7 @@ MODULE overlap
     REAL(DP),INTENT(in) :: w(nat3)
     COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
     !
-    REAL(DP),INTENT(in) ::  xq(3), xq_ref(3)
+    REAL(DP),INTENT(in) ::  xq(3)
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     TYPE(ph_system_info),INTENT(in)   :: S
     !
@@ -98,13 +103,13 @@ MODULE overlap
     !
     TYPE(q_grid) :: qline
     !
-    REAL(DP),PARAMETER :: dq = 0.0003_dp
+    REAL(DP),PARAMETER :: dq = 0.0005_dp ! bohr^-1
     INTEGER :: i, iq0, nq0
     !
-    nq0 = DSQRT(SUM((xq-xq_ref)**2))/dq
-    print*, nq0
+    nq0 = DSQRT(SUM((xq-self%xq_ref)**2))/(dq*S%tpiba)
+    !print*, nq0
 
-    CALL setup_path(xq_ref, 1, qline, S%at)
+    CALL setup_path(self%xq_ref, 1, qline, S%at)
     CALL setup_path(xq, nq0, qline, S%at)
     !
     DO iq0 = 1, qline%nq
@@ -115,7 +120,30 @@ MODULE overlap
     CALL q_grid_destroy(qline)
     !
   END SUBROUTINE set_idx_reference
-
+  !
+  SUBROUTINE set_xq_ref(self, nq, xq, xq_ref) !RESULT(order_out)
+    USE constants, ONLY : RY_TO_CMM1
+    !USE merge_degenerate, ONLY : merge_degen
+    IMPLICIT NONE
+    CLASS(order_type),INTENT(inout) :: self
+    !
+    INTEGER,INTENT(in)  :: nq
+    REAL(DP),INTENT(in) :: xq(3,nq), xq_ref(3)
+    INTEGER :: i
+    !IF(input%sort_freq=="reference")THEN
+    IF(ALL(xq_ref==0._dp))THEN
+      ! use average point of path to sort frequency, to minimize distance
+      DO i = 1,3
+        self%xq_ref(i) = SUM(xq(i,:))/nq
+      ENDDO
+      ! fall-back to 1/4 1/4 1/4 if it was zero
+      IF(SUM(ABS(self%xq_ref))<1.d-4) self%xq_ref = 0.25_dp
+    ELSE
+      self%xq_ref = xq_ref
+    ENDIF
+    ioWRITE(*,'(2x,a,3f12.6)') "Reference point for sorting phonon bands:", self%xq_ref
+    !ENDIF
+  END SUBROUTINE 
 
   !
   SUBROUTINE set_idx(self, nat3, w, e, keep_old_e, reset)
