@@ -376,6 +376,8 @@ MODULE r2q_program
     !
     ioWRITE(*,'(2x,a,i6,a)') "Going to compute", qpath%nq, " points (1)"
     !
+    IF(input%sort_freq=="reference") CALL order%set_xq_ref(qpath%nq, qpath%xq, input%xq_ref)
+    !
     DO iq = input%skip_q +1,qpath%nq
       !
       CALL print_percent_wall(10._dp, 300._dp, iq, qpath%nq, (iq==1))
@@ -385,9 +387,13 @@ MODULE r2q_program
       ! If necessary, compute the ordering of the bands to assure modes continuity;
       ! on first call, it just returns the trivial 1...3*nat order
       !IF(input%sort_freq=="overlap" .or. iq==1) CALL order%set(S%nat3, w2, D)
-      IF(input%sort_freq=="overlap" .or. iq==1) &
+      ! IF(input%sort_freq=="overlap" .or. iq==1) &
+      !     CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
+      IF(input%sort_freq=="overlap" .or. iq==1) THEN
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
-      !
+      ELSEIF(input%sort_freq=="reference")THEN
+          CALL order%set_ref(S%nat3, qpath%xq(:,iq), S, fc2)
+      ENDIF      !
       ! Compute isotopic linewidth
       IF(input%isotopic_disorder)THEN
           timer_CALL t_lwisot%start()
@@ -790,13 +796,18 @@ PROGRAM r2q
       OPEN(unit=output_unit+2, file=filename)
     ENDIF
     !
+    IF(input%sort_freq=="reference") CALL order%set_xq_ref(qpath%nq, qpath%xq, input%xq_ref)
+    !
     ALLOCATE(proj(S%ntyp,S%nat3))
     DO i = 1,qpath%nq
       !CALL freq_phq(qpath%xq(:,i), S, fc2, freq, U)
       CALL freq_phq_path(qpath%nq, i, qpath%xq, S, fc2, freq, U)
-      IF(input%sort_freq=="overlap" .or. i==1) & !CALL order%set(S%nat3, freq, U)
+      IF(input%sort_freq=="overlap" .or. i==1) THEN
           CALL order%set_path(S%nat3, freq, U, i, qpath%nq, qpath%w, qpath%xq)
-
+      ELSEIF(input%sort_freq=="reference")THEN
+          CALL order%set_ref(S%nat3, qpath%xq(:,i), S, fc2)
+      ENDIF
+    
       ! project on atomic types
       proj=0._dp
       DO nu = 1,S%nat3

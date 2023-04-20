@@ -81,7 +81,7 @@ MODULE overlap
   ! but at a small q in the same direction q0 = epsilon * q/|q|. 
   ! This *could* ensure that continuity is consistent at crossings. 
   ! EXPERIMENT ! 
-  SUBROUTINE set_idx_reference(self, nat3, w, e, xq, S, fc2) !RESULT(order_out)
+  SUBROUTINE set_idx_reference(self, nat3, xq, S, fc2) !RESULT(order_out)
     USE input_fc,           ONLY : forceconst2_grid, ph_system_info
     USE fc2_interpolate,    ONLY : freq_phq, freq_phq_hat
     USE q_grids,            ONLY : q_grid, setup_path, q_grid_destroy
@@ -91,8 +91,8 @@ MODULE overlap
     CLASS(order_type),INTENT(inout) :: self
     !
     INTEGER,INTENT(in) :: nat3
-    REAL(DP),INTENT(in) :: w(nat3)
-    COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
+    ! REAL(DP),INTENT(in) :: w(nat3)
+    ! COMPLEX(DP),INTENT(in) :: e(nat3,nat3)
     !
     REAL(DP),INTENT(in) ::  xq(3)
     TYPE(forceconst2_grid),INTENT(in) :: fc2

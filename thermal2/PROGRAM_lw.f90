@@ -113,7 +113,7 @@ MODULE linewidth_program
       IF(input%sort_freq=="overlap" .or. iq==input%skip_q +1) THEN
           CALL order%set_path(S%nat3, w2, D, iq, qpath%nq, qpath%w, qpath%xq)
       ELSEIF(input%sort_freq=="reference")THEN
-        CALL order%set_ref(S%nat3, w2, D, qpath%xq(:,iq), S, fc2)
+        CALL order%set_ref(S%nat3, qpath%xq(:,iq), S, fc2)
       ENDIF
       !
       ! Pre-compute isotopic linewidth
