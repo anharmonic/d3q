@@ -68,7 +68,7 @@ PROGRAM gen_sparse
     !
     CHARACTER(len=:),ALLOCATABLE :: cmdline
 
-    filein   = cmdline_param_char("i", "mat3R")
+    filein   = cmdline_param_char("i", "mat3R.asr")
     fileout  = cmdline_param_char("o", TRIM(filein)//".sparse")
     thr      = cmdline_param_dble("t", 0.d0)
     ntest    = cmdline_param_int("n", -1)
