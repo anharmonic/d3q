@@ -38,10 +38,18 @@ PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
          ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
-#../distributed/libminpack.a 
-#EXTOBJS = ../src/libd3q.a ../lapackified/libminpack.a 
-EXTOBJS = ../src/libd3q.a ../distributed/libminpack.a ../lapackified/libminpack.a \
+
+ifdef SCALAPACK_LIBS
+MINPACK = lapackified-libs distributed-libs
+EXTOBJS = ../src/libd3q.a ../minpack/distributed/libminpack.a ../minpack/lapackified/libminpack.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
+else
+MINPACK = lapackified-libs
+EXTOBJS = ../src/libd3q.a ../minpack/lapackified/libminpack.a \
+	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
+endif
+
+
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib
 
@@ -105,17 +113,20 @@ all : tldeps d3q-libs thermal2-libs $(EXEC)
 .PHONY : tldeps d3q-libs thermal2-libs
 
 # Note to self: $^ expands to all dependencies, $< expands to the first dependency
-$(EXEC) : % : PROGRAM_%.o tldeps d3q-libs lapackified-libs thermal2-libs
+$(EXEC) : % : PROGRAM_%.o tldeps d3q-libs thermal2-libs $(MINPACK)
 	$(LD) $(LDFLAGS) -o d3_$@.x $< libthermal2.a \
 	    $(EXTOBJS) $(QEMODS) $(LIBOBJS) $(QELIBS)
 	$(STRIP)  d3_$@.x
-	- ( cd ../../bin ; ln -fs ../D3Q/thermal2/d3_$@.x d3_$@.x )
+	- ( cd ../../bin && ln -fs ../D3Q/thermal2/d3_$@.x d3_$@.x )
 
 d3q-libs :
-	( cd ../src/; make libd3q.a)
+	( cd ../src/ && make libd3q.a)
 
 lapackified-libs :
-	( cd ../lapackified/; make)
+	( cd ../minpack/lapackified/ && make)
+
+distributed-libs :
+	( cd ../minpack/distributed/ && make)
 
 thermal2-libs : libthermal2.a
 
