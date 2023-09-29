@@ -90,6 +90,22 @@ MODULE read_md_module
 
   END SUBROUTINE 
   !
+  FUNCTION read_max_steps_para(n_steps)
+    USE kinds,     ONLY : DP
+    USE mpi_thermal, ONLY : my_id, num_procs, mpi_bsum
+    IMPLICIT NONE
+    INTEGER,INTENT(in) :: n_steps
+    INTEGER :: read_max_steps_para
+    INTEGER :: n_steps0
+    n_steps0 = n_steps/num_procs
+    IF( my_id<(n_steps-n_steps0*num_procs) ) n_steps0 = n_steps0+1
+    read_max_steps_para = n_steps0
+    !
+    ! double check (Mostly that CPUs got consistent input): 
+    CALL mpi_bsum(n_steps0)
+    IF(n_steps0/=n_steps) CALL errore("md_read","parallel steps distribution not ok",1)
+  END FUNCTION
+
   SUBROUTINE read_pioud(file_tau, file_for, file_toten, toten0, nat_tot, alat, first_step, n_skip, n_steps,&
                         n_steps_tot, tau_md, force_md, toten_md, tau0, u_disp)
     !----------------------------------------------------------------------
@@ -113,7 +129,7 @@ MODULE read_md_module
     REAL(DP),INTENT(in),OPTIONAL :: tau0(3,nat_tot)!, tau_sc(:,:) ! equilibrium atomic positions, only used to compute displacements
     REAL(DP),INTENT(out),ALLOCATABLE,OPTIONAL :: u_disp(:,:,:) ! displacements
     REAL(DP),PARAMETER :: ANGS_TO_BOHR = 1/BOHR_RADIUS_ANGS
-    INTEGER :: i, j, k, nu, mu, beta, n_steps0, uni, i_step, k_step, &
+    INTEGER :: i, j, k, nu, mu, beta, n_steps0, uni, i_step, k_step, ios1, ios2, ios3, &
                       jat, kat, iat, ios, uni_tau, uni_for, uni_toten
     CHARACTER(len=1024)    :: line
     LOGICAL      :: look_for_forces, look_for_toten_md, actually_read_the_forces, &
@@ -126,12 +142,12 @@ MODULE read_md_module
   IF(.not.ALLOCATED(force_md)) ALLOCATE(force_md(3,nat_tot,n_steps))
   IF(.not.ALLOCATED(toten_md)) ALLOCATE(toten_md(n_steps))
 
-  n_steps0 = n_steps
-  n_steps = n_steps/num_procs
-  IF( my_id<(n_steps0-n_steps*num_procs) ) n_steps = n_steps+1
-  i_step = n_steps
-  CALL mpi_bsum(i_step)
-  IF(i_step/=n_steps0) CALL errore("md_read","parallel steps distribution not ok",1)
+  !n_steps0 = n_steps
+  !n_steps = n_steps/num_procs
+  !IF( my_id<(n_steps0-n_steps*num_procs) ) n_steps = n_steps+1
+  !i_step = n_steps
+  !CALL mpi_bsum(i_step)
+  !IF(i_step/=n_steps0) CALL errore("md_read","parallel steps distribution not ok",1)
   i_step = 0
 
   !n_steps0 = n_steps
@@ -150,18 +166,23 @@ MODULE read_md_module
           i_step = i_step+1
           !WRITE(*,*) "Reading step", k_step, " as ", i_step, " on cpu ", my_id
 ! READ AND WRITE ATOMIC POSITIONS, ATOMIC FORCES AND TOTAL-ENERGY TO SCREEN
-          READ(uni_tau, *) tau_md(:,:, i_step)
+          READ(uni_tau, *, iostat=ios1) tau_md(:,:, i_step)
           !WRITE(*,'(3E14.5)') tau_md(:,:, i_step)  
-          READ(uni_for,*) force_md(:, :, i_step)
+          READ(uni_for,*,iostat=ios2) force_md(:, :, i_step)
           force_md(:,:, i_step) = force_md(:,:, i_step)*2 ! Hartree to Ry
           !WRITE(*,'(3E14.5)') force_md(:,:, i_step)
-          READ(uni_toten,*) toten_md(i_step)
+          READ(uni_toten,*,iostat=ios3) toten_md(i_step)
           toten_md(i_step) = toten_md(i_step)*2 ! Hartree to ry
           !WRITE(*,'(E14.5)') toten_md(i_step)
+          IF(ANY((/ios1,ios2,ios3/)/=0))THEN
+            i_step = i_step-1
+            EXIT READ_LOOP
+          ENDIF
        ELSE
-           READ(uni_tau, *)
-           READ(uni_for, *)
-           READ(uni_toten, *)
+          READ(uni_tau, *,iostat=ios1)
+          READ(uni_for, *,iostat=ios2)
+          READ(uni_toten, *,iostat=ios3)
+          IF(ANY((/ios1,ios2,ios3/)/=0)) EXIT READ_LOOP
         ENDIF
         
        IF(i_step >= n_steps) THEN
@@ -174,11 +195,11 @@ MODULE read_md_module
   !   IF(my_id=num_procs-1) WRITE(*,*) "Only found ", i_step, "steps on last CPU."
      n_steps = i_step
   ENDIF
-  IF(num_procs<17) WRITE(*,*) "Number of steps read on CPU",my_id," : ", n_steps
+  IF(num_procs<17) WRITE(*,*) "Number of steps read on CPU ",my_id," : ", n_steps
   !
   n_steps_tot = n_steps
   CALL mpi_bsum(n_steps_tot)
-  IF(n_steps_tot<n_steps0) WRITE(*,*) "WARNING: number of steps requested was larger: ", n_steps0
+  !IF(n_steps_tot<n_steps0) WRITE(*,*) "WARNING: number of steps requested was larger: ", n_steps0
   ioWRITE(*,*) "Number of steps read among all CPUs : ", n_steps_tot
 
   CLOSE(uni_tau)

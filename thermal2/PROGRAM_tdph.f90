@@ -25,7 +25,7 @@ MODULE tdph_module
     CHARACTER(len=8) :: minimization = "ph+zstar"
     CHARACTER(len=9) :: basis = "mu"
     INTEGER :: nfirst, nskip, nmax, nprint
-    REAL(DP) :: e0, thr, T, randomization
+    REAL(DP) :: e0, thr, T, randomization, alpha_rigid
     !
   END TYPE tdph_input_type
   !
@@ -47,7 +47,6 @@ MODULE tdph_module
   COMPLEX(DP),ALLOCATABLE :: rbdyn(:,:,:,:)
   REAL(DP) :: omega_sc, mat_ij(3,3), at_sc(3,3), bg_sc(3,3)
   REAL(DP), PARAMETER :: gamma(3) = (/0._dp,0._dp,0._dp/)
-
 
   ! Not necessarily global, but put here for debugging:
   INTEGER ::  mdata_tot, nph
@@ -81,14 +80,14 @@ MODULE tdph_module
     INTEGER :: input_unit, aux_unit, err1, err2
     !CHARACTER(len=6), EXTERNAL :: int_to_char
     INTEGER,EXTERNAL :: find_free_unit
-    REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp, randomization=0._dp
+    REAL(DP) :: e0 = 0._dp, thr = 1.d-8, T=-1._dp, randomization=0._dp, alpha_rigid = 1._dp
     !
     NAMELIST  / tdphinput / &
         fmd, fforce, ftau, ftoten, &
         ai, file_mat2, fit_type, &
         nfirst, nskip, nmax, nprint, nread, &
         e0, minimization, thr, T, basis, &
-        randomization
+        randomization, alpha_rigid
 
     ioWRITE(*,*) "Waiting for input"
     !
@@ -129,7 +128,7 @@ MODULE tdph_module
     !IF(ANY(<1))  CALL errore("READ_INPUT_TDPH","Invalid nk",1)
 
     IF(e0==0._dp .and. fit_type=='energy') &
-        CALL errore("tdph","need zero energy to fit energy difference", 1)
+        CALL errore("tdph","need zero energy (e0 = total energy of unit cell) to fit energy difference", 1)
 
     IF(nmax>0 .and. nread>0) CALL errore("tdph", "You cannot specify both nread and nmax",1)
     IF(nmax<0 .and. nread>0) nmax = nfirst+nskip*nread
@@ -154,6 +153,7 @@ MODULE tdph_module
     input%T             = T
     input%basis         = basis
     input%randomization = randomization
+    input%alpha_rigid   = alpha_rigid
     !
     CONTAINS
     SUBROUTINE bcast_namelist_variables()
@@ -177,6 +177,7 @@ MODULE tdph_module
         CALL mpi_broadcast(T)
         CALL mpi_broadcast(basis)
         CALL mpi_broadcast(randomization)
+        CALL mpi_broadcast(alpha_rigid)
     END SUBROUTINE
   END SUBROUTINE READ_INPUT_TDPH
   !
@@ -265,10 +266,11 @@ MODULE tdph_module
 
     CALL harmonic_force_md(n_steps, nat_sc, Si, fcout, u, force_harm, h_energy)
 
+    ! Computing long-range forces is quite slow, we try to do it only when it is really necessary
     IF(Si%lrigid)THEN ! I put this IF first because the others are always false when this one is
-    IF(.not.done_zstar.and.ANY(zstar_old /= zstar_aux)) THEN
+    IF(.not.done_zstar.AND.ANY(zstar_old /= zstar_aux)) THEN
       !
-      print*, "recom. zstar", zstar_aux
+      !print*, "recom. zstar", zstar_aux
       zstar_old = zstar_aux
       !
       CALL t_zstar%start()
@@ -278,7 +280,7 @@ MODULE tdph_module
       rbdyn = 0._dp
       CALL t_rigid%start()
       CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
-                   omega_sc, Si%alat, .false., +1._dp)
+                   omega_sc, Si%alat, .false., +1._dp) !, alpha=input%alpha_rigid)
       CALL t_rigid%stop()
 !$OMP PARALLELDO DEFAULT(shared) PRIVATE(istep,i,j,mat_ij)
       DO istep = 1, n_steps
@@ -295,13 +297,15 @@ MODULE tdph_module
       CALL t_zstar%stop()
     ENDIF
     !
-    ! Always include rigid contribution, even if it was not computed this time
+    ! Always include rigid contribution, even if it was not computed on this call
     force_harm =  force_harm + force_rgd
     ENDIF ! Si%lrigid
     !
     SELECT CASE(input%fit_type)
     CASE('force', 'forces')
-      diff = RESHAPE( (force_harm(:,:,:)  - force_md(:,:,:)), (/ mdata /) )
+      force_harm(1:3,1:nat_sc,1:n_steps) = force_harm(1:3,1:nat_sc,1:n_steps)&
+                                         - force_md(1:3,1:nat_sc,1:n_steps)
+      diff = RESHAPE( force_harm(1:3,1:nat_sc,1:n_steps), (/ mdata /) )
     CASE('energy')
       ! not implemented with MPI_GATHER
       STOP 100
@@ -320,14 +324,19 @@ MODULE tdph_module
     CALL allgather_vec(mdata, diff, diff_tot_)
     CALL t_comm%stop()
 
-    IF(iswitch==1)THEN
+    ! lmdif_c uses 0 to signal new steps, 1 at the first evaluation
+    IF(iswitch==0 .or. iswitch==1)THEN
       iter = iter+1
       chi2 = SUM(diff**2)
       CALL mpi_bsum(chi2)
       chi2=SQRT(chi2)/mdata_tot_
       ioWRITE(*,'(i10,e15.7)') iter, chi2
+      IF(isnan(chi2))THEN
+        WRITE(10000+my_id, *)  diff
+        STOP 777
+      ENDIF
 
-      ioWRITE(ulog, "(i10,f14.6,9999f12.6)") iter, chi2, pars_
+      ioWRITE(ulog, "(2i10,e17.6,9999e15.6)") iter, iswitch, chi2, pars_
       ! Every input%nprint steps have a look
       IF(MODULO(iter,input%nprint)==0) &
         CALL write_fc2("matOUT.iter_"//TRIM(int_to_char(iter)), Si, fcout)
@@ -339,7 +348,7 @@ MODULE tdph_module
     !
 !  void fcn(void * farg, int m, int n, const double *x, double *fvec)
 !-----------------------------------------------------------------------
-  SUBROUTINE chi_lmdif_c_para(farg, mdata_tot_, npars_, pars_, diff_tot_) &
+  SUBROUTINE chi_lmdif_c_para(farg, mdata_tot_, npars_, pars_, diff_tot_, iswitch_) &
     BIND(c, name="chi_lmdif_c_para")
     !-----------------------------------------------------------------------
     ! Calculates the square difference, fdiff2, btw harmonic and ab-initio
@@ -347,7 +356,7 @@ MODULE tdph_module
     USE iso_c_binding
     IMPLICIT NONE
     TYPE(c_ptr),INTENT(in) :: farg
-    INTEGER(kind=C_INT),INTENT(in),VALUE    :: mdata_tot_, npars_
+    INTEGER(kind=C_INT),INTENT(in),VALUE    :: mdata_tot_, npars_, iswitch_
     REAL(kind=C_DOUBLE),INTENT(in)    :: pars_(npars_)
     REAL(kind=C_DOUBLE),INTENT(inout) :: diff_tot_(mdata_tot_)
     !
@@ -355,9 +364,9 @@ MODULE tdph_module
     !
     !print*, "wrap>", mdata_tot_, npars_
     !print*, "wrap2>", pars_
-    iswitch_aux = 0
+    iswitch_aux = iswitch_
     CALL chi_lmdif_c(mdata_tot_, npars_, pars_, diff_tot_, iswitch_aux)
-    print*, ">>>>>", SUM(diff_tot_**2)
+    !print*, ">>>>>", SUM(diff_tot_**2)
     !
   END SUBROUTINE
 END MODULE
@@ -391,7 +400,7 @@ PROGRAM tdph
   USE mpi_thermal,        ONLY : start_mpi, stop_mpi, num_procs, mpi_broadcast, my_id
   USE tdph_module
   ! harmonic
-  USE read_md_module,     ONLY : read_md, read_pioud, fc_to_supercell
+  USE read_md_module,     ONLY : read_md, read_pioud, fc_to_supercell, read_max_steps_para
   USE harmonic_module,    ONLY : harmonic_force_md
   ! minipack
   USE lmdif_module,       ONLY : lmdif0
@@ -448,6 +457,7 @@ PROGRAM tdph
   !Si%lrigid = .false.
   CALL aux_system(Si)
   CALL div_mass_fc2(Si, fc)
+  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zstar_sc)
   !
   CALL set_qe_global_geometry(Si)
   !
@@ -646,11 +656,11 @@ PROGRAM tdph
 !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
-  n_steps    = input%nmax   ! total molecular dynamics steps TO READ
+  !n_steps    = input%nmax   ! total molecular dynamics steps TO READ
+  n_steps    = read_max_steps_para(input%nmax)   ! total molecular dynamics steps TO READ on this CPU
   first_step = input%nfirst ! start reading from this step
   n_skip     = input%nskip  ! number of steps to skip
 
-  CALL fc_to_supercell(Si, fc, at_sc, bg_sc, omega_sc, nat_sc, tau_sc, zstar_sc)
   CALL t_init%stop()
 !###################  end of initialization ####################################################
 
@@ -667,6 +677,7 @@ PROGRAM tdph
   ELSE
     CALL errore("tdph","unknown input format", 1)
   ENDIF
+  IF(n_steps_tot > input%nmax) CALL errore('tdph','read more steps than expected',1)
   CALL t_read%stop()
 
 !###################  end of data input ####################################################
@@ -695,12 +706,12 @@ PROGRAM tdph
       aux = 2*SUM(ABS(ph_coefficients))/nph*ABS(input%randomization)
       !
       IF(input%randomization>0._dp)THEN
-        WRITE(*,"(2x,a,f12.6)") "Adding random noise to initial phonons up to ", aux
+        WRITE(*,"(x,a,f12.6)") "Adding random noise to initial phonons up to ", aux
         DO i = 1, nph
           ph_coefficients(i) = ph_coefficients(i) + 2*aux*(randy()-.5_dp)
         ENDDO
       ELSE IF(input%randomization<0._dp)THEN
-        WRITE(*,"(2x,a,f12.6)") "Randomizing initial phonons up to ", aux
+        WRITE(*,"(x,a,f12.6)") "Randomizing initial phonons up to ", aux
         DO i = 1, nph
           ph_coefficients(i) = aux*2*(randy()-.5_dp)
         ENDDO

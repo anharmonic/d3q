@@ -98,7 +98,7 @@ MODULE lmdif_p_module
       diag= 1.d0        ! all the variables have the same importance
       mode = 1          ! set diag automatically
       factor = 1.d0     ! initial step factor
-      epsdiff = 0d0     ! precision of fcn (used fo finite difference differentiation)
+      epsdiff = 1.d-5     ! precision of fcn (used fo finite difference differentiation)
       nprint = 0
       maxfev = 100000   ! take as many iterations as needed
 
@@ -109,13 +109,13 @@ MODULE lmdif_p_module
    END SUBROUTINE
 
 
-
+   ! Wrapper for the c function lmdif_c in ../lapackified
    SUBROUTINE lmdif_c0(fcn, m, n, x, fvec, tol, info)
        USE iso_c_binding
        IMPLICIT NONE
        EXTERNAL :: fcn
        INTEGER(kind=C_INT) :: m, n, info
-       REAL(kind=C_DOUBLE)::  tol
+       REAL(kind=C_DOUBLE)::  tol, ftol, xtol, gtol
        REAL(kind=C_DOUBLE)::  x (n), fvec (m)
        ! internal variables
        INTEGER :: ipvt(n), maxfev, mode
@@ -124,8 +124,8 @@ MODULE lmdif_p_module
        INTEGER(kind=C_INT)  :: iwa (n), nprint, nfev
        REAL(kind=C_DOUBLE) :: factor, epsdiff
 
-       INTEGER(kind=C_INT)  :: auxi
-       REAL(kind=C_DOUBLE) :: auxd
+       !INTEGER(kind=C_INT)  :: auxi
+       REAL(kind=C_DOUBLE) :: zero
        !
        TYPE(C_FUNPTR) :: cptr
        !
@@ -160,11 +160,14 @@ MODULE lmdif_p_module
       mode = 1          ! set diag automatically
       factor = 1.d0     ! initial step factor
       epsdiff = 1.d-8     ! precision of fcn (used for finite difference differentiation)
-      nprint = 0
-      maxfev = 100000   ! take as many iterations as needed
+      nprint = 1
+      maxfev = 1000000   ! take as many iterations as needed
  
-      auxd = 0._dp
-      auxi = 0
+      !zero = 0._dp
+      !auxi = 1 ! nprint
+      ftol = tol
+      xtol = tol
+      gtol = tol
 
       ! convert fortran function pointer to C
       cptr = C_FUNLOC(fcn)
@@ -183,11 +186,12 @@ MODULE lmdif_p_module
       ipvt = 0
       nfev = 0
 
-      CALL lmdif_c(cptr,m,n,x,fvec,tol,tol,auxd,maxfev,epsdiff, &
-                 diag,mode,factor,auxi,info,nfev,fjac,  &
+      CALL lmdif_c(cptr,m,n,x,fvec,ftol,xtol,gtol,maxfev,epsdiff, &
+                 diag,mode,factor,nprint,info,nfev,fjac,  &
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
 
       IF(info==0.or.info>4) WRITE(*,'(2x,"Warning ! Did not minimize:",2i8)') info
+      PRINT*, "Minimization finished:", info
 
    END SUBROUTINE lmdif_c0
    
@@ -208,7 +212,7 @@ MODULE lmdif_p_module
        TYPE(C_FUNPTR) :: cfcn
        TYPE(C_PTR)    :: cfarg
        !
-       INTEGER :: ctx, nprow, npcol, nprocs, me
+       INTEGER :: ctx, nprow, npcol, nprocs, me, i
        !
        INTERFACE
          FUNCTION plmdif_c(cfcn, cfarg, m, n, x, fvec, ftol, xtol, gtol, maxfev, nfev, ctx) &
@@ -229,21 +233,28 @@ MODULE lmdif_p_module
          END FUNCTION plmdif_c
        END INTERFACE
        !
-       STOP 7777
-       maxfev = 100000   ! take as many iterations as needed
+       maxfev = 1000000   ! take as many iterations as needed
        ! convert fortran function pointer to C
        cfcn  = C_FUNLOC(fcn)
        cfarg = C_LOC(farg)
        !
-       !CALL BLACS_PINFO(me, nprocs)
-       !CALL BLACS_GET(0, 0, ctx)
-       nprow = 2
-       npcol = 2
+       CALL BLACS_PINFO(me, nprocs)
+       CALL BLACS_GET(0, 0, ctx)
+       nprow = INT(DSQRT(DBLE(nprocs)))
+       DO i = 0, nprow-1
+            npcol = nprocs/nprow
+            IF(npcol*nprow == nprocs) EXIT
+            nprow = nprow-1
+       ENDDO
+
+       !nprow = nprocs
+       !npcol = 1
+
        !print*, "blacs>", me, nprocs, ctx, m, n
-       !CALL BLACS_GRIDINIT (ctx, 'R', nprow, npcol)
+       CALL BLACS_GRIDINIT (ctx, 'C', nprow, npcol)
        !
-       !info = &
-       ! plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
+       info = &
+        plmdif_c(cfcn, cfarg, m, n, x, fvec, tol, tol, tol, maxfev, nfev, ctx)
 
    END SUBROUTINE plmdif_c0
 #endif
