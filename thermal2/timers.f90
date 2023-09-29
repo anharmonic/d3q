@@ -156,6 +156,8 @@ MODULE timers
       ! IF(print_now .and. ionode) WRITE(stdout,'(f12.1,"% | STEP TIME:",f12.1,"s | STEP END: ",9x,"-.-s &
       !               &| WALL:",f12.1,"s ")') &
       !               pc, iter_time, wall
+    ELSE
+      iter_end_time = 0._dp
     ENDIF
     !
     time_is_out = check_time_limit(iter_end_time+iter_start)
