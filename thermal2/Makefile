@@ -39,7 +39,8 @@ QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_
          ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
 #../distributed/libminpack.a 
-EXTOBJS = ../src/libd3q.a ../lapackified/libminpack.a \
+#EXTOBJS = ../src/libd3q.a ../lapackified/libminpack.a 
+EXTOBJS = ../src/libd3q.a ../distributed/libminpack.a ../lapackified/libminpack.a \
 	  $(PHOBJS) $(LRMODS) $(PWOBJS) $(QEMODS)
 
 TLDEPS= bindir mods libs pw-lib lrmods ph-lib

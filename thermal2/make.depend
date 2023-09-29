@@ -300,6 +300,9 @@ nanoclock.o : ./mpi_thermal.o
 neutrons.o : ./fc2_interp.o
 neutrons.o : ./functions.o
 neutrons.o : ./input_fc.o
+overlap.o : ./fc2_interp.o
+overlap.o : ./input_fc.o
+overlap.o : ./q_grids.o
 ph_dos.o : ./code_input.o
 ph_dos.o : ./fc2_interp.o
 ph_dos.o : ./functions.o
@@ -369,6 +372,7 @@ more_constants.o : mpi_thermal.h
 mpi_thermal.o : mpi_thermal.h
 nanoclock.o : mpi_thermal.h
 nist_isotopes_db.o : mpi_thermal.h
+overlap.o : mpi_thermal.h
 ph_system.o : mpi_thermal.h
 posix_signal.o : mpi_thermal.h
 q_grids.o : mpi_thermal.h
