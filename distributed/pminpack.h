@@ -26,7 +26,7 @@
  * - fvec is the output vector that receives the function evaluations.
  *   Must receive the same value on all processes.
  */
-typedef void (*pminpack_func_mn)(void *arg, int m, int n, const double *x, double *fvec);
+typedef void (*pminpack_func_mn)(void *arg, int m, int n, const double *x, double *fvec, int s);
 
 
 int plmdif1(pminpack_func_mn fcn, void *farg, int m, int n, double *x, 

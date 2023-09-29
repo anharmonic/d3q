@@ -152,7 +152,7 @@ static int jac_qrfac(pminpack_func_mn fcn, void *farg, double *x, const double *
 		printf("pLMDIF:   - Jacobian evaluation (forward-difference)\n");
 	for (int j = 0; j < n; ++j) {
 		if (talk) {
-			printf("\rLMDIF:     - column %d / %d", j, n);
+			printf("\rLMDIF:     - column %d / %d", j+1, n);
 			fflush(stdout);
 		}
 		double temp = x[j];
@@ -160,7 +160,7 @@ static int jac_qrfac(pminpack_func_mn fcn, void *farg, double *x, const double *
 		if (h == 0)
 			h = eps;
 		x[j] += h;
-		(*fcn)(farg, m, n, x, wa4);
+		(*fcn)(farg, m, n, x, wa4, 2);
 		x[j] = temp;              // restore x[j]
 		for (int i = 0; i < m; i++)
 			wa4[i] = (wa4[i] - fvec[i]) / h;
@@ -288,7 +288,7 @@ int plmdif(pminpack_func_mn fcn, void *farg, int m, int n, double *x, double *fv
 
 	/* evaluate the function at the starting point and calculate its norm */
 	*nfev = 1;
-	(*fcn) (farg, m, n, x, fvec);
+	(*fcn) (farg, m, n, x, fvec, 0);
 	fnorm = enorm(m, fvec);
 	if (talk)
 		printf("pLMDIF: |fvec| = %f at starting point\n", fnorm);
@@ -383,7 +383,7 @@ int plmdif(pminpack_func_mn fcn, void *farg, int m, int n, double *x, double *fv
 				delta = fmin(delta, pnorm);
 
 			/* Evaluate the function at x + p and calculate its norm. */
-			(*fcn) (farg, m, n, wa2, wa4);
+			(*fcn) (farg, m, n, wa2, wa4, 1);
 			*nfev += 1;
 			double fnorm1 = enorm(m, wa4);
 
