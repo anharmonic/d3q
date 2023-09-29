@@ -109,7 +109,7 @@ void lmdif1_c(minpack_func_mn fcn, int const *m, int const *n, double *x,
 	double gtol = 0;
 	double epsfcn = 0;
 	int mode = 1;
-	int nprint = 0;
+	int nprint = 1;
 	int mp5n = *m + *n * 5;
     int nfev = 0;
 	lmdif_c(fcn, m, n, x, fvec, &ftol, &xtol, &gtol, &maxfev, &epsfcn, 

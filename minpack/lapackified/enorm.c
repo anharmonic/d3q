@@ -41,3 +41,9 @@ double enorm_c(const int *n, double const *x)
 	int incx = 1;
 	return dnrm2_(n, x, &incx);
 }
+
+double enorm_(const int *n, double const *x)
+{
+	int incx = 1;
+	return dnrm2_(n, x, &incx);
+}
