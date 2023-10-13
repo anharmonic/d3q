@@ -140,7 +140,7 @@ MODULE matrix_program
         IF(ios/=0) EXIT
         i = i+1
       ENDDO
-      WRITE(*,*) "Read", i, "q-points"
+      WRITE(*,*) "Found", i, "q-points"
     ENDIF
     qpts%nq = i
 
@@ -163,6 +163,7 @@ MODULE matrix_program
         READ(u,*,iostat=ios) qpts%idx(:,i), qpts%xq(:,i)
         qpts%w(i) = 1._dp
       ENDDO
+      WRITE(*,*) "Read", i, "q-points"
 
       CLOSE(u)
     ENDIF
