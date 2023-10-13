@@ -69,7 +69,7 @@ PROGRAM q2r
   USE environment, ONLY : environment_start, environment_end
   USE quter_module,       ONLY : quter
   USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2
-  USE rigid, ONLY : rgd_blk
+  USE rigid_d3, ONLY : rgd_blk_d3
   !
   IMPLICIT NONE
   !
@@ -252,9 +252,9 @@ PROGRAM q2r
             IF (lrigid) THEN
               !WRITE(stdout,*) "quite rigid"
               ! Remove non-analytic part before doing the Fourier transform
-              !CALL rgd_blk (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
+              !CALL rgd_blk_d3 (nr1,nr2,nr3,nat,phiq(:,:,:,:,nq),q(:,nq), &
               !              tau,epsil,zeu,bg,omega,-1.d0)
-              CALL rgd_blk (2,2,2,nat,phiq(:,:,:,:,nq),q(:,nq), &
+              CALL rgd_blk_d3 (2,2,2,nat,phiq(:,:,:,:,nq),q(:,nq), &
                     tau,epsil,zeu,bg,omega,celldm(1), .false.,-1.d0) ! 2D added celldm and flag
             END IF
 !            write(998,'(6f12.6)') phiq(:,:,:,:,nq) 

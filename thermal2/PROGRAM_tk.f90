@@ -582,7 +582,7 @@ MODULE thermalk_program
     ioWRITE(stdout,"(3x,'\>\^\~',40('-'),'^v^v',20('-'),'=/~/o>',/,4x,a,i4)") &
             "Computing A_out"
         timer_CALL t_tkaout%start()
-      CALL compute_A_out(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
+      CALL compute_A_out_symq(A_out, input, qbasis, out_grid, in_grid, S, fc2, fc3)
           timer_CALL t_tkaout%stop()
       !
       ! Save A_out, so we do not have to repeat it

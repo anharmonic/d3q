@@ -224,7 +224,7 @@ MODULE tdph_module
     USE input_fc,        ONLY : write_fc2
     ! rigid block model:
     USE decompose_zstar, ONLY : recompose_zstar, zstar_to_supercell
-    USE rigid,              ONLY : rgd_blk
+    USE rigid_d3,           ONLY : rgd_blk_d3
     USE asr2_module,        ONLY : impose_asr2
 
     IMPLICIT NONE
@@ -279,7 +279,7 @@ MODULE tdph_module
       CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
       rbdyn = 0._dp
       CALL t_rigid%start()
-      CALL rgd_blk(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
+      CALL rgd_blk_d3(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
                    omega_sc, Si%alat, .false., +1._dp) !, alpha=input%alpha_rigid)
       CALL t_rigid%stop()
 !$OMP PARALLELDO DEFAULT(shared) PRIVATE(istep,i,j,mat_ij)
@@ -412,7 +412,7 @@ PROGRAM tdph
   USE timers
   USE random_numbers,     ONLY : randy
   USE decompose_d2,       ONLY : recompose_fc
-  USE rigid,              ONLY : rgd_blk
+  USE rigid_d3,           ONLY : rgd_blk_d3
   USE iso_c_binding
   USE decompose_zstar,    ONLY : find_zstar_symm_base, dotprodzstar, recompose_zstar
   !

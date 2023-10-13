@@ -94,8 +94,10 @@ posix_signal.o \
 q_grids.o \
 quter.o \
 read_md.o \
+rigid_d3.o \
 timers.o \
-variational_tk.o
+variational_tk.o \
+variational_tk_symq.o
 
 #EXECUTABLES = d3_lw.x d3_tk.x d3_asr3.x d3_sqom.x d3_sparse.x d3_q2r.x d3_r2q.x d3_qq2rr.x d3_import_shengbte.x d3_recenter.x
 

@@ -23,6 +23,7 @@ MODULE variational_tk
   USE q_grids,         ONLY : q_grid
   USE mpi_thermal,     ONLY : ionode
   USE posix_signal,    ONLY : check_graceful_termination
+  USE variational_tk_symq
   !
   ! <<^V^\\=========================================//-//-//========//O\\//
   CONTAINS
@@ -211,14 +212,15 @@ MODULE variational_tk
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
       ENDDO
 !$OMP END PARALLEL DO
+      U(:,:,5) = CONJG(U(:,:,2))
         timer_CALL t_freq%stop()
       !
       ! Interpolate D3(q1,q2,-q1-q2)
         timer_CALL t_fc3int%start()
-      CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+      CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
         timer_CALL t_fc3int%stop()
         timer_CALL t_fc3rot%start()
-      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,2), U(:,:,3))
+      CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
         timer_CALL t_fc3rot%stop()
         timer_CALL t_fc3m2%start()
       V3sq = REAL( CONJG(D3)*D3 , kind=DP)
@@ -227,21 +229,21 @@ MODULE variational_tk
       ! Interpolate D3(q1,-q2, q2-q1)
       ! For this process, we send q2 -> -q2,
       ! i.e. D2(-q2,q2) -> D2(q2,-q2) = D2(-q2,q2)*
-        IF( ALL(ABS(xq(:,2))<epsq) ) THEN
+        ! IF( ALL(ABS(xq(:,2))<epsq) ) THEN
         ! When q2 == 0, just copy over
         V3Bsq = V3sq
-      ELSE
-        U(:,:,5) = CONJG(U(:,:,2))
-          timer_CALL t_fc3int%start()
-        CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
-          timer_CALL t_fc3int%stop()
-          timer_CALL t_fc3rot%start()
-        CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
-          timer_CALL t_fc3rot%stop()
-          timer_CALL t_fc3m2%start()
-        V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
-          timer_CALL t_fc3m2%stop()
-      ENDIF
+      ! ELSE
+      !   U(:,:,5) = CONJG(U(:,:,2))
+      !     timer_CALL t_fc3int%start()
+      !   CALL fc3%interpolate(xq(:,5), xq(:,4), S%nat3, D3)
+      !     timer_CALL t_fc3int%stop()
+      !     timer_CALL t_fc3rot%start()
+      !   CALL ip_cart2pat(D3, S%nat3, U(:,:,1), U(:,:,5), U(:,:,4))
+      !     timer_CALL t_fc3rot%stop()
+      !     timer_CALL t_fc3m2%start()
+      !   V3Bsq = REAL( CONJG(D3)*D3 , kind=DP)
+      !     timer_CALL t_fc3m2%stop()
+      ! ENDIF
       !
       CONF_LOOP : &
       DO it = 1,nconf
@@ -317,11 +319,11 @@ MODULE variational_tk
     !
     REAL(DP) :: sum_A_out_modes(nat3)
     !
-    REAL(DP) :: bose_a, bose_c
-    REAL(DP) :: dom_a, dom_c
-    REAL(DP) :: ctm_a, ctm_c
-    REAL(DP) :: norm_a, norm_c
-    REAL(DP) :: sum_a, sum_c, sum_ac
+    REAL(DP) :: bose_a, bose_b, bose_c
+    REAL(DP) :: dom_a, dom_b, dom_c
+    REAL(DP) :: ctm_a, ctm_b, ctm_c
+    REAL(DP) :: norm_a, norm_b, norm_bc
+    REAL(DP) :: sum_a, sum_b, sum_c, sum_ac
     REAL(DP) :: freqm1(nat3,4)
     !REAL(DP),SAVE :: leftover_e = 0._dp
     !
@@ -346,23 +348,21 @@ MODULE variational_tk
       DO j = 1,nat3
         DO i = 1,nat3
           !
-          bose_a = bose(i,1) * bose(j,2) * (bose(k,3)+1)
+          bose_b = bose(i,1) * (bose(j,2)+1) * bose(k,4)
           bose_c = (bose(i,1)+1) * bose(j,2) * bose(k,4)
           !
-          dom_a =  freq(i,1) + freq(j,2) - freq(k,3)
+          dom_b =  freq(i,1) - freq(j,2) + freq(k,4)
           dom_c = -freq(i,1) + freq(j,2) + freq(k,4)
           !
-          ctm_a = bose_a *  f_gauss(dom_a, sigma)
+          ctm_b = bose_b *  f_gauss(dom_b, sigma)
           ctm_c = bose_c *  f_gauss(dom_c, sigma)
           !
-          norm_a = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
-          norm_c = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
+          norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
           !
-          sum_a = norm_a * ctm_a * V3sq(i,j,k)
-          sum_c = norm_c * ctm_c * V3Bsq(i,j,k)
+          sum_b = norm_bc * ctm_b * V3Bsq(i,k,j)
+          sum_c = norm_bc * ctm_c * V3Bsq(j,k,i)
           !
-          sum_ac = sum_a + 0.5_dp*sum_c
-          sum_A_out(i) = sum_A_out(i) + sum_ac
+          sum_A_out(i) = sum_A_out(i) + sum_b + 0.5_dp*sum_c
           !
          !leftover_e = sum_a*dom_a + 0.5_dp*sum_c*dom_c
           !
@@ -590,12 +590,13 @@ MODULE variational_tk
         timer_CALL t_freq%start()
       xq(:,2) = grid%xq(:,iq)
       xq(:,3) = -xq(:,2)-xq(:,1)
+      !
       xq(:,4) =  xq(:,2)-xq(:,1)
       xq(:,5) = -xq(:,2) ! => xq4 = -xq5-xq1
 !$OMP PARALLEL DO DEFAULT(shared) PRIVATE(jq)
       DO jq = 2,4
-        nu0(jq) = set_nu0(xq(:,jq), S%at)
         CALL freq_phq_safe(xq(:,jq), S, fc2, freq(:,jq), U(:,:,jq))
+        nu0(jq) = set_nu0(xq(:,jq), S%at)
       ENDDO
 !$OMP END PARALLEL DO
         timer_CALL t_freq%stop()
@@ -712,7 +713,7 @@ MODULE variational_tk
     REAL(DP) :: dom_a, dom_b, dom_c   ! \delta\omega
     REAL(DP) :: ctm_a, ctm_b, ctm_c   !
     REAL(DP) :: norm_a, norm_bc
-    REAL(DP) :: sum_a, sum_bc, sum_abc
+    REAL(DP) :: sum_a, sum_b, sum_c, sum_abc
     REAL(DP) :: freqm1(nat3,4)
     !REAL(DP),SAVE :: leftover_e = 0._dp
     !
@@ -729,7 +730,7 @@ MODULE variational_tk
      ENDDO
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP          PRIVATE(i, j, k, bose_a, bose_b, bose_c, dom_a, dom_b, dom_c) &
-!$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_bc, sum_abc, norm_a, norm_bc) &
+!$OMP          PRIVATE(ctm_a, ctm_b, ctm_c, sum_a, sum_b, sum_c, sum_abc, norm_a, norm_bc) &
 !$OMP          REDUCTION(+: p)
 !$OMP DO  COLLAPSE(3)
     DO k = 1,nat3
@@ -754,10 +755,11 @@ MODULE variational_tk
           norm_a  = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,3)
           norm_bc = tpi*freqm1(i,1)*freqm1(j,2)*freqm1(k,4)
           !
-          sum_a  = norm_a  * ctm_a         * V3sq(i,j,k)
-          sum_bc = norm_bc * (ctm_b+ctm_c) * V3Bsq(i,j,k)
+          sum_a = norm_a * ctm_a * V3sq(i,j,k)
+          sum_b = norm_bc * ctm_b * V3Bsq(i,k,j)
+          sum_c = norm_bc * ctm_c * V3Bsq(j,k,i)
           !
-          sum_abc = - sum_a + sum_bc
+          sum_abc = - sum_a + sum_b + sum_c
           p(i,j) = p(i,j) + sum_abc
           !
           !leftover_e = dom_a*sum_a + (dom_b*ctm_b + dom_c*ctm_c)*norm_bc*V3Bsq(i,j,k)

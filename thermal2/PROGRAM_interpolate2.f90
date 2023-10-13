@@ -27,7 +27,7 @@ PROGRAM interpolate2
   USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2, multiply_mass_dyn, div_mass_fc2
   USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
   USE asr2_module,        ONLY : impose_asr2
-  USE rigid, ONLY : rgd_blk
+  USE rigid_d3, ONLY : rgd_blk_d3
 
   IMPLICIT NONE
   INTEGER :: far, ios
@@ -190,7 +190,7 @@ PROGRAM interpolate2
     ENDDO
     ENDDO
     ENDDO
-    !CALL rgd_blk (nqi,nqj,nqk,S%nat,matq(:,:,:,:,nq),gridq(:,nq), &
+    !CALL rgd_blk_d3 (nqi,nqj,nqk,S%nat,matq(:,:,:,:,nq),gridq(:,nq), &
     !              S%tau,Smld%epsil,Smld%zeu,S%bg,S%omega,S%celldm(1), .false.,-1._dp)
   ENDDO
   ENDDO

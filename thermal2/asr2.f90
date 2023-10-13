@@ -39,11 +39,54 @@ MODULE asr2_module
                 delta = delta+fc%FC(nu,mu,iR)
               ENDDO
             ENDDO
+            write(*,*) 'asr2', a,b,i, delta
             mu_=  3*(i-1)+b
             fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
           ENDDO  
         ENDDO    
       ENDDO
+
+      write(*,*) "repeat"
+      DO a = 1,3
+        DO b = 1,3
+          DO i = 1,nat
+            nu = 3*(i-1)+a
+            !
+            delta = 0._dp
+            DO j = 1,nat
+              mu = 3*(j-1)+b
+              DO iR = 1,fc%n_R
+                delta = delta+fc%FC(nu,mu,iR)
+              ENDDO
+            ENDDO
+            write(*,*) 'asr2', a,b,i, delta
+            mu_=  3*(i-1)+b
+            fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
+          ENDDO  
+        ENDDO    
+      ENDDO
+
+      write(*,*) "again"
+      DO a = 1,3
+        DO b = 1,3
+          DO i = 1,nat
+            nu = 3*(i-1)+a
+            !
+            delta = 0._dp
+            DO j = 1,nat
+              mu = 3*(j-1)+b
+              DO iR = 1,fc%n_R
+                delta = delta+fc%FC(nu,mu,iR)
+              ENDDO
+            ENDDO
+            write(*,*) 'asr2', a,b,i, delta
+            mu_=  3*(i-1)+b
+            fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
+          ENDDO  
+        ENDDO    
+      ENDDO
+
+
     ELSEIF(method=="diagonal")THEN
       DO i = 1,nat
         DO a = 1,3
@@ -121,12 +164,12 @@ MODULE asr2_module
               delta = delta + zeu(i,j,na)
            end do
            !! DEBUG
-           !IF (ABS(delta)>1e-8) THEN
-           !  ! this should never appear, since the asr on the effective charges is 
-           !  ! imposed in d3_q2r. Limit to 1E-8 because the effective charges are 
-           !  ! written with a precision of 1E-16 and have typical value of the order 1E0
-           !  print*, "DEBUG zeu asr, check delta=", delta
-           !ENDIF
+           IF (ABS(delta)>1e-8) THEN
+            ! this should never appear, since the asr on the effective charges is 
+            ! imposed in d3_q2r. Limit to 1E-8 because the effective charges are 
+            ! written with a precision of 1E-16 and have typical value of the order 1E0
+            print*, "DEBUG zeu asr, check delta=", delta
+           ENDIF
            !
            do na=1,nat
               zeu(i,j,na) = zeu(i,j,na) - delta/nat

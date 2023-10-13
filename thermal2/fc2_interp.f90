@@ -10,7 +10,7 @@ MODULE fc2_interpolate
   !
   USE kinds,    ONLY : DP
   USE nanoclock
-  USE rigid, ONLY : rgd_blk
+  USE rigid_d3, ONLY : rgd_blk_d3
 #include "mpi_thermal.h"  
   !
   ! I take forceconst2_grid globally in this module so I can USE it from here 
@@ -93,7 +93,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL DO
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
@@ -131,7 +131,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
@@ -181,7 +181,7 @@ MODULE fc2_interpolate
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
@@ -224,13 +224,13 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_safe
   !
-  SUBROUTINE add_rgd_blk(xq, S, fc, D, xq_hat)
+  SUBROUTINE add_rgd_blk_d3(xq, S, fc, D, xq_hat)
     USE random_numbers,   ONLY : randy
-    USE rigid,            ONLY : nonanal
+    USE rigid_d3,         ONLY : nonanal_d3
     USE timers,           ONLY : t_rigid
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
@@ -273,12 +273,12 @@ MODULE fc2_interpolate
       IF(qnorm>0._dp) qhat = qhat/qnorm
       FORALL(i=1:S%nat) itau(i) = i
       !
-      CALL nonanal (S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+      CALL nonanal_d3(S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
     ENDIF
     !
     ! Add the long-range term rom effective charges
-    !CALL rgd_blk(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
-    CALL rgd_blk(2,2,2,S%nat,phi,xq, &
+    !CALL rgd_blk_d3(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
+    CALL rgd_blk_d3(2,2,2,S%nat,phi,xq, &
                   S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
     !
     DO ja = 1,S%nat
@@ -737,7 +737,7 @@ MODULE fc2_interpolate
       ENDDO
     END DO
     !
-    !IF(S%lrigid) CALL add_rgd_blk(xq, S, fc, D)
+    !IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D)
     !
   END SUBROUTINE fftinterp_dmat2_flat_mkl
   !

@@ -51,8 +51,10 @@ posix_signal.o : mpi_thermal.o
 q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
 read_md.o : mpi_thermal.o
+rigid_d3.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
+variational_tk_symq.o : mpi_thermal.o
 PROGRAM_asr3.o : ./PROGRAM_asr3.o
 PROGRAM_asr3.o : ./fc3_interp.o
 PROGRAM_asr3.o : ./input_fc.o
@@ -92,6 +94,7 @@ PROGRAM_interpolate2.o : ./functions.o
 PROGRAM_interpolate2.o : ./input_fc.o
 PROGRAM_interpolate2.o : ./ph_system.o
 PROGRAM_interpolate2.o : ./quter.o
+PROGRAM_interpolate2.o : ./rigid_d3.o
 PROGRAM_lw.o : ./PROGRAM_lw.o
 PROGRAM_lw.o : ./casimir.o
 PROGRAM_lw.o : ./code_input.o
@@ -125,6 +128,7 @@ PROGRAM_mtx.o : ./q_grids.o
 PROGRAM_mtx.o : ./timers.o
 PROGRAM_q2r.o : ./input_fc.o
 PROGRAM_q2r.o : ./quter.o
+PROGRAM_q2r.o : ./rigid_d3.o
 PROGRAM_qha.o : ./PROGRAM_qha.o
 PROGRAM_qha.o : ./asr2.o
 PROGRAM_qha.o : ./code_input.o
@@ -173,6 +177,7 @@ PROGRAM_rmzeu.o : ./functions.o
 PROGRAM_rmzeu.o : ./input_fc.o
 PROGRAM_rmzeu.o : ./ph_system.o
 PROGRAM_rmzeu.o : ./quter.o
+PROGRAM_rmzeu.o : ./rigid_d3.o
 PROGRAM_sparse.o : ./PROGRAM_sparse.o
 PROGRAM_sparse.o : ./fc3_interp.o
 PROGRAM_sparse.o : ./input_fc.o
@@ -201,6 +206,7 @@ PROGRAM_tdph.o : ./lmdif_p.o
 PROGRAM_tdph.o : ./mpi_thermal.o
 PROGRAM_tdph.o : ./quter.o
 PROGRAM_tdph.o : ./read_md.o
+PROGRAM_tdph.o : ./rigid_d3.o
 PROGRAM_tdph.o : ./timers.o
 PROGRAM_tk.o : ./PROGRAM_tk.o
 PROGRAM_tk.o : ./casimir.o
@@ -232,6 +238,7 @@ code_input.o : ./timers.o
 decompose_d2.o : ./functions.o
 decompose_d2.o : ./input_fc.o
 decompose_d2.o : ./quter.o
+decompose_d2.o : ./rigid_d3.o
 decompose_d2.o : ./timers.o
 dynbubble.o : ./fc2_interp.o
 dynbubble.o : ./fc3_interp.o
@@ -247,6 +254,7 @@ f3_bwfft.o : ./input_fc.o
 fc2_interp.o : ./functions.o
 fc2_interp.o : ./input_fc.o
 fc2_interp.o : ./nanoclock.o
+fc2_interp.o : ./rigid_d3.o
 fc2_interp.o : ./timers.o
 fc3_interp.o : ./input_fc.o
 fc3_interp.o : ./mpi_thermal.o
@@ -343,6 +351,21 @@ variational_tk.o : ./mpi_thermal.o
 variational_tk.o : ./posix_signal.o
 variational_tk.o : ./q_grids.o
 variational_tk.o : ./timers.o
+variational_tk.o : ./variational_tk_symq.o
+variational_tk_symq.o : ./casimir.o
+variational_tk_symq.o : ./code_input.o
+variational_tk_symq.o : ./fc2_interp.o
+variational_tk_symq.o : ./fc3_interp.o
+variational_tk_symq.o : ./functions.o
+variational_tk_symq.o : ./input_fc.o
+variational_tk_symq.o : ./isotopes.o
+variational_tk_symq.o : ./linewidth.o
+variational_tk_symq.o : ./merge_degenerate.o
+variational_tk_symq.o : ./more_constants.o
+variational_tk_symq.o : ./mpi_thermal.o
+variational_tk_symq.o : ./posix_signal.o
+variational_tk_symq.o : ./q_grids.o
+variational_tk_symq.o : ./timers.o
 PROGRAM_db.o : mpi_thermal.h
 PROGRAM_gruneisen.o : mpi_thermal.h
 PROGRAM_import_shengbte.o : mpi_thermal.h
@@ -379,3 +402,4 @@ q_grids.o : mpi_thermal.h
 read_md.o : mpi_thermal.h
 timers.o : mpi_thermal.h
 variational_tk.o : mpi_thermal.h
+variational_tk_symq.o : mpi_thermal.h

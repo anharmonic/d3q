@@ -41,7 +41,8 @@ PROGRAM qq2rr
       WRITE(*,*) ""
       WRITE(*,*) "Selects a grid of (NQX x NQY x NQZ) points from the anh* files"
       WRITE(*,*) "Apply the inverse Fourier transform, and saves it to FILEOUT (default: mat3R)."
-      WRITE(*,*) "Check for shortes perimeter up to NFAR unit cells away (default: 2)."
+      WRITE(*,*) "Check the minimum distance up to NFAR supercells away (default: 2)."
+      WRITE(*,*) "Setting NFAR=0 will produce 'periodic' force constants. "
       WRITE(*,*)
       WRITE(*,*) "-w : when performing the FFT test, if the re-computed D3 matrix differs"
       WRITE(*,*) "     significantly from the initial one it will be printed to a file."
@@ -51,8 +52,9 @@ PROGRAM qq2rr
       WRITE(*,*) ""
       WRITE(*,*) "-s : skip the test"
       WRITE(*,*) ""
-      WRITE(*,*) "-c ICRIT : specify the localization criteria (1=perimeter, 2=squared perimeter, "
-      WRITE(*,*) "           3=radius of incribing circle, 4=distance from baricenter, 5=dfb squared)"
+      WRITE(*,*) "-c ICRIT : specify the localization criteria (1=perimeter,"
+      WRITE(*,*) "           2=squared perimeter, 3=radius of incribing circle,"
+      WRITE(*,*) "           4=distance from baricenter, 5=dfb squared)"
       STOP 1
   ENDIF
   
