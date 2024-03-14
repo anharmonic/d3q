@@ -20,6 +20,7 @@ set(src_d3q
     src/d3_recover.f90
     src/d3_reset.f90
     src/d3_restart.f90
+    src/d3_setlocq.f90
     src/d3_setup.f90
     src/d3_shuffle.f90
     src/d3_symmetry.f90
@@ -118,30 +119,32 @@ thermal2/posix_signal.f90
 thermal2/q_grids.f90
 thermal2/quter.f90
 thermal2/read_md.f90
+thermal2/rigid_d3.f90
 thermal2/timers.f90
+thermal2/variational_tk_symq.f90
 thermal2/variational_tk.f90
 thermal2/nanosec.c)
 
 set (src_lmdif_lapack
-lapackified/chkder.c
-lapackified/dogleg.c
-lapackified/enorm.c
-lapackified/fdjac1.c
-lapackified/fdjac2.c
-lapackified/hybrbase.c
-lapackified/hybrd1.c
-lapackified/hybrd.c
-lapackified/hybrj1.c
-lapackified/hybrj.c
-lapackified/lmbase.c
-lapackified/lmder1.c
-lapackified/lmder.c
-lapackified/lmdif1.c
-lapackified/lmdif.c
-lapackified/lmpar.c
-lapackified/qrsolv.c
-lapackified/r1mpyq.c
-lapackified/r1updt.c)
+minpack/lapackified/chkder.c
+minpack/lapackified/dogleg.c
+minpack/lapackified/enorm.c
+minpack/lapackified/fdjac1.c
+minpack/lapackified/fdjac2.c
+minpack/lapackified/hybrbase.c
+minpack/lapackified/hybrd1.c
+minpack/lapackified/hybrd.c
+minpack/lapackified/hybrj1.c
+minpack/lapackified/hybrj.c
+minpack/lapackified/lmbase.c
+minpack/lapackified/lmder1.c
+minpack/lapackified/lmder.c
+minpack/lapackified/lmdif1.c
+minpack/lapackified/lmdif.c
+minpack/lapackified/lmpar.c
+minpack/lapackified/qrsolv.c
+minpack/lapackified/r1mpyq.c
+minpack/lapackified/r1updt.c)
 
 #qe_add_library(qe_lmdif_lapack ${src_lmdif_lapack})
 
