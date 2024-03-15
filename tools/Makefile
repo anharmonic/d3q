@@ -16,7 +16,7 @@ PHOBJS = ../../PHonon/PH/libph.a ../../PHonon/PH/libphaux.a
 LRMODS = ../../LR_Modules/liblrmod.a
 PWOBJS = ../../PW/src/libpw.a
 QEMODS = ../../Modules/libqemod.a ../../KS_Solvers/Davidson/libdavid.a ../../KS_Solvers/CG/libcg.a \
-         ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
+         ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a ../../upflib/libupf.a
 
 
 EXTOBJS = ../src/libd3q.a \
@@ -24,7 +24,8 @@ EXTOBJS = ../src/libd3q.a \
 
 TLDEPS= bindir mods libs pw-lib lrmods ph
 
-LIBOBJS = ../../clib/clib.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+#LIBOBJS = ../../clib/clib.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+#LIBOBJS = ../../FFTXlib/src/libqefft.a ../../LAXlib/libqela.a
 
 
 D3QTOOLSOBJS = \
