@@ -321,7 +321,6 @@ PROGRAM add_bubble
 !   CALL mp_world_start(world_comm)
 !   CALL environment_start('LW')
   CALL start_mpi()
-  CALL remove_stack_limit()
   CALL print_citations_linewidth()
 
   ! READ_INPUT also reads force constants from disk, using subroutine READ_DATA

@@ -446,7 +446,6 @@ PROGRAM tdph
   TYPE(forceconst2_grid) :: fc
   !
   CALL start_mpi()
-  CALL remove_stack_limit()
   !
   ! Read namelist tdphinput
   CALL READ_INPUT_TDPH(input)

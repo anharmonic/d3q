@@ -299,7 +299,6 @@ PROGRAM matrix
 
   CALL init_nanoclock()
   CALL start_mpi()
-  CALL remove_stack_limit()
   CALL print_citations_linewidth()
   !CALL set_TERMINATE_GRACEFULLY() !print_timers_and_die)
   !
