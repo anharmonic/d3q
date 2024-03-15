@@ -42,6 +42,7 @@ d3_recover.o \
 d3_reset.o \
 d3_restart.o \
 d3_setup.o \
+d3_setlocq.o \
 d3_shuffle.o \
 d3_symmetry.o \
 d3_valence.o \

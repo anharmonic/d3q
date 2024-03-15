@@ -1,12 +1,18 @@
 # Makefile for D3Q
 # Adapted from TDDFPT main Makefile
 
-SUBDIRS = src lapackified distributed thermal2  
+SUBDIRS = src minpack/lapackified thermal2
+PARADIRS = minpack/distributed  
 OPTDIRS = tools
 
 default: all
 
+ifdef SCALAPACK_LIBS
 all: $(SUBDIRS)
+else
+all: $(SUBDIRS) $(PARADIRS)
+endif
+
 more: all $(OPTDIRS)
 
 clean: clean_subdirs 
@@ -22,8 +28,8 @@ clean_examples :
 	if test -d Examples ; then \
 	( cd Examples ; ./clean_all) ; fi 
 
-$(SUBDIRS) $(OPTDIRS): FORCE
-	test -d $@ && (cd $@ ; $(MAKE) $(MFLAGS) all) 
+$(SUBDIRS) $(PARADIRS) $(OPTDIRS): FORCE
+	test -d $@ && (cd $@ && $(MAKE) $(MFLAGS) all) 
 
 MYNAME = $(shell basename $(CURDIR))
 
