@@ -645,7 +645,7 @@ MODULE r2q_program
     USE q_grids,          ONLY : q_grid, setup_grid
     !USE constants,        ONLY : RY_TO_CMM1, pi
     USE functions,        ONLY : f_wtoa !f_bose, f_gauss
-    USE fc2_interpolate,  ONLY : freq_phq_safe, set_nu0
+    USE fc2_interpolate,  ONLY : freq_phq, set_nu0
     !USE random_numbers,   ONLY : randy
     IMPLICIT NONE
     TYPE(code_input_type) :: input
@@ -663,7 +663,7 @@ MODULE r2q_program
     arms = 0._dp
     DO jq = 1, qgrid%nq
       xq_j = qgrid%xq(:,jq)
-      CALL freq_phq_safe(xq_j, S, fc, freqj, U)
+      CALL freq_phq(xq_j, S, fc, freqj, U)
       
       !bosej(:) = f_bose(freqj, input%T(1))
       

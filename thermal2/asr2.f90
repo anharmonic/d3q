@@ -39,14 +39,14 @@ MODULE asr2_module
                 delta = delta+fc%FC(nu,mu,iR)
               ENDDO
             ENDDO
-            write(*,*) 'asr2', a,b,i, delta
+            !write(*,*) 'asr2', a,b,i, delta
             mu_=  3*(i-1)+b
             fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
           ENDDO  
         ENDDO    
       ENDDO
 
-      write(*,*) "repeat"
+      !write(*,*) "repeat"
       DO a = 1,3
         DO b = 1,3
           DO i = 1,nat
@@ -59,14 +59,14 @@ MODULE asr2_module
                 delta = delta+fc%FC(nu,mu,iR)
               ENDDO
             ENDDO
-            write(*,*) 'asr2', a,b,i, delta
+            !write(*,*) 'asr2', a,b,i, delta
             mu_=  3*(i-1)+b
             fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
           ENDDO  
         ENDDO    
       ENDDO
 
-      write(*,*) "again"
+      !write(*,*) "again"
       DO a = 1,3
         DO b = 1,3
           DO i = 1,nat
@@ -79,7 +79,7 @@ MODULE asr2_module
                 delta = delta+fc%FC(nu,mu,iR)
               ENDDO
             ENDDO
-            write(*,*) 'asr2', a,b,i, delta
+            !write(*,*) 'asr2', a,b,i, delta
             mu_=  3*(i-1)+b
             fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
           ENDDO  
