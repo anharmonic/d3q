@@ -1,0 +1,3 @@
+Slightly modified version of minpack library implementation by Charles Bouillaguet.
+Original available at https://github.com/cbouilla/minpack-1.1
+Includes a serial version in C using lapack (lapackified) and a parallel version with ScaLAPACK (distributed).
