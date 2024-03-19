@@ -658,7 +658,6 @@ PROGRAM sqom
 !   print*, neutron_form_factor("Pd")
 !   print*, neutron_form_factor("Cu")
   CALL start_mpi()
-  CALL remove_stack_limit()
 
 
   ! READ_INPUT_SQOM also reads force constants from disk, using subroutine READ_DATA

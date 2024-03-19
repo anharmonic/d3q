@@ -351,7 +351,6 @@ PROGRAM qha
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
   !
   CALL start_mpi()
-  CALL remove_stack_limit()
   CALL init_nanoclock()
   IF(ionode) CALL print_citations_linewidth()
   !  
