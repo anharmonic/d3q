@@ -28,6 +28,9 @@ MODULE ph_system
     ! phonon switches (mostly unused here)
     REAL(DP)             :: epsil(3,3)
     LOGICAL              :: lrigid
+    ! for derivative of effective charges
+    LOGICAL              :: ldrigid
+    REAL(DP),ALLOCATABLE :: dzeu(:,:,:, :,:)
     ! ''''''''''''''''''''''''''''''''''''''''
     ! auxiliary quantities:
     REAL(DP),ALLOCATABLE :: sqrtmm1(:) ! 1/sqrt(amass)
@@ -273,5 +276,45 @@ MODULE ph_system
     ENDDO
 
   END SUBROUTINE aux_system
+
+  ! \/o\________\\\_________________________________________/^>
+  SUBROUTINE read_dzeu(filename, S)
+    USE constants,      ONLY : tpi
+    IMPLICIT NONE
+    TYPE(ph_system_info),INTENT(inout)   :: S ! = System
+    !INTEGER,INTENT(in) :: unit
+    CHARACTER(len=*),INTENT(in) :: filename
+    !
+    CHARACTER(len=11),PARAMETER :: sub = "read_dzeu"
+    !
+    INTEGER :: ios, ios1, ios2, ios3, unit
+    !
+    INTEGER :: i,j ,i_, j_, k
+    CHARACTER(len=256) cdummy
+    !
+    OPEN(file=filename, newunit=unit, status='old', iostat=ios)
+    IF(ios/=0) CALL errore(sub, "Cannot read dzeu", 1)
+    !
+    S%ldrigid = .true.
+    ALLOCATE(S%dzeu(3,3,3,S%nat,S%nat))
+
+    DO j = 1,S%nat
+      DO i = 1,S%nat
+        READ(unit,*,iostat=ios) j_, i_
+        IF(i/=i_ .or. j/=j_) THEN
+          print*, i,j, i_,j_
+          CALL errore(sub, "unexpected i,j", 1)
+        ENDIF
+        READ(unit,*) cdummy
+        DO k = 1,3
+          READ(unit,*,iostat=ios) S%dzeu(:,:,k,i,j)
+          IF(ios/=0) CALL errore(sub, "error reading dzeu", 1)
+        ENDDO
+      ENDDO
+    ENDDO
+    WRITE(stdout,*) "dZ* read from file."
+    !
+  END SUBROUTINE read_dzeu
   
+
 END MODULE 

@@ -39,6 +39,7 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat2_plus
     CHARACTER(len=256) :: file_mat2_minus
     CHARACTER(len=8)   :: asr2
+    CHARACTER(len=256) :: file_dzeu
     !
     INTEGER            :: skip_q
     INTEGER            :: nconf
@@ -130,6 +131,7 @@ MODULE code_input
     CHARACTER(len=256) :: file_mat2_final  = INVALID ! default = file_mat2
     CHARACTER(len=256) :: file_mat2_plus  = INVALID ! default = file_mat2//'_p'
     CHARACTER(len=256) :: file_mat2_minus  = INVALID ! default = file_mat2//'_m'
+    CHARACTER(len=256) :: file_dzeu = INVALID 
     CHARACTER(len=256) :: prefix     = INVALID ! default: calculation.mode
     !
     CHARACTER(len=256) :: outdir = './'              ! where to write output files
@@ -227,6 +229,7 @@ MODULE code_input
     NAMELIST  / lwinput / &
       calculation, outdir, prefix, &
       file_mat2, file_mat3, asr2, &
+      file_dzeu, &
       nconf, skip_q, nq, nk, grid_type, xk0, &
       optimize_grid, optimize_grid_thr, &
       ne, de, e0, sigma_e, &
@@ -368,6 +371,7 @@ MODULE code_input
     input%file_mat2_plus               =  file_mat2_plus
     input%file_mat2_minus              =  file_mat2_minus
     input%file_mat3                    =  file_mat3
+    input%file_dzeu                    =  file_dzeu
     input%outdir                       =  TRIMCHECK(outdir)
     input%asr2                         =  asr2
     input%skip_q                       =  skip_q
@@ -924,6 +928,7 @@ MODULE code_input
       CALL mpi_broadcast(file_mat2_plus)
       CALL mpi_broadcast(file_mat2_minus)
       CALL mpi_broadcast(file_mat3)
+      CALL mpi_broadcast(file_dzeu)
       CALL mpi_broadcast(grid_type)
       CALL mpi_broadcast(grid_type_in)
       CALL mpi_broadcast(threshold_f_degeneracy_cmm1)      
@@ -974,11 +979,11 @@ MODULE code_input
   ! read everything from files mat2R and mat3R
   SUBROUTINE READ_DATA(input, s, fc2, fc3)
     USE input_fc,           ONLY : same_system, read_fc2, aux_system, &
-                                   forceconst2_grid, ph_system_info
+                                   forceconst2_grid, ph_system_info, read_dzeu
     USE asr2_module,        ONLY : impose_asr2
-    !USE io_global,          ONLY : stdout
     USE fc3_interpolate,    ONLY : read_fc3, forceconst3
-    USE clib_wrappers,           ONLY : memstat
+    USE clib_wrappers,      ONLY : memstat
+    USE more_constants,     ONLY : INVALID
     IMPLICIT NONE
     !
     TYPE(code_input_type),INTENT(in)        :: input
@@ -1002,6 +1007,7 @@ MODULE code_input
     ENDIF
     !
     CALL aux_system(S)
+    IF(input%file_dzeu/=INVALID) CALL read_dzeu(input%file_dzeu, S)
     !
     CALL memstat(kb)
     ioWRITE(stdout,*) "Reading : done."

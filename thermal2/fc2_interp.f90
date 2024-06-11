@@ -741,4 +741,79 @@ MODULE fc2_interpolate
     !
   END SUBROUTINE fftinterp_dmat2_flat_mkl
   !
+  SUBROUTINE fc2_recenter(S, fcin, fcout, nfar)
+    USE constants, ONLY : RY_TO_CMM1
+    USE input_fc,        ONLY : read_system, ph_system_info, read_fc2, write_dyn
+    USE ph_system,       ONLY : aux_system
+    USE interpolate2_module
+    USE cmdline_param_module
+    USE quter_module,       ONLY : quter
+    USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2, multiply_mass_dyn, div_mass_fc2
+    !USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
+    USE asr2_module,        ONLY : impose_asr2
+    USE rigid_d3, ONLY : rgd_blk_d3
+  
+    IMPLICIT NONE
+    INTEGER :: nfar
+    CHARACTER(len=256) :: filein, fileout
+    TYPE(forceconst2_grid) :: fcin, fcout
+    TYPE(ph_system_info) :: S
+    INTEGER :: i,j,k, nqi, nqj, nqk, nq, na,nb,a,b, nua,nub, numax
+    REAL(DP),ALLOCATABLE :: gridq(:,:), w2ref(:), w2mld(:), w2in(:), w2out(:)
+    COMPLEX(DP),ALLOCATABLE :: matq(:,:,:,:,:), &
+                               Din(:,:), Dref(:,:), Dmld(:,:), Dout(:,:), Dout2(:,:), &
+                               U(:,:), Uref(:,:), Umld(:,:), Umld0(:,:), WWout(:,:)
+    REAL(DP) :: xq(3), xqh(3), olap, maxolap
+    LOGICAL :: lrigid_save
+    !
+    nqi = fcin%nq(1)
+    nqj = fcin%nq(2)
+    nqk = fcin%nq(3)
+    ALLOCATE(matq(3,3,S%nat,S%nat,nqi*nqj*nqk))
+    ALLOCATE(gridq(3,nqi*nqj*nqk))
+    ALLOCATE(Din(S%nat3,S%nat3))
+    ALLOCATE(Dout(S%nat3,S%nat3))
+    ALLOCATE(U(S%nat3,S%nat3))
+  
+    nq = 0
+    DO i = 0,nqi-1
+    DO j = 0,nqj-1
+    DO k = 0,nqk-1
+      nq = nq+1
+      xq = s%bg(:,1)*i/DBLE(nqi) + s%bg(:,2)*j/DBLE(nqj) + s%bg(:,3)*k/DBLE(nqk)
+      gridq(:,nq) = xq
+      
+      IF(nq==1) THEN
+         xq(1) = 1.d-8
+      ENDIF
+  
+      CALL fftinterp_mat2(xq, S, fcin, Din)
+      !Din = multiply_mass_dyn(S, Din)
+  
+  
+      DO nb = 1,S%nat
+      DO na = 1,S%nat
+      DO b = 1,3
+       nub = (nb-1)*3+b
+       DO a = 1,3
+        nua = (na-1)*3+a
+        matq(a,b,na,nb, nq) = Din(nua,nub)
+       ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !CALL rgd_blk_d3 (nqi,nqj,nqk,S%nat,matq(:,:,:,:,nq),gridq(:,nq), &
+      !              S%tau,Smld%epsil,Smld%zeu,S%bg,S%omega,S%celldm(1), .false.,-1._dp)
+    ENDDO
+    ENDDO
+    ENDDO
+  
+    !S%lrigid    = .false.
+    !S%zeu = 0._dp
+    !S%epsil = 0._dp
+  
+    CALL quter(nqi, nqj, nqk, S%nat,S%tau,S%at,S%bg, matq, gridq, fcout, far=nfar)
+    !CALL write_fc2(fileout, S, fcout)
+    !
+  END SUBROUTINE
 END MODULE fc2_interpolate
