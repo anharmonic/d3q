@@ -41,13 +41,14 @@ PROGRAM interpolate2
   INTEGER :: i, j, k, ir_uc, jr_sc, i_copy, j_copy, i_uc, j_uc, i_sc, j_sc, found
   INTEGER :: a,b,nu,mu,nu2,mu2
   INTEGER,ALLOCATABLE :: map_sc(:,:)
-  REAL(DP) :: at_b(3,3), sc_b(3,3), bg_b(3,3), R(3), dist(3), dist_sc(3), delta(3)
+  REAL(DP) :: at_b(3,3), sc_b(3,3), bg_b_uc(3,3), bg_b_sc(3,3), R(3), dist(3), dist_sc(3), delta(3), weight, pref
   REAL(DP),ALLOCATABLE :: tau_b(:,:), Rtau_b(:,:)
   !
 
   filein_uc  = cmdline_param_char("u", "mat2R_uc")
   filein_sc  = cmdline_param_char("p", "mat2R_sc")
   fileout    = cmdline_param_char("o", "mat2R_out")
+  weight     = cmdline_param_dble("w", -1._dp)
   nfar    = cmdline_param_int ("f", 2)
   method  = cmdline_param_int ("m", 3)
   !
@@ -81,9 +82,9 @@ PROGRAM interpolate2
   CALL allocate_fc2_grid(fc_uc%n_R, S_uc%nat, fc_out)
   !
   at_b = S_uc%at * S_uc%alat
+  CALL recips(at_b(:,1), at_b(:,2), at_b(:,3), bg_b_uc(:,1), bg_b_uc(:,2), bg_b_uc(:,3))
   sc_b = S_sc%at * S_sc%alat
-  !CALL recips(at_b(:,1), at_b(:,2), at_b(:,3), bg_b(:,1), bg_b(:,2), bg_b(:,3))
-  CALL recips(sc_b(:,1), sc_b(:,2), sc_b(:,3), bg_b(:,1), bg_b(:,2), bg_b(:,3))
+  CALL recips(sc_b(:,1), sc_b(:,2), sc_b(:,3), bg_b_sc(:,1), bg_b_sc(:,2), bg_b_sc(:,3))
   !
   FORALL(i=1:3) sc_size(i) = NINT(NORM2(sc_b(:,i))/NORM2(at_b(:,i)))
   sc_factor = sc_size(1)*sc_size(2)*sc_size(3)
@@ -110,23 +111,20 @@ PROGRAM interpolate2
   ! build a map that for each atom in the UC (SC?) associates it's sc_factor copies in the SC
   ALLOCATE(map_sc(sc_factor,S_uc%nat))
   !
-  ! for any atom of the SC find which otehr atoms of the SC are concted by a R vector of the UC lattice
+  ! for any atom of the SC find which other atoms of the SC are connected by a R vector of the UC lattice
   ! do not care about the atomic type (we are looking for an impurity)
-  DO ir_uc = 1, S_uc%nat
+  DO i_uc = 1, S_uc%nat
     i_copy = 0
-    DO i = -sc_size(1)+1, sc_size(1)-1
-    DO j = -sc_size(2)+1, sc_size(2)-1
-    DO k = -sc_size(3)+1, sc_size(3)-1
-      DO jr_sc = 1, S_sc%nat
-        R = i*at_b(:,1) + j*at_b(:,2) + k*at_b(:,3)
-        IF(SUM(ABS(Rtau_b(:,ir_uc)+R-Rtau_b(:,jr_sc)))<eps_r) THEN
-          print*, ir_uc, "->", jr_sc, i,j,k
+    DO j_sc = 1, S_sc%nat
+        delta = Rtau_b(:,i_uc)-Rtau_b(:,j_sc)
+        CALL cryst_to_cart(1, delta, bg_b_uc, -1)
+        !WRITE(*,'(2i4,(3f7.2,4x),3i3)') i_uc, j_sc, delta, NINT(delta)
+        !
+        IF( SUM(ABS(delta-NINT(delta))) < eps_r) THEN
           i_copy = i_copy+1
-          map_sc(i_copy,ir_uc) = jr_sc
+          IF(i_copy>sc_factor) CALL errore('impurity', 'found too many copies',1)
+          map_sc(i_copy,i_uc) = j_sc
         ENDIF
-      ENDDO
-    ENDDO
-    ENDDO
     ENDDO
     IF(i_copy<sc_factor) CALL errore('impurity', 'did not find a copy',1)
   ENDDO
@@ -139,7 +137,7 @@ PROGRAM interpolate2
   DO j_uc = 1, S_uc%nat
   DO ir_uc = 1,fc_uc%n_R
     ! compute their distance vector
-    dist = tau_b(:,j_uc)+fc_uc%xR(:,ir_uc)*S_uc%alat-tau_b(:,i_uc)
+    dist = tau_b(:,j_uc)-fc_uc%xR(:,ir_uc)*S_uc%alat-tau_b(:,i_uc) !check
     !
     ! now go get the sc_factor atoms in the SC equivalent to the 1st one
     DO i_copy = 1, sc_factor
@@ -151,10 +149,10 @@ PROGRAM interpolate2
         dist_sc = Rtau_b(:,j_sc) - Rtau_b(:,i_sc)
         !WRITE(*,'(3i4,a,2i4, 2(3f7.2,4x))') i_uc, j_uc, ir_uc, "->", i_sc,j_sc, dist, dist_sc
         delta = dist-dist_sc
-        CALL cryst_to_cart(1, delta, bg_b, -1)
+        CALL cryst_to_cart(1, delta, bg_b_sc, -1)
         !WRITE(*,'(3i4,a,2i4, 3(3f7.2,4x),3i3)') i_uc, j_uc, ir_uc, "->", i_sc,j_sc, dist, dist_sc, delta, NINT(delta)
         IF( SUM(ABS(delta-NINT(delta))) < eps_r) THEN
-          WRITE(*,'(3i4,a,3i4)') i_uc, j_uc, ir_uc, "->", i_sc,j_sc
+          !WRITE(*,'(3i4,a,3i4)') i_uc, j_uc, ir_uc, "->", i_sc,j_sc
           found = found+1
           DO a = 1,3
           DO b = 1,3
@@ -163,7 +161,7 @@ PROGRAM interpolate2
             nu2 = a + 3*(i_sc-1)
             mu2 = b + 3*(j_sc-1)
             fc_out%FC(nu,mu,ir_uc) = fc_out%FC(nu,mu,ir_uc) &
-                                    + fc_sc%FC(nu2,mu2,1)
+                                    +fc_sc%FC(nu2,mu2,1)
           ENDDO
           ENDDO
           ! EXIT ! when confident that the algorithm is ok, one could exit here and remove the check below
@@ -176,7 +174,12 @@ PROGRAM interpolate2
   ENDDO
   ENDDO
   !
+  print*, "Supercell force contants refolded to unit cell"
   fc_out%FC = fc_out%FC/sc_factor
+  IF(weight/=0._dp)THEN
+     fc_out%FC = fc_out%FC + weight*fc_uc%FC
+     print*, "UC force constants added back with weight", weight
+  ENDIF
   fc_out%xR = fc_uc%xR
   fc_out%yR = fc_uc%yR
   fc_out%nq = fc_uc%nq
@@ -186,14 +189,6 @@ PROGRAM interpolate2
   
   CALL fc2_recenter(S_uc, fc_out, fc_out_c, 2)
   CALL write_fc2(TRIM(fileout)//'_c', S_uc, fc_out_c)
-
-  !
-  ! Now run over the force constant of the UC and accumulate the elements from all the equivalent SC
-
-  !S_uc%lrigid    = lrigid_save
-
-  !CALL quter(nqi, nqj, nqk, S_uc%nat,S_uc%tau,S_uc%at,S_uc%bg, matq, gridq, fcout, nfar)
-  !CALL write_fc2(fileout, S, fcout)
   !
   CONTAINS
 
