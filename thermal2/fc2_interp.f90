@@ -742,14 +742,10 @@ MODULE fc2_interpolate
   END SUBROUTINE fftinterp_dmat2_flat_mkl
   !
   SUBROUTINE fc2_recenter(S, fcin, fcout, nfar)
-    USE constants, ONLY : RY_TO_CMM1
     USE input_fc,        ONLY : read_system, ph_system_info, read_fc2, write_dyn
     USE ph_system,       ONLY : aux_system
-    USE interpolate2_module
-    USE cmdline_param_module
     USE quter_module,       ONLY : quter
     USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2, multiply_mass_dyn, div_mass_fc2
-    !USE fc2_interpolate,     ONLY : fftinterp_mat2, mat2_diag, dyn_cart2pat
     USE asr2_module,        ONLY : impose_asr2
     USE rigid_d3, ONLY : rgd_blk_d3
   

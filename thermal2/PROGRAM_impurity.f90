@@ -41,7 +41,8 @@ PROGRAM interpolate2
   INTEGER :: i, j, k, ir_uc, jr_sc, i_copy, j_copy, i_uc, j_uc, i_sc, j_sc, found
   INTEGER :: a,b,nu,mu,nu2,mu2
   INTEGER,ALLOCATABLE :: map_sc(:,:)
-  REAL(DP) :: at_b(3,3), sc_b(3,3), bg_b_uc(3,3), bg_b_sc(3,3), R(3), dist(3), dist_sc(3), delta(3), weight, pref
+  REAL(DP) :: at_b(3,3), sc_b(3,3), bg_b_uc(3,3), bg_b_sc(3,3), R(3), dist(3), dist_sc(3), delta(3)
+  REAL(DP) :: weight, scale
   REAL(DP),ALLOCATABLE :: tau_b(:,:), Rtau_b(:,:)
   !
 
@@ -49,6 +50,7 @@ PROGRAM interpolate2
   filein_sc  = cmdline_param_char("p", "mat2R_sc")
   fileout    = cmdline_param_char("o", "mat2R_out")
   weight     = cmdline_param_dble("w", -1._dp)
+  scale     = cmdline_param_dble("s", 0._dp)
   nfar    = cmdline_param_int ("f", 2)
   method  = cmdline_param_int ("m", 3)
   !
@@ -177,9 +179,15 @@ PROGRAM interpolate2
   print*, "Supercell force contants refolded to unit cell"
   fc_out%FC = fc_out%FC/sc_factor
   IF(weight/=0._dp)THEN
-     fc_out%FC = fc_out%FC + weight*fc_uc%FC
-     print*, "UC force constants added back with weight", weight
+    print*, "UC force constants added back with weight", weight
+    fc_out%FC = fc_out%FC + weight*fc_uc%FC
   ENDIF
+  IF(scale/=1._dp)THEN
+    IF(scale==0._dp) scale = sc_factor
+    print*, "Final FC scaled with factor", scale
+    fc_out%FC = scale*fc_out%FC
+  ENDIF
+  !
   fc_out%xR = fc_uc%xR
   fc_out%yR = fc_uc%yR
   fc_out%nq = fc_uc%nq

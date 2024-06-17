@@ -70,6 +70,7 @@ PROGRAM q2r
   USE quter_module,       ONLY : quter
   USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2
   USE rigid_d3, ONLY : rgd_blk_d3
+  USE cmdline_param_module
   !
   IMPLICIT NONE
   !
@@ -79,7 +80,7 @@ PROGRAM q2r
   !     dimensions of the FFT grid formed by the q-point grid
   !
   CHARACTER(len=20)  :: crystal
-  CHARACTER(len=256) :: fildyn, filin, filj, filf, flfrc
+  CHARACTER(len=256) :: fildyn, filin, filj, filf, flfrc, inputf
   CHARACTER(len=3)   :: atm(ntypx)
   CHARACTER(LEN=6), EXTERNAL :: int_to_char
   !
@@ -89,7 +90,7 @@ PROGRAM q2r
   INTEGER :: nat, nq, ntyp, iq, icar, nfile, ifile, nqs, nq_log
   INTEGER :: na, nt
   !
-  INTEGER :: gid, ibrav, ierr, nspin_mag, ios, nfar
+  INTEGER :: gid, ibrav, ierr, nspin_mag, ios, nfar, input_unit
   !
   INTEGER, ALLOCATABLE ::  nc(:,:,:)
   COMPLEX(DP), ALLOCATABLE :: phid(:,:,:,:,:), matq(:,:,:,:,:)
@@ -107,23 +108,51 @@ PROGRAM q2r
   !
   NAMELIST / input / fildyn, flfrc, zasr, la2F, nfar
   !
+  fildyn  = cmdline_param_char("d", "dyn")
+  flfrc   = cmdline_param_char("o", "mat2R")
+  zasr    = cmdline_param_char("z", "crystal")
+  nfar    = cmdline_param_int ("f", 2)
+  inputf  = cmdline_param_char("i", "q2r.in")
+  !
+  IF (cmdline_param_logical('h')) THEN
+      WRITE(*,*) "Syntax: d3_q2r.x [-d FILDYN_prefix] [-o FILE_fc] [-z ZASR] [-f NFAR] "
+      WRITE(*,*) ""
+      WRITE(*,*) "  FILDYN_prefix (default: dyn): Input prefix of dynamical matrix files "
+      WRITE(*,*) "  FILE_fc (mat2R): Output force constants"
+      WRITE(*,*) "  ZASR (crystal): Sum rule for effective charges"
+      WRITE(*,*) "  NFAR (2): 0->produce periodic force constants (like q2r)"
+      WRITE(*,*) "            2->produce centered force constants with minimal image distance for interpolation"
+      WRITE(*,*) " Note: can also read the same input variables from a &input namelist with switch -i INPUTFILE"
+      STOP 1
+  ENDIF
+  !
+!  cmdline = cmdline_residual()
+  CALL cmdline_check_exausted()
+
   CALL mp_startup()
   CALL environment_start('D3_Q2R')
   !
-  IF (ionode) CALL input_from_file ( )
+  !IF (ionode) CALL input_from_file ( )
      !
-  fildyn = ' '
-  flfrc = 'mat2R'
-  zasr = 'no'
-  nfar = 2
+!   fildyn = ' '
+!   flfrc = 'mat2R'
+!   zasr = 'no'
+!   nfar = 2
      !
   la2F=.false.
      !
      !
-  IF (ionode)  READ ( 5, input, IOSTAT =ios )
+  IF (ionode)  THEN
+   IF(TRIM(inputf)=='-')THEN
+     input_unit=5
+   ELSE
+     OPEN(newunit=input_unit, file=inputf, status="OLD", action="READ",iostat=ios)
+   ENDIF
+   IF(ios==0) READ ( input_unit, input, IOSTAT =ios )
+  ENDIF
  
-  CALL mp_bcast(ios, ionode_id, world_comm)
-  CALL errore('q2r','error reading input namelist', abs(ios))
+  !CALL mp_bcast(ios, ionode_id, world_comm)
+  !CALL errore('q2r','error reading input namelist', abs(ios))
 
   CALL mp_bcast(fildyn, ionode_id, world_comm)
   CALL mp_bcast(flfrc, ionode_id, world_comm)
