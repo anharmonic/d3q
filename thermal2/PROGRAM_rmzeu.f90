@@ -5,7 +5,7 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
-MODULE interpolate2_module
+MODULE rmzeu_module
   USE kinds, ONLY : DP
   USE functions,        ONLY : rotate_d2, backrotate_d2
 #include "mpi_thermal.h"
@@ -16,11 +16,11 @@ MODULE interpolate2_module
 END MODULE
 
 
-PROGRAM interpolate2
+PROGRAM rmzeu
   USE constants, ONLY : RY_TO_CMM1
   USE input_fc,        ONLY : read_system, ph_system_info, read_fc2, write_dyn
   USE ph_system,       ONLY : aux_system
-  USE interpolate2_module
+  USE rmzeu_module
   USE cmdline_param_module
   USE quter_module,       ONLY : quter
   USE input_fc,    ONLY : ph_system_info, forceconst2_grid, write_fc2, multiply_mass_dyn, div_mass_fc2

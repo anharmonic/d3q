@@ -5,7 +5,7 @@
 !  and under the GPLv2 licence and following, see
 !  <http://www.gnu.org/copyleft/gpl.txt>
 !
-MODULE interpolate2_module
+MODULE impurity_module
   USE kinds, ONLY : DP
   USE functions,        ONLY : rotate_d2, backrotate_d2
 #include "mpi_thermal.h"
@@ -21,7 +21,7 @@ PROGRAM interpolate2
   !USE constants,       ONLY : RY_TO_CMM1
   !USE input_fc,        ONLY : read_system, ph_system_info, read_fc2, write_dyn, 
   USE ph_system,       ONLY : aux_system
-  USE interpolate2_module
+  USE impurity_module
   USE cmdline_param_module
   USE quter_module,       ONLY : quter
   USE input_fc,           ONLY : read_fc2, ph_system_info, forceconst2_grid, write_fc2, allocate_fc2_grid

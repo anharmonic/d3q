@@ -108,31 +108,36 @@ PROGRAM q2r
   !
   NAMELIST / input / fildyn, flfrc, zasr, la2F, nfar
   !
-  fildyn  = cmdline_param_char("d", "dyn")
-  flfrc   = cmdline_param_char("o", "mat2R")
-  zasr    = cmdline_param_char("z", "crystal")
-  nfar    = cmdline_param_int ("f", 2)
-  inputf  = cmdline_param_char("i", "q2r.in")
-  !
-  IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: d3_q2r.x [-d FILDYN_prefix] [-o FILE_fc] [-z ZASR] [-f NFAR] "
-      WRITE(*,*) ""
-      WRITE(*,*) "  FILDYN_prefix (default: dyn): Input prefix of dynamical matrix files "
-      WRITE(*,*) "  FILE_fc (mat2R): Output force constants"
-      WRITE(*,*) "  ZASR (crystal): Sum rule for effective charges"
-      WRITE(*,*) "  NFAR (2): 0->produce periodic force constants (like q2r)"
-      WRITE(*,*) "            2->produce centered force constants with minimal image distance for interpolation"
-      WRITE(*,*) " Note: can also read the same input variables from a &input namelist with switch -i INPUTFILE"
-      STOP 1
-  ENDIF
-  !
-!  cmdline = cmdline_residual()
-  CALL cmdline_check_exausted()
-
   CALL mp_startup()
   CALL environment_start('D3_Q2R')
   !
-  !IF (ionode) CALL input_from_file ( )
+  !If there are no command-line parameters, read from stdin
+  IF(cmdline_check_any())THEN
+    fildyn  = cmdline_param_char("d", "dyn")
+    flfrc   = cmdline_param_char("o", "mat2R")
+    zasr    = cmdline_param_char("z", "crystal")
+    nfar    = cmdline_param_int ("f", 2)
+    inputf  = cmdline_param_char("i", "q2r.in")
+    !
+    IF (cmdline_param_logical('h')) THEN
+        WRITE(*,*) "Syntax: d3_q2r.x [-d FILDYN_prefix] [-o FILE_fc] [-z ZASR] [-f NFAR] "
+        WRITE(*,*) ""
+        WRITE(*,*) "  FILDYN_prefix (default: dyn): Input prefix of dynamical matrix files "
+        WRITE(*,*) "  FILE_fc (mat2R): Output force constants"
+        WRITE(*,*) "  ZASR (crystal): Sum rule for effective charges"
+        WRITE(*,*) "  NFAR (2): 0->produce periodic force constants (like q2r)"
+        WRITE(*,*) "            2->produce centered force constants with minimal image distance for interpolation"
+        WRITE(*,*) " Note: can also read the same input variables from a &input namelist with switch -i INPUTFILE"
+        STOP 1
+    ENDIF
+    !
+!  cmdline = cmdline_residual()
+    CALL cmdline_check_exausted()
+  ELSE
+    WRITE(*,*) "No command line option, reading from stdin"
+    !IF (ionode) CALL input_from_file ( )
+    inputf='-'
+  ENDIF
      !
 !   fildyn = ' '
 !   flfrc = 'mat2R'

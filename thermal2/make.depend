@@ -94,7 +94,7 @@ PROGRAM_impurity.o : ./functions.o
 PROGRAM_impurity.o : ./input_fc.o
 PROGRAM_impurity.o : ./ph_system.o
 PROGRAM_impurity.o : ./quter.o
-PROGRAM_interpolate2.o : ./PROGRAM_impurity.o
+PROGRAM_interpolate2.o : ./PROGRAM_interpolate2.o
 PROGRAM_interpolate2.o : ./asr2.o
 PROGRAM_interpolate2.o : ./fc2_interp.o
 PROGRAM_interpolate2.o : ./functions.o
@@ -177,7 +177,7 @@ PROGRAM_recenter.o : ./f3_bwfft.o
 PROGRAM_recenter.o : ./fc3_interp.o
 PROGRAM_recenter.o : ./input_fc.o
 PROGRAM_recenter.o : ./ph_system.o
-PROGRAM_rmzeu.o : ./PROGRAM_impurity.o
+PROGRAM_rmzeu.o : ./PROGRAM_rmzeu.o
 PROGRAM_rmzeu.o : ./asr2.o
 PROGRAM_rmzeu.o : ./fc2_interp.o
 PROGRAM_rmzeu.o : ./functions.o

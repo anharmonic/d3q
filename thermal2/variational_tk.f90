@@ -276,6 +276,9 @@ MODULE variational_tk
     ENDDO &
     QPOINT_INNER_LOOP
     !
+    ! Regularisation
+!!!    WHERE(A_out<0._dp) A_out=0._dp
+    !
     A_out = A_out + A_out_isot
     !
     ! Recollect over MPI processes if necessary
@@ -646,6 +649,8 @@ MODULE variational_tk
           timer_CALL t_sum%start()
         P3 =  - sum_A_in_modes( S%nat3, sigma(it), freq, bose, V3sq, V3Bsq, nu0 )
           timer_CALL t_sum%stop()
+        !
+!!!        WHERE(P3>0._dp) P3 = 0._dp
         !
         IF(isotopic_disorder)THEN
             timer_CALL t_lwisot%start()
