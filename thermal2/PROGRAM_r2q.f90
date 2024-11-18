@@ -743,8 +743,10 @@ PROGRAM r2q
 !   ENDIF
 
 
-  WRITE(*,'(2x,a,f12.8)') "Note: q-point and path length in units of 2pi/alat, conversion to bohr^-1: ", S%tpiba
-  WRITE(*,'(2x,2(a,f12.8))') "Note: phonons are in cm^-1, conversion to Rydberg: ", 1.d+5/RY_TO_CMM1,"E-5  to THz:", RY_TO_THZ/RY_TO_CMM1
+  WRITE(*,'(2x,a,f12.8)') "Note: q-point and path length in units of 2pi/alat,"//&
+       " conversion to bohr^-1: ", S%tpiba
+  WRITE(*,'(2x,2(a,f12.8))') "Note: phonons are in cm^-1, conversion to Rydberg: ", &
+       1.d+5/RY_TO_CMM1,"E-5  to THz:", RY_TO_THZ/RY_TO_CMM1
 
   IF( input%calculation=="dos") THEN
     CALL PH_DOS(input,S,fc2)
