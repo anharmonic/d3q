@@ -46,7 +46,7 @@ SUBROUTINE run_nscf_d3(do_band)
   USE kinds,           ONLY : DP
   USE cell_base,       ONLY : at
   USE control_flags,   ONLY : conv_ions, pw_restart=> restart
-  USE basis,           ONLY : starting_wfc, starting_pot, startingconfig
+  USE starting_scf,    ONLY : starting_wfc, starting_pot, startingconfig
   USE io_files,        ONLY : prefix, tmp_dir, wfc_dir
   USE io_global,       ONLY : stdout, ionode
   USE input_parameters,ONLY : pseudo_dir

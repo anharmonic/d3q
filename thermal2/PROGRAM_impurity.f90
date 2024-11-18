@@ -51,14 +51,27 @@ PROGRAM interpolate2
   fileout    = cmdline_param_char("o", "mat2R_out")
   weight     = cmdline_param_dble("w", -1._dp)
   scale     = cmdline_param_dble("s", 0._dp)
-  nfar    = cmdline_param_int ("f", 2)
-  method  = cmdline_param_int ("m", 3)
+  !nfar    = cmdline_param_int ("f", 2)
+  !method  = cmdline_param_int ("m", 3)
   !
   IF (cmdline_param_logical('h')) THEN
-      WRITE(*,*) "Syntax: d3_interpolate2.x [-u FILEIN_unitcell] [-p FILEIN_perturbed_supercell] [-o FILEOUT]"
-      WRITE(*,*) "                          [-f NFAR] [-m METHOD]"
-      WRITE(*,*) ""
-      STOP 1
+     WRITE(*,*) "Syntax: d3_interpolate2.x [-u FILEIN_uc] [-p FILEIN_pert] [-o FILEOUT]"
+     WRITE(*,*) "                          [-w weight] [-s scale]"
+     ![-f NFAR]"
+     WRITE(*,*) ""
+     WRITE(*,*) " Refold the force constants from a gamam calculation in a supercell down to"
+     WRITE(*,*) " a grid in the unit cell, then returns (FILEIN_uc+weight+FILEIN_pert^refolded)/scale"
+     WRITE(*,*) " With the default values weight=-1 and scale=cell factor (i.e. volume of UC/SC)"
+     WRITE(*,*) " it produces the 'impurity field' corresponding to one impurity per cell."
+     WRITE(*,*)
+     WRITE(*,*) " FILEIN_uc   : unperturbed phonon calculation for a n1 x n2 x n3 grid in the unit cell"
+     WRITE(*,*) " FILEIN_pert : phonon calculation at Gamma for an imputiry in the  n1 x n2 x n3 supercell"
+     WRITE(*,*) " FILEOUT     : output file"
+     WRITE(*,*) ""
+     WRITE(*,*) "Input matrices must be periodic. Will also write FILEOUT_c with centered matrices,"
+     WRITE(*,*) "ready for Fourier interpolation."
+     WRITE(*,*) ""
+     STOP 1
   ENDIF
   !
 !  cmdline = cmdline_residual()
@@ -113,7 +126,7 @@ PROGRAM interpolate2
   ! build a map that for each atom in the UC (SC?) associates it's sc_factor copies in the SC
   ALLOCATE(map_sc(sc_factor,S_uc%nat))
   !
-  ! for any atom of the SC find which other atoms of the SC are connected by a R vector of the UC lattice
+  ! for any atom of the UC find which other atoms of the SC are connected by a R vector of the UC lattice
   ! do not care about the atomic type (we are looking for an impurity)
   DO i_uc = 1, S_uc%nat
     i_copy = 0

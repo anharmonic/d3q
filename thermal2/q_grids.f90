@@ -618,7 +618,7 @@ MODULE q_grids
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),INTENT(in) :: max_q
     !
-    INTEGER :: i,j,k, idx, order
+    INTEGER :: i,j,k, idx, order, ord0
     REAL(DP) :: mq, tht, phi
     
     IF(order==0)THEN
@@ -634,6 +634,7 @@ MODULE q_grids
     grid%n(2) = nshells
     grid%n(3) = 1
     grid%nq = order*nshells
+    IF(nshells>1) grid%nq=grid%nq+1
     !
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
@@ -648,18 +649,34 @@ MODULE q_grids
 !    grid%w(1) = 0._dp
     !
     call ld_by_order(order, grid%xq, grid%w)
+    !print*
+!    IF(nshells>1)THEN
+!      grid%w(1:order) = grid%w(1:order)/nshells
+!      idx = 0
+!      DO i = order+1, grid%nq, order
+!         grid%xq(1,i:i+order-1) = grid%xq(1, 1:order)
+!         grid%xq(2,i:i+order-1) = grid%xq(2, 1:order)
+!         grid%xq(3,i:i+order-1) = grid%xq(3, 1:order)
+!         grid%w(i:i+order-1) = grid%w(1:order)*(i-1)/order
+!      ENDDO
+!      grid%w = grid%w / SUM(grid%w)
+!    ENDIF
+    ! I can do the multiple shells in-place if I do them backward
+    grid%xq = grid%xq*max_q/nshells
     IF(nshells>1)THEN
-      grid%w(1:order) = grid%w(1:order)/nshells
-      idx = 0
-      DO i = order+1, grid%nq, order
-         grid%xq(1,i:i+order-1) = grid%xq(1, 1:order)
-         grid%xq(2,i:i+order-1) = grid%xq(2, 1:order)
-         grid%xq(3,i:i+order-1) = grid%xq(3, 1:order)
-         grid%w(i:i+order-1) = grid%w(1:order)*(i-1)/order
+      DO j = order,1,-1
+      DO i = nshells,1,-1
+         !print*, ">>", i, (j-1)*nshells+i, grid%nq
+         grid%xq(:,(j-1)*nshells+i) = grid%xq(:,j) * i
+         grid%w((j-1)*nshells+i) = grid%w(j) * i ! this is "r dr" once renormalized
       ENDDO
-      grid%w = grid%w / SUM(grid%w)
+      ENDDO
+      ! I only include Gamma once, with no weight
+      grid%xq(:,grid%nq) = 0._dp
+      grid%w(grid%nq) = 0._dp
     ENDIF
-    grid%xq = grid%xq * (max_q/nshells)
+    !
+    grid%w = grid%w/SUM(grid%w)
     !
     !CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
     grid%basis = 'cartesian'

@@ -330,6 +330,7 @@ ph_dos.o : ./q_grids.o
 ph_system.o : ./functions.o
 ph_system.o : ./more_constants.o
 ph_velocity.o : ./fc2_interp.o
+ph_velocity.o : ./functions.o
 ph_velocity.o : ./input_fc.o
 ph_velocity.o : ./merge_degenerate.o
 ph_velocity.o : ./more_constants.o

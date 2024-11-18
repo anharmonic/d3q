@@ -271,7 +271,7 @@ MODULE code_input
       casimir_scattering,  &
       sample_length_au, sample_length_mu, sample_length_mm, sample_dir,&
       print_dynmat, print_velocity, print_neutron_cs, print_gruneisen, print_klemens, &
-      file_mat2_plus, file_mat2_minus
+      file_mat2_plus, file_mat2_minus, file_mat2_final
       !
       
     timer_CALL t_iodata%start()
@@ -356,9 +356,9 @@ MODULE code_input
     CALL mpi_broadcast(qpoints_ok)
     !
     IF(TRIM(file_mat2) == INVALID ) CALL errore('READ_INPUT', 'Missing file_mat2', 1)
-    IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
-    IF(TRIM(file_mat2_plus) == INVALID ) file_mat2_final = file_mat2//'_p'
-    IF(TRIM(file_mat2_minus) == INVALID ) file_mat2_final = file_mat2//'_m'
+    !IF(TRIM(file_mat2_final) == INVALID ) file_mat2_final = file_mat2
+    IF(TRIM(file_mat2_plus) == INVALID ) file_mat2_plus = file_mat2//'_p'
+    IF(TRIM(file_mat2_minus) == INVALID ) file_mat2_minus = file_mat2//'_m'
     IF(TRIM(file_mat3) == INVALID .and. present(fc3)) &
         CALL errore('READ_INPUT', 'Missing file_mat3', 1)
     IF(ANY(nk<0)) CALL errore('READ_INPUT', 'Missing nk', 1)    

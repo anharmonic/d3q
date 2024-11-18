@@ -17,12 +17,12 @@ MODULE r2q_program
     USE kinds,            ONLY : DP
     USE input_fc,         ONLY : forceconst2_grid, ph_system_info
     USE q_grids,          ONLY : q_grid, q_basis, setup_grid, prepare_q_basis
-    USE constants,        ONLY : RY_TO_CMM1, pi
+    USE constants,        ONLY : RY_TO_CMM1, pi, RY_TO_THZ
     USE functions,        ONLY : f_bose, f_gauss
     USE fc2_interpolate,  ONLY : freq_phq, bose_phq
     USE mpi_thermal,      ONLY : mpi_bsum, start_mpi, stop_mpi
     USE random_numbers,   ONLY : randy
-    USE mpi_thermal,      ONLY :  mpi_bsum
+    USE mpi_thermal,      ONLY : mpi_bsum
     USE more_constants,   ONLY : write_conf
     IMPLICIT NONE
     TYPE(code_input_type)    :: input
@@ -469,6 +469,8 @@ MODULE r2q_program
     FORALL(i=1:input%ne) nrg(i) = input%de * (i-1) + input%e0
     nrg = nrg/RY_TO_CMM1
     !
+    if(input%ne<=0) call errore('dos','wrong ne?',1)
+
     !sigma_ry = input%sigma(1)/RY_TO_CMM1
     sigma_ry = input%sigma_e/RY_TO_CMM1
     e0_ry = input%e0/RY_TO_CMM1
@@ -702,21 +704,21 @@ PROGRAM r2q
                               forceconst2_grid, ph_system_info, &
                               multiply_mass_dyn, write_dyn, average_mass_mode
   USE asr2_module,      ONLY : impose_asr2
-  USE constants,        ONLY : RY_TO_CMM1, K_BOLTZMANN_RY
+  USE constants,        ONLY : RY_TO_CMM1, K_BOLTZMANN_RY, RY_TO_THZ
   USE fc2_interpolate,  ONLY : freq_phq, freq_phq_path, fftinterp_mat2 
   USE q_grids,          ONLY : q_grid
   USE code_input,       ONLY : code_input_type, READ_INPUT
-  USE ph_velocity,      ONLY : velocity
+  USE ph_velocity,      ONLY : velocity, rotate_d2
   USE gruneisen_module, ONLY : gruneisen
-  USE more_constants,   ONLY : print_citations_linewidth
+  USE more_constants,   ONLY : print_citations_linewidth, INVALID, ryvel_si
   USE overlap,          ONLY : order_type
   USE mpi_thermal,      ONLY : start_mpi, stop_mpi, ionode
   USE nanoclock,        ONLY : init_nanoclock
   USE neutrons,         ONLY : neutron_cross_section
   IMPLICIT NONE
   !
-  TYPE(forceconst2_grid) :: fc2, fc2p, fc2m
-  TYPE(ph_system_info)   :: S, Sp, Sm
+  TYPE(forceconst2_grid) :: fc2, fc2p, fc2m, fc2f
+  TYPE(ph_system_info)   :: S, Sp, Sm, Sf
   TYPE(q_grid)           :: qpath
   TYPE(code_input_type)  :: input
   !
@@ -725,7 +727,7 @@ PROGRAM r2q
   !REAL(DP) :: xq(3)
   REAL(DP),ALLOCATABLE :: freq(:), vel(:,:), proj(:,:), grun(:), klem(:), mass(:)
   REAL(DP) :: aux, w_debye 
-  COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:)
+  COMPLEX(DP),ALLOCATABLE :: U(:,:), D(:,:), Df(:,:), rDf(:,:)
   INTEGER :: i, output_unit=10000, nu, ia, ityp
   TYPE(order_type) :: order
   CHARACTER (LEN=6),  EXTERNAL :: int_to_char
@@ -739,6 +741,10 @@ PROGRAM r2q
 !   IF(input%nconf>1) THEN
 !     CALL errore("R2Q", "r2q.x only supports one configuration at a time.",1)
 !   ENDIF
+
+
+  WRITE(*,'(2x,a,f12.8)') "Note: q-point and path length in units of 2pi/alat, conversion to bohr^-1: ", S%tpiba
+  WRITE(*,'(2x,2(a,f12.8))') "Note: phonons are in cm^-1, conversion to Rydberg: ", 1.d+5/RY_TO_CMM1,"E-5  to THz:", RY_TO_THZ/RY_TO_CMM1
 
   IF( input%calculation=="dos") THEN
     CALL PH_DOS(input,S,fc2)
@@ -769,6 +775,7 @@ PROGRAM r2q
     ENDIF
 
     IF(input%print_velocity) THEN
+      WRITE(*,'(2x,a,e12.6)') "Note: velocities are in Rydberg atomic units, conversion to m/s: ", ryvel_si
       filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_vel.out"
       OPEN(unit=output_unit+1, file=filename)
       ALLOCATE(vel(3,S%nat3))
@@ -790,6 +797,17 @@ PROGRAM r2q
       CALL div_mass_fc2(Sm, fc2m)
     ENDIF
 
+    IF(input%file_mat2_final /= INVALID )THEN !input%print_gruneisen) THEN
+      print*, "final:", input%file_mat2_final
+      CALL read_fc2(input%file_mat2_final, Sf,  fc2f)
+      CALL aux_system(Sf)
+      CALL impose_asr2(input%asr2, Sp%nat, fc2f, Sf%zeu)
+      CALL div_mass_fc2(Sf, fc2f)
+      filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_final.out"
+      OPEN(unit=output_unit+7, file=filename)
+      ALLOCATE(Df(S%nat3,S%nat3), rDf(S%nat3, S%nat3))
+    ENDIF
+      
     IF(input%print_neutron_cs) THEN
       filename=TRIM(input%outdir)//"/"//TRIM(input%prefix)//"_ins.out"
       OPEN(unit=output_unit+2, file=filename)
@@ -845,6 +863,9 @@ PROGRAM r2q
           i, qpath%w(i), qpath%xq(:,i), grun(order%idx(:))
         ioFLUSH(output_unit+3)
       ENDIF
+
+      !
+      ! Klemens approximation to linewidth
       IF(input%print_klemens) THEN
 
         mass = average_mass_mode(S,U)
@@ -864,6 +885,13 @@ PROGRAM r2q
       IF(input%print_neutron_cs)THEN
         ioWRITE(output_unit+2, '(i6,f12.6,3x,3f12.6,999e16.8)') &
           i, qpath%w(i), qpath%xq(:,i), neutron_cross_section( qpath%xq(:,i), DBLE((/0,0,0/)), S, fc2)
+      ENDIF
+
+      IF(input%file_mat2_final /= INVALID)THEN
+           CALL fftinterp_mat2(qpath%xq(:,i), Sf, fc2f, Df)
+          rDf = rotate_d2(S%nat3, Df, U)
+        ioWRITE(output_unit+7, '(i6,f12.6,3x,3f12.6,9993(2e16.8,3x))') &
+          i, qpath%w(i), qpath%xq(:,i), (RY_TO_CMM1*rDf(order%idx(nu), order%idx(nu))**.5, nu=1,S%nat3)
       ENDIF
 
     ENDDO

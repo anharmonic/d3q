@@ -8,9 +8,10 @@
 ! <<^V^\\=========================================//-//-//========//O\\//
 MODULE ph_velocity
 
-  USE kinds,    ONLY : DP
-  USE input_fc, ONLY : forceconst2_grid, &
-                       ph_system_info
+  USE kinds,     ONLY : DP
+  USE input_fc,  ONLY : forceconst2_grid, &
+                        ph_system_info
+  USE functions, ONLY : rotate_d2
                        
   PRIVATE
   REAL(DP),PARAMETER :: h = 1.e-7_dp
@@ -19,7 +20,7 @@ MODULE ph_velocity
 !    MODULE PROCEDURE velocity_fdiff
 !  END INTERFACE  
   !
-  PUBLIC :: velocity, velocity_operator
+  PUBLIC :: velocity, velocity_operator, rotate_d2
   !_simple, velocity_fdiff, velocity_ft
          
   CONTAINS
@@ -35,20 +36,20 @@ MODULE ph_velocity
     !
     INTEGER :: ix, im1
     ! 
-    xvel_operator = velocity_operator_fdiff(S,fc, xq) 
+    !xvel_operator = velocity_operator_fdiff(S,fc, xq) 
     ! group velocities are diagonal elements of velocity operator
-    DO ix=1,3
-      DO im1=1,S%nat3
-        velocity(ix,im1)=REAL(xvel_operator(ix,im1,im1))
-      ENDDO
-    END DO
-    !! If we have effective charges, use finite differences derivation
-    !IF(S%lrigid)THEN
-    !  velocity = velocity_fdiff(S,fc, xq) 
-    !ELSE
-    !! Otherwise, use the property of Fourier transform to get dD2/dq = \sum_R R e(iqR) F_R
-    !  velocity = velocity_ft(S,fc, xq) 
-    !ENDIF
+    !DO ix=1,3
+    !  DO im1=1,S%nat3
+    !    velocity(ix,im1)=REAL(xvel_operator(ix,im1,im1))
+    !  ENDDO
+    !END DO
+    ! If we have effective charges, use finite differences derivation
+    IF(S%lrigid)THEN
+      velocity = velocity_fdiff(S,fc, xq) 
+    ELSE
+    ! Otherwise, use the property of Fourier transform to get dD2/dq = \sum_R R e(iqR) F_R
+      velocity = velocity_ft(S,fc, xq) 
+    ENDIF
   END FUNCTION 
 
   FUNCTION velocity_operator(S,fc, xq)
@@ -495,15 +496,6 @@ MODULE ph_velocity
              diffM_W, diffM_W_sym,w2p,w2m,w2,sqrt_w2,freqcp,freqcm)
     !
   END FUNCTION velocity_operator_fdiff
-  !
-  ! \/o\________\\\_________________________________________/^>
-  PURE FUNCTION rotate_d2(nat3, D, U)
-    IMPLICIT NONE
-    INTEGER,INTENT(in) :: nat3
-    COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
-    COMPLEX(DP) :: rotate_d2(nat3,nat3)
-    rotate_d2 = MATMUL(TRANSPOSE(CONJG(U)), MATMUL(D,U))
-  END FUNCTION
   ! \/o\________\\\_________________________________________/^>
   ! Compute the derivative of the dynamical matrix using properties
   ! of fourier transform

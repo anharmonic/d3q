@@ -46,47 +46,6 @@ MODULE asr2_module
         ENDDO    
       ENDDO
 
-      !write(*,*) "repeat"
-      DO a = 1,3
-        DO b = 1,3
-          DO i = 1,nat
-            nu = 3*(i-1)+a
-            !
-            delta = 0._dp
-            DO j = 1,nat
-              mu = 3*(j-1)+b
-              DO iR = 1,fc%n_R
-                delta = delta+fc%FC(nu,mu,iR)
-              ENDDO
-            ENDDO
-            !write(*,*) 'asr2', a,b,i, delta
-            mu_=  3*(i-1)+b
-            fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
-          ENDDO  
-        ENDDO    
-      ENDDO
-
-      !write(*,*) "again"
-      DO a = 1,3
-        DO b = 1,3
-          DO i = 1,nat
-            nu = 3*(i-1)+a
-            !
-            delta = 0._dp
-            DO j = 1,nat
-              mu = 3*(j-1)+b
-              DO iR = 1,fc%n_R
-                delta = delta+fc%FC(nu,mu,iR)
-              ENDDO
-            ENDDO
-            !write(*,*) 'asr2', a,b,i, delta
-            mu_=  3*(i-1)+b
-            fc%FC(nu,mu_,fc%i_0)=fc%FC(nu,mu_,fc%i_0)-delta
-          ENDDO  
-        ENDDO    
-      ENDDO
-
-
     ELSEIF(method=="diagonal")THEN
       DO i = 1,nat
         DO a = 1,3
@@ -113,41 +72,41 @@ MODULE asr2_module
             ENDDO
           ENDDO
         ENDDO
-      ENDDO      
+      ENDDO
     ELSEIF(method=="spread")THEN
-      CALL errore("impose_asr2", "spread asr is buggy/wrong"//TRIM(method), 1) 
-      !DO i = 1,nat
-      !  DO a = 1,3
-      !  DO b = 1,3
-      !  nu = 3*(i-1)+a
-      !    !
-      !    delta = 0._dp
-      !    !norm = 0._dp
-      !    !
-      !    DO j = 1,nat
-      !    mu = 3*(j-1)+b
-      !    DO iR = 1,fc%n_R
-      !      delta = delta+fc%FC(mu,nu,iR)
-      !      !norm  = norm +fc%FC(mu,nu,iR)**2 
-      !    ENDDO
-      !    ENDDO      
-      !      norm = 0._dp
-      !      DO j = 1,nat
-      !      mu = 3*(j-1)+b
-      !      DO iR = 1,fc%n_R
-      !        norm  = norm +fc%FC(mu,nu,iR)**2 
-      !      ENDDO
-      !      ENDDO
-      !      !  
-      !      DO j = 1,nat
-      !      mu = 3*(j-1)+b
-      !      DO iR = 1,fc%n_R
-      !        fc%FC(mu,nu,iR) = fc%FC(mu,nu,iR) - delta*fc%FC(mu,nu,iR)**2/norm
-      !      ENDDO
-      !      ENDDO
-      !  ENDDO
-      !  ENDDO
-      !ENDDO
+      !CALL errore("impose_asr2", "spread asr is buggy/wrong"//TRIM(method), 1) 
+      DO i = 1,nat
+       DO a = 1,3
+       DO b = 1,3
+       nu = 3*(i-1)+a
+         !
+         delta = 0._dp
+         !norm = 0._dp
+         !
+         DO j = 1,nat
+         mu = 3*(j-1)+b
+         DO iR = 1,fc%n_R
+           delta = delta+fc%FC(mu,nu,iR)
+           !norm  = norm +fc%FC(mu,nu,iR)**2 
+         ENDDO
+         ENDDO      
+           norm = 0._dp
+           DO j = 1,nat
+           mu = 3*(j-1)+b
+           DO iR = 1,fc%n_R
+             norm  = norm +fc%FC(mu,nu,iR)**2 
+           ENDDO
+           ENDDO
+           !  
+           DO j = 1,nat
+           mu = 3*(j-1)+b
+           DO iR = 1,fc%n_R
+             fc%FC(mu,nu,iR) = fc%FC(mu,nu,iR) - delta*fc%FC(mu,nu,iR)**2/norm
+           ENDDO
+           ENDDO
+       ENDDO
+       ENDDO
+      ENDDO
     ELSE
       CALL errore("impose_asr2", "unknown method "//TRIM(method), 1)
     ENDIF

@@ -1,3 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
 !
 ! Written by Lorenzo Paulatto (2017) IMPMC @ UPMC / CNRS UMR7590
 !  Dual licenced under the CeCILL licence v 2.1
@@ -17,6 +28,10 @@ MODULE cmdline_param_module
   ! after parsing, the argument will be removed from command line, calling it
   ! again will cause an error.
   ! 
+  PUBLIC :: cmdline_check_any
+  ! Returns .true. if there is at least one parameter (except the executable name)
+  ! Bug: breaks if the executable name contains a space
+  !
   PUBLIC :: cmdline_param_char
   ! Example: 
   !   char_var = cmdline_param_char('c' [, default="def value"] [,found])
@@ -58,7 +73,7 @@ MODULE cmdline_param_module
   ! The code detects if value can be read as a number or a logical it will stay as is, otherwise
   ! it will be put in quotes.  Setting array values like
   !   --nk 1,1,1
-  ! Usually work, but it is a bit magic
+  ! Usually works, but it is a bit magic
   INTEGER :: length = -1
   CHARACTER(len=:),ALLOCATABLE :: command
   PUBLIC :: fgetpid
@@ -88,6 +103,8 @@ MODULE cmdline_param_module
     REAL(DP) :: value
     !
     char_value = cmdline_param_char(switch, default=' ', found=found)
+    IF(char_value(1:1)=='=') char_value(1:1)=' '
+
     READ(char_value,*,iostat=ios) value
     IF(ios/=0) THEN
       IF(present(default)) THEN
@@ -167,6 +184,40 @@ MODULE cmdline_param_module
     ENDDO
   END SUBROUTINE
   !
+  ! Check if there is any command line parameter
+  FUNCTION cmdline_check_any()
+    IMPLICIT NONE
+    LOGICAL :: cmdline_check_any
+    INTEGER :: i,first, last
+    !
+    ! On first call, allocate the space and read in the command line
+    IF(length<0) THEN
+      CALL GET_COMMAND(length=length)
+      ALLOCATE(character(length) :: command)
+      CALL GET_COMMAND(command=command)
+    ENDIF
+    cmdline_check_any = .false.
+    DO i = 1,length
+     IF(command(i:i)/=' ') THEN
+       first=i
+       EXIT
+     ENDIF
+    ENDDO
+    DO i = length,first,-1
+     IF(command(i:i)/=' ') THEN
+       last=i
+       EXIT
+     ENDIF
+    ENDDO
+    DO i = first,last
+     IF(command(i:i)==' ') THEN
+       cmdline_check_any = .true.
+       EXIT
+     ENDIF
+    ENDDO
+    !print*, length, first, last, command, cmdline_check_any
+  END FUNCTION 
+  !
   FUNCTION cmdline_param_char(switch, default, found)
     IMPLICIT NONE
     CHARACTER(len=1),INTENT(in)  :: switch
@@ -178,10 +229,21 @@ MODULE cmdline_param_module
     LOGICAL :: start, empty
     !
     ! On first call, allocate the space and read in the command line
-    IF(length<0) THEN
-      CALL GET_COMMAND(length=length)
-      ALLOCATE(character(length) :: command)
-      CALL GET_COMMAND(command=command)
+    !IF(length<0) THEN
+    !  CALL GET_COMMAND(length=length)
+    !  ALLOCATE(character(length) :: command)
+    !  CALL GET_COMMAND(command=command)
+    !ENDIF
+    !print*, "any?", cmdline_check_any()a
+    !
+    IF(.not. cmdline_check_any())THEN
+      IF(present(found)) found=.false.
+      IF(present(default)) THEN
+         cmdline_param_char=default
+      ELSE
+        cmdline_param_char = ''
+      ENDIF
+      RETURN ! quick return
     ENDIF
     !
     IF(present(found)) found = .false.
@@ -307,9 +369,11 @@ MODULE cmdline_param_module
           ! it could still be a logical type (.f. ot .false. or just false)  
           READ(argv,*,iostat=ios) ldummy
           IF(ios==0) THEN
-            WRITE(nunit,*) TRIM(argv), ","
+            !WRITE(nunit,*) TRIM(argv), ","
+            WRITE(nunit,*) ldummy, ","
             CYCLE
           ELSE
+            ! Looks like it is a characters string, let's write it as-is but in quotes
             WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
             CYCLE
           ENDIF

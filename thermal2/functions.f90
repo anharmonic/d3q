@@ -454,13 +454,22 @@ end subroutine quicksort_idx
     !
   END SUBROUTINE cdiag_serial
 
-  PURE FUNCTION rotate_d2(nat3, D, U)
+  ! \/o\________\\\_________________________________________/^>
+  FUNCTION rotate_d2(nat3, D, U)
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
     COMPLEX(DP),INTENT(in) :: D(nat3,nat3), U(nat3,nat3)
-    COMPLEX(DP) :: rotate_d2(nat3,nat3)
-    rotate_d2 = matmul(transpose(conjg(U)), matmul(D,U))
+    COMPLEX(DP) :: rotate_d2(nat3,nat3), A(nat3,nat3)
+    COMPLEX(DP),PARAMETER :: alpha = (1.0D0, 0.0D0)
+    COMPLEX(DP),PARAMETER :: beta = (0.0D0, 0.0D0)
+    !
+    !rotate_d2 = MATMUL(TRANSPOSE(CONJG(U)), MATMUL(D,U))
+    !
+    CALL ZGEMM3M('N', 'N', nat3, nat3, nat3, alpha, D, nat3, U, nat3, beta, A, nat3)
+    CALL ZGEMM3M('C', 'N', nat3, nat3, nat3, alpha, U, nat3, A, nat3, beta, rotate_d2, nat3)
+    !
   END FUNCTION
+  !
   PURE FUNCTION backrotate_d2(nat3, D, U)
     IMPLICIT NONE
     INTEGER,INTENT(in) :: nat3
