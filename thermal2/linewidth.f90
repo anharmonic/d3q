@@ -16,7 +16,7 @@ MODULE linewidth
    USE kinds,            ONLY : DP
    USE mpi_thermal,      ONLY : my_id, num_procs, mpi_bsum, allgather_mat, scatteri_tns, mpi_sum_mat
    USE constants,        ONLY : RY_TO_CMM1, PI
-   USE q_grids,          ONLY : q_grid, setup_grid, fc_info
+   USE q_grids,          ONLY : q_grid, setup_grid
    USE input_fc,         ONLY : ph_system_info
    USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat_gemm, d3_mixed
    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0

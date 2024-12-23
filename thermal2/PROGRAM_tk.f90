@@ -11,7 +11,7 @@ MODULE thermalk_program
    USE kinds,       ONLY : DP
    USE mpi_thermal, ONLY : ionode, mpi_bsum
    USE posix_signal,ONLY : check_graceful_termination
-   USE q_grids,            ONLY : q_grid, setup_grid, fc_info
+   USE q_grids,            ONLY : q_grid, setup_grid
    USE timers
    !
 CONTAINS
