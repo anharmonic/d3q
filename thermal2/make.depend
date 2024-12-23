@@ -53,6 +53,7 @@ q_grids.o : mpi_thermal.o
 quter.o : mpi_thermal.o
 read_md.o : mpi_thermal.o
 rigid_d3.o : mpi_thermal.o
+thtetra.o : mpi_thermal.o
 timers.o : mpi_thermal.o
 variational_tk.o : mpi_thermal.o
 variational_tk_symq.o : mpi_thermal.o
@@ -268,6 +269,7 @@ fc2_interp.o : ./rigid_d3.o
 fc2_interp.o : ./timers.o
 fc3_interp.o : ./input_fc.o
 fc3_interp.o : ./mpi_thermal.o
+fc3_interp.o : ./ph_system.o
 final_state.o : ./fc2_interp.o
 final_state.o : ./fc3_interp.o
 final_state.o : ./functions.o
@@ -293,6 +295,7 @@ isotopes.o : ./mpi_thermal.o
 isotopes.o : ./nanoclock.o
 isotopes.o : ./nist_isotopes_db.o
 isotopes.o : ./q_grids.o
+linewidth.o : ./code_input.o
 linewidth.o : ./fc2_interp.o
 linewidth.o : ./fc3_interp.o
 linewidth.o : ./functions.o
@@ -300,6 +303,7 @@ linewidth.o : ./input_fc.o
 linewidth.o : ./merge_degenerate.o
 linewidth.o : ./mpi_thermal.o
 linewidth.o : ./q_grids.o
+linewidth.o : ./thtetra.o
 linewidth.o : ./timers.o
 mc_grids.o : ./code_input.o
 mc_grids.o : ./fc2_interp.o
@@ -337,15 +341,18 @@ ph_velocity.o : ./more_constants.o
 posix_signal.o : ./mpi_thermal.o
 posix_signal.o : ./timers.o
 q_grids.o : ./fc2_interp.o
+q_grids.o : ./fc3_interp.o
 q_grids.o : ./functions.o
 q_grids.o : ./input_fc.o
 q_grids.o : ./lebedev.o
 q_grids.o : ./mpi_thermal.o
+q_grids.o : ./ph_system.o
 q_grids.o : ./ph_velocity.o
 quter.o : ./functions.o
 quter.o : ./input_fc.o
 read_md.o : ./input_fc.o
 read_md.o : ./mpi_thermal.o
+thtetra.o : ./mpi_thermal.o
 timers.o : ./mpi_thermal.o
 timers.o : ./nanoclock.o
 variational_tk.o : ./casimir.o
