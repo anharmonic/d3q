@@ -11,12 +11,14 @@ MODULE fc2_interpolate
   USE kinds,    ONLY : DP
   USE nanoclock
   USE rigid_d3, ONLY : rgd_blk_d3
-#include "mpi_thermal.h"  
+#include "mpi_thermal.h"
   !
-  ! I take forceconst2_grid globally in this module so I can USE it from here 
+  ! I take forceconst2_grid globally in this module so I can USE it from here
   ! elsewhere, which makes more sense
   USE input_fc, ONLY : forceconst2_grid, ph_system_info
-  
+
+  external :: errore, cryst_to_cart, zheev, zheevd
+
   ! \/o\________\\\_________________________________________/^>
   ! Moved to input_fc to avoid circular dependencies
 !   TYPE forceconst2_grid
@@ -38,16 +40,16 @@ MODULE fc2_interpolate
 !     MODULE PROCEDURE mat2_diag_pure_dac ! same, using Divide & Conquer algorithm
   END INTERFACE
 
-  ! I have three versions of the interpolation routine, they only differ by the 
+  ! I have three versions of the interpolation routine, they only differ by the
   ! way OMP is used to parallelise the operations. In principle they are all three valid,
   ! but only the _flat one seems to work. Probably some bug with reduce operations on
   ! arrays, or something I do not understand about OMP.
   INTERFACE fftinterp_mat2
 #define __PRECOMPUTE_PHASES
 #ifdef __PRECOMPUTE_PHASES
-!dir$ message "----------------------------------------------------------------------------------------------" 
-!dir$ message "Using MKL vectorized Sin and Cos implementation, this can use more memory but should be faster" 
-!dir$ message "----------------------------------------------------------------------------------------------" 
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message "Using MKL vectorized Sin and Cos implementation, this can use more memory but should be faster"
+!dir$ message "----------------------------------------------------------------------------------------------"
     MODULE PROCEDURE fftinterp_mat2_flat_mkl   ! use standard OMP but paralelize on the innermost cycle./fc2_interp.f90:329:
 #else
     MODULE PROCEDURE fftinterp_mat2_flat   ! use standard OMP but paralelize on the innermost cycle
@@ -60,10 +62,10 @@ MODULE fc2_interpolate
   ! is available, if you need the other one, write it..
   ! (i.e. the code will not work if __PRECOMPUTE_PHASES is undefined)
   INTERFACE fftinterp_dmat2
-    MODULE PROCEDURE fftinterp_dmat2_flat_mkl   
+    MODULE PROCEDURE fftinterp_dmat2_flat_mkl
   END INTERFACE
 
-  CONTAINS
+CONTAINS
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
@@ -93,7 +95,7 @@ MODULE fc2_interpolate
     END DO
 !$OMP END PARALLEL DO
     !
-    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, D, xq_hat)
 
   END SUBROUTINE fftinterp_mat2_reduce
   !
@@ -123,15 +125,15 @@ MODULE fc2_interpolate
       phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
 !$OMP DO COLLAPSE(2)
       DO mu= 1, S%nat3
-      DO nu= 1, S%nat3
-        D(nu,mu) = D(nu,mu) + phase * fc%fc(nu,mu, i)
-      ENDDO
+        DO nu= 1, S%nat3
+          D(nu,mu) = D(nu,mu) + phase * fc%fc(nu,mu, i)
+        ENDDO
       ENDDO
 !$OMP END DO
     END DO
 !$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat
   !
@@ -173,15 +175,15 @@ MODULE fc2_interpolate
 !/!$OMP DO
     DO i = 1, fc%n_R
       DO mu= 1, S%nat3
-      DO nu= 1, S%nat3
-        D(nu,mu) = D(nu,mu) + vphase(i) * fc%fc(nu,mu, i)
-      ENDDO
+        DO nu= 1, S%nat3
+          D(nu,mu) = D(nu,mu) + vphase(i) * fc%fc(nu,mu, i)
+        ENDDO
       ENDDO
     END DO
 !/!$OMP END DO
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_flat_mkl
   !
@@ -224,17 +226,16 @@ MODULE fc2_interpolate
     DEALLOCATE(D_aux)
 !/!$OMP END PARALLEL
     !
-    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, fc, D, xq_hat)
+    IF(S%lrigid) CALL add_rgd_blk_d3(xq, S, D, xq_hat)
     !
   END SUBROUTINE fftinterp_mat2_safe
   !
-  SUBROUTINE add_rgd_blk_d3(xq, S, fc, D, xq_hat)
+  SUBROUTINE add_rgd_blk_d3(xq, S, D, xq_hat)
     USE random_numbers,   ONLY : randy
     USE rigid_d3,         ONLY : nonanal_d3
     USE timers,           ONLY : t_rigid
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in)   :: S
-    TYPE(forceconst2_grid),INTENT(in) :: fc
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(inout) :: D(S%nat3, S%nat3)
     REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
@@ -261,10 +262,10 @@ MODULE fc2_interpolate
         ! qhat matters only in gamma.
         ! the group velocity is ill-defined in Gamma (since there is the nonanalytic term)
         ! the nonanalytic term is real, direction-dependent and is added only in Gamma.
-        ! When we compute the group velocity, the nonanalytic term is not added because 
+        ! When we compute the group velocity, the nonanalytic term is not added because
         ! with the finite differences we copute D(h)-D(-h) [with h=1E-7]
-        ! thus the nonanalytic term plays a role only in the choice of the 
-        ! eigenvectors at Gamma and is added when all the components of q are smaller than 1E-12 
+        ! thus the nonanalytic term plays a role only in the choice of the
+        ! eigenvectors at Gamma and is added when all the components of q are smaller than 1E-12
         qhat(1) = 1.0 !randy()
         qhat(2) = 0.0 !randy()
         qhat(3) = 0.0 !randy()
@@ -279,23 +280,23 @@ MODULE fc2_interpolate
     ! Add the long-range term rom effective charges
     !CALL rgd_blk_d3(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
     CALL rgd_blk_d3(2,2,2,S%nat,phi,xq, &
-                  S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
+      S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
     !
     DO ja = 1,S%nat
-    DO ia = 1,S%nat
-      DO j = 1,3
-      mu = j + 3*(ja-1)
-      DO i = 1,3
-        nu = i + 3*(ia-1)
-        !print*, mu,nu,i,j,ia,ja
-        D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
-                              *S%sqrtmm1(nu)*S%sqrtmm1(mu)
+      DO ia = 1,S%nat
+        DO j = 1,3
+          mu = j + 3*(ja-1)
+          DO i = 1,3
+            nu = i + 3*(ia-1)
+            !print*, mu,nu,i,j,ia,ja
+            D(nu,mu) = D(nu,mu) + phi(i,j,ia,ja)&
+              *S%sqrtmm1(nu)*S%sqrtmm1(mu)
+          ENDDO
+        ENDDO
       ENDDO
-      ENDDO
-    ENDDO
     ENDDO
     CALL t_rigid%stop()
-    
+
     RETURN
   END SUBROUTINE
   !
@@ -369,7 +370,7 @@ MODULE fc2_interpolate
     !
   END SUBROUTINE mat2_diag_pure
   !
-  ! IN PLACE diagonalization of D using divide and conquer, 
+  ! IN PLACE diagonalization of D using divide and conquer,
   ! should be faster, but it'sactually slower for small number of atoms
   ! Cannot declare explicitly pure, because ILAENZ and ZHEEV aren't pure
   SUBROUTINE mat2_diag_pure_dac(n, D, w2)
@@ -389,8 +390,8 @@ MODULE fc2_interpolate
     lwork  = 2*n+n**2
     lrwork = 1 + 5*n + 2*n**2
     liwork = 3+5*n
-    
-    
+
+
     ALLOCATE(work(lwork))
     ALLOCATE(rwork(lrwork))
     ALLOCATE(iwork(liwork))
@@ -404,8 +405,8 @@ MODULE fc2_interpolate
   !
   ! Auxiliary subroutines follow:
   !
-  ! Interpolate dynamical matrice at q and diagonalize it, 
-  ! put acoustic gamma frequencies at exactly zero, 
+  ! Interpolate dynamical matrice at q and diagonalize it,
+  ! put acoustic gamma frequencies at exactly zero,
   ! STOP if we get any negative frequencies
   SUBROUTINE freq_phq_safe(xq, S, fc2, freq, U)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
@@ -415,11 +416,69 @@ MODULE fc2_interpolate
     TYPE(ph_system_info),INTENT(in)   :: S
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
-    COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
+    COMPLEX(DP),INTENT(out), optional :: U(S%nat3,S%nat3)
+    COMPLEX(DP)                       :: dummy(S%nat3,S%nat3)
     REAL(DP),PARAMETER :: epsq = 1.e-8_dp
     REAL(DP) :: cq(3), chk(3)
+    LOGICAL :: gamma
+    !
+    ! RAF
+    !U = CONJG(U)
+    if(present(U)) THEN
+      CALL fftinterp_mat2(xq, S, fc2, U)
+      CALL mat2_diag(S%nat3, U, freq)
+    else
+      CALL fftinterp_mat2(xq, S, fc2, dummy)
+      CALL mat2_diag(S%nat3, dummy, freq)
+    endif
+    cq = xq
+    CALL cryst_to_cart(1,cq,S%at,-1)
+    gamma = ALL( ABS(cq-NINT(cq))<epsq)
+    IF( gamma )THEN
+      freq(1:3) = 0._dp
+      if(present(U)) U(:,1:3) = (0._dp, 0._dp)
+    ENDIF
+
+    chk(:) = cq(:)*fc2%nq(:)
+    chk=chk-NINT(chk(:))
+    IF(fc2%periodic .AND. SUM(ABS(chk)) > 1.d-8) CALL errore("interp","cannot interpolate with periodic matrices",1 )
+
+    IF(ANY(freq<0._dp)) THEN
+      WRITE(*,*) gamma
+      WRITE(*,"(e12.5,e12.5,e12.5)") cq
+      WRITE(*,"(e12.5,e12.5,e12.5)") xq
+      WHERE    (freq >  0.0)
+        freq = DSQRT(freq)
+      ELSEWHERE(freq < 0.0)
+        freq = -DSQRT(-freq)
+      ENDWHERE
+      WRITE(*,"('negative freq = ',12e12.4)")freq*RY_TO_CMM1
+      CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
+    ELSE
+      !
+      freq = DSQRT(freq)
+    END IF
+    !
+  END SUBROUTINE freq_phq_safe
+
+  !> finite difference gradient of the frequencies (NOT TESTED)
+  SUBROUTINE freq_phq_safe_grad(xq, S, fc2, delta, freq, grad)
+    USE input_fc, ONLY : ph_system_info, forceconst2_grid
+    USE constants,          ONLY : RY_TO_CMM1
+    IMPLICIT NONE
+    REAL(DP),INTENT(in)               :: xq(3), delta
+    TYPE(ph_system_info),INTENT(in)   :: S
+    TYPE(forceconst2_grid),INTENT(in) :: fc2
+    REAL(DP),INTENT(out)              :: freq(S%nat3), grad(S%nat3,3)
+    COMPLEX(DP)          :: U(S%nat3,S%nat3)
+    REAL(DP),PARAMETER :: epsq = 1.e-8_dp
+    REAL(DP) :: cq(3), chk(3), e(3,3), freq_delta(S%nat3)
     INTEGER :: i
     LOGICAL :: gamma
+    e = 0._dp
+    DO i=1,3
+      e(i,i) = 1._dp
+    END DO
     !
     ! RAF
     !U = CONJG(U)
@@ -436,7 +495,7 @@ MODULE fc2_interpolate
     chk(:) = cq(:)*fc2%nq(:)
     chk=chk-NINT(chk(:))
     IF(fc2%periodic .AND. SUM(ABS(chk)) > 1.d-8) CALL errore("interp","cannot interpolate with periodic matrices",1 )
-    
+
     IF(ANY(freq<0._dp)) THEN
       WRITE(*,*) gamma
       WRITE(*,"('cq = ',3f12.6)") cq
@@ -445,15 +504,20 @@ MODULE fc2_interpolate
         freq = DSQRT(freq)
       ELSEWHERE(freq < 0.0)
         freq = -DSQRT(-freq)
-      ENDWHERE 
+      ENDWHERE
       WRITE(*,"('negative freq = ',12e12.4)")freq*RY_TO_CMM1
       CALL errore("freq_phq_safe", "cannot continue with negative frequencies",1)
     ELSE
-    !
-       freq = DSQRT(freq)
+      !
+      freq = DSQRT(freq)
     END IF
+    DO i=1,3
+      CALL freq_phq_safe(xq+delta*e(:,i), S, fc2, freq_delta, U)
+      grad(:,i) = (freq_delta - freq) / delta
+    ENDDO
     !
-  END SUBROUTINE freq_phq_safe
+  END SUBROUTINE
+
   !
   ! Return 1 if q-point is not Gamma, 4 if it is (3 points in input)
   ! used to avoid divergence because of 1/freq at Gamma for acoustic bands
@@ -483,7 +547,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: eps = 0._dp 
+    REAL(DP),PARAMETER :: eps = 0._dp
     !
     CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
@@ -495,7 +559,7 @@ MODULE fc2_interpolate
     ELSEWHERE ! i.e. freq=0
       freq = 0._dp
     ENDWHERE
-      !
+    !
   END SUBROUTINE freq_phq
   !
   ! Interpolate dynamical matrice at q and diagonalize it
@@ -507,7 +571,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: eps = 0._dp 
+    REAL(DP),PARAMETER :: eps = 0._dp
     !
     CALL fftinterp_mat2(xq, S, fc2, U, xq_hat)
     CALL mat2_diag(S%nat3, U, freq)
@@ -519,7 +583,7 @@ MODULE fc2_interpolate
     ELSEWHERE ! i.e. freq=0
       freq = 0._dp
     ENDWHERE
-      !
+    !
   END SUBROUTINE freq_phq_hat
   !
   ! Interpolate dynamical matrice at q and diagonalize it
@@ -531,7 +595,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: eps = 0._dp 
+    REAL(DP),PARAMETER :: eps = 0._dp
     !
     CALL fftinterp_mat2(xq, S, fc2, U)
     CALL mat2_diag(S%nat3, U, freq)
@@ -543,7 +607,7 @@ MODULE fc2_interpolate
     ELSEWHERE ! i.e. freq=0
       freq = 0._dp
     ENDWHERE
-      !
+    !
   END SUBROUTINE freq_phq_positive
   !
   !
@@ -558,7 +622,7 @@ MODULE fc2_interpolate
     TYPE(forceconst2_grid),INTENT(in) :: fc2
     REAL(DP),INTENT(out)              :: freq(S%nat3)
     COMPLEX(DP),INTENT(out)           :: U(S%nat3,S%nat3)
-    REAL(DP),PARAMETER :: eps = 0._dp 
+    REAL(DP),PARAMETER :: eps = 0._dp
     REAL(DP) :: xq_hat(3), yq(3), chk(3)
     !
     yq = xq(:,iq)
@@ -569,7 +633,7 @@ MODULE fc2_interpolate
     chk(:) = yq(:)*fc2%nq(:)
     chk=chk-NINT(chk(:))
     IF(fc2%periodic .AND. SUM(ABS(chk)) > 1.d-8) CALL errore("interp","cannot interpolate with periodic matrices",1 )
-    
+
     ! Check for exactly Gamma, even a tiny displacement works already
     IF(ALL(ABS(yq)< 1.d-8))THEN
       ! We set xq to EXACTLY zero in this case, to avoid double lo-to counting
@@ -588,7 +652,7 @@ MODULE fc2_interpolate
     !
     ! WARNING: dirty hack!
     ! Instead of computing the non-analitical contribution (which seemed to be missing some
-    ! piece that I did not manage to track down) I'm computing the frequencies at 
+    ! piece that I did not manage to track down) I'm computing the frequencies at
     ! a tiny displacement out of Gamma
     !CALL fftinterp_mat2(xq(:,iq)+xq_hat*1.d-6, S, fc2, U, xq_hat)
     ! attention! Here this routine is always called with the xq_hat argument!
@@ -603,7 +667,7 @@ MODULE fc2_interpolate
     ELSEWHERE ! i.e. freq=0
       freq = 0._dp
     ENDWHERE
-      !
+    !
   END SUBROUTINE freq_phq_path
   !
   ! Compute Bose-Einstein distribution of freq
@@ -619,8 +683,8 @@ MODULE fc2_interpolate
     !WHERE    (freq*T >  eps)
     !WHERE    (freq /=  0._dp)
     IF(T==0._dp)THEN
-     bose = 0._dp
-     RETURN
+      bose = 0._dp
+      RETURN
     ENDIF
 
     WHERE    (freq > 0._dp)
@@ -628,9 +692,9 @@ MODULE fc2_interpolate
     ELSEWHERE
       bose = 0._dp
     ENDWHERE
-      !
+    !
   END SUBROUTINE bose_phq
-  !
+
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE dyn_cart2pat(d2in, nat3, u, dir, d2out)
     !   Rotates third derivative of the dynamical basis from cartesian axis
@@ -649,7 +713,6 @@ MODULE fc2_interpolate
     COMPLEX(DP),ALLOCATABLE  :: u_fw(:,:), u_bw(:,:)
     !
     INTEGER :: a, b, i, j
-    COMPLEX(DP) :: AUX
     REAL(DP),PARAMETER :: EPS = 1.e-8_dp
     !
     ALLOCATE(d2tmp(nat3, nat3))
@@ -672,17 +735,17 @@ MODULE fc2_interpolate
     ENDIF
 
     DO j = 1,nat3
-    DO b = 1,nat3
-      !
-      DO i = 1,nat3
-      DO a = 1,nat3
-          d2tmp(i, j) = d2tmp(i, j) &
-                          + u_fw(a,i) * d2in(a, b) * u_bw(b,j)
+      DO b = 1,nat3
+        !
+        DO i = 1,nat3
+          DO a = 1,nat3
+            d2tmp(i, j) = d2tmp(i, j) &
+              + u_fw(a,i) * d2in(a, b) * u_bw(b,j)
+          ENDDO
+        ENDDO
+        !
       ENDDO
-      ENDDO
-      !
     ENDDO
-    ENDDO    
     !
     IF(present(d2out)) THEN
       d2out = d2tmp
@@ -694,7 +757,7 @@ MODULE fc2_interpolate
   END SUBROUTINE dyn_cart2pat
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Compute the derivative of the Dynamical matrix D by 
+  ! Compute the derivative of the Dynamical matrix D by
   ! FT of force constants fc * iR
   SUBROUTINE fftinterp_dmat2_flat_mkl(xq, S, fc, dD)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
@@ -730,9 +793,9 @@ MODULE fc2_interpolate
       DO alpha = 1,3
         fac = vphase(i)*CMPLX(0._dp, -fc%xR(alpha,i)*S%alat,kind=DP)
         DO mu= 1, S%nat3
-        DO nu= 1, S%nat3
-          dD(nu,mu,alpha) = dD(nu,mu,alpha)+ fac * fc%fc(nu,mu, i)
-        ENDDO
+          DO nu= 1, S%nat3
+            dD(nu,mu,alpha) = dD(nu,mu,alpha)+ fac * fc%fc(nu,mu, i)
+          ENDDO
         ENDDO
       ENDDO
     END DO
