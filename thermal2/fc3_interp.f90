@@ -1510,10 +1510,10 @@ CONTAINS
    
       u3c = CONJG(u3)
       ! Step 1: tmp(a,b,k) = d3in(a,b,c) * CONJG(u3(c,k))
-      CALL zgemm('N', 'N', nat32, nat3, nat3, 1.0_DP, d3in, nat32, u3c, nat3, 0.0_DP, tmp, nat32)
+      CALL zgemm3m('N', 'N', nat32, nat3, nat3, 1.0_DP, d3in, nat32, u3c, nat3, 0.0_DP, tmp, nat32)
    
       ! ! Step 2: tmp2(i,b,k) = TRANSCONJ(u(a,i)) * tmp(a,b,k)
-      CALL zgemm('C', 'N', nat3, nat32, nat3, 1.0_DP, u1, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
+      CALL zgemm3m('C', 'N', nat3, nat32, nat3, 1.0_DP, u1, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
    
       ! Step 3: tmp(b,i,k) = RESHAPE(tmp2(i,b,k))
       do k = 1, nat3
@@ -1521,7 +1521,7 @@ CONTAINS
       enddo
    
       ! Step 3: d3in(i,j,k) = TRANSCONJ(u2(b,j)) * tmp(b,i,k)
-      CALL zgemm('C', 'N', nat3, nat32, nat3, 1.0_DP, u2, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
+      CALL zgemm3m('C', 'N', nat3, nat32, nat3, 1.0_DP, u2, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
    
       do k = 1, nat3
          d3in(:, :, k) = TRANSPOSE(d3in(:, :, k))
