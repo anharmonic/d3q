@@ -10,30 +10,35 @@ MODULE q_grids
 
   USE kinds,     ONLY : DP
   USE mpi_thermal,      ONLY : ionode
+  USE input_fc,         ONLY : ph_system_info
+  USE fc3_interpolate,  ONLY : forceconst3
+  USE fc2_interpolate,  ONLY : forceconst2_grid
 #include "mpi_thermal.h"
-  
+
   TYPE q_grid
-    CHARACTER(len=9) :: basis = ''
-    CHARACTER(len=9) :: type = ''
+    CHARACTER(9) :: basis = ''
+    CHARACTER(9) :: type = ''
     INTEGER :: n(3) = -1
     INTEGER :: nq = 0
     INTEGER :: nqtot = 0
     LOGICAL :: scattered = .false.
+    LOGICAL :: symmetrized = .false.
     INTEGER :: iq0 = 0
     LOGICAL :: shifted = .false.
     REAL(DP) :: xq0(3) = 0._dp ! the shift applied to the grid (if shifted)
     REAL(DP),ALLOCATABLE :: xq(:,:) ! coordinates of the q-point
     REAL(DP),ALLOCATABLE :: w(:)    ! weight for integral of the BZ
-    CONTAINS
-      procedure :: scatter => q_grid_scatter
-      procedure :: destroy => q_grid_destroy
-      procedure :: copy    => q_grid_copy
+  CONTAINS
+    procedure :: scatter => q_grid_scatter
+    procedure :: destroy => q_grid_destroy
+    procedure :: copy    => q_grid_copy
+    procedure :: symmetrize => q_grid_symmetrize
   END TYPE q_grid
   !
   TYPE  q_basis
     INTEGER :: nbnd  ! number of phonon bands
     INTEGER :: nconf ! number of temperatures
-    INTEGER :: nq    ! number of points 
+    INTEGER :: nq    ! number of points
     REAL(DP),ALLOCATABLE :: w(:,:)    ! phonon frequencies
     REAL(DP),ALLOCATABLE :: c(:,:,:)  ! phonon group velocity, \nabla_q w
     REAL(DP),ALLOCATABLE :: be(:,:,:) ! bose-einstein occupation (one per configuration)
@@ -43,7 +48,7 @@ MODULE q_grids
 !       procedure :: B  => B_right_hand_side
   END TYPE q_basis
   !
-  CONTAINS
+CONTAINS
 !   ! \/o\________\\\_________________________________________/^>
 
   SUBROUTINE q_grid_destroy(grid)
@@ -68,12 +73,46 @@ MODULE q_grids
     IF(allocated(copy%w)) DEALLOCATE(copy%w)
     ALLOCATE(copy%w(grid%nq))
     copy%n  = grid%n
-    copy%scattered  = grid%scattered 
+    copy%scattered  = grid%scattered
     copy%shifted =   grid%shifted
     copy%nq = grid%nq
     copy%nqtot =  grid%nqtot
     copy%iq0 =  grid%iq0
     copy%xq0 =  grid%xq0
+  END SUBROUTINE
+
+  SUBROUTINE q_grid_symmetrize(grid, S)
+    USE cell_base,        ONLY : at, bg
+    USE symm_base,        ONLY : set_sym, nsym, s_symm_base => s, time_reversal, t_rev
+    USE ph_system,        ONLY : ph_system_info
+
+    IMPLICIT NONE
+    CLASS(q_grid),INTENT(inout) :: grid
+    TYPE(ph_system_info), INTENT(IN) :: S
+    REAL(DP), ALLOCATABLE :: m_loc(:,:), xq(:,:), wq(:)
+    INTEGER :: nxq
+    EXTERNAL kpoint_grid
+    ! at is needed as global variable by set_sym_bl
+    at = S%at
+    ! bg is needed as global variable by symmatrix (to resimmetrize)
+    bg = S%bg
+    IF(.not.allocated(m_loc))  THEN
+      ALLOCATE(m_loc(3,S%nat))
+      m_loc = 0._dp
+    ENDIF
+    IF(.not. allocated(xq)) ALLOCATE(xq(3,grid%nqtot))
+    IF(.not. allocated(wq)) ALLOCATE(wq(grid%nqtot))
+
+    CALL set_sym(S%nat, S%tau, S%ityp, 1, m_loc) ! 1 = nspin I think
+    CALL kpoint_grid(nsym, time_reversal, .false., s_symm_base, t_rev, S%bg, grid%nqtot, &
+      0,0,0, grid%n(1),grid%n(2),grid%n(3), nxq, xq, wq)
+    grid%xq = xq(:,1:nxq)
+    grid%w = wq(1:nxq)
+    grid%nq = nxq
+    grid%nqtot = nxq
+    ioWRITE(*,*) "simple grid has", nxq, "irreducible q-points"
+    ioWRITE(*,*) " found", nsym, "symmetries"
+    grid%symmetrized = .true.
   END SUBROUTINE
 
   SUBROUTINE q_grid_scatter(grid, quiet)
@@ -90,28 +129,28 @@ MODULE q_grids
     CALL scatteri_vec(nq, grid%w, grid%iq0)
     grid%nq = nq
     grid%scattered = .true.
-    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
-          WRITE(stdout,"(2x,a)") "Grid scattered with MPI"
+    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) &
+      WRITE(stdout,"(2x,a)") "Grid scattered with MPI"
   END SUBROUTINE
 !   !
 !   ! Nasty subroutine that sets some global variables of QE.
 !
-!       NOTE: all the at, bg, nat, tau and so on must be set in 
+!       NOTE: all the at, bg, nat, tau and so on must be set in
 !             the QE global modules for this to work
 !
 !   SUBROUTINE setup_symmetry(S)
-!     USE input_fc,  ONLY : ph_system_info 
+!     USE input_fc,  ONLY : ph_system_info
 !     USE symm_base, ONLY : nrot, nsym, set_sym_bl, find_sym
 !     IMPLICIT NONE
 !     TYPE(ph_system_info),INTENT(in)   :: S ! = System
 !     REAL(DP) :: m_loc(3,S%nat) ! fake starting magnetisation
 !     m_loc = 0._dp
 !     ! ######################### symmetry setup #########################
-!     ! ~~~~~~~~ setup bravais lattice symmetry ~~~~~~~~ 
+!     ! ~~~~~~~~ setup bravais lattice symmetry ~~~~~~~~
 !     CALL set_sym_bl ( )
 !     WRITE(*, '(5x,a,i3)') "Symmetries of bravais lattice: ", nrot
 !     !
-!     ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~ 
+!     ! ~~~~~~~~ setup crystal symmetry ~~~~~~~~
 !     CALL find_sym ( S%nat, S%tau, S%ityp, 6,6,6, .false., m_loc )
 !     WRITE(*, '(5x,a,i3)') "Symmetries of crystal:         ", nsym
 !    END SUBROUTINE setup_symmetry
@@ -121,14 +160,14 @@ MODULE q_grids
     USE random_numbers,   ONLY : randy
     USE functions,        ONLY : default_if_not_present
     IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in)     :: grid_type
+    CHARACTER(*),INTENT(in)     :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3)
     INTEGER,INTENT(in) :: n1,n2
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),OPTIONAl,INTENT(in) :: e1(3), e2(3), xq0(3)
 
     INTEGER :: i,j,k, idx
-    
+
     grid%type = "plane"
     grid%n(1) = 0
     grid%n(2) = 0
@@ -136,25 +175,25 @@ MODULE q_grids
     grid%nq = n1*n2
     !
     IF(allocated(grid%xq)) &
-        CALL errore("setup_plane_grid", "grid is already allocated", 1)
+      CALL errore("setup_plane_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
     grid%w = 1._dp
     !
     idx = 0
     DO i = 0, n1-1
-    DO j = 0, n2-1
-      !
-      idx = idx+1
-      grid%xq(:,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)*e1 &
-                      +REAL(j,kind=DP)/REAL(n2,kind=DP)*e2 &
-                      +xq0
-      !
+      DO j = 0, n2-1
+        !
+        idx = idx+1
+        grid%xq(:,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)*e1 &
+          +REAL(j,kind=DP)/REAL(n2,kind=DP)*e2 &
+          +xq0
+        !
+      ENDDO
     ENDDO
-    ENDDO
-    
+
     IF(idx/=grid%nq) CALL errore("setup_plane_grid","wrong nq",1)
-    
+
   END SUBROUTINE
 
 ! \/o\________\\\_________________________________________/^>
@@ -163,7 +202,7 @@ MODULE q_grids
     USE random_numbers,   ONLY : randy
     USE functions,        ONLY : default_if_not_present
     IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in)     :: grid_type
+    CHARACTER(*),INTENT(in)     :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
@@ -186,8 +225,8 @@ MODULE q_grids
           ioWRITE(stdout, "(2x,a,3f12.6)") &
             "WARNING! Random grid: ignoring grid shift from input", grid%xq0
         ELSE
-          IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
-          WRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
+          IF (.not.default_if_not_present(.false.,quiet) .and. ionode) &
+            WRITE(stdout, "(2x,a,3f12.6)") "Applying grid shift", grid%xq0
         ENDIF
       ENDIF
     ENDIF
@@ -210,7 +249,7 @@ MODULE q_grids
       CALL setup_lebedev_grid(grid_type, n1, n2, grid, grid%xq0(1))
       IF(do_scatter) CALL grid%scatter()
     ELSE IF(grid_type=="random" .or. grid_type=="randws")THEN
-      ! Do not add a random shift in the direction where 
+      ! Do not add a random shift in the direction where
       ! only on point is requested.
       ! The random shift is inside the first grid cell
       grid%xq0 = 0._dp
@@ -219,7 +258,7 @@ MODULE q_grids
       IF(n3>1) grid%xq0(3) = randy()/DBLE(n3)
       CALL cryst_to_cart(1,grid%xq0,bg, +1)
       grid%shifted = .true.
-      IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
+      IF (.not.default_if_not_present(.false.,quiet) .and. ionode) &
         WRITE(stdout, "(2x,a,3f12.6)") "Random grid shift", grid%xq0
       !
       IF(.not.do_scatter)THEN
@@ -230,7 +269,7 @@ MODULE q_grids
         CALL setup_scattered_grid(bg, n1,n2,n3, grid, grid%xq0)
       ENDIF
     ELSE IF (grid_type=="ws" .or. grid_type=="bz")THEN
-      ! This grid has to be generated in its entirety and then scatterd, 
+      ! This grid has to be generated in its entirety and then scatterd,
       ! mind the memory bottleneck!
       !print*,1
       CALL setup_bz_grid(bg, n1,n2,n3, grid, grid%xq0)
@@ -240,15 +279,15 @@ MODULE q_grids
     ELSE
       CALL errore("setup_grid", "wrong grid type '"//TRIM(grid_type)//"'", 1)
     ENDIF
-    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) & 
-       WRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
+    IF (.not.default_if_not_present(.false.,quiet) .and. ionode) &
+      WRITE(stdout,'(2x,"Setup a ",a," grid of",i9," q-points")') grid_type, grid%nqtot
 
   END SUBROUTINE setup_grid
 
   ! \/o\________\\\_________________________________________/^>
   ! Setup a grid that respects the symmetry of the Brillouin zone
   SUBROUTINE setup_bz_grid(bg, n1,n2,n3, grid, xq0)
-    USE input_fc, ONLY : ph_system_info 
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
@@ -282,58 +321,58 @@ MODULE q_grids
       qbz = 0._dp
       nqbz = 0
       DO i = -far,far
-      DO j = -far,far
-      DO k = -far,far
-        g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
-        qg = sg%xq(:,iq)+g
-        qgmod2 = SUM(qg**2)
-        IF(ABS(qgmod2-qgmod2_min)< eps)THEN
-          ! same distance: add this vector to the list f degeneracies
-          nqbz = nqbz+1
-          qbz(:,nqbz) = qg
-          qgmod2_min = qgmod2
-        ELSEIF(qgmod2<qgmod2_min)THEN
-          ! shorter distance: reinit the list of degeneracies
-          qbz = 0._dp
-          nqbz = 1 
-          qbz(:,nqbz) = qg
-          qgmod2_min = qgmod2
-        ENDIF
-      ENDDO
-      ENDDO
+        DO j = -far,far
+          DO k = -far,far
+            g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
+            qg = sg%xq(:,iq)+g
+            qgmod2 = SUM(qg**2)
+            IF(ABS(qgmod2-qgmod2_min)< eps)THEN
+              ! same distance: add this vector to the list f degeneracies
+              nqbz = nqbz+1
+              qbz(:,nqbz) = qg
+              qgmod2_min = qgmod2
+            ELSEIF(qgmod2<qgmod2_min)THEN
+              ! shorter distance: reinit the list of degeneracies
+              qbz = 0._dp
+              nqbz = 1
+              qbz(:,nqbz) = qg
+              qgmod2_min = qgmod2
+            ENDIF
+          ENDDO
+        ENDDO
       ENDDO
       !
       nqtot = nqtot + nqbz
-    ENDDO    
+    ENDDO
 
     ALLOCATE(grid%xq(3,nqtot))
     ALLOCATE(grid%w(nqtot))
-    
+
     DO iq = 1, sg%nq
       !print*, 2000, iq
       qgmod2_min = SUM(sg%xq(:,iq)**2)
       qbz = 0._dp
       nqbz = 0
       DO i = -far,far
-      DO j = -far,far
-      DO k = -far,far
-        g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
-        qg = sg%xq(:,iq)+g
-        qgmod2 = SUM(qg**2)
-        IF(ABS(qgmod2-qgmod2_min)< eps)THEN
-          ! same distance: add this vector to the list f degeneracies
-          nqbz = nqbz+1
-          qbz(:,nqbz) = qg
-          qgmod2_min = qgmod2
-        ELSEIF(qgmod2<qgmod2_min)THEN
-          ! shorter distance: reinit the list of degeneracies
-          qbz = 0._dp
-          nqbz = 1 
-          qbz(:,nqbz) = qg
-          qgmod2_min = qgmod2
-        ENDIF
-      ENDDO
-      ENDDO
+        DO j = -far,far
+          DO k = -far,far
+            g = i*bg(:,1) + j*bg(:,2) + k*bg(:,3)
+            qg = sg%xq(:,iq)+g
+            qgmod2 = SUM(qg**2)
+            IF(ABS(qgmod2-qgmod2_min)< eps)THEN
+              ! same distance: add this vector to the list f degeneracies
+              nqbz = nqbz+1
+              qbz(:,nqbz) = qg
+              qgmod2_min = qgmod2
+            ELSEIF(qgmod2<qgmod2_min)THEN
+              ! shorter distance: reinit the list of degeneracies
+              qbz = 0._dp
+              nqbz = 1
+              qbz(:,nqbz) = qg
+              qgmod2_min = qgmod2
+            ENDIF
+          ENDDO
+        ENDDO
       ENDDO
       !
       grid%xq(:,grid%nq+1:grid%nq+nqbz) = qbz(:,1:nqbz)
@@ -364,7 +403,7 @@ MODULE q_grids
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_simple_grid(bg, n1,n2,n3, grid, xq0)
-    USE input_fc, ONLY : ph_system_info 
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
@@ -372,13 +411,13 @@ MODULE q_grids
     REAL(DP),OPTIONAl,INTENT(in) :: xq0(3)
     !
     INTEGER :: i,j,k, idx
-    
+
     grid%type = 'simple'
     grid%n(1) = n1
     grid%n(2) = n2
     grid%n(3) = n3
     grid%nq = n1*n2*n3
-    !
+        !
     IF(allocated(grid%xq)) CALL errore("setup_simple_grid", "grid is already allocated", 1)
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
@@ -386,16 +425,16 @@ MODULE q_grids
     !
     idx = 0
     DO i = 0, n1-1
-    DO j = 0, n2-1
-    DO k = 0, n3-1
-      !
-      idx = idx+1
-      grid%xq(1,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
-      grid%xq(2,idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
-      grid%xq(3,idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
-      !
-    ENDDO
-    ENDDO
+      DO j = 0, n2-1
+        DO k = 0, n3-1
+          !
+          idx = idx+1
+          grid%xq(1,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
+          grid%xq(2,idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
+          grid%xq(3,idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
+          !
+        ENDDO
+      ENDDO
     ENDDO
     !
     CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
@@ -416,9 +455,9 @@ MODULE q_grids
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_xcrysden_grid(grid_type, bg, n1,n2,n3, grid, xq0)
-    USE input_fc, ONLY : ph_system_info 
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in) :: grid_type
+    CHARACTER(*),INTENT(in) :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
@@ -438,16 +477,16 @@ MODULE q_grids
     !
     idx = 0
     DO k = 0, n3
-    DO j = 0, n2
-    DO i = 0, n1
-      !
-      idx = idx+1
-      grid%xq(1,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
-      grid%xq(2,idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
-      grid%xq(3,idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
-      !
-    ENDDO
-    ENDDO
+      DO j = 0, n2
+        DO i = 0, n1
+          !
+          idx = idx+1
+          grid%xq(1,idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
+          grid%xq(2,idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
+          grid%xq(3,idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
+          !
+        ENDDO
+      ENDDO
     ENDDO
     !
     CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
@@ -485,7 +524,7 @@ MODULE q_grids
     grid%n(2) = n2
     grid%n(3) = n3
     grid%type = 'simple'
-    ! find the number of points for this cpu, the first cpus can have 
+    ! find the number of points for this cpu, the first cpus can have
     ! an extra point if num_procs is not a divisor of nqtot
     nqtot = n1*n2*n3
     grid%nqtot = nqtot
@@ -496,7 +535,7 @@ MODULE q_grids
     nqme = nqdiv
     IF(my_id<nqresidual) nqme = nqme+1
     grid%nq=nqme
-    
+
     nqfirst = 1
     DO idx = 0,my_id-1
       nqfirst = nqfirst+nqdiv
@@ -513,24 +552,24 @@ MODULE q_grids
     !
     idx = 0
     NQ_LOOP : &
-    DO i = 0, n1-1
-    DO j = 0, n2-1
-    DO k = 0, n3-1
-      !
-      idx = idx+1
-      my_idx = idx -nqfirst+1
-      IF(my_idx>nqme) EXIT NQ_LOOP
-      IF(my_idx>0)THEN
-        !print*, "yayaya", my_id, idx, my_idx
-        grid%xq(1,my_idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
-        grid%xq(2,my_idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
-        grid%xq(3,my_idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
-      ENDIF
-      !
-    ENDDO
-    ENDDO
+      DO i = 0, n1-1
+      DO j = 0, n2-1
+        DO k = 0, n3-1
+          !
+          idx = idx+1
+          my_idx = idx -nqfirst+1
+          IF(my_idx>nqme) EXIT NQ_LOOP
+          IF(my_idx>0)THEN
+            !print*, "yayaya", my_id, idx, my_idx
+            grid%xq(1,my_idx) = REAL(i,kind=DP)/REAL(n1,kind=DP)
+            grid%xq(2,my_idx) = REAL(j,kind=DP)/REAL(n2,kind=DP)
+            grid%xq(3,my_idx) = REAL(k,kind=DP)/REAL(n3,kind=DP)
+          ENDIF
+          !
+        ENDDO
+      ENDDO
     ENDDO &
-    NQ_LOOP
+      NQ_LOOP
     !
     CALL cryst_to_cart(grid%nq,grid%xq,bg, +1)
     grid%basis = 'cartesian'
@@ -546,10 +585,10 @@ MODULE q_grids
   !
   ! \/o\________\\\_________________________________________/^>
   SUBROUTINE setup_spherical_grid(grid_type, bg, n1,n2,n3, grid, max_q, phase_tht, phase_phi)
-    USE input_fc,   ONLY : ph_system_info 
+    USE input_fc,   ONLY : ph_system_info
     USE constants,  ONLY : pi, tpi
     IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in) :: grid_type
+    CHARACTER(*),INTENT(in) :: grid_type
     REAL(DP),INTENT(in)   :: bg(3,3) ! = System
     INTEGER,INTENT(in) :: n1,n2,n3
     TYPE(q_grid),INTENT(inout) :: grid
@@ -559,7 +598,7 @@ MODULE q_grids
     !
     INTEGER :: i,j,k, idx
     REAL(DP) :: mq, tht, phi
-    
+
     grid%type = 'spherical'
     grid%n(1) = n1
     grid%n(2) = n2
@@ -571,7 +610,7 @@ MODULE q_grids
     ALLOCATE(grid%w(grid%nq))
     !
     ioWRITE(*,'(2x,"Spherical grid, max |q|: ",'//&
-        'f12.6", 2pi/alat q/theta/phi points:",3i6)') max_q, n1, n2, n3
+      'f12.6", 2pi/alat q/theta/phi points:",3i6)') max_q, n1, n2, n3
 
     ! I treat Gamma separately, to only have it once
     idx = 1
@@ -579,23 +618,23 @@ MODULE q_grids
     grid%w(1) = 0._dp
     !
     DO i = 1, n1
-    DO j = 0, n2-1
-    DO k = 0, n3-1
-      !
-      idx = idx+1
-      !
-      mq  = i*max_q/DBLE(n1)
-      tht =  j*pi/DBLE(n2) +phase_tht
-      phi = k*tpi/DBLE(n3) +phase_phi
-      !
-      grid%xq(1,idx) = mq * sin(tht) * cos(phi)
-      grid%xq(2,idx) = mq * sin(tht) * sin(phi)
-      grid%xq(3,idx) = mq * cos(tht) 
-      !
-    grid%w = mq 
-    !
-    ENDDO
-    ENDDO
+      DO j = 0, n2-1
+        DO k = 0, n3-1
+          !
+          idx = idx+1
+          !
+          mq  = i*max_q/DBLE(n1)
+          tht =  j*pi/DBLE(n2) +phase_tht
+          phi = k*tpi/DBLE(n3) +phase_phi
+          !
+          grid%xq(1,idx) = mq * sin(tht) * cos(phi)
+          grid%xq(2,idx) = mq * sin(tht) * sin(phi)
+          grid%xq(3,idx) = mq * cos(tht)
+          !
+          grid%w = mq
+          !
+        ENDDO
+      ENDDO
     ENDDO
     grid%w = grid%w / SUM(grid%w)
     !
@@ -613,14 +652,14 @@ MODULE q_grids
 !    USE constants,  ONLY : pi, tpi
     USE lebedev , ONLY : ld_by_order, list_to_order
     IMPLICIT NONE
-    CHARACTER(len=*),INTENT(in) :: grid_type
+    CHARACTER(*),INTENT(in) :: grid_type
     INTEGER,INTENT(in) :: order_, nshells
     TYPE(q_grid),INTENT(inout) :: grid
     REAL(DP),INTENT(in) :: max_q
     !
     INTEGER :: i,j,k, idx, order, ord0
     REAL(DP) :: mq, tht, phi
-    
+
     IF(order==0)THEN
       CALL errore("lebedev", "wrong order, must be >0 (list) or <0 (lebedev order)",1)
     ELSE IF (order < 0) THEN
@@ -630,7 +669,7 @@ MODULE q_grids
     ENDIF
 
     grid%type = 'lebedev'
-    grid%n(1) = order 
+    grid%n(1) = order
     grid%n(2) = nshells
     grid%n(3) = 1
     grid%nq = order*nshells
@@ -641,7 +680,7 @@ MODULE q_grids
     ALLOCATE(grid%w(grid%nq))
     !
     ioWRITE(*,'(2x,"Lebedev grid, max |q|: ",'//&
-        'f12.6", Order/shells:",3i6)') max_q, order, nshells
+      'f12.6", Order/shells:",3i6)') max_q, order, nshells
 
     ! I treat Gamma separately, to only have it once
 !    idx = 1
@@ -691,15 +730,15 @@ MODULE q_grids
 
   !
   ! \/o\________\\\_________________________________________/^>
-  ! Create a line of nq q-point from the last point in the path end xqi 
+  ! Create a line of nq q-point from the last point in the path end xqi
   ! weights are improperly used as path length
-  ! SPECIAL: 
+  ! SPECIAL:
   ! 1. If the new point xqi is equivalent to the last point in the line, the path
   ! length is not incremented (only works if nq_new == 1)
-  ! 2. If nq_new is -1 the new point is added to the line and the path length 
+  ! 2. If nq_new is -1 the new point is added to the line and the path length
   ! is reset to zero, also lw.x will print an empy line in the output
   SUBROUTINE setup_path(xqi, nq_new, path, at)
-    USE input_fc, ONLY : ph_system_info 
+    USE input_fc, ONLY : ph_system_info
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: nq_new
     REAL(DP),INTENT(in) :: xqi(3)
@@ -732,12 +771,12 @@ MODULE q_grids
     ENDIF
     !
     ADD_TO_PATH : &
-    IF(path%nq >0)THEN
+      IF(path%nq >0)THEN
       ALLOCATE(auxq(3,path%nq),auxw(path%nq))
       auxq = path%xq
       auxw = path%w
       DEALLOCATE(path%xq, path%w)
-      ! If xqi is the same as the last point in the list, 
+      ! If xqi is the same as the last point in the list,
       ! do not add this distance to the path length
       nq_old = path%nq
       IF(nq_new>0)THEN
@@ -758,13 +797,13 @@ MODULE q_grids
       ALLOCATE(path%xq(3,path%nq),path%w(path%nq))
       path%w(1)=0._dp
     ENDIF &
-    ADD_TO_PATH
+      ADD_TO_PATH
     !
     !
     !
     equiv = .false.
     COMPUTE_NEW_PATH : &
-    IF(nq_new>1)THEN
+      IF(nq_new>1)THEN
       dq = (xqi-path%xq(:,nq_old))/(nq_new)
       dql = DSQRT(SUM(dq**2))
       ! build the actual path
@@ -773,7 +812,7 @@ MODULE q_grids
         IF(i>1) path%w(i) = path%w(i-1) + DSQRT(SUM(dq**2))
       ENDDO
     ELSE &
-    COMPUTE_NEW_PATH
+      COMPUTE_NEW_PATH
       IF(nq_old>0)THEN
         dq = xqi-path%xq(:,nq_old)
         ! compute path length before taking it to crystal axes
@@ -800,13 +839,13 @@ MODULE q_grids
       !
       path%xq(:,path%nq) = xqi
     ENDIF  &
-    COMPUTE_NEW_PATH
-    ! 
+      COMPUTE_NEW_PATH
+    !
     IF(nq_old>1)THEN
-    IF(SUM( ( (path%xq(:,nq_old-1) - path%xq(:,nq_old)) &
-             -(path%xq(:,nq_old) - path%xq(:,nq_old+1)))**2 ) > 1.d-6 ) THEN
-      ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
-    ENDIF
+      IF(SUM( ( (path%xq(:,nq_old-1) - path%xq(:,nq_old)) &
+        -(path%xq(:,nq_old) - path%xq(:,nq_old+1)))**2 ) > 1.d-6 ) THEN
+        ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
+      ENDIF
     ENDIF
     !
   END SUBROUTINE setup_path
@@ -842,7 +881,7 @@ MODULE q_grids
     ALLOCATE(qbasis%b(3,nconf,S%nat3,qbasis%nq))
     !
     ALLOCATE(U(S%nat3,S%nat3))
-    
+
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix, U)
 !$OMP DO
     DO iq = 1,qbasis%nq
@@ -856,20 +895,20 @@ MODULE q_grids
 
 !$OMP DO
     DO iq = 1,qbasis%nq
-    DO nu = 1,S%nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        qbasis%b(ix,it,nu,iq) = - qbasis%c(ix,nu,iq) * qbasis%w(nu,iq) &
-                                 *qbasis%be(nu,it,iq)*(qbasis%be(nu,it,iq)+1)
+      DO nu = 1,S%nat3
+        DO it = 1,nconf
+          DO ix = 1,3
+            qbasis%b(ix,it,nu,iq) = - qbasis%c(ix,nu,iq) * qbasis%w(nu,iq) &
+              *qbasis%be(nu,it,iq)*(qbasis%be(nu,it,iq)+1)
+          ENDDO
+        ENDDO
       ENDDO
-      ENDDO
-    ENDDO
     ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
     !
     DEALLOCATE(U)
-    
+
   END SUBROUTINE prepare_q_basis
   ! \/o\________\\\_________________________________________/^>
   FUNCTION qbasis_dot(x, y, nconf, nat3, nq) RESULT(z)
@@ -887,13 +926,13 @@ MODULE q_grids
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
 !$OMP DO COLLAPSE(4)
     DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        z(ix,it) = z(ix,it)+x(ix,it,nu,iq)*y(ix,it,nu,iq)
+      DO nu = 1,nat3
+        DO it = 1,nconf
+          DO ix = 1,3
+            z(ix,it) = z(ix,it)+x(ix,it,nu,iq)*y(ix,it,nu,iq)
+          ENDDO
+        ENDDO
       ENDDO
-      ENDDO
-    ENDDO
     ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
@@ -914,13 +953,13 @@ MODULE q_grids
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iq,nu,it,ix)
 !$OMP DO COLLAPSE(4)
     DO iq = 1,nq
-    DO nu = 1,nat3
-      DO it = 1,nconf
-      DO ix = 1,3
-        y(ix,it,nu,iq) = a(ix,it)*x(ix,it,nu,iq)
+      DO nu = 1,nat3
+        DO it = 1,nconf
+          DO ix = 1,3
+            y(ix,it,nu,iq) = a(ix,it)*x(ix,it,nu,iq)
+          ENDDO
+        ENDDO
       ENDDO
-      ENDDO
-    ENDDO
     ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
@@ -940,20 +979,20 @@ MODULE q_grids
     !
     c = 0._dp
     DO it = 1,nconf
-    DO ix = 1,3
-      IF(b(ix,it)/=0._dp)THEN
-        c(ix,it) = a(ix,it)/b(ix,it)
-      ELSE
-        IF(a(ix,it)/=0._dp) WRITE(*,'(3x,a,2i4)') "WARNING! Division by zero qbasis a/b", ix, it
-      ENDIF
-    ENDDO
+      DO ix = 1,3
+        IF(b(ix,it)/=0._dp)THEN
+          c(ix,it) = a(ix,it)/b(ix,it)
+        ELSE
+          IF(a(ix,it)/=0._dp) WRITE(*,'(3x,a,2i4)') "WARNING! Division by zero qbasis a/b", ix, it
+        ENDIF
+      ENDDO
     ENDDO
     !
   END FUNCTION qbasis_a_over_b
   !
   ! \/o\________\\\_________________________________________/^>
   REAL(DP) FUNCTION B_right_hand_side(self, ix, it, nu, iq) &
-           RESULT (B)
+    RESULT (B)
     IMPLICIT NONE
     CLASS(q_basis),INTENT(in) :: self
     INTEGER :: ix, nu, iq, it

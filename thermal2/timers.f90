@@ -17,6 +17,8 @@ MODULE timers
   TYPE(nanotimer) :: t_freq =   nanotimer("ph interp & diag"), &
                      t_bose =   nanotimer("bose distrib"), &
                      t_sum  =   nanotimer("sum modes"), &
+                     t_freqd = nanotimer("freqs on grid"), &
+                     t_thtetra = nanotimer("tetrahedra"), &
                      t_fc3int = nanotimer("fc3 interpolate"), &
                      t_fc3dint= nanotimer("fc3 double intp"), &
                      t_fc3m2  = nanotimer("fc3 modulus sq"), &
@@ -85,10 +87,12 @@ MODULE timers
     CALL t_lwcasi%print()
     ioWRITE(stdout,'("   * fine grain terms ")')
     CALL t_freq%print()
+    CALL t_freqd%print()
+    CALL t_thtetra%print()
     CALL t_bose%print()
     CALL t_sum%print()
     CALL t_fc3int%print()
-    CALL t_fc3m2 %print()
+    CALL t_fc3m2%print()
     CALL t_fc3rot%print()
     CALL t_velcty%print()
     CALL t_mpicom%print()
