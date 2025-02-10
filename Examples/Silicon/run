@@ -20,7 +20,7 @@ echo "d3 calculation"
 $pref $bin/d3q.x $post -in d3.in > d3.out 
 
 echo "computing 2-body force constants"
-$bin/d3_q2r.x < q2r.in > d3_q2r.out
+$bin/d3_q2r.x -d dyn  -o mat2R > d3_q2r.out
 
 echo "computing 3-body force constants"
 ls FILD3DYN/anh* | $bin/d3_qq2rr.x 2 2 2 -o mat3R > d3_qq2rr.out
