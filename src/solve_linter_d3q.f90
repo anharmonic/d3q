@@ -1,4 +1,4 @@
-!
+  !
 ! Copyright (C) 2001 PWSCF group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
@@ -469,7 +469,7 @@ SUBROUTINE solve_linter_d3q (irr, imode0, npe, iq_wfc, iq_prj, iq_prt, &
       ! Solve the linear problem! Computes the first derivative of wfcs
       conv_root = .true.
       nproj = nbnd_max !_occ(ik_prj)
-      CALL cgsolve_all (d3_ch_psi, d3_cg_psi, et(:, ik_wfc), dvpsi, dpsi, &
+      CALL cgsolve_d3 (d3_ch_psi, d3_cg_psi, et(:, ik_wfc), dvpsi, dpsi, &
            h_diag, npwx, npw_prj, thresh, ik_prj, lter, conv_root, anorm, &
            nbnd_occ(ik_wfc), 1)
       !
