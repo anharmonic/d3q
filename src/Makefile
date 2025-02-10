@@ -21,6 +21,7 @@ MODFLAGS= $(BASEMOD_FLAGS) \
 D3QOBJS = \
 allocate_d3.o \
 cmdline_param.o \
+cgsolve_d3.o \
 d2mxc.o \
 d3_basis.o \
 d3com.o \
