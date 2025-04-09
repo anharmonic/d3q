@@ -750,6 +750,7 @@ CONTAINS
     REAL(DP),ALLOCATABLE :: auxq(:,:), auxw(:)
     REAL(DP) :: dq(3), dql
     LOGICAL ::  equiv
+    INTEGER,SAVE ::manual_index=0
     !
     IF(nq_new==0) THEN
       IF(path%nq==0) &
@@ -847,6 +848,8 @@ CONTAINS
         ioWRITE(*,'(2x,"Path turning point: ",f12.6)') path%w(nq_old)
       ENDIF
     ENDIF
+    manual_index = manual_index+1
+    ioWRITE(*,'(2x,"Path point ",i4,":    ",f12.6)') manual_index,path%w(path%nq)
     !
   END SUBROUTINE setup_path
   ! Prepare a derived type that contains phonon frequencies, group velocities

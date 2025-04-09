@@ -18,7 +18,7 @@ MODULE linewidth
    USE constants,        ONLY : RY_TO_CMM1, PI
    USE q_grids,          ONLY : q_grid, setup_grid
    USE input_fc,         ONLY : ph_system_info
-   USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat_gemm, d3_mixed
+   USE fc3_interpolate,  ONLY : forceconst3, ip_cart2pat_gemm, d3_mixed, ip_cart2pat
    USE fc2_interpolate,  ONLY : forceconst2_grid, freq_phq_safe, bose_phq, set_nu0
    USE functions,        ONLY : refold_bz
    USE code_input,       ONLY : code_input_type
@@ -66,12 +66,13 @@ CONTAINS
       TYPE(forceconst2_grid), INTENT(IN) :: fc2
       REAL(DP), INTENT(OUT) :: weights_C(S%nat3, S%nat3**2, grid%nqtot), weights_X(S%nat3, S%nat3**2, grid%nqtot)
       INTEGER :: iq, ibnd, jbnd, index_double
-      REAL(DP) :: freqs_doubled_X(S%nat3**2, grid%nq), freqs_doubled_C(S%nat3**2, grid%nq)
+      REAL(DP),ALLOCATABLE :: freqs_doubled_X(:,:), freqs_doubled_C(:,:)
       REAL(DP), ALLOCATABLE :: gather_doubled_X(:,:), gather_doubled_C(:,:)
       REAL(DP) :: xq(3,3), freq(S%nat3,3)
       !
 
       ! ALLOCATE(weights_X(nat3, nat3**2, grid%nqtot), weights_C(nat3, nat3**2, grid%nqtot))
+      ALLOCATE(freqs_doubled_X(S%nat3**2, grid%nq), freqs_doubled_C(S%nat3**2, grid%nq))
       !
       xq(:,1) = xq0
       CALL freq_phq_safe(xq(:,1), S, fc2, freq(:,1))
@@ -92,6 +93,8 @@ CONTAINS
          ENDDO
       ENDDO
       IF(grid%scattered) THEN
+         ALLOCATE(gather_doubled_X(S%nat3**2, grid%nqtot))
+         ALLOCATE(gather_doubled_C(S%nat3**2, grid%nqtot))
          CALL allgather_mat(S%nat3**2, grid%nq, freqs_doubled_X, gather_doubled_X)
          CALL allgather_mat(S%nat3**2, grid%nq, freqs_doubled_C, gather_doubled_C)
       else
@@ -110,6 +113,7 @@ CONTAINS
 
       timer_CALL t_thtetra%stop()
       DEALLOCATE(gather_doubled_X, gather_doubled_C)
+      DEALLOCATE(freqs_doubled_X, freqs_doubled_C)
    END SUBROUTINE
 
    PURE function rotate_single_d3(i, j, k, U, D3, invert) result(D3_s2)
@@ -148,7 +152,6 @@ CONTAINS
       USE merge_degenerate,   ONLY : merge_degen
 
       IMPLICIT NONE
-      !! Normal/Umklapp contribution
       TYPE(q_grid), INTENT(IN) :: grid
       REAL(DP), INTENT(IN) :: xq1(3)
       TYPE(ph_system_info), INTENT(IN) :: S
@@ -220,12 +223,12 @@ CONTAINS
          !
          timer_CALL t_fc3int%start()
          ! old implementation of interpolation:
-         ! CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
+         !CALL fc3%interpolate(xq(:,2), xq(:,3), S%nat3, D3)
          CALL sum_R3(S, xq(:,3), Dqr, D3)
          timer_CALL t_fc3int%stop()
          timer_CALL t_fc3rot%start()
          !> gemm implementation of rotation
-         CALL ip_cart2pat_gemm(D3, S%nat3, U(:,:,2), U(:,:,1), U(:,:,3))
+         CALL ip_cart2pat(D3, S%nat3, U(:,:,2), U(:,:,1), U(:,:,3))
          timer_CALL t_fc3rot%stop()
          timer_CALL t_fc3m2%start()
          V3sq = REAL( CONJG(D3)*D3 , kind=DP)
@@ -277,7 +280,7 @@ CONTAINS
                         ctm = bose_C * f_gauss(dom_C, sigma) + bose_X * f_gauss(dom_X, sigma)
                       CASE ("tetra")
                         ctm = bose_C * weights_C(i, S%nat3*(j-1) + k, iq+grid%iq0) + &
-                        & bose_X * weights_X(i, S%nat3*(j-1) + k, iq+grid%iq0)
+                              bose_X * weights_X(i, S%nat3*(j-1) + k, iq+grid%iq0)
                         ! CASE ("selfnrg")
                         !   f(1) = freq(i,1)
                         !   f(2) = freq(j,2)
@@ -330,9 +333,9 @@ CONTAINS
       IF(grid%scattered .and. present(lw_UN)) CALL mpi_bsum(S%nat3,2,input%nconf,lw_UN)
       timer_CALL t_mpicom%stop()
 
-      linewidth_q = linewidth_q * pi / 2
+      linewidth_q = linewidth_q * 0.5_dp * pi 
       if (input%delta_approx == 'tetra') linewidth_q = linewidth_q * grid%nqtot
-
+      if (allocated(Dqr%DR3)) deallocate(Dqr%DR3, Dqr%R3)
       if(allocated(weights_C)) deallocate(weights_C, weights_X)
 
 

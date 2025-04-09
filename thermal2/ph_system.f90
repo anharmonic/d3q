@@ -15,7 +15,7 @@ MODULE ph_system
     INTEGER              :: ntyp
     REAL(DP)             :: amass(ntypx)
     REAL(DP)             :: amass_variance(ntypx)
-    CHARACTER(len=3  )   :: atm(ntypx)
+    CHARACTER(len=6)     :: atm(ntypx)
     ! atoms basis
     INTEGER              :: nat
     REAL(DP),ALLOCATABLE :: tau(:,:), zeu(:,:,:)
@@ -42,10 +42,10 @@ MODULE ph_system
     IMPLICIT NONE
     TYPE(ph_system_info),INTENT(in) :: S,Z
     LOGICAL :: same
-    REAL(DP),PARAMETER :: eps = 1.d-6
+    REAL(DP),PARAMETER :: eps = 1.d-5
     LOGICAL :: verbose
     !
-    verbose = ionode.and..FALSE. !just shut up
+    verbose = ionode !.and..FALSE. !just shut up
     
     !
     ! NOT checking : atm, amass, symm_type
@@ -93,7 +93,7 @@ MODULE ph_system
     IF(.not.same.and.verbose) WRITE(stdout,*) "at", S%at, Z%at
     same = same .and. ALL( ABS(S%bg -Z%bg) < eps)
     IF(.not.same.and.verbose) WRITE(stdout,*) "bg", S%bg, Z%bg
-    same = same .and. ( ABS(S%omega -Z%omega) < eps)
+    same = same .and. ( ABS(S%omega -Z%omega) < (S%omega+Z%omega)*eps)
     IF(.not.same.and.verbose) WRITE(stdout,*) "omega", S%omega, Z%omega
 
 !     same = same .and. (S%lrigid .or. Z%lrigid)

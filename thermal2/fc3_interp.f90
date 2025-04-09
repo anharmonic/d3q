@@ -27,6 +27,24 @@ MODULE fc3_interpolate
 #include "mpi_thermal.h"
    !USE input_fc,              ONLY : ph_system_info
    ! \/o\________\\\______________________//\/___________________/~^>>
+  INTERFACE ip_cart2pat
+!#define __IP_WO_ZGEMM
+#ifdef __IP_WO_ZGEMM
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message "D3 matrix rotation: using fortran loop (slow but safe)
+!dir$ message "----------------------------------------------------------------------------------------------"
+    MODULE PROCEDURE ip_cart2pat_byhand
+#else
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message "D3 matrix rotation: using zgemm (fast but can cause problem with buggy lapack)
+!dir$ message "----------------------------------------------------------------------------------------------"
+    MODULE PROCEDURE ip_cart2pat_gemm
+#endif
+!    MODULE PROCEDURE fftinterp_mat2_reduce  ! use standard OMP reduce on dummy variables
+!    MODULE PROCEDURE fftinterp_mat2_safe    ! do not use dummy variable in OMP clauses
+  END INTERFACE ip_cart2pat
+
+
    ! Abstract implementation: all methods are abstract
    TYPE,ABSTRACT :: forceconst3
       ! q points
@@ -1428,7 +1446,7 @@ CONTAINS
    END SUBROUTINE write_fc3_constant
    ! \/o\________\\\______________________//\/___________________/~^>>
 
-   SUBROUTINE ip_cart2pat(d3in, nat3, u1, u2, u3)
+   SUBROUTINE ip_cart2pat_byhand(d3in, nat3, u1, u2, u3)
       ! Rotates D3 matrix from cartesian axis to the basis
       ! of the modes. Rotation is not really in place
       USE kinds, ONLY : DP
@@ -1482,7 +1500,7 @@ CONTAINS
       RETURN
       !
       RETURN
-   END SUBROUTINE ip_cart2pat
+   END SUBROUTINE ip_cart2pat_byhand
    !
    SUBROUTINE ip_cart2pat_gemm(d3in, nat3, u1, u2, u3)
       USE kinds, ONLY : DP

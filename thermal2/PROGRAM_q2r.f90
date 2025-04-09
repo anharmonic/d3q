@@ -31,7 +31,7 @@ PROGRAM q2r
   !
   CHARACTER(len=20)  :: crystal
   CHARACTER(len=256) :: fildyn, filin, filj, filf, flfrc, inputf
-  CHARACTER(len=3)   :: atm(ntypx)
+  CHARACTER(len=6)   :: atm(ntypx)
   CHARACTER(LEN=6), EXTERNAL :: int_to_char
   !
   LOGICAL :: lq, lrigid, lrigid1, lnogridinfo, xmldyn
@@ -84,6 +84,11 @@ PROGRAM q2r
 !  cmdline = cmdline_residual()
     CALL cmdline_check_exausted()
   ELSE
+    fildyn = ' '
+    flfrc = 'mat2R'
+    zasr = 'no'
+    nfar = 2
+    
     WRITE(*,*) "No command line option, reading from stdin"
     WRITE(*,*) "WARNING! THIS IS DEPRECATED! Future versions will only accepted command line parameter"
     WRITE(*,*) "use d3_q2r.x -h to get the full help"
@@ -92,16 +97,11 @@ PROGRAM q2r
     inputf='-'
   ENDIF
      !
-!   fildyn = ' '
-!   flfrc = 'mat2R'
-!   zasr = 'no'
-!   nfar = 2
      !
   la2F=.false.
      !
      !
   IF (ionode .and. inputf /= '///')  THEN
-   print*, "cazzo"
    IF(TRIM(inputf)=='-')THEN
      input_unit=5
    ELSE
