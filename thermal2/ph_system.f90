@@ -216,7 +216,7 @@ MODULE ph_system
     ENDIF
     !
     DO nt = 1, S%ntyp
-      WRITE(unit,'(i9,2x,a5,f25.16)',iostat=ios) nt, "'"//S%atm(nt)//"'", S%amass(nt)
+      WRITE(unit,'(i9,2x,a9,f25.16)',iostat=ios) nt, "'"//TRIM(S%atm(nt))//"'", S%amass(nt)
       IF(ios/=0) CALL errore(sub,"writing nt, S%atm(nt), S%amass(nt)", nt)
     ENDDO
     !

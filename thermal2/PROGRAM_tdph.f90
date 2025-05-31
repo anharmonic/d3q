@@ -603,7 +603,7 @@ PROGRAM tdph
   ENDDO Q_POINTS_LOOP_c
   ioWRITE(stdout, '(5x,a,999i5)') "Points in the star of each q-point:", symq(:)%nq_trstar
   !
-  ! Find symmetric basis for effetcive charges
+  ! Find symmetric basis for effetctive charges
   IF(Si%lrigid) THEN
     ! I use the symmetry of Gamma as it is the same as the one of the crystal
     IF(ANY(symq(1)%xq/=0._dp)) CALL errore("star","gamma should be the first point",1)
@@ -618,7 +618,7 @@ PROGRAM tdph
   ioWRITE(stdout, '(5x,a,2i5)') "TOTAL number of degrees of freedom", nph
 
   ! Allocate a vector to hold the decomposed phonons over the entire grid
-  ! I need single vector in order to do minimization, otherwise a derived
+  ! I need a single vector in order to do minimization, otherwise a derived
   ! type would be more handy
   ALLOCATE(ph_coefficients(nph+zrank), ph_coefficients0(nph+zrank))
   iph = 0
@@ -652,7 +652,19 @@ PROGRAM tdph
   ENDIF
   !
   ph_coefficients0 = ph_coefficients
-!-----------------------------------------------------------------------
+
+#define __DEBUG_TDPH 1
+#ifdef __DEBUG_TDPH
+  ! Write to file the matrices in "centered" form for later Fourier interpolation
+  CALL recompose_fc(Si, nq_wedge, symq, dmb, rank, nph, ph_coefficients(1:nph),&
+                    nq1, nq2, nq3, nqmax, 3, fcout)
+  IF(Si%lrigid) CALL recompose_zstar(Si%nat, zrank, zbasis, ph_coefficients(nph+1:nph+zrank), Si%zeu)
+  !CALL impose_asr2("simple", Si%nat, fcout, Si%zeu)
+  !Si%lrigid = lrigid_save
+  CALL write_fc2("matIN.centered", Si, fcout)
+#endif
+
+  !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
   !n_steps    = input%nmax   ! total molecular dynamics steps TO READ
@@ -668,7 +680,7 @@ PROGRAM tdph
   ALLOCATE(toten_md(n_steps))
   CALL t_read%start()
   IF(input%ai=="md") THEN
-  CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, first_step, n_skip, n_steps, &
+  CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, bg_sc, first_step, n_skip, n_steps, &
                n_steps_tot, tau_md, force_md, toten_md, tau_sc, u)
   ELSE IF(input%ai=="pioud")THEN
     CALL read_pioud(input%ftau, input%fforce, input%ftoten, input%e0, nat_sc, Si%alat, &
@@ -763,8 +775,9 @@ PROGRAM tdph
   CALL write_fc2("matOUT.periodic", Si, fcout)
   !Si%lrigid = .false.
 
-  ! Force ratio
+  ! Print out final Harmonic forces compared with Abinitio forces
   OPEN(116,file="force_ratio.dat",status="unknown")
+  ioWRITE(116,'(a)') '# |f_ai-f_harm|   f_harm/f_mf   f_harm   f_md  (units=Ry/bohr)'
   !
   DO i = 1, n_steps
    WRITE(116,*) "i_step = ",i

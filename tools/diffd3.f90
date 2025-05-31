@@ -144,7 +144,7 @@ PROGRAM read3
 ! !     REAL(DP),ALLOCATABLE,OPTIONAL,INTENT(out) :: tau(:,:)    ! (3,nat) atomic positions, cartesians and alat
 ! !     REAL(DP),OPTIONAL,INTENT(out)             :: amass(ntypx)! (ntyp) mass of ions
 ! !     INTEGER,ALLOCATABLE,OPTIONAL,INTENT(out)  :: ityp(:)     ! (nat)  index of atomic types 
-! !     CHARACTER(len=3),OPTIONAL,INTENT(out)     :: atm(ntypx)  ! (ntyp) atomic labels (es. Si)
+! !     CHARACTER(len=6),OPTIONAL,INTENT(out)     :: atm(ntypx)  ! (ntyp) atomic labels (es. Si)
 !   !
 !   ! ntypx viene dal modulo parameters (USE parameters, ONLY : ntypx), mentre ityp e tau sono allocabili (così è nel resto del codice)
 !   !

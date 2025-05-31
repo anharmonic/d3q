@@ -16,7 +16,7 @@ PROGRAM read3
   INTEGER :: nat, i,j,k,a,b,c, ios, ntyp, nt, na, icar, ic,jc
   LOGICAL :: found, first
   INTEGER,PARAMETER :: iudyn = 666
-  CHARACTER(LEN=3) :: atm(ntypx)
+  CHARACTER(LEN=6) :: atm(ntypx)
   !
   title="bogus title"
   first=.true.

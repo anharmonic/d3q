@@ -56,7 +56,7 @@ SUBROUTINE write_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm,
   !
   REAL(DP),INTENT(in)         :: celldm(6), tau(3,nat), amass(ntypx), at(3,3)
   INTEGER,INTENT(in)          :: ityp(nat)
-  CHARACTER(len=3),INTENT(in) :: atm(ntypx)
+  CHARACTER(len=6),INTENT(in) :: atm(ntypx)
 
   !
   ! local variables
@@ -174,7 +174,7 @@ SUBROUTINE read_d3dyn_xml2(basename, xq1,xq2,xq3, d3, ntyp, nat, ibrav, celldm, 
   REAL(DP),ALLOCATABLE,OPTIONAL,INTENT(out) :: tau(:,:)    ! (3,nat) atomic positions, cartesians and alat
   REAL(DP),OPTIONAL,INTENT(out)             :: amass(ntypx)! (ntyp) mass of ions
   INTEGER,ALLOCATABLE,OPTIONAL,INTENT(out)  :: ityp(:)     ! (nat)  index of atomic types 
-  CHARACTER(len=3),OPTIONAL,INTENT(out)     :: atm(ntypx)  ! (ntyp) atomic labels (es. Si)
+  CHARACTER(len=6),OPTIONAL,INTENT(out)     :: atm(ntypx)  ! (ntyp) atomic labels (es. Si)
   ! The version of the written file
   CHARACTER(len=5),OPTIONAL,INTENT(out) :: file_format_version
   ! Switches:

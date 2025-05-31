@@ -15,7 +15,7 @@ MODULE sc2c_params
     ! atoms
     INTEGER              :: ntyp
     REAL(DP)             :: amass(ntypx)
-    CHARACTER(len=3  )   :: atm(ntypx)
+    CHARACTER(len=6)     :: atm(ntypx)
     ! atoms basis
     INTEGER              :: nat
     REAL(DP),ALLOCATABLE :: tau(:,:), zeu(:,:,:)
