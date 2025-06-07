@@ -1,5 +1,6 @@
 set(src_d3q
     src/allocate_d3.f90
+    src/cgsolve_d3.f90
     src/cmdline_param.f90
     src/d2mxc.f90
     src/d3_basis.f90
@@ -120,6 +121,7 @@ thermal2/q_grids.f90
 thermal2/quter.f90
 thermal2/read_md.f90
 thermal2/rigid_d3.f90
+thermal2/thtetra.f90
 thermal2/timers.f90
 thermal2/variational_tk_symq.f90
 thermal2/variational_tk.f90
