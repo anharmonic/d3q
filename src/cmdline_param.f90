@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 !
 ! Written by Lorenzo Paulatto (2017) IMPMC @ UPMC / CNRS UMR7590
 !  Dual licenced under the CeCILL licence v 2.1

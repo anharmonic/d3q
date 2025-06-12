@@ -453,7 +453,7 @@ MODULE read_md_module
     !PRINT*, "---------------------------------------------------------------------"
       i_step = 0
     OPEN(2244,file="disp.dat", status="unknown")
-    ioWRITE(2244,'(ai100)') '# disp (bohr, x,y,z)   tau_md (bohr, x,y,z)  tau_0 (bohr, x,y,z)'
+    ioWRITE(2244,'(a100)') '# disp (bohr, x,y,z)   tau_md (bohr, x,y,z)  tau_0 (bohr, x,y,z)'
     DO i_step = 1, n_steps
       ioWRITE(2244,'(a,i6)') '# i_step=', i_step
       DO k=1, nat_tot

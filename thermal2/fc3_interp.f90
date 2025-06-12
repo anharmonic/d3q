@@ -28,15 +28,15 @@ MODULE fc3_interpolate
    !USE input_fc,              ONLY : ph_system_info
    ! \/o\________\\\______________________//\/___________________/~^>>
   INTERFACE ip_cart2pat
-!#define __IP_WO_ZGEMM
+!!#define __IP_WO_ZGEMM
 #ifdef __IP_WO_ZGEMM
 !dir$ message "----------------------------------------------------------------------------------------------"
-!dir$ message "D3 matrix rotation: using fortran loop (slow but safe)
+!dir$ message "D3 matrix rotation: using fortran loop (slow but safe)"
 !dir$ message "----------------------------------------------------------------------------------------------"
     MODULE PROCEDURE ip_cart2pat_byhand
 #else
 !dir$ message "----------------------------------------------------------------------------------------------"
-!dir$ message "D3 matrix rotation: using zgemm (fast but can cause problem with buggy lapack)
+!dir$ message "D3 matrix rotation: using zgemm (fast but can cause problem with buggy lapack)"
 !dir$ message "----------------------------------------------------------------------------------------------"
     MODULE PROCEDURE ip_cart2pat_gemm
 #endif
@@ -254,6 +254,7 @@ CONTAINS
       INTEGER, INTENT(IN)                   :: nat3
       TYPE(d3_mixed), INTENT(OUT)           :: Dqr
       ! TODO
+      CALL errore('fc3','not implemented case',1)
    END SUBROUTINE
 
    SUBROUTINE todo_sum_R2_const(fc, xq, nat3, Dqr)
@@ -263,6 +264,7 @@ CONTAINS
       REAL(DP), INTENT(IN)                  :: xq(3)
       INTEGER, INTENT(IN)                   :: nat3
       TYPE(d3_mixed), INTENT(OUT)           :: Dqr
+      CALL errore('fc3','not implemented case',2)
       ! TODO
    END SUBROUTINE
 
