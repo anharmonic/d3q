@@ -1,12 +1,14 @@
 Website: https://anharmonic.github.io/
 
-Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri. Phys. Rev. B 87, 214303 – Published 7 June 2013
+Lorenzo Paulatto, Francesco Mauri, and Michele Lazzeri. Phys. Rev. B 87, 214303 (June 2013)
 
-Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri. Phys. Rev. B 88, 045430 – Published 17 July 2013
+Giorgia Fugallo, Michele Lazzeri, Lorenzo Paulatto, and Francesco Mauri. Phys. Rev. B 88, 045430 (2013)
 
-Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri. Phys. Rev. B 91, 054304 – Published 19 February 2015
+Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri. Phys. Rev. B 91, 054304 (2015)
 
-Fugallo et.al. Nano Lett., 2014, 14 (11), pp 6109–6114
+Fugallo et.al. Nano Lett. (11), pp 6109–6114 (2014)
+
+Ibrahim Buba Garba et al 2023 J. Phys.: Condens. Matter 35 395402 (2023)
 
 Features
 * derivative of total energy from three phonons from density functional perurbation theory
