@@ -1,3 +1,10 @@
+v 1.3.0
+* Tetrahedra method for integration of linewidth (Alessandro Ciavatta)
+* Phonon-defect scattering (WIP - Alessandro Ciavatta)
+* TDPH = a TDEP reciprocal space implmenetation, interafaces with pw.x verlet
+  dynamics and with pioud.x PIOUD langevin dynamics.
+* New command-line interface for d3_q2r.x and more post-processing codes
+
 v 1.2.0
 * Wigner conductivity implementation from of Michele Simoncelli, Nicola Marzari and Francesco Mauri
 * experimental reciprocal-sapce TDEP implementation (d3_tdph.x)
