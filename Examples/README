@@ -5,6 +5,7 @@ Graphene : calculation of D3 matrices
            (NOTE: very far from convergence!!)
 Silicon  : calculation of D3 matrices, force constants,
            linewidth and thermal conductivity
+MgO      : Compute the vibrational spectra at Gamma
 
 mat3R.NULL : example of fake mat3R file that will produce zero anharmonicity, useful for testing
 
