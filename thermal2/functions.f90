@@ -10,6 +10,13 @@
 ! Licence GPLv3
 !
 ! <<^V^\\=========================================//-//-//========//O\\//
+#if defined(__INTEL)
+#define ZGEMM zgemm3m
+#else
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it in d3q/thermal2/functions.f90
+!dir$ message "----------------------------------------------------------------------------------------------"
+#endif
 MODULE functions
   !
   USE kinds,     ONLY : DP
@@ -465,8 +472,8 @@ end subroutine quicksort_idx
     !
     !rotate_d2 = MATMUL(TRANSPOSE(CONJG(U)), MATMUL(D,U))
     !
-    CALL ZGEMM3M('N', 'N', nat3, nat3, nat3, alpha, D, nat3, U, nat3, beta, A, nat3)
-    CALL ZGEMM3M('C', 'N', nat3, nat3, nat3, alpha, U, nat3, A, nat3, beta, rotate_d2, nat3)
+    CALL ZGEMM('N', 'N', nat3, nat3, nat3, alpha, D, nat3, U, nat3, beta, A, nat3)
+    CALL ZGEMM('C', 'N', nat3, nat3, nat3, alpha, U, nat3, A, nat3, beta, rotate_d2, nat3)
     !
   END FUNCTION
   !
