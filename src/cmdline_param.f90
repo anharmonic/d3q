@@ -367,7 +367,7 @@ MODULE cmdline_param_module
               ENDIF
            ENDDO
         ELSE
-          CALL errore('cmd_argument', "argumen too short?",1)
+          CALL errore('cmd_argument', "argument too short?",1)
         ENDIF
       ELSE IF (argv(1:1) == "-") THEN
         !print*, 'dumped', trim(argv)
@@ -437,7 +437,6 @@ MODULE cmdline_param_module
     WRITE(nunit,*) "/"
     WRITE(nunit,*) 
     CALL FLUSH(nunit)
-    stop 0
 
   END SUBROUTINE
   !
