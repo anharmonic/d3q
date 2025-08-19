@@ -325,28 +325,64 @@ MODULE cmdline_param_module
     IMPLICIT NONE
     CHARACTER(len=*),INTENT(in) :: nname
     INTEGER,INTENT(in) :: nunit
-    INTEGER :: nargs, i, ios, alen, astatus
-    CHARACTER(len=512) :: argv, cdummy
+    INTEGER :: nargs, i, j, ios, alen, astatus
+    CHARACTER(len=512) :: argv, argv_, cdummy
     REAL(dp) :: rdummy
     LOGICAL  :: ldummy
     LOGICAL, EXTERNAL :: matches
-    nargs = COMMAND_ARGUMENT_COUNT()
 
+    LOGICAL            :: vlogi
+    REAL(DP)           :: vreal
+    INTEGER            :: vint
+    CHARACTER(len=512) :: vchar
+    CHARACTER(len=612) :: vname
+
+    nargs = COMMAND_ARGUMENT_COUNT()
     WRITE(nunit,*) "&"//TRIM(ADJUSTL(nname))
 
-    DO i = 1, nargs
-      CALL GET_COMMAND_ARGUMENT(i,argv,alen,astatus)
+    i=1
+    CALL GET_COMMAND_ARGUMENT(i,argv_,alen,astatus)
+    argv = TRIM(ADJUSTL(argv_))
+    !
+    check_args: &
+    DO WHILE (i<=nargs)
+
       IF(astatus<0) CALL errore("cmdline_to_namelist","truncated command",1)
       IF(argv(1:2)=="--") THEN
-        IF(alen>=3) WRITE(unit=nunit,fmt="(2a)",advance='no') "  ",TRIM(argv(3:))
-        ! write an "=" if it is not already in the argument
-        IF(.not.matches("=",argv)) WRITE(unit=nunit,fmt="(a)",advance='no') " = "
+        !print*, 'double dash', trim(argv)
+        WRITE(nunit,*) ! close any previous line still going
+        !IF(alen>=3) WRITE(unit=nunit,fmt="(2a)",advance='no') "  ",TRIM(argv(3:))
+        ! write an "=" 
+        ! if there is no "=" in the argument, cycle directly, otherwise make a new argument
+        ! with what comes after "=" and repeat the loop
+        IF(.not.matches("=",argv)) THEN
+          IF(alen>=3) WRITE(unit=nunit,fmt="(3a)",advance='no') "  ",TRIM(argv(3:)), ' = '
+          CONTINUE
+        ELSEIF(alen>=3) THEN
+           DO j = 4,alen-1
+              IF(argv(j:j)=='=') THEN
+                WRITE(unit=nunit,fmt="(3a)",advance='no') "  ",TRIM(argv(3:j-1)), ' = '
+                argv=argv(j+1:)
+                CYCLE check_args
+              ENDIF
+           ENDDO
+        ELSE
+          CALL errore('cmd_argument', "argumen too short?",1)
+        ENDIF
       ELSE IF (argv(1:1) == "-") THEN
+        !print*, 'dumped', trim(argv)
         ! A simple way to get rid of single "-" options: they are put in the file as comments
-        WRITE(unit=nunit,fmt="(3a)",advance='no') "  ! ",TRIM(argv)
+        ! also put there the following option if it does not start with "-"
+        WRITE(unit=nunit,fmt="(3a)",advance='no') "  ! ignored: ",TRIM(argv)
         IF(i<nargs)THEN
-          CALL GET_COMMAND_ARGUMENT(i+1,argv,alen,astatus)
-          IF(argv(1:1) == "-") WRITE(nunit,*)
+          CALL GET_COMMAND_ARGUMENT(i+1,argv_,alen,astatus)
+          argv = TRIM(ADJUSTL(argv_))
+          IF(argv(1:1) /= "-") THEN
+            WRITE(nunit,*) TRIM(argv)
+            i=i+1
+          ENDIF
+        ELSE
+          WRITE(nunit,*)
         ENDIF
       ELSE
         ! Try to determine if command is a number, a logical or a string
@@ -355,29 +391,53 @@ MODULE cmdline_param_module
         ! So I check if first character is not a number
 
         IF(.not.matches(argv(1:1),"01234567890-+")) THEN
-          ! it could still be a logical type (.f. ot .false. or just false)  
+          ! it could still be a logical type (.f. or .false. or just false)  
+          ! but some compilers will happily read "file" as a logical!
+          ! so we have to check by had a few cases...
           READ(argv,*,iostat=ios) ldummy
-          IF(ios==0) THEN
+          !IF(ios==0) THEN
+          IF( ios==0 .and. &
+             (    matches(TRIM(argv), '.f.')    &
+             .or. matches(TRIM(argv), '.false.')&
+             .or. matches(TRIM(argv), 'false')  &
+             .or. matches(TRIM(argv), '.t.')    &
+             .or. matches(TRIM(argv), '.true.') &
+             .or. matches(TRIM(argv), 'true')   &
+             ) &
+          ) THEN
             !WRITE(nunit,*) TRIM(argv), ","
+            !print*, 'logi', trim(argv)
             WRITE(nunit,*) ldummy, ","
-            CYCLE
+            !CYCLE
           ELSE
             ! Looks like it is a characters string, let's write it as-is but in quotes
+            !print*, 'string', trim(argv)
             WRITE(nunit,*) '"'//TRIM(argv)//'"', ","
-            CYCLE
+            !CYCLE
           ENDIF
         ELSE
           ! here it is definitely a number
-          WRITE(nunit,*) argv, ","
-          CYCLE
+            !print*, 'number', trim(argv)
+          WRITE(nunit,'(a)') argv, ","
+          !CYCLE
         ENDIF
+      !WRITE(nunit,*) "! -- next"
       ENDIF
-    ENDDO
+      !
+      i=i+1
+      IF(i<=nargs)THEN
+        CALL GET_COMMAND_ARGUMENT(i,argv_,alen,astatus)
+        argv = TRIM(ADJUSTL(argv_))
+      ELSE
+        EXIT check_args
+      ENDIF
+    ENDDO check_args
 
     WRITE(nunit,*) 
     WRITE(nunit,*) "/"
     WRITE(nunit,*) 
     CALL FLUSH(nunit)
+    stop 0
 
   END SUBROUTINE
   !
