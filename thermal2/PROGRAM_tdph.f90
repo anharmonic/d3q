@@ -667,17 +667,22 @@ PROGRAM tdph
   !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
+  ! FIXME: here we compute the number of steps *per CPU*, this should be more logically
+  !        done inside read_md or read_pioud, with also the three following allocations
+  !        being moved inside.
+  !
   !n_steps    = input%nmax   ! total molecular dynamics steps TO READ
   n_steps    = read_max_steps_para(input%nmax)   ! total molecular dynamics steps TO READ on this CPU
   first_step = input%nfirst ! start reading from this step
   n_skip     = input%nskip  ! number of steps to skip
+  !
+  ALLOCATE(tau_md(3,nat_sc,n_steps))
+  ALLOCATE(force_md(3,nat_sc,n_steps))
+  ALLOCATE(toten_md(n_steps))
 
   CALL t_init%stop()
 !###################  end of initialization ####################################################
 
-  ALLOCATE(tau_md(3,nat_sc,n_steps))
-  ALLOCATE(force_md(3,nat_sc,n_steps))
-  ALLOCATE(toten_md(n_steps))
   CALL t_read%start()
   IF(input%ai=="md") THEN
   CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, bg_sc, first_step, n_skip, n_steps, &
