@@ -1,0 +1,30 @@
+&CONTROL
+  calculation = "scf",
+  pseudo_dir  = "./",
+  outdir      = "/tmp/diamond"
+  prefix='diamond'
+  verbosity = 'high'
+/
+&SYSTEM
+  ibrav=  2,
+    celldm(1) = 6.742
+  nat=  2,
+  ntyp= 1,
+  ecutwfc=100,
+/
+&ELECTRONS
+  diagonalization='david'
+  mixing_mode = 'plain'
+  mixing_beta = 0.7
+  conv_thr =  1.0d-16
+/
+ATOMIC_SPECIES
+ C  12.01070  C.upf
+
+K_POINTS {automatic}
+  4 4 4 0 0 0
+
+ATOMIC_POSITIONS alat
+ C 0.00 0.00 0.00
+ C 0.25 0.25 0.25
+
