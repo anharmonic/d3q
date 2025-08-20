@@ -7,7 +7,7 @@
  ! starting from step 1000, read one step every 1000 until 150 are read
  nfirst = 1000
  nskip = 100
- nmax = 120
+ nread = 150
  thr = 1.d-12           ! minimization threshold
  fit_type = 'force'     ! recommended, provides 3*nat more information than energy
  minimization = 'ph'    ! optimize only phonons (not the effective charges)
