@@ -16,9 +16,9 @@
  Running       10000 test configurations
  Max delta:    0.0000000000000000        0.0000000000000000     
  Avg delta:    0.0000000000000000     
- Speedup:      1.5061241128154721     
-   *         Full matrix form *     2817.008524 *        0.281701 *        2817.009 *        0.281701 *   55.365 *       10000. *
-   *       Sparse matrix form *     1870.369447 *        0.187037 *        1870.369 *        0.187037 *   36.760 *       10000. *
+ Speedup:      1.2957900008356549     
+   *         Full matrix form *     1321.954818 *        0.132195 *        1321.955 *        0.132195 *   50.102 *       10000. *
+   *       Sparse matrix form *     1020.192174 *        0.102019 *        1020.192 *        0.102019 *   38.665 *       10000. *
  Sparse Memory used :            0 Mb
 
       
@@ -33,8 +33,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 

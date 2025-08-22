@@ -12,9 +12,13 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 
   Reading input file 'input.LW'
@@ -26,12 +30,14 @@
  FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
  FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
  ASR2="simple  ",
+ FILE_DZEU="///                                                                                                                                                                                                                                                             ",
  NCONF=1          ,
  SKIP_Q=0          ,
  NQ=5          ,
  NK= 3*10         ,
- GRID_TYPE="simple",
+ GRID_TYPE="simple      ",
  XK0= 3*0.0000000000000000       ,
+ DELTA_APPROX="tetra     ",
  OPTIMIZE_GRID=F,
  OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
  NE=-1         ,
@@ -45,7 +51,8 @@
  Q_SUMMED=F,
  SIGMAQ= 0.10000000000000001     ,
  EXP_T_FACTOR=F,
- SORT_FREQ="default",
+ SORT_FREQ="default  ",
+ XQ_REF= 3*0.0000000000000000       ,
  ISOTOPIC_DISORDER=F,
  CASIMIR_SCATTERING=F,
  SAMPLE_LENGTH_AU= -1.0000000000000000     ,
@@ -88,39 +95,46 @@
    10.000
 
  Reading QPOINTS
+  Path point    1:        0.000000
+  Path point    2:        0.866025
   Path turning point:     0.866025
+  Path point    3:        1.866025
   Path turning point:     1.866025
+  Path point    4:        2.366025
   Path turning point:     2.366025
+  Path point    5:        3.484059
   Read   5 lines, set-up    151 q-points, cartesian coordinates
 
  --> Setting up inner grid
-  Setup a simple grid of     1000 q-points
+  Setup a simple       grid of     1000 q-points
   Going to compute   151 points (1)
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         0.4s 
-         0.7% | STEP TIME:         0.4s | STEP END:         66.5s | WALL:         0.9s 
-        10.0% | STEP TIME:         6.7s | STEP END:         67.0s | WALL:         7.1s 
-        20.0% | STEP TIME:        13.4s | STEP END:         66.8s | WALL:        13.8s 
-        30.0% | STEP TIME:        20.0s | STEP END:         66.5s | WALL:        20.4s 
-        40.0% | STEP TIME:        26.6s | STEP END:         66.5s | WALL:        27.0s 
-        50.0% | STEP TIME:        33.4s | STEP END:         66.8s | WALL:        33.8s 
-        60.7% | STEP TIME:        40.5s | STEP END:         66.8s | WALL:        41.0s 
-        70.7% | STEP TIME:        47.3s | STEP END:         67.0s | WALL:        47.7s 
-        80.7% | STEP TIME:        54.0s | STEP END:         67.0s | WALL:        54.5s 
-        90.7% | STEP TIME:        60.9s | STEP END:         67.1s | WALL:        61.3s 
-       100.0% | STEP TIME:        67.0s | STEP END:         67.0s | WALL:        67.4s 
-   * WALL :      67.8819 s
+         0.7% | STEP TIME:         0.3s | STEP END:         52.0s | WALL:         0.5s 
+        10.0% | STEP TIME:         5.2s | STEP END:         51.9s | WALL:         5.3s 
+        20.0% | STEP TIME:        10.3s | STEP END:         51.7s | WALL:        10.5s 
+        30.0% | STEP TIME:        15.4s | STEP END:         51.4s | WALL:        15.6s 
+        40.0% | STEP TIME:        20.3s | STEP END:         50.9s | WALL:        20.5s 
+        50.0% | STEP TIME:        25.3s | STEP END:         50.5s | WALL:        25.4s 
+        60.7% | STEP TIME:        30.5s | STEP END:         50.3s | WALL:        30.7s 
+        70.7% | STEP TIME:        35.7s | STEP END:         50.5s | WALL:        35.9s 
+        80.7% | STEP TIME:        41.1s | STEP END:         51.0s | WALL:        41.3s 
+        90.7% | STEP TIME:        46.4s | STEP END:         51.1s | WALL:        46.5s 
+       100.0% | STEP TIME:        51.4s | STEP END:         51.4s | WALL:        51.6s 
+   * WALL :      51.9500 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *                 lw ph-ph *    67444.557998 *      446.652702 *       67444.558 *      446.652702 *   99.356 *         151. *
-   *                read data *       68.396034 *       68.396034 *          68.396 *       68.396034 *    0.101 *           1. *
+   *                 lw ph-ph *    51776.760030 *      342.892451 *       51776.760 *      342.892451 *   99.666 *         151. *
+   *                read data *       15.102684 *       15.102684 *          15.103 *       15.102684 *    0.029 *           1. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *    14263.545370 *        0.094366 *       14263.545 *        0.094366 *   21.012 *      151151. *
-   *             bose distrib *      242.713910 *        0.001607 *         242.714 *        0.001607 *    0.358 *      151000. *
-   *                sum modes *     2593.808854 *        0.017178 *        2593.809 *        0.017178 *    3.821 *      151000. *
-   *          fc3 interpolate *    27665.562782 *        0.183216 *       27665.563 *        0.183216 *   40.755 *      151000. *
-   *           fc3 modulus sq *      155.771120 *        0.001032 *         155.771 *        0.001032 *    0.229 *      151000. *
-   *               fc3 rotate *    21672.588949 *        0.143527 *       21672.589 *        0.143527 *   31.927 *      151000. *
-   *        mpi communication *        0.703375 *        0.004658 *           0.703 *        0.004658 *    0.001 *         151. *
-   *         merge degenerate *      145.223282 *        0.000962 *         145.223 *        0.000962 *    0.214 *      151000. *
+   *         ph interp & diag *     7701.600768 *        0.050953 *        7701.601 *        0.050953 *   14.825 *      151151. *
+   *            freqs on grid *     7768.335555 *       51.445931 *        7768.336 *       51.445931 *   14.953 *         151. *
+   *               tetrahedra *    33482.229553 *      221.736620 *       33482.230 *      221.736620 *   64.451 *         151. *
+   *             bose distrib *       18.956324 *        0.000126 *          18.956 *        0.000126 *    0.036 *      151000. *
+   *                sum modes *     1478.585314 *        0.009792 *        1478.585 *        0.009792 *    2.846 *      151000. *
+   *          fc3 interpolate *      622.254739 *        0.004121 *         622.255 *        0.004121 *    1.198 *      151000. *
+   *           fc3 modulus sq *       14.249335 *        0.000094 *          14.249 *        0.000094 *    0.027 *      151000. *
+   *               fc3 rotate *     1154.787652 *        0.000035 *        1154.788 *        0.000035 *    2.223 *    32767000. *
+   *        mpi communication *        0.399310 *        0.002644 *           0.399 *        0.002644 *    0.001 *         151. *
+   *         merge degenerate *        3.944808 *        0.000026 *           3.945 *        0.000026 *    0.008 *      151000. *
+   *              rigid block *     9193.169536 *        0.015209 *        9193.170 *        0.015209 *   17.696 *      604453. *
 
       
      For 2n+1 calculations of force constants please cite:
@@ -134,8 +148,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 
