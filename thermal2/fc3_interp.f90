@@ -701,6 +701,8 @@ CONTAINS
       INTEGER :: i,j, index3(3), iR3, nr, limits(3)
       REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
       COMPLEX(DP) :: vphase(fc%n_R)
+      COMPLEX(DP), ALLOCATABLE :: TMP(:,:,:,:)
+
       !
       DO i = 1, 3
          Dqr%minr(i) = MINVAL(fc%yR2(i,:))
@@ -708,8 +710,9 @@ CONTAINS
       ENDDO
       limits = Dqr%maxr - Dqr%minr + 1
       nr = PRODUCT(limits)
-      ALLOCATE(Dqr%R3(nr), Dqr%DR3(nat3, nat3, nat3, nr))
-      Dqr%DR3 = (0._dp, 0._dp)
+      ALLOCATE(Dqr%R3(nr))
+      ALLOCATE(TMP(nat3, nat3, nat3, nr))
+      TMP = (0._dp, 0._dp)
       Dqr%R3 = .false.
       !
       ! Pre-compute phase to use the vectorized MKL subroutines
@@ -723,8 +726,8 @@ CONTAINS
       vsin = DSIN(varg)
 #endif
       vphase =  CMPLX( vcos, -vsin, kind=DP  )
-      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: DQR%DR3)
-      !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(DQR%DR3)
+      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: TMP)
+      !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(TMP)
       DO i = 1, fc%n_R
          !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
          !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
@@ -732,13 +735,18 @@ CONTAINS
             index3 = fc%yR3(:,i) - Dqr%minr
             iR3 = index3(1)*limits(2)*limits(3) + index3(2)*limits(3) + index3(3) + 1
             Dqr%R3(iR3) = .true.
-            Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
-               = Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
+            TMP(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
+               = TMP(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
                + vphase(i) * fc%dat(i)%fc(j)
          ENDDO
       END DO
       !/!$ACC END DATA
       !$OMP END PARALLEL DO
+
+      ALLOCATE(Dqr%DR3(nat3, nat3, nat3, nr))
+      Dqr%DR3 = TMP
+
+      DEALLOCATE(TMP)
    END SUBROUTINE
 
    SUBROUTINE sum_R3(S, xq, Dqr, D)
