@@ -251,7 +251,7 @@ CONTAINS
                ENDDO
             ENDDO
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,&
+!$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,&
 !$OMP                     freqtotm1_23,freqtotm1) &
 !$OMP             REDUCTION(+: aux) COLLAPSE(2)
             DO j = 1,S%nat3
