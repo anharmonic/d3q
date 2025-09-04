@@ -723,8 +723,8 @@ CONTAINS
       vsin = DSIN(varg)
 #endif
       vphase =  CMPLX( vcos, -vsin, kind=DP  )
-      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: DR3)
-      !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(DR3)
+      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: DQR%DR3)
+      !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(DQR%DR3)
       DO i = 1, fc%n_R
          !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
          !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
@@ -829,7 +829,7 @@ CONTAINS
       !
       D = (0._dp, 0._dp)
       !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg,phase) REDUCTION(+: D)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg) REDUCTION(+: D)
       DO i = 1, fc%n_R
          arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
          cosine = Cos(arg)
