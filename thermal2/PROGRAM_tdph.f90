@@ -24,7 +24,7 @@ MODULE tdph_module
     CHARACTER(len=8) :: fit_type = "force"
     CHARACTER(len=8) :: minimization = "ph+zstar"
     CHARACTER(len=9) :: basis = "mu"
-    INTEGER :: nfirst, nskip, nmax, nprint
+    INTEGER :: nfirst, nskip, nread, nprint
     REAL(DP) :: e0, thr, T, randomization, alpha_rigid
     !
   END TYPE tdph_input_type
@@ -131,9 +131,10 @@ MODULE tdph_module
         CALL errore("tdph","need zero energy (e0 = total energy of unit cell) to fit energy difference", 1)
 
     IF(nmax>0 .and. nread>0) CALL errore("tdph", "You cannot specify both nread and nmax",1)
-    IF(nmax<0 .and. nread>0) nmax = nfirst+nskip*nread
-    IF(nmax<0 .and. nread<0) nmax = 50000 ! default value when nothing specified
-    IF(ANY((/nfirst,nmax,nskip/)<1)) &
+    !IF(nmax>0 .and. nread<0) nmax = nfirst+nskip*nread
+    IF(nmax>0) nread = (nmax-nfirst)/nskip
+    IF(nmax<0 .and. nread<0) nread = 1000 ! default value when nothing specified
+    IF(ANY((/nfirst,nread,nskip/)<1)) &
         CALL errore("tdph","wrong parameters", 1)
     !
     input%ai            = ai
@@ -146,7 +147,7 @@ MODULE tdph_module
     input%minimization  = minimization
     input%nfirst        = nfirst
     input%nskip         = nskip
-    input%nmax          = nmax
+    input%nread         = nread
     input%nprint        = nprint
     input%e0            = e0
     input%thr           = thr
@@ -667,17 +668,22 @@ PROGRAM tdph
   !-----------------------------------------------------------------------
   ! Variables that can be adjusted according to need ...
   !
+  ! FIXME: here we compute the number of steps *per CPU*, this should be more logically
+  !        done inside read_md or read_pioud, with also the three following allocations
+  !        being moved inside.
+  !
   !n_steps    = input%nmax   ! total molecular dynamics steps TO READ
-  n_steps    = read_max_steps_para(input%nmax)   ! total molecular dynamics steps TO READ on this CPU
+  n_steps    = read_max_steps_para(input%nread)   ! total molecular dynamics steps TO READ on this CPU
   first_step = input%nfirst ! start reading from this step
   n_skip     = input%nskip  ! number of steps to skip
+  !
+  ALLOCATE(tau_md(3,nat_sc,n_steps))
+  ALLOCATE(force_md(3,nat_sc,n_steps))
+  ALLOCATE(toten_md(n_steps))
 
   CALL t_init%stop()
 !###################  end of initialization ####################################################
 
-  ALLOCATE(tau_md(3,nat_sc,n_steps))
-  ALLOCATE(force_md(3,nat_sc,n_steps))
-  ALLOCATE(toten_md(n_steps))
   CALL t_read%start()
   IF(input%ai=="md") THEN
   CALL read_md(input%fmd, input%e0, nat_sc, Si%alat, at_sc, bg_sc, first_step, n_skip, n_steps, &
@@ -688,7 +694,7 @@ PROGRAM tdph
   ELSE
     CALL errore("tdph","unknown input format", 1)
   ENDIF
-  IF(n_steps_tot > input%nmax) CALL errore('tdph','read more steps than expected',1)
+  IF(n_steps_tot > input%nread) CALL errore('tdph','read more steps than expected',1)
   CALL t_read%stop()
 
 !###################  end of data input ####################################################

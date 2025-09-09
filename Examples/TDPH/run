@@ -1,0 +1,41 @@
+#!/bin/bash
+
+rm -rf *.out tmp FILD3DYN
+
+export EXAMPLE=$(pwd)
+export ESPRESSO=$(cd ../../../; pwd)
+export ESPRESSO_BIN=$ESPRESSO/bin
+
+bin="$ESPRESSO_BIN"
+pref=" "  # e.g. "mpirun -np 4 "
+post=" "  # e.g. -npool 4
+
+echo "pw scf calculation"
+# skipped -> $pref $bin/pw.x $post -in pw.in > pw.out 
+echo "ph calculation"
+# skipped -> $pref $bin/ph.x $post -in ph.in > ph.out 
+echo "Skipped... because it takes too much time."
+echo "Copying the dynamical matrices from reference"
+cp reference/dyn* .
+
+echo "produing force constants"
+$bin/d3_q2r.x -f 0 -o matIN.periodic -d dyn > q2r.out1
+$bin/d3_q2r.x -f 2 -o matIN.centered -d dyn > q2r.out2
+
+echo "Plotting harmonic frequencies"
+$bin/d3_r2q.x  --file_mat2=matIN.centered --prefix=freqIN > r2q.out1
+
+echo "molecular dynamics calculation"
+# skipped -> # $pref $bin/pw.x $post -in md.in > md.out 
+echo "Skipped... because it takes too much time."
+echo "Copying the condensed "extracted" output from reference instead"
+xzcat reference/md.out.extract.xz > md.out.extract
+
+echo "Running tdph"
+$pref $bin/d3_tdph.x > output.TDPH
+
+echo "Plotting harmonic frequencies"
+$bin/d3_r2q.x  --file_mat2=matOUT.centered --prefix=freqOUT > r2q.out2
+
+gnuplot -p 'plot.gp'
+

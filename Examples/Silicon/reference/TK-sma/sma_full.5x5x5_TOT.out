@@ -1,0 +1,2 @@
+#conf  sigma[cmm1]   T[K]      K_TOT^x            K_TOT^y            K_TOT^z                 K_TOT^xy           K_TOT^xz           K_TOT^yz                K_TOT^yx           K_TOT^zx           K_TOT^zy       
+  1   10.000000  300.000000   0.986670E+02   0.986670E+02   0.986670E+02       -0.572280E-14   0.617622E-13  -0.505587E-13        0.550269E-14   0.617622E-13  -0.618062E-13

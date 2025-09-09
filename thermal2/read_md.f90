@@ -38,7 +38,7 @@ MODULE read_md_module
   ENDDO
   CLOSE(112)
   !
-  END SUBROUTINE
+  END SUBROUTINE new_sc
   !
   ! Generate supercell that correspond to force constants FC
   SUBROUTINE fc_to_supercell(S, fc2, aa, bb, omega_sc, nat_tot, tau_sc, zeu_sc)
@@ -88,7 +88,7 @@ MODULE read_md_module
     ENDIF
 
 
-  END SUBROUTINE 
+  END SUBROUTINE fc_to_supercell
   !
   FUNCTION read_max_steps_para(n_steps)
     USE kinds,     ONLY : DP
@@ -104,7 +104,7 @@ MODULE read_md_module
     ! double check (Mostly that CPUs got consistent input): 
     CALL mpi_bsum(n_steps0)
     IF(n_steps0/=n_steps) CALL errore("md_read","parallel steps distribution not ok",1)
-  END FUNCTION
+  END FUNCTION read_max_steps_para
 
   SUBROUTINE read_pioud(file_tau, file_for, file_toten, toten0, nat_tot, alat, first_step, n_skip, n_steps,&
                         n_steps_tot, tau_md, force_md, toten_md, tau0, u_disp)
@@ -266,34 +266,37 @@ MODULE read_md_module
   REAL(DP),PARAMETER :: ANGS_TO_BOHR = 1/BOHR_RADIUS_ANGS
   INTEGER :: first_step_=-1, n_skip_=-1, n_steps_=-1
   !
+  !
+  ! total number of steps to read
+  n_steps0 = n_steps
+  CALL mpi_bsum(n_steps0)
+  !
   !n_steps = 100
   IF(.not.ALLOCATED(force_md)) ALLOCATE(force_md(3,nat_tot,n_steps))
   ALLOCATE(tau_md(3,nat_tot,n_steps))
   ALLOCATE(toten_md(n_steps))
 
   OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="READ",form="formatted", iostat=ios)
+  ! only use the "extract" file if it has the same first and step, and includes at least as many steps
   IF(ios==0) READ(uni_f, *, iostat=ios) dummy, first_step_, n_skip_, n_steps_
   IF(ios==0 .and. dummy == "EXTRACT:" .and. &
-          first_step_==first_step .and. n_skip_==n_skip .and. n_steps_==n_steps) THEN
+          first_step_==first_step .and. n_skip_==n_skip .and. n_steps_>=n_steps0) THEN
     ioWRITE(*,*) "NOTICE: Reading from "//TRIM(md_file)//".extract"
     uni = uni_f
-    OPEN(newunit=uni_f, file="/dev/null", action="WRITE",form="formatted")
+    !uni_f = -1
+    !OPEN(newunit=uni_f, file="/dev/null", action="WRITE",form="formatted")
   ELSE
     CLOSE(uni_f)
     OPEN(newunit=uni,file=md_file,action="READ",form="formatted")
-    OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="WRITE",form="formatted")
+    IF(num_procs==1)then
+      ioWRITE(*,*) "Creating extract file: "//TRIM(md_file)//".extract"
+      OPEN(newunit=uni_f, file=TRIM(md_file)//".extract", action="WRITE",form="formatted")
+      WRITE(uni_f,*) "EXTRACT:", first_step, n_skip, n_steps, uni_f
+    ELSE
+      uni_f = uni
+      ioWRITE(*,*) "Not creating extract file (can only be done in serial)"
+    ENDIF
   ENDIF
-  WRITE(uni_f,*) "EXTRACT:", first_step, n_skip, n_steps
-  !
-  ! total number of steps to read
-  n_steps0 = n_steps
-  ! number of steps to read on this CPU
-  !n_steps = n_steps/num_procs
-  !IF( my_id<(n_steps0-n_steps*num_procs) ) n_steps = n_steps+1
-  !i_step = n_steps
-  CALL mpi_bsum(n_steps0)
-  !PRINT*, "total to read among all", i_step
-  !IF(i_step/=n_steps0) CALL errore("md_read","parallel steps distribution not ok",1)
   !
   i_step = 0
   k_step = 0
@@ -301,6 +304,8 @@ MODULE read_md_module
   look_for_toten_md =.false.
   actually_read_the_forces = .false.
   ! 
+    !print*, "I'm cpu ", my_id, "and I will read ", n_steps
+
   READ_LOOP : &
   DO
    READ(uni,"(a1024)", iostat=ios) line ! reads a line to variable "line"
@@ -316,10 +321,10 @@ MODULE read_md_module
       k_step = k_step+1
       IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
-         WRITE(uni_f,*) TRIM(line)
+         IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line)
       ELSE
          actually_read_the_forces = .false.
-         WRITE(uni_f,*) TRIM(line), " skip"
+         IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), " skip"
       ENDIF
       !
       IF(actually_read_the_forces)THEN
@@ -334,7 +339,7 @@ MODULE read_md_module
         look_for_forces = .true.
         DO k=1, nat_tot
           READ(uni,"(a1024)", iostat=ios) line
-          WRITE(uni_f,*) TRIM(line)
+          IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line)
           READ(line, *) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, tau_md(:,k, i_step)
         ENDDO
 
@@ -360,10 +365,10 @@ MODULE read_md_module
       !IF(k_step >= first_step .and. MODULO(k_step, n_skip) == 0)THEN
       IF(k_step >= first_step+n_skip*my_id .and. MODULO(k_step-first_step-n_skip*my_id, n_skip*num_procs) == 0)THEN
          actually_read_the_forces = .true.
-         WRITE(uni_f,*) TRIM(line)
+         IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line)
       ELSE
          actually_read_the_forces = .false.
-         WRITE(uni_f,*) TRIM(line), " skip"
+         IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), " skip"
       ENDIF
           
       IF(actually_read_the_forces)THEN
@@ -379,7 +384,7 @@ MODULE read_md_module
         look_for_forces = .true. ! ..and this moved after the IF
         DO k=1, nat_tot
           READ(uni,"(a1024)", iostat=ios) line
-          WRITE(uni_f,*) TRIM(line), actually_read_the_forces
+          IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), actually_read_the_forces
           READ(line, *) dummyc, tau_md(:,k, i_step)
         ENDDO
         IF(is_crystal_coords) CALL cryst_to_cart(nat_tot,tau_md(:,:, i_step), aa, +1)
@@ -388,26 +393,27 @@ MODULE read_md_module
       ENDIF
 ! READ forces on atoms after md steps
     ELSE IF(matches("Forces acting on atoms",line) .and. look_for_forces) THEN 
-      WRITE(uni_f,*) TRIM(line), actually_read_the_forces
-      WRITE(uni_f,*)
+      IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), actually_read_the_forces
+      IF(uni_f/=uni) WRITE(uni_f,*)
       look_for_forces = .false.
       READ(uni,*)
       DO k=1, nat_tot
         READ(uni,"(a1024)", iostat=ios) line
-        WRITE(uni_f,*) TRIM(line), actually_read_the_forces
+        IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), actually_read_the_forces
         READ(line,*) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, force_md(:, k, i_step)
       ENDDO
 ! READ total energy after md steps
     ELSE IF(matches("!    total energy ",line) .and. look_for_toten_md) THEN
       look_for_toten_md = .false.
-      WRITE(uni_f,*) TRIM(line), actually_read_the_forces
+      IF(uni_f/=uni) WRITE(uni_f,*) TRIM(line), actually_read_the_forces
       READ(line,*)  dummy1, dummy2, dummy3, dummy4, toten_md(i_step)
     ENDIF
   ENDDO READ_LOOP
 
   CLOSE(uni)
-  CLOSE(uni_f)
+  IF(uni_f/=uni) CLOSE(uni_f)
 
+  !print*, "I'm cpu ", my_id, "and I have read ", i_step
   !i_step = n_steps
   !ioWRITE(stdout,'(2x,a,i8)') "Total number of steps read among all CPUS", i_step
   IF(i_step < n_steps)THEN

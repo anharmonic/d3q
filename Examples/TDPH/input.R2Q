@@ -1,0 +1,17 @@
+&r2qinput
+  prefix="freq1"
+  !file_mat2 = 'mat2R.centered'
+  !prefix="test2"
+  file_mat2 = 'matOUT.centered'
+  outdir    = './'  ! where to save the data
+  asr2 = 'simple'   ! second order sum rule, analogous to "crystal"
+  sort_freq = 'overlap'
+/
+ QPOINTS 
+5
+0.0000000000 	0.0000000000 	0.0000000000 1 Γ 	
+1.0000000000 	0.0000000000 	0.0000000000 20 X 	
+1.0000000000 	1.0000000000 	0.0000000000 20 X 	
+0.0000000000 	0.0000000000 	0.0000000000 50 Γ 	
+0.5000000000 	0.5000000000 	0.5000000000 20 L 	
+

@@ -1,10 +1,11 @@
 
-     Program D3_Q2R v.6.3 starts on 25Feb2019 at 11:53: 0 
+     Program D3_Q2R v.7.5 starts on 22Aug2025 at  9:10: 3 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
          "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
          "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+         "P. Giannozzi et al., J. Chem. Phys. 152 154105 (2020);
           URL http://www.quantum-espresso.org", 
      in publications or presentations arising from this work. More details at
      http://www.quantum-espresso.org/quote
@@ -12,22 +13,24 @@
      Parallel version (MPI), running on     1 processors
 
      MPI processes distributed on     1 nodes
+     1234 MiB available memory on the printing compute node when the environment starts
+
 
      reading grid info from file dyn0
   reading force constants from file dyn1
  macroscopic fields = T
-  24.59015  -0.00000   0.00000
-  -0.00000  24.59015  -0.00000
-   0.00000  -0.00000  24.59015
+  24.59017   0.00000  -0.00000
+   0.00000  24.59017   0.00000
+  -0.00000  -0.00000  24.59017
   na=            1
-  -1.22722   0.00000  -0.00000
-  -0.00000  -1.22722  -0.00000
-  -0.00000  -0.00000  -1.22722
+  -1.22722  -0.00000   0.00000
+  -0.00000  -1.22722   0.00000
+  -0.00000   0.00000  -1.22722
   na=            2
-  -1.22722   0.00000   0.00000
-   0.00000  -1.22722  -0.00000
-   0.00000  -0.00000  -1.22722
-Norm of the difference between old and new effective charges:    3.00605389643053388937
+  -1.22722  -0.00000   0.00000
+  -0.00000  -1.22722   0.00000
+  -0.00000   0.00000  -1.22722
+Norm of the difference between old and new effective charges:    3.00605972170416180234
   nqs=            1
          0.000000    0.000000    0.000000
   reading force constants from file dyn2
@@ -109,12 +112,11 @@ Norm of the difference between old and new effective charges:    3.0060538964305
          0.000000   -0.500000   -1.000000
 
       q-space grid ok, #points =   64
- seeking over         4913  vectors
 
-     D3_Q2R       :      0.03s CPU      0.04s WALL
+     D3_Q2R       :      0.01s CPU      0.01s WALL
 
 
-   This run was terminated on:  11:53: 0  25Feb2019            
+   This run was terminated on:   9:10: 3  22Aug2025            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

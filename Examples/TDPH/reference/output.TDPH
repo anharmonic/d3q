@@ -1,0 +1,118 @@
+  Using      1 MPI processes
+ Waiting for input
+  Reading input file 'input.TDPH'
+  merging with command line arguments
+&TDPHINPUT
+ FMD="md.out                                                                                                                                                                                                                                                          ",
+ FFORCE="forces.dat                                                                                                                                                                                                                                                      ",
+ FTAU="positions.dat                                                                                                                                                                                                                                                   ",
+ FTOTEN="pioud.dat                                                                                                                                                                                                                                                       ",
+ AI="md                                                                                                                                                                                                                                                              ",
+ FILE_MAT2="matIN.periodic                                                                                                                                                                                                                                                  ",
+ FIT_TYPE="force   ",
+ NFIRST=1000       ,
+ NSKIP=100        ,
+ NMAX=-1         ,
+ NPRINT=1000       ,
+ NREAD=150        ,
+ E0= -22.788169008000001     ,
+ MINIMIZATION="ph      ",
+ THR=  9.9999999999999998E-013,
+ T= -1.0000000000000000     ,
+ BASIS="simple   ",
+ RANDOMIZATION=  0.0000000000000000     ,
+ ALPHA_RIGID=  1.0000000000000000     ,
+ /
+ ** Reading FC2 file: matIN.periodic
+     alat (bohr)    6.742000
+     tpiba (1/bohr)    0.931947
+     at_1 = (   -0.500000    0.000000    0.500000 )
+     at_2 = (    0.000000    0.500000    0.500000 )
+     at_3 = (   -0.500000    0.500000    0.000000 )
+     bg_1 = (   -1.000000   -1.000000    1.000000 )
+     bg_2 = (    1.000000    1.000000    1.000000 )
+     bg_3 = (   -1.000000    1.000000   -1.000000 )
+     volume (bohr^3)   76.613668
+ Original FC2 grid:           4           4           4
+     Symmetries of bravais lattice:  48
+     Symmetries of crystal:          48
+ Generated            8 points
+=====================
+     Number of sym.ops. of each q-point:   48    6   12    8    2    4   16    8
+=====================
+     A direction for q was not specified:TO-LO splitting will be absent
+  xq=      0.0000      0.0000      0.0000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36       9       2       2
+  xq=     -0.2500      0.2500     -0.2500
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      30       6       6
+  xq=      0.5000     -0.5000      0.5000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      21       4       4
+  xq=      0.0000      0.5000      0.0000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      16       5       5
+  xq=      0.7500     -0.2500      0.7500
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      34      13      13
+  xq=      0.5000      0.0000      0.5000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      21       8       8
+  xq=      0.0000     -1.0000      0.0000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36       8       3       3
+  xq=     -0.5000     -1.0000      0.0000
+  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) :       36      16       4       4
+=====================
+     Points in the star of each q-point:    1    8    4    6   24   12    3    6
+    Z^star basis (initial/symmetrized/orthogonal/purged) :       12       6       1       0
+     TOTAL number of degrees of freedom   45
+     A direction for q was not specified:TO-LO splitting will be absent
+  Phonon parameters xq=      0.0000      0.0000      0.0000
+  1    1.860970
+  2   -1.860970
+  Phonon parameters xq=     -0.2500      0.2500     -0.2500
+  1    2.067500
+  2   -0.248396
+  3   -1.401360
+  4   -0.117017
+  5   -0.417258
+  6    0.119355
+  Phonon parameters xq=      0.5000     -0.5000      0.5000
+  1    2.265591
+  2   -0.478566
+  3   -1.014832
+  4   -0.344794
+  Phonon parameters xq=      0.0000      0.5000      0.0000
+  1    1.551615
+  2    1.466328
+  3   -1.019748
+  4   -0.224921
+  5   -0.749430
+  Phonon parameters xq=      0.7500     -0.2500      0.7500
+  1    1.704326
+  2    1.546707
+  3   -0.173667
+  4    0.135930
+  5   -0.359749
+  6   -0.075117
+  7   -0.063398
+  8   -0.248195
+  9    0.170667
+ 10    0.377992
+ 11    0.136976
+ 12   -0.287788
+ 13    0.306910
+  Phonon parameters xq=      0.5000      0.0000      0.5000
+  1    1.801502
+  2    1.309532
+  3    0.252094
+  4   -0.235263
+  5    0.159604
+  6    0.727304
+  7   -0.128062
+  8    0.554083
+  Phonon parameters xq=      0.0000     -1.0000      0.0000
+  1    1.578043
+  2    1.832245
+  3   -0.461625
+  Phonon parameters xq=     -0.5000     -1.0000      0.0000
+  1    1.156217
+  2    2.033000
+  3   -0.313208
+  4   -0.250923
+  Effective charges parameters

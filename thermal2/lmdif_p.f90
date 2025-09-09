@@ -191,7 +191,7 @@ MODULE lmdif_p_module
                  m,ipvt,qtf,wa1,wa2,wa3,wa4)
 
       IF(info==0.or.info>4) WRITE(*,'(2x,"Warning ! Did not minimize:",2i8)') info
-      PRINT*, "Minimization finished:", info
+      !PRINT*, "Minimization finished:", info
 
    END SUBROUTINE lmdif_c0
    

@@ -1,0 +1,18 @@
+&tdphinput
+ ! read output of pw.x molecular dynamics run, from file md.out
+ ai  = 'md'
+ fmd = 'md.out'
+ ! read force constants
+ file_mat2 = 'matIN.periodic'
+ ! starting from step 1000, read one step every 1000 until 150 are read
+ nfirst = 1000
+ nskip = 100
+ nread = 150
+ thr = 1.d-12           ! minimization threshold
+ fit_type = 'force'     ! recommended, provides 3*nat more information than energy
+ minimization = 'ph'    ! optimize only phonons (not the effective charges)
+ basis = 'simple'       ! both basis should give the same result
+ !basis = 'mu'  
+ !randomization = 0.5   ! add random noise to test if minimization is robust
+ e0= -22.788169008      ! total energy of static unit cell, only for reference
+/

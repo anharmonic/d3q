@@ -187,10 +187,10 @@
  Total memory used :            0 Mb
  Doing Backward FFT...
  Found         301 possible couples of R2,R3
-    Sum of imaginary parts:     1.312E-07
-    Average imaginary part:     5.146E-12
-    Largest imaginary fraction: 9.334E-07 for -1.519E-05   1.417E-11
-    Largest imaginary part:     2.652E-10
+    Sum of imaginary parts:     1.315E-07
+    Average imaginary part:     5.156E-12
+    Largest imaginary fraction: 1.518E-06 for  1.519E-05  -2.305E-11
+    Largest imaginary part:     2.618E-10
  Backward FFT done
  Total memory used :            0 Mb
  Writing FCs to file...
