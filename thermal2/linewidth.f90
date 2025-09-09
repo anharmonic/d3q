@@ -251,8 +251,7 @@ CONTAINS
                ENDDO
             ENDDO
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,ctm_C,ctm_X,&
-!$OMP                     freqtotm1_23,freqtotm1) &
+!$OMP             PRIVATE(i,j,k,bose_C,bose_X,dom_C,dom_X,freqtotm1_23,freqtotm1) &
 !$OMP             REDUCTION(+: aux) COLLAPSE(2)
             DO j = 1,S%nat3
                DO k = 1,S%nat3
@@ -306,14 +305,18 @@ CONTAINS
                      ! ci sono tanti negativi che contribuiscono sulla terza cifra, mica da poco
                      !
                      !> rotation of single D3 only where we know that we have scattering
-                     timer_CALL t_fc3rot%start()
+#ifndef __OPENMP
+       !              timer_CALL t_fc3rot%start()
+#endif
                      ! V3sq = rotate_single_d3(i,j,k, U, D3, invert=.true.)
 
                      aux(i) = aux(i) + ctm * V3sq(j,i,k) * freqtotm1
                      ! if (i == 3 .and. j == 4 .and. k == 2 .and. iq == 6) then
                      !    print*, ctm, V3sq(j,i,k), freqtotm1
                      ! endif
-                     timer_CALL t_fc3rot%stop()
+#ifndef __OPENMP
+        !             timer_CALL t_fc3rot%stop()
+#endif
                   ENDDO
                ENDDO
             ENDDO
@@ -335,7 +338,8 @@ CONTAINS
 
       linewidth_q = linewidth_q * 0.5_dp * pi 
       if (input%delta_approx == 'tetra') linewidth_q = linewidth_q * grid%nqtot
-      if (allocated(Dqr%DR3)) deallocate(Dqr%DR3, Dqr%R3)
+      if (allocated(Dqr%DR3))  deallocate(Dqr%DR3)
+      if (allocated(Dqr%R3))   deallocate(Dqr%R3)
       if(allocated(weights_C)) deallocate(weights_C, weights_X)
 
 

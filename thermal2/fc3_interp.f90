@@ -28,7 +28,14 @@ MODULE fc3_interpolate
    !USE input_fc,              ONLY : ph_system_info
    ! \/o\________\\\______________________//\/___________________/~^>>
   INTERFACE ip_cart2pat
-!!#define __IP_WO_ZGEMM
+#ifdef __INTEL_LLVM_COMPILER
+#define __IP_WO_ZGEMM
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message " WARNING using old rotation of D3 by hand. Because it is buggy with ifx (produces NaN)"
+!dir$ message " please check if it is still the case in the future and remove this from fc3_intep.f90"
+!dir$ message "----------------------------------------------------------------------------------------------"
+#endif
+
 #ifdef __IP_WO_ZGEMM
 !dir$ message "----------------------------------------------------------------------------------------------"
 !dir$ message "D3 matrix rotation: using fortran loop (slow but safe)"
@@ -43,6 +50,16 @@ MODULE fc3_interpolate
 !    MODULE PROCEDURE fftinterp_mat2_reduce  ! use standard OMP reduce on dummy variables
 !    MODULE PROCEDURE fftinterp_mat2_safe    ! do not use dummy variable in OMP clauses
   END INTERFACE ip_cart2pat
+
+#if defined(__INTEL)
+#define ZGEMM zgemm3m
+#else
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it"
+!dir$ message "in d3q/thermal2/fc3_interp.f90"
+!dir$ message "----------------------------------------------------------------------------------------------"
+#endif
+
 
 
    ! Abstract implementation: all methods are abstract
@@ -691,7 +708,7 @@ CONTAINS
       !
       INTEGER :: i,j, index3(3), iR3, nr, limits(3)
       REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
-      COMPLEX(DP) :: vphase(fc%n_R)
+      COMPLEX(DP) :: vphase(fc%n_R), aux(nat3,nat3,nat3)
       !
       DO i = 1, 3
          Dqr%minr(i) = MINVAL(fc%yR2(i,:))
@@ -714,22 +731,22 @@ CONTAINS
       vsin = DSIN(varg)
 #endif
       vphase =  CMPLX( vcos, -vsin, kind=DP  )
-      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: DR3)
       !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(DR3)
       DO i = 1, fc%n_R
-         !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-         !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+         index3 = fc%yR3(:,i) - Dqr%minr
+         iR3 = index3(1)*limits(2)*limits(3) + index3(2)*limits(3) + index3(3) + 1
+         Dqr%R3(iR3) = .true.
+         aux = 0._dp
+         !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(j) REDUCTION(+: aux)
          DO j = 1, fc%n_terms(i)
-            index3 = fc%yR3(:,i) - Dqr%minr
-            iR3 = index3(1)*limits(2)*limits(3) + index3(2)*limits(3) + index3(3) + 1
-            Dqr%R3(iR3) = .true.
-            Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
-               = Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
+            aux(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+               = aux(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
                + vphase(i) * fc%dat(i)%fc(j)
          ENDDO
+         !$OMP END PARALLEL DO
+          Dqr%DR3(:,:,:,iR3) = Dqr%DR3(:,:,:,iR3)+aux
       END DO
       !/!$ACC END DATA
-      !$OMP END PARALLEL DO
    END SUBROUTINE
 
    SUBROUTINE sum_R3(S, xq, Dqr, D)
@@ -820,7 +837,7 @@ CONTAINS
       !
       D = (0._dp, 0._dp)
       !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg,phase) REDUCTION(+: D)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg) REDUCTION(+: D)
       DO i = 1, fc%n_R
          arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
          cosine = Cos(arg)
@@ -1530,10 +1547,10 @@ CONTAINS
    
       u3c = CONJG(u3)
       ! Step 1: tmp(a,b,k) = d3in(a,b,c) * CONJG(u3(c,k))
-      CALL zgemm3m('N', 'N', nat32, nat3, nat3, 1.0_DP, d3in, nat32, u3c, nat3, 0.0_DP, tmp, nat32)
+      CALL ZGEMM('N', 'N', nat32, nat3, nat3, 1.0_DP, d3in, nat32, u3c, nat3, 0.0_DP, tmp, nat32)
    
       ! ! Step 2: tmp2(i,b,k) = TRANSCONJ(u(a,i)) * tmp(a,b,k)
-      CALL zgemm3m('C', 'N', nat3, nat32, nat3, 1.0_DP, u1, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
+      CALL ZGEMM('C', 'N', nat3, nat32, nat3, 1.0_DP, u1, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
    
       ! Step 3: tmp(b,i,k) = RESHAPE(tmp2(i,b,k))
       do k = 1, nat3
@@ -1541,7 +1558,7 @@ CONTAINS
       enddo
    
       ! Step 3: d3in(i,j,k) = TRANSCONJ(u2(b,j)) * tmp(b,i,k)
-      CALL zgemm3m('C', 'N', nat3, nat32, nat3, 1.0_DP, u2, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
+      CALL ZGEMM('C', 'N', nat3, nat32, nat3, 1.0_DP, u2, nat3, tmp, nat3, 0.0_DP, d3in, nat3)
    
       do k = 1, nat3
          d3in(:, :, k) = TRANSPOSE(d3in(:, :, k))
