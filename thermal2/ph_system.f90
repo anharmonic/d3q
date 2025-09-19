@@ -28,6 +28,7 @@ MODULE ph_system
     ! phonon switches (mostly unused here)
     REAL(DP)             :: epsil(3,3)
     LOGICAL              :: lrigid
+    LOGICAL              :: nopbc(3)
     ! for derivative of effective charges
     LOGICAL              :: ldrigid
     REAL(DP),ALLOCATABLE :: dzeu(:,:,:, :,:)
@@ -114,7 +115,7 @@ MODULE ph_system
     INTEGER :: ios, dummy
     !
     INTEGER :: nt, na
-    CHARACTER(len=256) cdummy
+    CHARACTER(len=512) cdummy
     !
     READ(unit,*,iostat=ios) S%ntyp, S%nat, S%ibrav, S%celldm(1:6)
     IF(ios/=0) CALL errore(sub,"reading S%ntyp, S%nat, S%ibrav, S%celldm(1:6)", 1)
@@ -167,7 +168,15 @@ MODULE ph_system
       IF(ios/=0) CALL errore(sub,"reading na, S%atm(nt), S%amass(nt)", nt)
     ENDDO
     !
-    READ(unit,*,iostat=ios) S%lrigid
+    READ(unit,'(a512)',iostat=ios) cdummy
+    READ(cdummy,*,iostat=ios) S%lrigid, S%nopbc
+    IF(ios/=0) THEN
+       READ(cdummy,*,iostat=ios) S%lrigid
+       S%nopbc = .false.
+       ioWRITE(stdout,*) "Importing old force constant file: setting periodicity along ALL directions."
+       ioWRITE(stdout,*) "If system is isolated along one direction, please regenerate FCs with option '-n'."
+    ENDIF
+    
     !print*, "lrigid", S%lrigid
     IF(ios/=0) CALL errore(sub,"reading rigid", 1)
     IF(S%lrigid)THEN
@@ -229,7 +238,7 @@ MODULE ph_system
    
 !    WRITE(*,*) "present matdyn", present(matdyn), matdyn, default_if_not_present(matdyn,.false.) 
     IF(.not. default_if_not_present(.false.,matdyn)) THEN
-    WRITE(unit,'(5x,l)',iostat=ios) S%lrigid
+    WRITE(unit,'(5x,l,3x,3l)',iostat=ios) S%lrigid, S%nopbc
     IF(ios/=0) CALL errore(sub,"writing rigid", 1)
     IF(S%lrigid)THEN
       WRITE(unit,'(3(3f25.16,/))',iostat=ios) S%epsil

@@ -718,8 +718,8 @@ SUBROUTINE smallg_q_fullmq (xq, modenum, at, bg, nrot, s, sym, minus_q)
    !
    IF(Si%lrigid)THEN
       DO iq = 1, nqmax
-         CALL rgd_blk_d3 (2,2,2,Si%nat, star_wdyn(:,:,:,:,iq), xqmax(:,iq), &
-                       Si%tau,Si%epsil,Si%zeu,Si%bg,Si%omega,Si%celldm(1), .false.,-1.d0)
+         CALL rgd_blk_d3 (Si%nopbc,Si%nat, star_wdyn(:,:,:,:,iq), xqmax(:,iq), &
+                       Si%tau,Si%epsil,Si%zeu,Si%bg,Si%omega,Si%celldm(1), -1.d0)
       ENDDO
    ENDIF
    !

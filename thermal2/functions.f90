@@ -14,7 +14,7 @@
 #define ZGEMM zgemm3m
 #else
 !dir$ message "----------------------------------------------------------------------------------------------"
-!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it in d3q/thermal2/functions.f90
+!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it in d3q/thermal2/functions.f90"
 !dir$ message "----------------------------------------------------------------------------------------------"
 #endif
 MODULE functions

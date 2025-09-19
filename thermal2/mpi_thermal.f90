@@ -44,6 +44,7 @@ MODULE mpi_thermal
 
   INTERFACE mpi_broadcast
     MODULE PROCEDURE mpi_bcast_logical
+    MODULE PROCEDURE mpi_bcast_logical_vec
     !
     MODULE PROCEDURE mpi_bcast_scl
     MODULE PROCEDURE mpi_bcast_vec
@@ -322,6 +323,15 @@ CONTAINS
     LOGICAL,INTENT(inout) :: logi
 #ifdef __MPI
     CALL MPI_BCAST(logi, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
+#endif
+  END SUBROUTINE
+  !
+  SUBROUTINE mpi_bcast_logical_vec(nn,logi)
+    IMPLICIT NONE
+    INTEGER,INTENT(in)    :: nn
+    LOGICAL,INTENT(inout) :: logi(nn)
+#ifdef __MPI
+    CALL MPI_BCAST(logi, nn, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
 #endif
   END SUBROUTINE
   !

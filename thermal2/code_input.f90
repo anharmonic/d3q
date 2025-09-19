@@ -99,7 +99,7 @@ MODULE code_input
     LOGICAL :: print_all
     LOGICAL :: workaround_print_v
 !
-    LOGICAL :: optimize_grid
+    LOGICAL  :: optimize_grid
     REAL(DP) :: optimize_grid_thr
 !
     LOGICAL :: restart
