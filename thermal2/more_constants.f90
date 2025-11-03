@@ -51,15 +51,23 @@ MODULE more_constants
 !   !
   ! Write a number from a list using as many digits after the dot as the longest in the list.
   CHARACTER(len=6) &
-  FUNCTION write_conf(it,nt,T) RESULT(str)
+  FUNCTION write_conf(it,nt,T, delta_approx) RESULT(str)
     IMPLICIT NONE
     INTEGER,INTENT(in)  :: it, nt
     REAL(DP),INTENT(in) :: T(nt)
+    CHARACTER(len=*),INTENT(in),OPTIONAL :: delta_approx
     
     INTEGER :: max_digit_left, max_digit_right, jt, ls
     REAL(DP) :: Tx, Tfrac
     CHARACTER(len=64):: fmt1='', fmt2=''
     
+    IF(PRESENT(delta_approx))THEN
+      IF(delta_approx=='tetra') THEN
+        str = 'trt'
+        RETURN
+      ENDIF
+    ENDIF
+
     max_digit_right=0 
     max_digit_left=0 
    

@@ -23,16 +23,16 @@ MODULE thtetra
    !
    INTEGER :: ntetra = 0
    !! number of tetrahedra
-   INTEGER :: nntetra
+   INTEGER :: nntetra = 0
    !! k-points per tetrahedron used to compute weights.
    !! 4 for linear / 20 for optimized tetrahedron method
    INTEGER, ALLOCATABLE :: tetra(:,:)
    !! index of k-points in a given tetrahedron shape (nntetra,ntetra)
    REAL(DP), ALLOCATABLE :: wlsm(:,:)
    !! Weights for the optimized tetrahedron method
-   INTEGER :: nqs
+   INTEGER :: nqs = 0
    !! number of q-points
-   INTEGER :: nbnd
+   INTEGER :: nbnd = 0
    !! number of bands
    INTEGER, ALLOCATABLE :: itetra(:,:,:)
    !! order index of vertices of each tetrahedron (4,nbnd,ntetra)
@@ -360,7 +360,7 @@ CONTAINS
    !   ! I LEFT OUT THE PART OF AVERAGING OF DEGENERACIES
    ! END FUNCTION tetra_delta
    ! !--------------------------------------------------------------------------------------
-   FUNCTION tetra_weights_delta_vec(nef, ef) RESULT(wI)
+   FUNCTION tetra_weights_delta_vec(nef, ef) !RESULT(wI)
       USE constants, ONLY : pi
       !-----------------------------------------------------------------------------------
       !! Calculate weights for an integral of the kind int(Ak delta(ef-ek))
@@ -370,7 +370,8 @@ CONTAINS
       !! size of vector ef
       REAL(DP), INTENT(IN) :: ef(:)
       !! The Fermi energy
-      REAL(DP) :: wI(nef, nbnd, nqs)
+      REAL(DP) :: tetra_weights_delta_vec(nef, nbnd, nqs)
+      REAL(DP),ALLOCATABLE :: wI(:,:,:)
       !! COMPLEX Integration weight of each k
       !
       !
@@ -381,6 +382,7 @@ CONTAINS
       ! REAL(DP) :: wR0(4), ef_e(4), log_ef_e(4), prod_a(4), sum_a(4), second_term(4)
       ! INTEGER :: i3, j3
       !
+      ALLOCATE(wI(nef, nbnd, nqs))
       wI = 0._dp
       !
       DO nt = 1+my_id, ntetra, num_procs
@@ -412,6 +414,8 @@ CONTAINS
       !
       ! I LEFT OUT THE PART OF AVERAGING OF DEGENERACIES
       CALL mpi_bsum(nef, nbnd, nqs, wI)
+      tetra_weights_delta_vec = wI
+      DEALLOCATE(wI)
    END FUNCTION
    !
    FUNCTION tetra_weights_delta(ef) RESULT(wI)

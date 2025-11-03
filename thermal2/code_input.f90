@@ -781,6 +781,11 @@ CONTAINS
           CALL errore("READ_INPUT","CONFIGS can be 'list' (default) or 'matrix'.", 1)
         ENDIF
         !
+        IF(input%delta_approx=='tetra')THEN
+          IF(ANY(input%sigma(:)/=input%sigma(1))) &
+            CALL errore('code_input','With tetrahedra, sigma is not used: set all to zero', 1)
+        ENDIF
+        !
         ioWRITE(*,'(2x,a,/,100(8f9.1,/))') "Temperatures:", input%T
         ioWRITE(*,'(2x,a,/,100(8f9.3,/))') "Smearings:   ", input%sigma
         ioWRITE(*,*)
