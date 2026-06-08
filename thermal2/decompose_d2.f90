@@ -140,7 +140,7 @@ end subroutine
 !---------------------------------------------------------------------
 subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
                              nsymq, minus_q, irotmq, rtau, irt, s, invs, &
-                             u0, method )
+                             method, u0 )
 !---------------------------------------------------------------------
 
   USE kinds,     ONLY : DP
@@ -255,7 +255,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    nb3 = nx ! save for printing
 
   ! Purge matrices that have zero projection of provided dynamical matrix
-  IF(present(u0))
+  IF(present(u0)) THEN
     jx = 0
     DO i = 1, nx
     IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > eps_base ) THEN

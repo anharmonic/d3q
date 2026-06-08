@@ -609,8 +609,8 @@ CONTAINS
     ALLOCATE(grid%xq(3,grid%nq))
     ALLOCATE(grid%w(grid%nq))
     !
-    ioWRITE(*,'(2x,"Spherical grid, max |q|: ",'//&
-      'f12.6", 2pi/alat q/theta/phi points:",3i6)') max_q, n1, n2, n3
+    ioWRITE(*,'(2x,"Spherical grid, max |q|: ",'// &
+      'f12.6,", 2pi/alat q/theta/phi points:",3i6)') max_q, n1, n2, n3
 
     ! I treat Gamma separately, to only have it once
     idx = 1
@@ -680,7 +680,7 @@ CONTAINS
     ALLOCATE(grid%w(grid%nq))
     !
     ioWRITE(*,'(2x,"Lebedev grid, max |q|: ",'//&
-      'f12.6", Order/shells:",3i6)') max_q, order, nshells
+      'f12.6,", Order/shells:",3i6)') max_q, order, nshells
 
     ! I treat Gamma separately, to only have it once
 !    idx = 1

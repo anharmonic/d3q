@@ -156,9 +156,9 @@ PROGRAM q2r
      IF(nopbc(2).and.(nr(2)>1) ) CALL errore('q2r','required non-periodic along direction 2, but more than one q-point',2)
      IF(nopbc(3).and.(nr(3)>1) ) CALL errore('q2r','required non-periodic along direction 3, but more than one q-point',3)     !
      !
-     IF(.not. nopbc(1).and.(nr(1)==1) ) CALL warning('q2r','required periodic along direction 1, but only one q-point',1)
-     IF(.not. nopbc(2).and.(nr(2)==1) ) CALL warning('q2r','required periodic along direction 2, but only one q-point',2)
-     IF(.not. nopbc(3).and.(nr(3)==1) ) CALL warning('q2r','required periodic along direction 3, but only one q-point',3)     !
+     IF(.not. nopbc(1).and.(nr(1)==1) ) WRITE(*,*) 'WARNING: required periodic along direction 1, but only one q-point'
+     IF(.not. nopbc(2).and.(nr(2)==1) ) WRITE(*,*) 'WARNING: required periodic along direction 2, but only one q-point'
+     IF(.not. nopbc(3).and.(nr(3)==1) ) WRITE(*,*) 'WARNING: required periodic along direction 3, but only one q-point'
      !
      ! D matrix (analytical part)
      !
