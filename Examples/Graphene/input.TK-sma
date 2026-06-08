@@ -10,6 +10,7 @@
   casimir_scattering = .false.
   nconf = 11
   grid_type='random'
+  delta_approx = 'gauss'
  /
 CONFIGS
 20.	5.

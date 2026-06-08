@@ -1,5 +1,5 @@
 
-     Program D3_Q2R v.6.7GPU starts on 23Mar2021 at 10:44:49 
+     Program D3_Q2R v.7.5 starts on  8Jun2026 at 11:57:13 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -13,6 +13,9 @@
      Parallel version (MPI), running on     1 processors
 
      MPI processes distributed on     1 nodes
+     1657 MiB available memory on the printing compute node when the environment starts
+
+ Use d3_q2r.x -h to get the full help
 
      reading grid info from file dyn0
   reading force constants from file dyn1
@@ -26,12 +29,11 @@
         -0.500000    0.288675    0.000000
 
       q-space grid ok, #points =    4
- seeking over          405  vectors
 
      D3_Q2R       :      0.00s CPU      0.00s WALL
 
 
-   This run was terminated on:  10:44:49  23Mar2021            
+   This run was terminated on:  11:57:13   8Jun2026            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

@@ -1,4 +1,5 @@
   Using      4 MPI processes
+  Using     8 total MPI+OpenMP threads
 
       
      For 2n+1 calculations of force constants please cite:
@@ -12,12 +13,16 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 
-  Reading input file 'input.TK-sma'
+  Reading input file '../input.TK-sma'
   merging with command line arguments
 &TKINPUT
  CALCULATION="sma             ",
@@ -26,20 +31,26 @@
  FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
  FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
  ASR2="simple  ",
+ USE_SYMM=T,
+ DELTA_APPROX="gauss     ",
  THR_TK=  1.0000000000000000E-002,
  NITER_MAX=1000       ,
  NCONF=11         ,
  NK= 2*32         ,1          ,
  NK_IN= 2*32         ,1          ,
- GRID_TYPE="random",
- GRID_TYPE_IN="///   ",
+ GRID_TYPE="random      ",
+ GRID_TYPE_IN="///         ",
  XK0= 3*0.0000000000000000       ,
  XK0_IN= 3*-1.0000000000000000E+030 ,
  OPTIMIZE_GRID=F,
  OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
  INTRINSIC_SCATTERING=T,
+ DEBUG_LINEWIDTH=F,
+ THRESHOLD_F_DEGENERACY_CMM1= 0.20000000000000001     ,
  ISOTOPIC_DISORDER=F,
  STORE_LW=F,
+ PRINT_ALL=T,
+ WORKAROUND_PRINT_V=F,
  CASIMIR_SCATTERING=F,
  MFP_CUTOFF=F,
  SAMPLE_DIR= 3*0.0000000000000000       ,
@@ -61,6 +72,8 @@
      bg_2 = (    0.000000    1.154701    0.000000 )
      bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112650
+ Importing old force constant file: setting periodicity along ALL directions.
+ If system is isolated along one direction, please regenerate FCs with option '-n'.
  Original FC2 grid:           2           2           1
  ** Reading sparse FC3 file mat3R.asr.sparse
      alat (bohr)    4.607423
@@ -72,9 +85,10 @@
      bg_2 = (    0.000000    1.154701    0.000000 )
      bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112647
+ Importing old force constant file: setting periodicity along ALL directions.
+ If system is isolated along one direction, please regenerate FCs with option '-n'.
     Original FC3 grid:           2           2           1
     Number of R:                49
- WARNING! FC2 and FC3 systems DO NOT MATCH !!!
  Reading : done.
  Memory used :            0 Mb
  calculation: sma             full            
@@ -88,54 +102,77 @@
 
  --> Setting up outer grid
   Random grid shift    0.015012    0.010499    0.000000
-  Setup a random grid of     1024 q-points
+  Setup a random       grid of     1024 q-points
+ simple grid has         102 irreducible q-points
+  found          24 symmetries
  --> Setting up inner grid
   Random grid shift    0.002697    0.003278    0.000000
-  Setup a random grid of     1024 q-points
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         0.7s 
-         0.1% | STEP TIME:         0.1s | STEP END:        106.9s | WALL:         0.8s 
-        10.0% | STEP TIME:        10.0s | STEP END:        100.6s | WALL:        10.7s 
-        20.0% | STEP TIME:        20.2s | STEP END:        100.9s | WALL:        20.9s 
-        30.0% | STEP TIME:        30.2s | STEP END:        100.6s | WALL:        30.9s 
-        40.1% | STEP TIME:        40.3s | STEP END:        100.5s | WALL:        41.0s 
-        50.0% | STEP TIME:        50.3s | STEP END:        100.4s | WALL:        51.0s 
-        60.0% | STEP TIME:        60.2s | STEP END:        100.4s | WALL:        60.9s 
-        70.1% | STEP TIME:        70.3s | STEP END:        100.3s | WALL:        71.0s 
-        80.1% | STEP TIME:        80.3s | STEP END:        100.3s | WALL:        81.0s 
-        90.1% | STEP TIME:        90.5s | STEP END:        100.4s | WALL:        91.2s 
-       100.0% | STEP TIME:       100.4s | STEP END:        100.4s | WALL:       101.1s 
+  Setup a random       grid of     1024 q-points
+         1.0% | STEP TIME:         0.0s | STEP END:          4.6s | WALL:         0.8s 
+         9.9% | STEP TIME:         0.6s | STEP END:          5.6s | WALL:         1.4s 
+        19.8% | STEP TIME:         1.0s | STEP END:          5.3s | WALL:         1.9s 
+        30.7% | STEP TIME:         1.6s | STEP END:          5.2s | WALL:         2.4s 
+        40.6% | STEP TIME:         2.1s | STEP END:          5.2s | WALL:         2.9s 
+        50.5% | STEP TIME:         2.6s | STEP END:          5.2s | WALL:         3.4s 
+        60.4% | STEP TIME:         3.2s | STEP END:          5.3s | WALL:         4.0s 
+        70.3% | STEP TIME:         3.8s | STEP END:          5.3s | WALL:         4.6s 
+        81.2% | STEP TIME:         4.3s | STEP END:          5.3s | WALL:         5.1s 
+        91.1% | STEP TIME:         4.8s | STEP END:          5.3s | WALL:         5.6s 
+       100.0% | STEP TIME:         5.3s | STEP END:          5.3s | WALL:         6.1s 
    ************
    SMA thermal conductivity, stored to file:
      ./TK-sma//sma_full.32x32x1.out
-   Diagonal components (conf, sigma, T, K_x, K_y, K_z):
-  1   20.000000    5.000000  0.10402739E+05  0.64455452E+05  0.00000000E+00
-  2   20.000000   10.000000  0.11631011E+05  0.74645183E+05  0.00000000E+00
-  3   20.000000   20.000000  0.84148963E+04  0.51424651E+05  0.00000000E+00
-  4   20.000000   30.000000  0.65289586E+04  0.37941996E+05  0.00000000E+00
-  5   20.000000   50.000000  0.46432407E+04  0.24587613E+05  0.00000000E+00
-  6   20.000000   70.000000  0.36685799E+04  0.18031410E+05  0.00000000E+00
-  7   20.000000  100.000000  0.26980796E+04  0.12574841E+05  0.00000000E+00
-  8   20.000000  200.000000  0.12019549E+04  0.55590947E+04  0.00000000E+00
-  9   20.000000  300.000000  0.70548909E+03  0.32935422E+04  0.00000000E+00
- 10   20.000000  500.000000  0.37161616E+03  0.17590666E+04  0.00000000E+00
- 11   20.000000 1000.000000  0.17130213E+03  0.82020049E+03  0.00000000E+00
-   * WALL :     101.1840 s
+   Thermal conductivity  (conf, sigma, T, K_x, K_y, K_z):
+K_P   =  1   20.000000    5.000000  0.77581904E+03  0.77581904E+03  0.00000000E+00
+K_C   =  1   20.000000    5.000000  0.97018232E-09  0.97018232E-09  0.00000000E+00
+K_TOT =  1   20.000000    5.000000  0.77581904E+03  0.77581904E+03  0.00000000E+00
+K_P   =  2   20.000000   10.000000  0.94567994E+04  0.94567994E+04  0.00000000E+00
+K_C   =  2   20.000000   10.000000  0.95179665E-06  0.95179665E-06  0.00000000E+00
+K_TOT =  2   20.000000   10.000000  0.94567994E+04  0.94567994E+04  0.00000000E+00
+K_P   =  3   20.000000   20.000000  0.14349495E+05  0.14349495E+05  0.00000000E+00
+K_C   =  3   20.000000   20.000000  0.20310330E-04  0.20310330E-04  0.00000000E+00
+K_TOT =  3   20.000000   20.000000  0.14349495E+05  0.14349495E+05  0.00000000E+00
+K_P   =  4   20.000000   30.000000  0.12019785E+05  0.12019785E+05  0.00000000E+00
+K_C   =  4   20.000000   30.000000  0.57732426E-04  0.57732426E-04  0.00000000E+00
+K_TOT =  4   20.000000   30.000000  0.12019785E+05  0.12019785E+05  0.00000000E+00
+K_P   =  5   20.000000   50.000000  0.84666434E+04  0.84666434E+04  0.00000000E+00
+K_C   =  5   20.000000   50.000000  0.17457865E-03  0.17457865E-03  0.00000000E+00
+K_TOT =  5   20.000000   50.000000  0.84666435E+04  0.84666435E+04  0.00000000E+00
+K_P   =  6   20.000000   70.000000  0.64329475E+04  0.64329475E+04  0.00000000E+00
+K_C   =  6   20.000000   70.000000  0.38348087E-03  0.38348087E-03  0.00000000E+00
+K_TOT =  6   20.000000   70.000000  0.64329479E+04  0.64329479E+04  0.00000000E+00
+K_P   =  7   20.000000  100.000000  0.45911245E+04  0.45911245E+04  0.00000000E+00
+K_C   =  7   20.000000  100.000000  0.10175303E-02  0.10175303E-02  0.00000000E+00
+K_TOT =  7   20.000000  100.000000  0.45911256E+04  0.45911256E+04  0.00000000E+00
+K_P   =  8   20.000000  200.000000  0.20576415E+04  0.20576415E+04  0.00000000E+00
+K_C   =  8   20.000000  200.000000  0.89769353E-02  0.89769353E-02  0.00000000E+00
+K_TOT =  8   20.000000  200.000000  0.20576505E+04  0.20576505E+04  0.00000000E+00
+K_P   =  9   20.000000  300.000000  0.12343662E+04  0.12343662E+04  0.00000000E+00
+K_C   =  9   20.000000  300.000000  0.34735111E-01  0.34735111E-01  0.00000000E+00
+K_TOT =  9   20.000000  300.000000  0.12344010E+04  0.12344010E+04  0.00000000E+00
+K_P   = 10   20.000000  500.000000  0.66751636E+03  0.66751636E+03  0.00000000E+00
+K_C   = 10   20.000000  500.000000  0.11942378E+00  0.11942378E+00  0.00000000E+00
+K_TOT = 10   20.000000  500.000000  0.66763578E+03  0.66763578E+03  0.00000000E+00
+K_P   = 11   20.000000 1000.000000  0.31349211E+03  0.31349211E+03  0.00000000E+00
+K_C   = 11   20.000000 1000.000000  0.25317484E+00  0.25317484E+00  0.00000000E+00
+K_TOT = 11   20.000000 1000.000000  0.31374529E+03  0.31374529E+03  0.00000000E+00
+   * WALL :       6.1720 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *             sma thermalk *   100476.300102 *    25119.075026 *      401905.200 *   100476.300102 *   99.300 *           4. *
+   *             sma thermalk *     5359.558972 *     1339.889743 *       21438.236 *     5359.558972 *   86.836 *           4. *
 *** * Contributions to SMA conductivity:
-   *          sum of tk terms *        3.669405 *        0.000896 *          14.678 *        0.003583 *    0.004 *        4096. *
-   *                 lw ph-ph *   100434.299085 *       24.520093 *      401737.196 *       98.080370 *   99.259 *        4096. *
-   *        ph group velocity *       24.197654 *        0.005908 *          96.791 *        0.023631 *    0.024 *        4096. *
-   *        mpi communication *      865.736387 *        0.211361 *        3462.946 *        0.845446 *    0.856 *        4096. *
-   *             read fc data *        7.888461 *        1.972115 *          31.554 *        7.888461 *    0.008 *           4. *
+   *          sum of tk terms *       15.139795 *        0.037107 *          60.559 *        0.148429 *    0.245 *         408. *
+   *                 lw ph-ph *     5339.154982 *       13.086164 *       21356.620 *       52.344657 *   86.505 *         408. *
+   *        ph group velocity *        4.711406 *        0.011548 *          18.846 *        0.046190 *    0.076 *         408. *
+   *        mpi communication *      506.297570 *        1.240925 *        2025.190 *        4.963702 *    8.203 *         408. *
+   *             read fc data *        2.733419 *        0.683355 *          10.934 *        2.733419 *    0.044 *           4. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     5199.339385 *        0.004939 *       20797.358 *        0.019757 *    5.138 *     1052672. *
-   *             bose distrib *     3479.050455 *        0.000302 *       13916.202 *        0.001207 *    3.438 *    11534336. *
-   *                sum modes *    31044.561690 *        0.002691 *      124178.247 *        0.010766 *   30.681 *    11534336. *
-   *          fc3 interpolate *     9154.809151 *        0.008731 *       36619.237 *        0.034923 *    9.048 *     1048576. *
-   *           fc3 modulus sq *      292.795230 *        0.000279 *        1171.181 *        0.001117 *    0.289 *     1048576. *
-   *               fc3 rotate *    43647.313039 *        0.041625 *      174589.252 *        0.166501 *   43.136 *     1048576. *
-   *         merge degenerate *     2892.097277 *        0.000251 *       11568.389 *        0.001003 *    2.858 *    11538432. *
+   *         ph interp & diag *      297.026025 *        0.002833 *        1188.104 *        0.011331 *    4.812 *      104856. *
+   *             bose distrib *     1324.587463 *        0.001153 *        5298.350 *        0.004612 *   21.461 *     1148928. *
+   *                sum modes *     2937.329095 *        0.002557 *       11749.316 *        0.010226 *   47.590 *     1148928. *
+   *          fc3 interpolate *       77.164522 *        0.000739 *         308.658 *        0.002955 *    1.250 *      104448. *
+   *           fc3 modulus sq *        3.565745 *        0.000034 *          14.263 *        0.000137 *    0.058 *      104448. *
+   *               fc3 rotate *      147.211816 *        0.001409 *         588.847 *        0.005638 *    2.385 *      104448. *
+   *         merge degenerate *        9.781698 *        0.000009 *          39.127 *        0.000034 *    0.158 *     1149336. *
 
       
      For 2n+1 calculations of force constants please cite:
@@ -149,8 +186,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 

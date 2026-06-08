@@ -1,4 +1,5 @@
   Using      4 MPI processes
+  Using     8 total MPI+OpenMP threads
 
       
      For 2n+1 calculations of force constants please cite:
@@ -12,9 +13,13 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 
   Reading input file 'input.LW-bz'
@@ -26,12 +31,14 @@
  FILE_MAT2="mat2R                                                                                                                                                                                                                                                           ",
  FILE_MAT3="mat3R.asr.sparse                                                                                                                                                                                                                                                ",
  ASR2="simple  ",
+ FILE_DZEU="///                                                                                                                                                                                                                                                             ",
  NCONF=1          ,
  SKIP_Q=0          ,
  NQ=-1         ,
  NK= 2*60         ,1          ,
- GRID_TYPE="random",
+ GRID_TYPE="random      ",
  XK0= 3*0.0000000000000000       ,
+ DELTA_APPROX="tetra     ",
  OPTIMIZE_GRID=F,
  OPTIMIZE_GRID_THR=  1.0000000000000000E-002,
  NE=-1         ,
@@ -45,7 +52,8 @@
  Q_SUMMED=F,
  SIGMAQ= 0.10000000000000001     ,
  EXP_T_FACTOR=F,
- SORT_FREQ="default",
+ SORT_FREQ="default  ",
+ XQ_REF= 3*0.0000000000000000       ,
  ISOTOPIC_DISORDER=F,
  CASIMIR_SCATTERING=F,
  SAMPLE_LENGTH_AU= -1.0000000000000000     ,
@@ -65,6 +73,8 @@
      bg_2 = (    0.000000    1.154701    0.000000 )
      bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112650
+ Importing old force constant file: setting periodicity along ALL directions.
+ If system is isolated along one direction, please regenerate FCs with option '-n'.
  Original FC2 grid:           2           2           1
  ** Reading sparse FC3 file mat3R.asr.sparse
      alat (bohr)    4.607423
@@ -76,9 +86,10 @@
      bg_2 = (    0.000000    1.154701    0.000000 )
      bg_3 = (    0.000000   -0.000000    0.333333 )
      volume (bohr^3)  254.112647
+ Importing old force constant file: setting periodicity along ALL directions.
+ If system is isolated along one direction, please regenerate FCs with option '-n'.
     Original FC3 grid:           2           2           1
     Number of R:                49
- WARNING! FC2 and FC3 systems DO NOT MATCH !!!
  Reading : done.
  Memory used :            0 Mb
  calculation: lw              imag            
@@ -90,36 +101,37 @@
 
  Reading QPOINTS
  --> Setting up outer grid
-  Setup a bz     grid of      157 q-points
+  Setup a bz           grid of      157 q-points
  --> Setting up inner grid
   Random grid shift    0.008006    0.005600    0.000000
-  Setup a random grid of     3600 q-points
+  Setup a random       grid of     3600 q-points
   Going to compute   157 points (1)
-         0.0% | STEP TIME:         0.0s | STEP END:          -.-s | WALL:         0.7s 
-         0.6% | STEP TIME:         0.2s | STEP END:         37.2s | WALL:         0.9s 
-        10.3% | STEP TIME:         3.5s | STEP END:         34.6s | WALL:         4.3s 
-        19.9% | STEP TIME:         6.8s | STEP END:         34.5s | WALL:         7.6s 
-        30.1% | STEP TIME:        10.4s | STEP END:         34.4s | WALL:        11.1s 
-        40.4% | STEP TIME:        13.9s | STEP END:         34.4s | WALL:        14.6s 
-        50.0% | STEP TIME:        17.2s | STEP END:         34.4s | WALL:        17.9s 
-        60.3% | STEP TIME:        20.8s | STEP END:         34.5s | WALL:        21.5s 
-        70.5% | STEP TIME:        24.3s | STEP END:         34.4s | WALL:        25.0s 
-        80.8% | STEP TIME:        27.8s | STEP END:         34.4s | WALL:        28.5s 
-        90.4% | STEP TIME:        31.1s | STEP END:         34.4s | WALL:        31.8s 
-       100.0% | STEP TIME:        34.4s | STEP END:         34.4s | WALL:        35.1s 
-   * WALL :      35.3347 s
+         0.6% | STEP TIME:         0.5s | STEP END:         72.2s | WALL:         0.6s 
+        10.3% | STEP TIME:         5.7s | STEP END:         55.5s | WALL:         5.9s 
+        19.9% | STEP TIME:        11.0s | STEP END:         55.1s | WALL:        11.1s 
+        30.1% | STEP TIME:        16.3s | STEP END:         54.1s | WALL:        16.5s 
+        40.4% | STEP TIME:        22.0s | STEP END:         54.4s | WALL:        22.1s 
+        50.0% | STEP TIME:        27.2s | STEP END:         54.5s | WALL:        27.4s 
+        60.3% | STEP TIME:        33.6s | STEP END:         55.7s | WALL:        33.8s 
+        70.5% | STEP TIME:        39.7s | STEP END:         56.4s | WALL:        39.9s 
+        80.8% | STEP TIME:        46.0s | STEP END:         56.9s | WALL:        46.2s 
+        90.4% | STEP TIME:        51.6s | STEP END:         57.1s | WALL:        51.8s 
+       100.0% | STEP TIME:        57.1s | STEP END:         57.1s | WALL:        57.2s 
+   * WALL :      57.5634 s
    *                          *              ms *         ms/call *          ms*cpu *     ms*cpu/call *  % wtime *        calls *
-   *                 lw ph-ph *    34623.566480 *       55.133068 *      138494.266 *      220.532271 *   97.987 *         628. *
-   *                read data *       11.621176 *        2.905294 *          46.485 *       11.621176 *    0.033 *           4. *
+   *                 lw ph-ph *    57381.649209 *       91.372053 *      229526.597 *      365.488212 *   99.684 *         628. *
+   *                read data *        3.192738 *        0.798184 *          12.771 *        3.192738 *    0.006 *           4. *
 *** * Contributions to ph-ph linewidth time:
-   *         ph interp & diag *     2754.434362 *        0.004868 *       11017.737 *        0.019472 *    7.795 *      565828. *
-   *             bose distrib *      187.857405 *        0.000332 *         751.430 *        0.001329 *    0.532 *      565200. *
-   *                sum modes *     1837.490677 *        0.003251 *        7349.963 *        0.013004 *    5.200 *      565200. *
-   *          fc3 interpolate *     4898.380274 *        0.008667 *       19593.521 *        0.034667 *   13.863 *      565200. *
-   *           fc3 modulus sq *      160.932091 *        0.000285 *         643.728 *        0.001139 *    0.455 *      565200. *
-   *               fc3 rotate *    23460.048291 *        0.041508 *       93840.193 *        0.166030 *   66.394 *      565200. *
-   *        mpi communication *      481.354769 *        0.766488 *        1925.419 *        3.065954 *    1.362 *         628. *
-   *         merge degenerate *      143.919079 *        0.000255 *         575.676 *        0.001019 *    0.407 *      565200. *
+   *         ph interp & diag *     1471.408820 *        0.002600 *        5885.635 *        0.010402 *    2.556 *      565828. *
+   *            freqs on grid *     3217.630549 *        5.123616 *       12870.522 *       20.494462 *    5.590 *         628. *
+   *               tetrahedra *    49563.243940 *       78.922363 *      198252.976 *      315.689452 *   86.102 *         628. *
+   *             bose distrib *      661.105938 *        0.001170 *        2644.424 *        0.004679 *    1.148 *      565200. *
+   *                sum modes *     1139.395372 *        0.002016 *        4557.581 *        0.008064 *    1.979 *      565200. *
+   *          fc3 interpolate *      356.586032 *        0.000631 *        1426.344 *        0.002524 *    0.619 *      565200. *
+   *           fc3 modulus sq *       16.712724 *        0.000030 *          66.851 *        0.000118 *    0.029 *      565200. *
+   *               fc3 rotate *      683.091354 *        0.001209 *        2732.365 *        0.004834 *    1.187 *      565200. *
+   *        mpi communication *      208.453378 *        0.331932 *         833.814 *        1.327729 *    0.362 *         628. *
+   *         merge degenerate *        4.572011 *        0.000008 *          18.288 *        0.000032 *    0.008 *      565200. *
 
       
      For 2n+1 calculations of force constants please cite:
@@ -133,8 +145,12 @@
          Nature communications 6 (2015)
       4. G. Fugallo, A. Cepellotti, L. Paulatto, M. Lazzeri, N. Marzari, F. Mauri,
          Nano letters 14 (11), 6109-6114 (2014)
+      5. M. Simoncelli, N. Marzari, F. Mauri, Unified theory of thermal transport in crystals and glasses,
+         Nature Physics 15 (8), 809-813 (2019)
+      6. M. Simoncelli, N. Marzari, F. Mauri,
+         Wigner formulation of thermal transport in solids, Phys. Rev. X 12, 041011 (2022)
       
      For spectral function calculations also cite:
-      5. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
+      7. Lorenzo Paulatto, Ion Errea, Matteo Calandra, and Francesco Mauri,
          Phys. Rev. B 91, 054304 (2015)
 
