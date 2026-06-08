@@ -274,12 +274,19 @@ PROGRAM q2r
      CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc, nfar)
      CALL write_fc2(flfrc, S, fc)
 
-     IF(nr(1)==1 .and. .not. nopbc(1)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
-        "WARNING! please use '-n 1' if system is isolated along direction 1"
-     IF(nr(2)==1 .and. .not. nopbc(2)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
-        "WARNING! please use '-n 2' if system is isolated along direction 2"
-     IF(nr(3)==1 .and. .not. nopbc(3)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
-        "WARNING! please use '-n 3' if system is isolated along direction 3"     
+     IF(ANY(nr==1 .and. .not. nopbc)) THEN
+       WRITE(*,'(3/,80("*"),2/,10(a,/),80("*"),3/)') &
+                "WARNING WARNING WARNING!", &
+                "The system is assumend periodic along all three directions, but it has only one q-point",&
+                "along at least one direction. This is different from standard q2r which assume system",&
+                "to be isolated if and only if there is a single q-point along a given direction",&
+    "",&
+    "Use option `-n NOPBC` to specify where system is isolated.",&
+    "Can be 1, 2 or 3 or any combination.",&
+    "   I.e.   3 -> slab with vacuum along the third axis (typically z).",&
+    "        123 -> isolated molecule",&
+    "WARNING WARNING WARNING!"
+     ENDIF
      !
      DEALLOCATE (tau, ityp)
      !
