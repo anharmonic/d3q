@@ -246,7 +246,9 @@ CONTAINS
     INTEGER :: itau(S%nat)
     REAL(DP) :: qhat(3), qnorm
     !
+#ifndef _OPENMP
     CALL t_rigid%start()
+#endif
     !
     phi = 0._dp
     ! Non-analitical is only for q=0 and depends on the direction.
@@ -295,7 +297,9 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
+#ifndef _OPENMP
     CALL t_rigid%stop()
+#endif
 
     RETURN
   END SUBROUTINE

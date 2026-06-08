@@ -700,7 +700,7 @@ CONTAINS
       !
       INTEGER :: i,j, index3(3), iR3, nr, limits(3)
       REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
-      COMPLEX(DP) :: vphase(fc%n_R)
+      COMPLEX(DP) :: vphase(fc%n_R), aux(nat3,nat3,nat3)
       !
       DO i = 1, 3
          Dqr%minr(i) = MINVAL(fc%yR2(i,:))
@@ -723,22 +723,22 @@ CONTAINS
       vsin = DSIN(varg)
 #endif
       vphase =  CMPLX( vcos, -vsin, kind=DP  )
-      !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j) REDUCTION(+: DR3)
       !/!$ACC DATA COPYIN(fc%dat, fc%idx, vphase) COPY(DR3)
       DO i = 1, fc%n_R
-         !arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
-         !phase = CMPLX(Cos(arg),-Sin(arg), kind=DP)
+         index3 = fc%yR3(:,i) - Dqr%minr
+         iR3 = index3(1)*limits(2)*limits(3) + index3(2)*limits(3) + index3(3) + 1
+         Dqr%R3(iR3) = .true.
+         aux = 0._dp
+         !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(j) REDUCTION(+: aux)
          DO j = 1, fc%n_terms(i)
-            index3 = fc%yR3(:,i) - Dqr%minr
-            iR3 = index3(1)*limits(2)*limits(3) + index3(2)*limits(3) + index3(3) + 1
-            Dqr%R3(iR3) = .true.
-            Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
-               = Dqr%DR3(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j),iR3) &
+            aux(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
+               = aux(fc%dat(i)%idx(1,j),fc%dat(i)%idx(2,j),fc%dat(i)%idx(3,j)) &
                + vphase(i) * fc%dat(i)%fc(j)
          ENDDO
+         !$OMP END PARALLEL DO
+          Dqr%DR3(:,:,:,iR3) = Dqr%DR3(:,:,:,iR3)+aux
       END DO
       !/!$ACC END DATA
-      !$OMP END PARALLEL DO
    END SUBROUTINE
 
    SUBROUTINE sum_R3(S, xq, Dqr, D)
@@ -829,7 +829,7 @@ CONTAINS
       !
       D = (0._dp, 0._dp)
       !
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg,phase) REDUCTION(+: D)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,arg) REDUCTION(+: D)
       DO i = 1, fc%n_R
          arg = tpi * SUM(xq2(:)*fc%xR2(:,i) + xq3(:)*fc%xR3(:,i))
          cosine = Cos(arg)
