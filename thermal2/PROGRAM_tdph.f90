@@ -566,7 +566,7 @@ PROGRAM tdph
         CALL find_d2_symm_base(symq(iq)%xq, rank(iq), dmb(iq)%basis, &
          Si%nat, Si%at, Si%bg, symq(iq)%nsymq, symq(iq)%minus_q, &
          symq(iq)%irotmq, symq(iq)%rtau, symq(iq)%irt, symq(iq)%s, symq(iq)%invs, &
-         d2, input%basis)
+         input%basis, d2)
     ENDIF
   ENDDO Q_POINTS_LOOP_b1
   !

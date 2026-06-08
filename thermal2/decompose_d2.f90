@@ -158,8 +158,8 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
   integer,INTENT(in)  :: irotmq
   real(DP),INTENT(in) :: rtau(3,48,nat)
   integer,INTENT(in)  :: irt(48,nat), s(3,3,48), invs(48)
-  complex(dp),INTENT(in) :: u0(3*nat,3*nat)
   CHARACTER(len=*),INTENT(in) :: method 
+  COMPLEX(dp),OPTIONAL,INTENT(in) :: u0(3*nat,3*nat)
 
 ! input: the q point
 
@@ -180,7 +180,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    ! build an initial trivial basis for the hermitean matrices space
    !WRITE(*,'(2x,2a)') "Initial basis guess:", TRIM(method)
    IF (method=="mu") THEN
-      !IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
+      IF(.not. present(u0)) CALL errore("generate d2 base", 'u0 is required with "mu"', 1)
       call generate_mu_base(3*nat, mtx, u0, nx)
    ELSEIF (method=="simple") THEN
       call generate_simple_base(3*nat, mtx, nx)
@@ -255,16 +255,18 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    nb3 = nx ! save for printing
 
   ! Purge matrices that have zero projection of provided dynamical matrix
-   jx = 0
-   DO i = 1, nx
-   IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > eps_base ) THEN
-      jx = jx+1
-      IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
-   ENDIF
-   ENDDO
-   nx = jx
-   nb4 = nx ! save for printing
-   !ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
+  IF(present(u0))
+    jx = 0
+    DO i = 1, nx
+    IF( ABS(dotprodmat(3*nat, u0, mtx(:,:,i))) > eps_base ) THEN
+       jx = jx+1
+       IF(jx<i) mtx(:,:,jx) = mtx(:,:,i)
+    ENDIF
+    ENDDO
+    nx = jx
+  END IF
+  nb4 = nx ! save for printing
+  !ioWRITE(stdout,'(2x,a,i8)') "Number of purged orthonormal matrices:", jx
 
   WRITE(stdout,'(2x,a,3f12.4,/,a,4i8)') "xq=",xq, &
       "  Dyn.mat. basis (initial/symmetrized/orthogonal/purged) : ",    &
