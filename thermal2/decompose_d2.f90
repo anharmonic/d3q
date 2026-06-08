@@ -254,7 +254,7 @@ subroutine find_d2_symm_base(xq, rank, basis, nat, at, bg, &
    nx = jx
    nb3 = nx ! save for printing
 
-  ! Purge matrices that have zero projection of provided dynamical matrix
+  ! Purge matrices that have zero projection over the (optional) input dynamical matrix
   IF(present(u0)) THEN
     jx = 0
     DO i = 1, nx
@@ -320,6 +320,8 @@ function check_hermitean(n,a) result(r)
    enddo
 end function
 
+! we use as scalar product the trace of the product of the two matrices. 
+! it's much better to computer it directly, without doing the matrix product
 function dotprodmat(n,a,b) result(r)
   use kinds, only : dp
   implicit none
