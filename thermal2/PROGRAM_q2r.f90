@@ -274,9 +274,12 @@ PROGRAM q2r
      CALL quter(nr1, nr2, nr3, nat,tau,at,bg, matq, gridq, fc, nfar)
      CALL write_fc2(flfrc, S, fc)
 
-     IF(nr(1)==1 .and. .not. nopbc(1)) WRITE(*,*) "WARNING! please use '-n 1' if system is isolated along direction 1"
-     IF(nr(2)==1 .and. .not. nopbc(2)) WRITE(*,*) "WARNING! please use '-n 2' if system is isolated along direction 2"
-     IF(nr(3)==1 .and. .not. nopbc(3)) WRITE(*,*) "WARNING! please use '-n 3' if system is isolated along direction 3"     
+     IF(nr(1)==1 .and. .not. nopbc(1)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
+        "WARNING! please use '-n 1' if system is isolated along direction 1"
+     IF(nr(2)==1 .and. .not. nopbc(2)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
+        "WARNING! please use '-n 2' if system is isolated along direction 2"
+     IF(nr(3)==1 .and. .not. nopbc(3)) WRITE(*,'(3/,80("*"),/,a,/,80("*"),3/)')&
+        "WARNING! please use '-n 3' if system is isolated along direction 3"     
      !
      DEALLOCATE (tau, ityp)
      !
