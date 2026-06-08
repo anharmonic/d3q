@@ -28,7 +28,14 @@ MODULE fc3_interpolate
    !USE input_fc,              ONLY : ph_system_info
    ! \/o\________\\\______________________//\/___________________/~^>>
   INTERFACE ip_cart2pat
-!!#define __IP_WO_ZGEMM
+#ifdef __INTEL_LLVM_COMPILER
+#define __IP_WO_ZGEMM
+!dir$ message "----------------------------------------------------------------------------------------------"
+!dir$ message " WARNING using old rotation of D3 by hand. Because it is buggy with ifx (produces NaN)"
+!dir$ message " please check if it is still the case in the future and remove this from fc3_intep.f90"
+!dir$ message "----------------------------------------------------------------------------------------------"
+#endif
+
 #ifdef __IP_WO_ZGEMM
 !dir$ message "----------------------------------------------------------------------------------------------"
 !dir$ message "D3 matrix rotation: using fortran loop (slow but safe)"
@@ -48,7 +55,7 @@ MODULE fc3_interpolate
 #define ZGEMM zgemm3m
 #else
 !dir$ message "----------------------------------------------------------------------------------------------"
-!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it in d3q/thermal2/fc3_interp.f90
+!dir$ message "Not using ZGEMM3M: if you have this libray you can enable it in d3q/thermal2/fc3_interp.f90"
 !dir$ message "----------------------------------------------------------------------------------------------"
 #endif
 

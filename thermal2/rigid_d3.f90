@@ -11,7 +11,7 @@ MODULE rigid_d3
   CONTAINS
 !
 !-----------------------------------------------------------------------
-SUBROUTINE rgd_blk_d3(nr1, nr2, nr3, nat, dyn, q, tau, epsil, zeu, bg, omega, alat, loto_2d, sign) !, alpha)
+SUBROUTINE rgd_blk_d3(nopbc, nat, dyn, q, tau, epsil, zeu, bg, omega, alat, sign) !, alpha)
   !-----------------------------------------------------------------------
   !! Compute the rigid-ion (long-range) term for q.  
   !! The long-range term used here, to be added to or subtracted from the
@@ -25,10 +25,8 @@ SUBROUTINE rgd_blk_d3(nr1, nr2, nr3, nat, dyn, q, tau, epsil, zeu, bg, omega, al
   ! 
   IMPLICIT NONE
   !
-  LOGICAL :: loto_2d
-  !! 2D LOTO correction
-  INTEGER, INTENT(in) :: nr1, nr2, nr3
-  !! FFT grid
+  LOGICAL, INTENT(in) :: nopbc(3)
+  !! do not use periodic boundary conditions along direction
   INTEGER, INTENT(in) :: nat
   !! Number of atoms  
   REAL(KIND = DP), INTENT(in) :: q(3)
@@ -53,6 +51,8 @@ SUBROUTINE rgd_blk_d3(nr1, nr2, nr3, nat, dyn, q, tau, epsil, zeu, bg, omega, al
   !! Dynamical matrix
   !
   ! Local variables
+  LOGICAL :: loto_2d
+  !! 2D LOTO correction
   INTEGER :: nr1x, nr2x, nr3x
   !! Max nr in direction 1, 2, 3
   INTEGER :: na
@@ -96,6 +96,9 @@ SUBROUTINE rgd_blk_d3(nr1, nr2, nr3, nat, dyn, q, tau, epsil, zeu, bg, omega, al
   COMPLEX(KIND = DP) :: facg
   !! Factor
   !
+  ! LOTO 2D is only implemented along z
+  loto_2d = nopbc(3)
+
   ! alph is the Ewald parameter, geg is an estimate of G^2
   ! such that the G-space sum is convergent for that alph
   ! very rough estimate: geg/4/alph > gmax = 14
@@ -117,17 +120,17 @@ SUBROUTINE rgd_blk_d3(nr1, nr2, nr3, nat, dyn, q, tau, epsil, zeu, bg, omega, al
   ! and nr2=1, then the G-vectors run along nr3 only.
   ! (useful if system is in vacuum, e.g. 1D or 2D)
   !
-  IF (nr1 == 1) THEN
+  IF (nopbc(1)) THEN
     nr1x = 0
   ELSE
     nr1x = INT(SQRT(geg) / SQRT(bg(1, 1)**2 + bg(2, 1)**2 + bg(3, 1)**2)) + 1
   ENDIF
-  IF (nr2 == 1) THEN
+  IF (nopbc(2)) THEN
     nr2x = 0
   ELSE
     nr2x = INT(SQRT(geg) / SQRT(bg(1, 2)**2 + bg(2, 2)**2 + bg(3, 2)**2)) + 1
   ENDIF
-  IF (nr3 == 1) THEN
+  IF (nopbc(3)) THEN
     nr3x=0
   ELSE
     nr3x = INT(SQRT(geg) / SQRT(bg(1, 3)**2 + bg(2, 3)**2 + bg(3, 3)**2)) + 1

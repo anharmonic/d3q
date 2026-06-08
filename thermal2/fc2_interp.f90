@@ -69,7 +69,7 @@ CONTAINS
   ! \/o\________\\\_________________________________________/^>
   ! Compute the Dynamical matrix D by Fourier-interpolation of the
   ! force constants fc
-  SUBROUTINE fftinterp_mat2_reduce(xq, S, fc, D, xq_hat)
+  SUBROUTINE fftinterp_mat2_reduce(xq, S, fc, D, xq_hat, non_periodic)
     USE input_fc, ONLY : ph_system_info, forceconst2_grid
     USE constants, ONLY : tpi
     IMPLICIT NONE
@@ -79,6 +79,7 @@ CONTAINS
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
+    LOGICAL,INTENT(in),OPTIONAL :: non_periodic(3)
     !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
@@ -150,7 +151,7 @@ CONTAINS
     TYPE(forceconst2_grid),INTENT(in) :: fc
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
-    !
+      !
     INTEGER :: i, mu,nu
     REAL(DP) :: varg(fc%n_R), vcos(fc%n_R), vsin(fc%n_R)
     COMPLEX(DP) :: vphase(fc%n_R)
@@ -199,7 +200,7 @@ CONTAINS
     REAL(DP),INTENT(in) :: xq(3)
     COMPLEX(DP),INTENT(out) :: D(S%nat3, S%nat3)
     REAL(DP),INTENT(in),OPTIONAL :: xq_hat(3)
-    !
+      !
     REAL(DP) :: arg
     COMPLEX(DP) :: phase
     COMPLEX(DP),ALLOCATABLE :: D_aux(:,:)
@@ -245,10 +246,14 @@ CONTAINS
     !
     INTEGER :: itau(S%nat)
     REAL(DP) :: qhat(3), qnorm
+    LOGICAL :: loto_2d
+    INTEGER :: pbc(3)
     !
 #ifndef _OPENMP
     CALL t_rigid%start()
 #endif
+    !
+    loto_2d = S%nopbc(3)
     !
     phi = 0._dp
     ! Non-analitical is only for q=0 and depends on the direction.
@@ -276,13 +281,12 @@ CONTAINS
       IF(qnorm>0._dp) qhat = qhat/qnorm
       FORALL(i=1:S%nat) itau(i) = i
       !
-      CALL nonanal_d3(S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
+      IF(.not. loto_2d) CALL nonanal_d3(S%nat, S%nat, itau, S%epsil, qhat, S%zeu, S%omega, phi)
     ENDIF
     !
-    ! Add the long-range term rom effective charges
+    ! Add the long-range term from effective charges
     !CALL rgd_blk_d3(fc%nq(1),fc%nq(2),fc%nq(3),S%nat,phi,xq, &
-    CALL rgd_blk_d3(2,2,2,S%nat,phi,xq, &
-      S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,.false.,+1.d0)
+    CALL rgd_blk_d3(S%nopbc,S%nat,phi,xq, S%tau,S%epsil,S%zeu,S%bg,S%omega,S%alat,+1.d0)
     !
     DO ja = 1,S%nat
       DO ia = 1,S%nat

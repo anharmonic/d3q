@@ -280,8 +280,8 @@ MODULE tdph_module
       CALL zstar_to_supercell(Si%nat, nat_sc, zstar, zstar_sc)
       rbdyn = 0._dp
       CALL t_rigid%start()
-      CALL rgd_blk_d3(2,2,2, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
-                   omega_sc, Si%alat, .false., +1._dp) !, alpha=input%alpha_rigid)
+      CALL rgd_blk_d3(Si%nopbc, nat_sc, rbdyn, gamma, tau_sc_alat, Si%epsil, zstar_sc, bg_sc, &
+                   omega_sc, Si%alat, +1._dp) !, alpha=input%alpha_rigid)
       CALL t_rigid%stop()
 !$OMP PARALLELDO DEFAULT(shared) PRIVATE(istep,i,j,mat_ij)
       DO istep = 1, n_steps

@@ -64,7 +64,7 @@ CONTAINS
          DO it = 1,input%nconf
             filename=TRIM(input%outdir)//"/"//&
                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+               "_s"//TRIM(write_conf(it,input%nconf,input%sigma,input%delta_approx))//".out"
             OPEN(unit=1000+it, file=filename, position=pos)
             IF (TRIM(input%mode) == "full") THEN
                ioWRITE(1000+it, *) "# calculation of linewidth (gamma_n) [and lineshift (delta_n)]"
@@ -285,7 +285,7 @@ CONTAINS
             OPEN(unit=1000+it, position=pos, &
                file=TRIM(input%outdir)//"/"//TRIM(input%prefix)//&
                "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out")
+               "_s"//TRIM(write_conf(it,input%nconf,input%sigma,input%delta_approx))//".out")
             ioWRITE(1000+it, *) "# spectral function mode: ", input%mode
             ioWRITE(1000+it, '(a,i6,a,f6.1,a,100f6.1)') "#", it, "T=",input%T(it), "sigma=", input%sigma(it)
             ioWRITE(1000+it, *) "#   q-path     energy (cm^-1)         total      band1      band2    ....     "
@@ -308,7 +308,7 @@ CONTAINS
                OPEN(unit=1000+it, position=pos, &
                   file=TRIM(input%outdir)//"/"//TRIM(input%prefix)//&
                   "_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//&
+                  "_s"//TRIM(write_conf(it,input%nconf,input%sigma,input%delta_approx))//&
                   "_p"//TRIM(int_to_char(newfile))//".out")
             ENDIF
             ioWRITE(1000+it, *)
@@ -449,7 +449,7 @@ CONTAINS
          DO it = 1,input%nconf
             filename = TRIM(input%outdir)//"/"//&
                TRIM(input%prefix)//"_T"//TRIM(write_conf(it,input%nconf,input%T))//&
-               "_s"//TRIM(write_conf(it,input%nconf,input%sigma))//".out"
+               "_s"//TRIM(write_conf(it,input%nconf,input%sigma,input%delta_approx))//".out"
             OPEN(unit=1000+it, file=filename)
             ioWRITE(*,*) "opening ", TRIM(filename)
             ioWRITE(1000+it, '(2a)') "# final state decompositions, mode: ", input%mode
